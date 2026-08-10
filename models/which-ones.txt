@@ -1,0 +1,420 @@
+Models and expected locations
+=============================
+
+This list mirrors download_models.py. Trees show the files or major component
+directories expected from a fresh run; an ellipsis means the remainder of that
+repository snapshot is retained in the same folder.
+
+1. ideogram-ai/ideogram-4-fp8
+Expected folder: models/ideogram-ai--ideogram-4-fp8
+
+```text
+models/ideogram-ai--ideogram-4-fp8/
+├── model_index.json
+├── scheduler/
+├── text_encoder/
+├── tokenizer/
+├── transformer/
+├── unconditional_transformer/
+└── vae/
+```
+
+Used by: ideogram/local_generate.py through IDEOGRAM4_FP8_MODEL for native
+Ideogram generation.
+
+2. jixin0101/ObjectClear
+Expected folder: models/jixin0101--ObjectClear
+
+```text
+models/jixin0101--ObjectClear/
+├── model_index.json
+├── image_prompt_encoder/
+├── postfuse_module/
+├── scheduler/
+├── text_encoder/
+├── text_encoder_2/
+├── tokenizer/
+├── tokenizer_2/
+├── unet/
+└── vae/
+```
+
+Used by: ideogram/object_remover through OBJECTCLEAR_MODEL for masked object
+removal in the browser workbench.
+
+3. ZhengPeng7/BiRefNet
+Expected folder: models/ZhengPeng7--BiRefNet
+
+```text
+models/ZhengPeng7--BiRefNet/
+├── config.json
+├── model.safetensors
+├── BiRefNet_config.py
+├── birefnet.py
+└── requirements.txt
+```
+
+Used by: ideogram/object_remover through BIREFNET_MODEL for transparent
+background removal.
+
+4. meituan-longcat/LongCat-AudioDiT-3.5B
+Expected folder: models/meituan-longcat--AudioDiT-3.5B-tts-text-to-speech-SOTA
+
+```text
+models/meituan-longcat--AudioDiT-3.5B-tts-text-to-speech-SOTA/
+├── config.json
+└── model.safetensors
+```
+
+Used by: longcat through LONGCAT_MODEL_PATH for speech synthesis and
+reference-audio voice cloning.
+
+5. google/umt5-base tokenizer files
+Expected folder: models/google--umt5-base-tokenizer
+
+```text
+models/google--umt5-base-tokenizer/
+├── special_tokens_map.json
+├── spiece.model
+├── tokenizer.json
+└── tokenizer_config.json
+```
+
+Used by: longcat through LONGCAT_TOKENIZER_PATH for local text tokenization.
+
+6. MuScriptor/muscriptor-large
+Expected folder: models/MuScriptor--muscriptor-large
+
+```text
+models/MuScriptor--muscriptor-large/
+├── config.json
+└── model.safetensors
+```
+
+Used by: muscriptor through MUSCRIPTOR_MODEL_PATH for audio-to-note and MIDI
+transcription.
+
+7. MuScriptor/assets
+Expected folder: models/MuScriptor--assets
+
+```text
+models/MuScriptor--assets/
+├── MuseScore_General.sf2
+└── MuseScore_General.sf3
+```
+
+Used by: muscriptor through MUSCRIPTOR_SF2_PATH and MUSCRIPTOR_SF3_PATH for
+rendering and browser playback.
+
+8. PRAIG/musvit
+Expected folder: models/PRAIG--musvit
+
+```text
+models/PRAIG--musvit/
+├── config.json
+└── model.safetensors
+```
+
+Used by: musvit/musvit_embed.py through MUSVIT_MODEL_PATH for score-image
+representations.
+
+9. PRAIG/smt-fp-grandstaff
+Expected folder: models/PRAIG--smt-fp-grandstaff
+
+```text
+models/PRAIG--smt-fp-grandstaff/
+├── config.json
+└── model.safetensors
+```
+
+Used by: musvit/sheet_to_midi.py through SMT_MODEL_PATH for sheet-music
+decoding before MIDI and SVG rendering.
+
+10. nyralabs/CrisperWhisper2.0_large
+Expected folder: models/nyralabs--CrisperWhisper2.0_large
+
+```text
+models/nyralabs--CrisperWhisper2.0_large/
+├── config.json
+├── generation_config.json
+├── model.safetensors
+├── preprocessor_config.json
+├── tokenizer.json
+├── tokenizer_config.json
+├── merges.txt
+└── vocab.json
+```
+
+Used by: whisper through CW2_MODEL_PATH for literal, intended, alignment, and
+language-candidate transcription routes.
+
+11. mradermacher/EraX-Translator-V1.0-GGUF
+Expected folder: models/text-only/anhbn--raX-Translator-V1.0-GGUF
+
+```text
+models/text-only/anhbn--raX-Translator-V1.0-GGUF/
+└── EraX-Translator-V1.0.Q6_K.gguf
+```
+
+Used by: translate through TRANSLATE_MODEL_PATH for the primary multilingual
+translation route.
+
+12. papluca/xlm-roberta-base-language-detection
+Expected folder: models/text-only/papluca--xlm-roberta-base-language-detection
+
+```text
+models/text-only/papluca--xlm-roberta-base-language-detection/
+├── config.json
+├── model.safetensors
+├── sentencepiece.bpe.model
+├── tokenizer.json
+└── tokenizer_config.json
+```
+
+Used by: translate through TRANSLATE_DETECTOR_PATH for inexpensive language
+classification and candidate narrowing.
+
+13. anhbn/EraX-VL-7B-V1.5-Openvino-INT4
+Expected folder: models/text-only/anhbn--EraX-VL-7B-V1.5-Openvino-INT4
+
+```text
+models/text-only/anhbn--EraX-VL-7B-V1.5-Openvino-INT4/
+├── config.json
+├── tokenizer.json
+├── openvino_language_model.bin
+├── openvino_language_model.xml
+├── openvino_text_embeddings_model.bin
+├── openvino_text_embeddings_model.xml
+├── openvino_vision_embeddings_model.bin
+├── openvino_vision_embeddings_model.xml
+├── openvino_vision_embeddings_merger_model.bin
+└── openvino_vision_embeddings_merger_model.xml
+```
+
+Used by: translate through TRANSLATE_ARBITER_MODEL_PATH for fragment ranking,
+ambiguous-language arbitration, and translation fallback.
+
+14. T5B/Qwen-Image-Layered-FP8
+Expected folder: models/qwen/T5B--qwen-image-layered-fp8
+
+```text
+models/qwen/T5B--qwen-image-layered-fp8/
+└── qwen_image_layered_fp8_e4m3fn.safetensors
+```
+
+Used by: redesign through REDESIGN_QWEN_MODEL as the native layered-image
+transformer.
+
+15. diffusers/Qwen-Image-Layered-modular
+Expected folder: models/qwen/diffusers--hfstaff--Qwen-Image-Layered-modular
+
+```text
+models/qwen/diffusers--hfstaff--Qwen-Image-Layered-modular/
+├── modular_model_index.json
+├── processor/
+├── scheduler/
+├── text_encoder/
+├── tokenizer/
+├── transformer/
+└── vae/
+```
+
+Used by: redesign through REDESIGN_QWEN_COMPONENTS for the native modular
+pipeline configuration and non-transformer components.
+
+16. suzukimain/Qwen-Image-Layered-Control-SDNQ-int4
+Expected folder:
+models/qwen/suzukimain--extraint4stuff--Qwen-Image-Layered-Control-SDNQ-int4
+
+```text
+models/qwen/suzukimain--extraint4stuff--Qwen-Image-Layered-Control-SDNQ-int4/
+├── model_index.json
+├── processor/
+├── scheduler/
+├── text_encoder/
+├── tokenizer/
+├── transformer/
+└── vae/
+```
+
+Used by: redesign through REDESIGN_QWEN_TEXT_ENCODER_COMPONENTS and the
+fallback Diffusers path, primarily for the local text-encoder components.
+
+17. appmana/qwen-image-layered-int8convrot
+Expected folder: models/qwen/appmana--diffusion--qwen-image-layered-int8convrot
+
+```text
+models/qwen/appmana--diffusion--qwen-image-layered-int8convrot/
+└── qwen_image_layered_int8convrot.safetensors
+```
+
+Used by: redesign through REDESIGN_QWEN_INT8_PATH for the optional INT8
+diffusion/Comfy-compatible route.
+
+18. Comfy-Org/HunyuanVideo_1.5_repackaged Qwen text encoder
+Expected folder:
+models/qwen/comfy-org--text--qwen_2.5_vl_7b_fp8_scaled.safetensors
+
+```text
+models/qwen/comfy-org--text--qwen_2.5_vl_7b_fp8_scaled.safetensors/
+└── split_files/
+    └── text_encoders/
+        └── qwen_2.5_vl_7b_fp8_scaled.safetensors
+```
+
+Used by: redesign through REDESIGN_QWEN_TEXT_ENCODER_PATH and by its optional
+Comfy-compatible layered pipeline.
+
+19. Comfy-Org/Qwen-Image-Layered_ComfyUI VAE
+Expected folder: models/qwen/comfy-org--vae--qwen_image_layered_vae.safetensors
+
+```text
+models/qwen/comfy-org--vae--qwen_image_layered_vae.safetensors/
+└── split_files/
+    └── vae/
+        └── qwen_image_layered_vae.safetensors
+```
+
+Used by: redesign through REDESIGN_QWEN_VAE_PATH and by its optional
+Comfy-compatible layered pipeline.
+
+20. Kijai/Wan_ID_V2V_comfy
+Expected folder: models/kijai/Kijai--Wan_ID_V2V_comfy
+
+```text
+models/kijai/Kijai--Wan_ID_V2V_comfy/
+└── wan_2.1_idv2v_int8_convrot.safetensors
+```
+
+Used by: the standalone ~/repos/kijai-v2v Comfy workflow as its ID-V2V
+diffusion model.
+
+21. Comfy-Org/Wan_2.1_ComfyUI_repackaged
+Expected folder: models/kijai/Comfy-Org--Wan_2.1_ComfyUI_repackaged
+
+```text
+models/kijai/Comfy-Org--Wan_2.1_ComfyUI_repackaged/
+└── split_files/
+    ├── clip_vision/clip_vision_h.safetensors
+    ├── text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+    └── vae/wan_2.1_vae.safetensors
+```
+
+Used by: the standalone ~/repos/kijai-v2v Comfy workflow for vision, text,
+and VAE components.
+
+22. denisbalon/lightx2v-i2v-14b-480p-cfg-step-distill-rank64-bf16.safetensors
+Expected folder:
+models/kijai/denisbalon--lightx2v-i2v-14b-480p-cfg-step-distill-rank64-bf16
+
+```text
+models/kijai/denisbalon--lightx2v-i2v-14b-480p-cfg-step-distill-rank64-bf16/
+└── lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
+```
+
+Used by: the standalone ~/repos/kijai-v2v Comfy workflow as the distilled
+I2V LoRA.
+
+23. Kijai/WanVideo_comfy
+Expected folder: models/kijai/Kijai--WanVideo_comfy
+
+```text
+models/kijai/Kijai--WanVideo_comfy/
+└── Wan2_1_VAE_bf16.safetensors
+```
+
+Used by: the standalone ~/repos/kijai-v2v Comfy workflow as the alternate Wan
+VAE artifact.
+
+24. benjiaiplayground/GroundingDINO_SwinB
+Expected folder: redesign/weights
+
+```text
+redesign/weights/
+└── groundingdino_swinb_cogcoor.pth
+```
+
+Used by: redesign/ReDesign/tool_gpu_manager.py and the detect CLI primitive for
+open-vocabulary object detection.
+
+25. facebook/sam2.1-hiera-large
+Expected folder: redesign/weights
+
+```text
+redesign/weights/
+└── sam2.1_hiera_large.pt
+```
+
+Used by: redesign/ReDesign/tool_gpu_manager.py and the detect CLI primitive for
+object segmentation.
+
+26. GoGiants1/Hi-SAM
+Expected folder: redesign/weights
+
+```text
+redesign/weights/
+├── sam_tss_h_textseg.pth
+└── sam_vit_h_4b8939.pth
+```
+
+Used by: redesign text extraction for text-region masks and editable text
+layers.
+
+27. iimate/big-lama-pt
+Expected folder: redesign/weights
+
+```text
+redesign/weights/
+└── big-lama.pt
+```
+
+Used by: redesign text and object-removal primitives for local background
+inpainting.
+
+28. jixin0101/ObjectClear ReDesign cache
+Expected folder: redesign/weights/models--jixin0101--ObjectClear
+
+```text
+redesign/weights/models--jixin0101--ObjectClear/
+├── blobs/
+├── refs/
+└── snapshots/
+```
+
+Used by: redesign ObjectClear nodes and tool manager. This cache is separate
+from the direct ideogram ObjectClear folder because the ReDesign loader expects
+Hugging Face cache layout.
+
+29. google-bert/bert-base-uncased ReDesign cache
+Expected folder: redesign/weights/models--google-bert--bert-base-uncased
+
+```text
+redesign/weights/models--google-bert--bert-base-uncased/
+├── blobs/
+├── refs/
+└── snapshots/
+```
+
+Used by: redesign GroundingDINO as its local text encoder cache.
+
+30. PaddlePaddle/PP-OCRv5_server_det
+Expected folder: ~/.paddlex/official_models/PP-OCRv5_server_det
+
+```text
+~/.paddlex/official_models/PP-OCRv5_server_det/
+└── ... detector configuration and inference weights
+```
+
+Used by: redesign OCR tools for text-region detection. This location follows
+PaddleX's native model lookup path.
+
+31. PaddlePaddle/PP-OCRv5_server_rec
+Expected folder: ~/.paddlex/official_models/PP-OCRv5_server_rec
+
+```text
+~/.paddlex/official_models/PP-OCRv5_server_rec/
+└── ... recognizer configuration and inference weights
+```
+
+Used by: redesign OCR tools for local text recognition after detection. This
+location follows PaddleX's native model lookup path.
