@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+
+command -v cargo >/dev/null 2>&1 || {
+  printf 'Rust/Cargo is required and was not found on PATH.\n' >&2
+  exit 1
+}
+
+exec cargo run --release -- serve \
+  --host "${IMG2SVG_HOST:-0.0.0.0}" \
+  --port "${IMG2SVG_PORT:-417}" "$@"

@@ -44,7 +44,7 @@ enum Command {
     Serve {
         #[arg(long, default_value = "0.0.0.0")]
         host: String,
-        #[arg(long, default_value_t = 4170)]
+        #[arg(long, default_value_t = 417)]
         port: u16,
     },
 }

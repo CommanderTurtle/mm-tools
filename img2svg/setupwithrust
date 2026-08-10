@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+
+command -v cargo >/dev/null 2>&1 || {
+  printf 'Rust/Cargo is required and was not found on PATH.\n' >&2
+  exit 1
+}
+
+cargo build --release
+printf 'img2svg is ready. Start it with ./startwithrust\n'

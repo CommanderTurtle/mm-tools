@@ -19,15 +19,15 @@ One Rust binary owns decoding, tracing, the CLI, and the embedded browser interf
 
 ```bash
 cd ~/multimedia/img2svg
-./setupwithuv cpu
-./startwithuv
+./setupwithrust
+./startwithrust
 ```
 
-The setup creates an empty managed Python environment for portability and builds `target/release/img2svg`. The browser listens on port `4170` unless `IMG2SVG_HOST` or `IMG2SVG_PORT` overrides it.
+The setup performs a native release build with Cargo. The browser listens on port `417` unless `IMG2SVG_HOST` or `IMG2SVG_PORT` overrides it.
 
 ## Runtime lanes
 
-- Browser: `./startwithuv`
+- Browser: `./startwithrust`
 - One conversion:
 
   ```bash
