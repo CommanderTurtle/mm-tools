@@ -1,0 +1,9 @@
+loguru>=0.7.3
+numpy>=2.3.4
+opencv-python-headless>=4.11.0.86
+pillow>=12.0.0
+safetensors>=0.6.2
+torch>=2.9.0
+torchvision>=0.24.0
+transformers==4.49.0
+verovio==5.0.0
