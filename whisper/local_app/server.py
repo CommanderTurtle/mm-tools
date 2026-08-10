@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
@@ -17,6 +18,13 @@ from .core import manager, normalize_audio
 ROOT = Path(__file__).resolve().parent
 WEB = ROOT / "web"
 MAX_UPLOAD = int(os.getenv("CW2_MAX_UPLOAD_MB", "1024")) * 1024 * 1024
+APP_ROLE = os.getenv("CW2_APP_ROLE", "http")
+SECONDARY_PORT = int(os.getenv("CW2_PORT", "8172"))
+SECONDARY_SCHEME = (
+    "https"
+    if os.getenv("CW2_TLS_CERTFILE") and os.getenv("CW2_TLS_KEYFILE")
+    else "http"
+)
 
 def _autoload_enabled() -> bool:
     return os.getenv("CW2_AUTOLOAD", "1").strip().lower() not in {"0", "false", "no"}
@@ -33,6 +41,12 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="CrisperWhisper Local", version=__version__, lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 app.mount("/assets", StaticFiles(directory=WEB), name="assets")
 
 
@@ -52,6 +66,16 @@ def health() -> dict:
         "compute_type": cfg.compute_type,
         "model_path": str(cfg.model_path),
         "model_present": cfg.model_path.is_dir(),
+        "role": APP_ROLE,
+    }
+
+
+@app.get("/api/ui-config")
+def ui_config() -> dict:
+    return {
+        "role": APP_ROLE,
+        "secondary_port": SECONDARY_PORT,
+        "secondary_scheme": SECONDARY_SCHEME,
     }
 
 

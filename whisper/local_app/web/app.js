@@ -10,12 +10,54 @@ let timer = null;
 let elapsed = 0;
 let results = {};
 let activeResult = '';
+let localLoaded = false;
+let activeBase = '';
+let uiConfig = { secondary_port: 8172, secondary_scheme: 'http' };
+
+async function apiAt(base, path, options = {}) {
+  const response = await fetch(`${base}${path}`, options);
+  if (!response.ok) {
+    let detail = `${response.status} ${response.statusText}`;
+    try { detail = (await response.json()).detail ?? detail; } catch {}
+    throw new Error(detail);
+  }
+  return response;
+}
+
+const localApi = (path, options = {}) => apiAt('', path, options);
+const api = (path, options = {}) => apiAt(activeBase, path, options);
+
+function secondaryBase() {
+  const bareHost = location.hostname.replace(/^\[|\]$/g, '');
+  const host = bareHost.includes(':') ? `[${bareHost}]` : bareHost;
+  return `${uiConfig.secondary_scheme}://${host}:${uiConfig.secondary_port}`;
+}
+
+function renderRuntime(data, source) {
+  $('#runtime').textContent = `${source} · ${data.backend} · ${data.device}/${data.compute_type} · ${data.loaded ? 'model loaded' : 'model unloaded'}${data.model_present ? '' : ' · MODEL MISSING'}`;
+}
 
 async function health() {
   try {
-    const data = await fetch('/api/health').then(r => r.json());
-    $('#runtime').textContent = `${data.backend} · ${data.device}/${data.compute_type} · ${data.loaded ? 'model loaded' : 'lazy load'}${data.model_present ? '' : ' · MODEL MISSING'}`;
-  } catch { $('#runtime').textContent = 'Runtime unavailable'; }
+    const local = await (await localApi('/api/health')).json();
+    localLoaded = local.loaded;
+    $('#model-toggle').textContent = localLoaded ? 'Unload local model' : 'Load GPU model';
+    $('#model-toggle').disabled = !local.model_present;
+    $('#secondary-toggle').textContent = activeBase ? 'Use local model' : 'Check Secondary Load';
+
+    if (activeBase) {
+      try {
+        const secondary = await (await apiAt(activeBase, '/api/health')).json();
+        renderRuntime(secondary, 'Secondary HTTP');
+        return;
+      } catch (error) {
+        activeBase = '';
+        $('#secondary-toggle').textContent = 'Check Secondary Load';
+        statusNode.textContent = `Secondary service disconnected; using local UI. ${error.message}`;
+      }
+    }
+    renderRuntime(local, 'UI-local');
+  } catch { $('#runtime').textContent = 'UI runtime unavailable'; }
 }
 
 function setFile(file) {
@@ -84,9 +126,8 @@ $('#controls').addEventListener('submit', async event => {
   const body = new FormData(event.target); body.set('file', audioFile);
   body.set('word_timestamps', event.target.word_timestamps.checked ? 'true' : 'false');
   try {
-    const response = await fetch('/api/transcribe', { method: 'POST', body });
+    const response = await api('/api/transcribe', { method: 'POST', body });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || 'Transcription failed');
     results = data.results;
     const tabs = $('#result-tabs'); tabs.textContent = '';
     Object.keys(results).forEach((name, index) => {
@@ -99,6 +140,51 @@ $('#controls').addEventListener('submit', async event => {
   finally { button.disabled = false; }
 });
 
-$('#unload').addEventListener('click', async () => { await fetch('/api/unload', { method: 'POST' }); statusNode.textContent = 'GPU model unloaded'; health(); });
+$('#model-toggle').addEventListener('click', async () => {
+  const button = $('#model-toggle');
+  button.disabled = true;
+  activeBase = '';
+  $('#secondary-toggle').textContent = 'Check Secondary Load';
+  statusNode.textContent = localLoaded ? 'Unloading UI-local GPU model…' : 'Loading UI-local GPU model…';
+  try {
+    const data = await (await localApi(localLoaded ? '/api/unload' : '/api/load', { method: 'POST' })).json();
+    statusNode.textContent = data.loaded ? 'UI-local GPU model loaded' : 'UI-local GPU model unloaded';
+  } catch (error) {
+    statusNode.textContent = error.message;
+  } finally {
+    await health();
+  }
+});
+
+$('#secondary-toggle').addEventListener('click', async () => {
+  if (activeBase) {
+    activeBase = '';
+    statusNode.textContent = 'Using the UI-local model path.';
+    await health();
+    return;
+  }
+  const button = $('#secondary-toggle');
+  button.disabled = true;
+  statusNode.textContent = 'Checking the secondary HTTP model…';
+  try {
+    const candidate = secondaryBase();
+    const state = await (await apiAt(candidate, '/api/health')).json();
+    if (!state.loaded) throw new Error('Secondary service is running, but its model is unloaded.');
+    activeBase = candidate;
+    statusNode.textContent = 'Attached to the already-loaded secondary HTTP model.';
+  } catch (error) {
+    statusNode.textContent = `Secondary load unavailable: ${error.message}`;
+  } finally {
+    button.disabled = false;
+    await health();
+  }
+});
+
 $('#copy').addEventListener('click', () => navigator.clipboard.writeText(results[activeResult]?.text || ''));
-health();
+
+async function initialize() {
+  try { uiConfig = await (await localApi('/api/ui-config')).json(); } catch {}
+  await health();
+}
+
+initialize();
