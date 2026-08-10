@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export DO_NOT_TRACK=1
+export SCARF_NO_ANALYTICS=1
+export HF_HUB_DISABLE_TELEMETRY=1
+
 here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$here"
 
@@ -32,6 +36,10 @@ if [[ "$accelerator" == "gpu" ]]; then
     uv pip install --python .venv/bin/python -r requirements-core.txt
 else
   uv pip install --python .venv/bin/python -r requirements-core.txt
+fi
+
+if [[ -x .venv/bin/opt_in_out ]]; then
+  .venv/bin/opt_in_out --opt_out >/dev/null
 fi
 
 if [[ ! -f .env ]]; then

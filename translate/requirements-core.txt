@@ -1,4 +1,6 @@
 llama-cpp-python>=0.3.16
+openvino-genai>=2026.1.0,<2027
+openvino-tokenizers>=2026.1.0,<2027
 transformers>=4.50.3
 tokenizers>=0.21.0
 sentencepiece

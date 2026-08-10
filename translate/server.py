@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Private EraX translation and XLM-R language-detection HTTP service."""
+"""Private EraX translation, fragment arbitration, and language HTTP service."""
 
 from __future__ import annotations
 
@@ -18,19 +18,55 @@ from typing import Any
 
 MODEL_ID = "erax-translator-v1.0-q6-k"
 DETECTOR_ID = "xlm-roberta-base-language-detection"
+ARBITER_ID = "erax-vl-7b-v1.5-openvino-int4"
 DEFAULT_SYSTEM_PROMPT = (
-    "You are a precise multilingual translation system. Translate the entire "
-    "source faithfully into the requested language. Preserve names, numbers, "
-    "formatting, profanity, and tone. Never add commentary, an introduction, "
-    "a label, or an explanation. Return only the translated text."
+    "Bạn là hệ thống dịch thuật đa ngôn ngữ. Dịch đầy đủ và sát nghĩa sang "
+    "ngôn ngữ được yêu cầu. Giữ nguyên tên, số, định dạng, lời tục và giọng "
+    "điệu. Chỉ trả về bản dịch; không nhãn, giải thích hay bình luận."
 )
 LANGUAGE_NAMES = {
-    "ar": "Arabic", "bg": "Bulgarian", "de": "German", "el": "Greek",
-    "en": "English", "es": "Spanish", "fr": "French", "hi": "Hindi",
-    "it": "Italian", "ja": "Japanese", "nl": "Dutch", "pl": "Polish",
-    "pt": "Portuguese", "ru": "Russian", "sw": "Swahili", "th": "Thai",
-    "tr": "Turkish", "ur": "Urdu", "vi": "Vietnamese", "zh": "Chinese",
-    "ko": "Korean", "uk": "Ukrainian", "yue": "Cantonese",
+    "af": "Afrikaans", "am": "Amharic", "ar": "Arabic", "as": "Assamese",
+    "az": "Azerbaijani", "ba": "Bashkir", "be": "Belarusian", "bg": "Bulgarian",
+    "bn": "Bengali", "bo": "Tibetan", "br": "Breton", "bs": "Bosnian",
+    "ca": "Catalan", "cs": "Czech", "cy": "Welsh", "da": "Danish",
+    "de": "German", "el": "Greek", "en": "English", "es": "Spanish",
+    "et": "Estonian", "eu": "Basque", "fa": "Persian", "fi": "Finnish",
+    "fo": "Faroese", "fr": "French", "gl": "Galician", "gu": "Gujarati",
+    "ha": "Hausa", "haw": "Hawaiian", "he": "Hebrew", "hi": "Hindi",
+    "hr": "Croatian", "ht": "Haitian Creole", "hu": "Hungarian", "hy": "Armenian",
+    "id": "Indonesian", "is": "Icelandic", "it": "Italian", "ja": "Japanese",
+    "jw": "Javanese", "ka": "Georgian", "kk": "Kazakh", "km": "Khmer",
+    "kn": "Kannada", "ko": "Korean", "la": "Latin", "lb": "Luxembourgish",
+    "ln": "Lingala", "lo": "Lao", "lt": "Lithuanian", "lv": "Latvian",
+    "mg": "Malagasy", "mi": "Maori", "mk": "Macedonian", "ml": "Malayalam",
+    "mn": "Mongolian", "mr": "Marathi", "ms": "Malay", "mt": "Maltese",
+    "my": "Burmese", "ne": "Nepali", "nl": "Dutch", "nn": "Nynorsk",
+    "no": "Norwegian", "oc": "Occitan", "pa": "Punjabi", "pl": "Polish",
+    "ps": "Pashto", "pt": "Portuguese", "ro": "Romanian", "ru": "Russian",
+    "sa": "Sanskrit", "sd": "Sindhi", "si": "Sinhala", "sk": "Slovak",
+    "sl": "Slovenian", "sn": "Shona", "so": "Somali", "sq": "Albanian",
+    "sr": "Serbian", "su": "Sundanese", "sv": "Swedish", "sw": "Swahili",
+    "ta": "Tamil", "te": "Telugu", "tg": "Tajik", "th": "Thai",
+    "tk": "Turkmen", "tl": "Tagalog", "tr": "Turkish", "tt": "Tatar",
+    "uk": "Ukrainian", "ur": "Urdu", "uz": "Uzbek", "vi": "Vietnamese",
+    "yi": "Yiddish", "yo": "Yoruba", "yue": "Cantonese", "zh": "Chinese",
+}
+_VI_TARGET_NAMES = {
+    "en": "Anh", "english": "Anh",
+    "vi": "Việt", "vietnamese": "Việt",
+    "de": "Đức", "german": "Đức",
+    "fr": "Pháp", "french": "Pháp",
+    "es": "Tây Ban Nha", "spanish": "Tây Ban Nha",
+    "pt": "Bồ Đào Nha", "portuguese": "Bồ Đào Nha",
+    "it": "Ý", "italian": "Ý",
+    "nl": "Hà Lan", "dutch": "Hà Lan",
+    "ru": "Nga", "russian": "Nga",
+    "uk": "Ukraina", "ukrainian": "Ukraina",
+    "zh": "Hoa", "chinese": "Hoa",
+    "yue": "Quảng Đông", "cantonese": "Quảng Đông",
+    "ja": "Nhật", "japanese": "Nhật",
+    "ko": "Hàn", "korean": "Hàn",
+    "hi": "Hindi", "hindi": "Hindi",
 }
 _HEADER = re.compile(
     r"^(?:\*\*|__)?\s*(?:assistant|translation|translated text|output|result|"
@@ -48,6 +84,11 @@ class TranslationEngine:
         self,
         model_path: Path,
         detector_path: Path,
+        arbiter_model_path: Path,
+        arbiter_runtime_path: Path,
+        arbiter_device: str,
+        arbiter_max_tokens: int,
+        arbiter_finalists: int,
         max_tokens: int,
         n_ctx: int,
         n_gpu_layers: int,
@@ -55,6 +96,11 @@ class TranslationEngine:
     ) -> None:
         self.model_path = model_path
         self.detector_path = detector_path
+        self.arbiter_model_path = arbiter_model_path
+        self.arbiter_runtime_path = arbiter_runtime_path
+        self.arbiter_device = arbiter_device
+        self.arbiter_max_tokens = max(8, arbiter_max_tokens)
+        self.arbiter_finalists = min(8, max(2, arbiter_finalists))
         self.max_tokens = max(1, max_tokens)
         self.n_ctx = max(1024, n_ctx)
         self.n_gpu_layers = n_gpu_layers
@@ -62,12 +108,18 @@ class TranslationEngine:
         self._llm: Any | None = None
         self._detector_tokenizer: Any | None = None
         self._detector: Any | None = None
+        self._arbiter: Any | None = None
+        self._openvino_genai: Any | None = None
         self._torch: Any | None = None
         self._lock = threading.RLock()
 
     @property
     def loaded(self) -> bool:
-        return self._llm is not None and self._detector is not None
+        return (
+            self._llm is not None
+            and self._detector is not None
+            and self._arbiter is not None
+        )
 
     def load(self) -> None:
         with self._lock:
@@ -77,13 +129,19 @@ class TranslationEngine:
                 raise RuntimeError(f"EraX GGUF not found: {self.model_path}")
             if not (self.detector_path / "config.json").is_file():
                 raise RuntimeError(f"language detector not found: {self.detector_path}")
+            if not (self.arbiter_model_path / "openvino_language_model.xml").is_file():
+                raise RuntimeError(f"EraX-VL OpenVINO model not found: {self.arbiter_model_path}")
 
             from llama_cpp import Llama
+            import openvino_genai
             import torch
             from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
             os.environ.setdefault("HF_HUB_OFFLINE", "1")
             os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+            os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+            os.environ.setdefault("DO_NOT_TRACK", "1")
+            os.environ.setdefault("SCARF_NO_ANALYTICS", "1")
             self._llm = Llama(
                 model_path=str(self.model_path),
                 n_ctx=self.n_ctx,
@@ -99,6 +157,11 @@ class TranslationEngine:
             self._detector = AutoModelForSequenceClassification.from_pretrained(
                 self.detector_path, local_files_only=True
             ).to("cpu").eval()
+            arbiter_runtime = self._prepare_arbiter_runtime()
+            self._arbiter = openvino_genai.VLMPipeline(
+                arbiter_runtime, self.arbiter_device
+            )
+            self._openvino_genai = openvino_genai
             torch.set_num_threads(self.n_threads)
             self._torch = torch
 
@@ -107,6 +170,8 @@ class TranslationEngine:
             self._llm = None
             self._detector = None
             self._detector_tokenizer = None
+            self._arbiter = None
+            self._openvino_genai = None
             self._torch = None
             gc.collect()
 
@@ -114,20 +179,34 @@ class TranslationEngine:
         text = text.strip()
         if not text:
             raise ValueError("text is empty")
+        return self.detect_languages([text])[0]
+
+    def detect_languages(self, texts: list[str]) -> list[tuple[str, float]]:
+        """Classify a text batch in one inexpensive XLM-R forward pass."""
+        cleaned = [text.strip() for text in texts]
+        if not cleaned or any(not text for text in cleaned):
+            raise ValueError("texts contain an empty value")
         with self._lock:
             self.load()
             assert self._detector is not None
             assert self._detector_tokenizer is not None
             assert self._torch is not None
             inputs = self._detector_tokenizer(
-                text, truncation=True, max_length=512, return_tensors="pt"
+                cleaned,
+                padding=True,
+                truncation=True,
+                max_length=512,
+                return_tensors="pt",
             )
             with self._torch.inference_mode():
                 logits = self._detector(**inputs).logits
-                scores = self._torch.softmax(logits, dim=-1)[0]
-            confidence, index = self._torch.max(scores, dim=0)
-            language = self._detector.config.id2label[int(index.item())]
-            return str(language), float(confidence.item())
+                scores = self._torch.softmax(logits, dim=-1)
+            confidence, index = self._torch.max(scores, dim=1)
+            labels = self._detector.config.id2label
+            return [
+                (str(labels[int(row.item())]), float(score.item()))
+                for row, score in zip(index, confidence)
+            ]
 
     def translate(
         self,
@@ -143,37 +222,234 @@ class TranslationEngine:
         with self._lock:
             self.load()
             assert self._llm is not None
+            # EraX is itself multilingual.  A source token is useful metadata,
+            # but it must never gate translation; only Crisper needs the
+            # language selected by the optional MITM lane.
+            source_code = source_language
             confidence: float | None = None
-            if source_language.lower() in {"auto", "detect"}:
-                source_code, confidence = self.detect_language(text)
-                source = LANGUAGE_NAMES.get(source_code, source_code)
-            else:
-                source_code = source_language
-                source = LANGUAGE_NAMES.get(source_language.lower(), source_language)
-            target = LANGUAGE_NAMES.get(target_language.lower(), target_language)
-            limit = min(max(1, max_tokens or self.max_tokens), self.max_tokens)
-            response = self._llm.create_chat_completion(
-                messages=[
-                    {"role": "system", "content": system_prompt.strip()},
-                    {
-                        "role": "user",
-                        "content": f"Translate from {source} to {target}:\n\n{text}",
-                    },
-                ],
-                max_tokens=limit,
-                temperature=0.2,
-                top_p=0.95,
-                top_k=64,
-                min_p=0.1,
-                repeat_penalty=1.05,
+            target_key = target_language.strip().lower()
+            target = _VI_TARGET_NAMES.get(
+                target_key, LANGUAGE_NAMES.get(target_key, target_language)
             )
-            content = response["choices"][0]["message"]["content"]
-            if not isinstance(content, str):
-                raise RuntimeError("EraX returned no text")
-            translated = _clean_output(content)
-            if not translated:
-                raise RuntimeError("EraX returned an empty translation")
+            limit = min(max(1, max_tokens or self.max_tokens), self.max_tokens)
+            translated = self._translate_with_erax(
+                text, target, system_prompt, limit
+            )
+            if self._translation_needs_fallback(text, translated, target_key):
+                target_code = _language_code(target_key)
+                vl_target = LANGUAGE_NAMES.get(target_code or "", target_language)
+                translated = self._translate_with_vl(text, vl_target, limit)
             return translated, source_code, confidence
+
+    def _translate_with_erax(
+        self, text: str, target: str, system_prompt: str, limit: int
+    ) -> str:
+        assert self._llm is not None
+        response = self._llm.create_chat_completion(
+            messages=[
+                {"role": "system", "content": system_prompt.strip()},
+                {
+                    "role": "user",
+                    "content": f"{text}\n\nDịch sang tiếng {target}.",
+                },
+            ],
+            max_tokens=limit,
+            temperature=0.2,
+            top_p=0.95,
+            top_k=64,
+            min_p=0.1,
+            repeat_penalty=1.05,
+            stop=["<end_of_turn>", "<eos>"],
+        )
+        content = response["choices"][0]["message"]["content"]
+        if not isinstance(content, str):
+            raise RuntimeError("EraX returned no text")
+        translated = _clean_output(content)
+        if not translated:
+            raise RuntimeError("EraX returned an empty translation")
+        return translated
+
+    def _translation_needs_fallback(
+        self, source: str, translated: str, target_key: str
+    ) -> bool:
+        target_code = _language_code(target_key)
+        if _comparable_text(source) == _comparable_text(translated):
+            if target_code is None:
+                return True
+            detected, _ = self.detect_language(source)
+            return detected != target_code
+        if target_code is not None:
+            assert self._detector is not None
+            supported = {
+                str(label) for label in self._detector.config.id2label.values()
+            }
+            if target_code not in supported:
+                return False
+            detected, confidence = self.detect_language(translated)
+            return confidence >= 0.80 and detected != target_code
+        return False
+
+    def _translate_with_vl(self, text: str, target: str, limit: int) -> str:
+        """Use the resident INT4 model only when the tiny translator no-ops."""
+        assert self._arbiter is not None
+        assert self._openvino_genai is not None
+        config = self._openvino_genai.GenerationConfig()
+        config.max_new_tokens = min(128, limit)
+        config.do_sample = False
+        prompt = (
+            f"Translate the text into {target}. Return only the translation.\n"
+            f"Text: {text}"
+        )
+        generated = self._arbiter.generate(prompt, generation_config=config)
+        translated = _clean_output(_openvino_text(generated))
+        if not translated:
+            raise RuntimeError("EraX-VL returned an empty translation")
+        return translated
+
+    def arbitrate_candidates(self, candidates: object) -> dict[str, Any]:
+        """Resolve one utterance without turning detection into sticky state.
+
+        Crisper has already produced every language row in one decoder batch.
+        XLM-R is used here only as a cheap prefill reducer.  EraX-VL remains
+        the fragment/coherence arbiter, and a second tiny EraX-VL comparison
+        runs only when more than one translated finalist survives.
+        """
+        normalized = _normalize_candidates(candidates)
+        with self._lock:
+            self.load()
+            assert self._arbiter is not None
+            assert self._openvino_genai is not None
+            classifications = self.detect_languages(
+                [candidate["text"] for candidate in normalized]
+            )
+            for candidate, (language, confidence) in zip(normalized, classifications):
+                candidate["classifier_language"] = language
+                candidate["classifier_confidence"] = confidence
+
+            matched = [
+                candidate for candidate in normalized
+                if candidate["classifier_language"] == candidate["language_prompt"]
+            ]
+            # XLM-R covers 20 languages while Crisper exposes 98.  Preserve the
+            # four strongest acoustic candidates so the classifier can reduce
+            # prefill without making the other 78 languages unreachable.
+            acoustic = sorted(
+                normalized,
+                key=lambda candidate: float(candidate.get("acoustic_probability", 0.0)),
+                reverse=True,
+            )[:4]
+            pool: list[dict[str, Any]] = []
+            seen: set[int] = set()
+            for candidate in [*matched, *acoustic]:
+                source_index = int(candidate["source_index"])
+                if source_index not in seen:
+                    pool.append(candidate)
+                    seen.add(source_index)
+            if not pool:
+                pool = normalized
+            prompt = _fragment_arbiter_prompt(pool, self.arbiter_finalists)
+            config = self._openvino_genai.GenerationConfig()
+            config.max_new_tokens = self.arbiter_max_tokens
+            config.do_sample = False
+            generated = self._arbiter.generate(prompt, generation_config=config)
+            raw = _openvino_text(generated)
+            finalist_indexes = _parse_candidate_indexes(
+                raw, len(pool), self.arbiter_finalists
+            )
+            if not finalist_indexes:
+                retry = self._arbiter.generate(
+                    prompt + "\nAnswer now with comma-separated integers only.",
+                    generation_config=config,
+                )
+                raw = _openvino_text(retry)
+                finalist_indexes = _parse_candidate_indexes(
+                    raw, len(pool), self.arbiter_finalists
+                )
+            if not finalist_indexes:
+                finalist_indexes = [max(
+                    range(len(pool)),
+                    key=lambda index: float(pool[index].get("classifier_confidence", 0.0)),
+                )]
+
+            finalists = [pool[index] for index in finalist_indexes]
+            ambiguity_output: str | None = None
+            acoustic = max(
+                pool,
+                key=lambda candidate: float(candidate.get("acoustic_probability", 0.0)),
+            )
+            acoustic_probability = float(acoustic.get("acoustic_probability", 0.0))
+            # The acoustic prior identifies the spoken language, while these
+            # deliberately short candidate decodes identify viable text.  A
+            # 24-token candidate may be clipped even when its language prior
+            # is overwhelming; the selected token is followed by a separate
+            # full Crisper pass, so transcript completeness must not veto a
+            # decisive acoustic language result here.
+            acoustic_is_decisive = acoustic_probability >= 0.90
+            if acoustic_is_decisive:
+                selected = acoustic
+                ambiguity_output = f"acoustic-prior:{acoustic_probability:.6f}"
+            elif len(finalists) > 1:
+                for finalist in finalists:
+                    translation, _, _ = self.translate(
+                        finalist["text"], target_language="English", max_tokens=128
+                    )
+                    finalist["comparison_translation"] = translation
+                ambiguity_prompt = _ambiguity_prompt(finalists)
+                judged = self._arbiter.generate(
+                    ambiguity_prompt, generation_config=config
+                )
+                ambiguity_output = _openvino_text(judged)
+                selected_index = _parse_candidate_index(
+                    ambiguity_output, len(finalists)
+                )
+                if selected_index is None:
+                    selected_index = 0
+                selected = finalists[selected_index]
+            else:
+                selected = finalists[0]
+            return {
+                "selected_index": selected["source_index"],
+                "selected_candidate": selected,
+                "text": selected["text"],
+                "language": selected["language_prompt"],
+                "language_confidence": (
+                    selected.get("classifier_confidence")
+                    if selected.get("classifier_language") == selected["language_prompt"]
+                    else selected.get("acoustic_probability")
+                ),
+                "arbiter": ARBITER_ID,
+                "arbiter_output": raw,
+                "ambiguity_output": ambiguity_output,
+                "finalist_count": len(finalists),
+                "detector": DETECTOR_ID,
+            }
+
+    def _prepare_arbiter_runtime(self) -> Path:
+        """Compose an immutable model view with locally converted tokenizers."""
+        runtime = self.arbiter_runtime_path
+        runtime.mkdir(parents=True, exist_ok=True)
+        for source in self.arbiter_model_path.iterdir():
+            target = runtime / source.name
+            if target.exists() or target.is_symlink():
+                continue
+            target.symlink_to(source, target_is_directory=source.is_dir())
+
+        tokenizer_xml = runtime / "openvino_tokenizer.xml"
+        detokenizer_xml = runtime / "openvino_detokenizer.xml"
+        if not tokenizer_xml.is_file() or not detokenizer_xml.is_file():
+            import openvino as ov
+            from openvino_tokenizers import convert_tokenizer
+            from transformers import AutoTokenizer
+
+            tokenizer = AutoTokenizer.from_pretrained(
+                self.arbiter_model_path, local_files_only=True
+            )
+            ov_tokenizer, ov_detokenizer = convert_tokenizer(
+                tokenizer, with_detokenizer=True
+            )
+            ov.save_model(ov_tokenizer, tokenizer_xml)
+            ov.save_model(ov_detokenizer, detokenizer_xml)
+        return runtime
 
 
 class ApiHandler(BaseHTTPRequestHandler):
@@ -214,8 +490,9 @@ class ApiHandler(BaseHTTPRequestHandler):
         if self.path == "/health":
             self._json(HTTPStatus.OK, {
                 "status": "ok", "loaded": self.app.engine.loaded,
-                "model": MODEL_ID, "detector": DETECTOR_ID,
-                "runtime": "llama.cpp + transformers-cpu", "cloud": False,
+                "model": MODEL_ID, "detector": DETECTOR_ID, "arbiter": ARBITER_ID,
+                "runtime": "llama.cpp + OpenVINO INT4 + transformers-cpu",
+                "cloud": False,
             })
         elif self.path == "/v1/models":
             self._json(HTTPStatus.OK, {
@@ -239,6 +516,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             elif self.path == "/detect":
                 language, confidence = self.app.engine.detect_language(str(body.get("text", "")))
                 result = {"language": language, "confidence": confidence, "detector": DETECTOR_ID}
+            elif self.path == "/arbitrate":
+                result = self.app.engine.arbitrate_candidates(body.get("candidates", []))
             elif self.path == "/translate":
                 translation, language, confidence = self.app.engine.translate(
                     text=str(body.get("text", "")),
@@ -285,6 +564,111 @@ def _optional_int(value: object) -> int | None:
     return None if value is None else int(value)
 
 
+def _normalize_candidates(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list) or not value:
+        raise ValueError("candidates must be a non-empty array")
+    normalized: list[dict[str, Any]] = []
+    for position, item in enumerate(value):
+        if not isinstance(item, dict):
+            raise ValueError(f"candidate {position} must be an object")
+        text = str(item.get("text", "")).strip()
+        if not text:
+            continue
+        normalized.append({
+            "source_index": int(item.get("index", position)),
+            "language_prompt": str(item.get("language_prompt", "unknown")),
+            "acoustic_probability": float(item.get("acoustic_probability", 0.0)),
+            "text": text,
+            "terminal_punctuation": bool(item.get("terminal_punctuation", False)),
+            "ended_with_eot": bool(item.get("ended_with_eot", False)),
+            "hit_token_limit": bool(item.get("hit_token_limit", False)),
+            "generation_tokens": int(item.get("generation_tokens", 0)),
+            "punctuation_count": int(item.get("punctuation_count", 0)),
+            "word_count": int(item.get("word_count", len(text.split()))),
+            "character_count": int(item.get("character_count", len(text))),
+        })
+    if not normalized:
+        raise ValueError("candidates contain no text")
+    return normalized
+
+
+def _fragment_arbiter_prompt(
+    candidates: list[dict[str, Any]], maximum: int
+) -> str:
+    lines = [
+        "Rank the complete speech-transcript rows.",
+        "Reject fragments, clipped tails, gibberish, transliteration, echoes, and repetition.",
+        "A valid row must be grammatical in its named language and form a natural utterance.",
+        f"Return at most {maximum} zero-based row numbers, best first.",
+        "Output comma-separated integers only. Do not translate.",
+    ]
+    for row, candidate in enumerate(candidates):
+        lines.append(
+            f"{row}: [prompt_language={LANGUAGE_NAMES.get(candidate['language_prompt'], candidate['language_prompt'])}; "
+            f"terminal_punctuation={str(candidate['terminal_punctuation']).lower()}; "
+            f"ended={str(candidate['ended_with_eot']).lower()}; "
+            f"acoustic={candidate['acoustic_probability']:.4f}; "
+            f"punctuation_count={candidate['punctuation_count']}; "
+            f"words={candidate['word_count']}] {candidate['text']}"
+        )
+    return "\n".join(lines)
+
+
+def _ambiguity_prompt(candidates: list[dict[str, Any]]) -> str:
+    lines = [
+        "Choose the most coherent translation of one spoken utterance.",
+        "Each row names the decoder language, its transcript, and its English translation.",
+        "Reject mistranscription, gibberish, fragments, and semantically broken translations.",
+        "Return only the zero-based row number: one integer, no prose.",
+    ]
+    for row, candidate in enumerate(candidates):
+        lines.append(
+            f"{row}: [{LANGUAGE_NAMES.get(candidate['language_prompt'], candidate['language_prompt'])}] "
+            f"source={candidate['text']} | english={candidate['comparison_translation']}"
+        )
+    return "\n".join(lines)
+
+
+def _openvino_text(result: object) -> str:
+    texts = getattr(result, "texts", None)
+    if isinstance(texts, (list, tuple)) and texts:
+        return str(texts[0]).strip()
+    return str(result).strip()
+
+
+def _parse_candidate_index(value: str, count: int) -> int | None:
+    match = re.search(r"(?<!\d)(\d+)(?!\d)", value)
+    if not match:
+        return None
+    index = int(match.group(1))
+    return index if 0 <= index < count else None
+
+
+def _parse_candidate_indexes(value: str, count: int, maximum: int) -> list[int]:
+    indexes: list[int] = []
+    for match in re.finditer(r"(?<!\d)(\d+)(?!\d)", value):
+        index = int(match.group(1))
+        if 0 <= index < count and index not in indexes:
+            indexes.append(index)
+        if len(indexes) >= maximum:
+            break
+    return indexes
+
+
+def _language_code(value: str) -> str | None:
+    normalized = value.strip().lower()
+    if normalized in LANGUAGE_NAMES:
+        return normalized
+    for code, name in LANGUAGE_NAMES.items():
+        if name.lower() == normalized:
+            return code
+    return None
+
+
+def _comparable_text(value: str) -> str:
+    return re.sub(r"\W+", "", value, flags=re.UNICODE).casefold()
+
+
 def _clean_output(value: str) -> str:
     cleaned = value.strip()
     if cleaned.startswith("```"):
@@ -326,6 +710,11 @@ def main() -> None:
     engine = TranslationEngine(
         model_path=_env_path("TRANSLATE_MODEL_PATH", "~/multimedia/models/text-only/anhbn--raX-Translator-V1.0-GGUF/EraX-Translator-V1.0.Q6_K.gguf"),
         detector_path=_env_path("TRANSLATE_DETECTOR_PATH", "~/multimedia/models/text-only/papluca--xlm-roberta-base-language-detection"),
+        arbiter_model_path=_env_path("TRANSLATE_ARBITER_MODEL_PATH", "~/multimedia/models/text-only/anhbn--EraX-VL-7B-V1.5-Openvino-INT4"),
+        arbiter_runtime_path=_env_path("TRANSLATE_ARBITER_RUNTIME_PATH", "~/multimedia/translate/.runtime/erax-vl-openvino"),
+        arbiter_device=os.environ.get("TRANSLATE_ARBITER_DEVICE", "CPU"),
+        arbiter_max_tokens=int(os.environ.get("TRANSLATE_ARBITER_MAX_TOKENS", "16")),
+        arbiter_finalists=int(os.environ.get("TRANSLATE_ARBITER_FINALISTS", "4")),
         max_tokens=int(os.environ.get("TRANSLATE_MAX_TOKENS", "512")),
         n_ctx=int(os.environ.get("TRANSLATE_CONTEXT", "2048")),
         n_gpu_layers=int(os.environ.get("TRANSLATE_GPU_LAYERS", "-1")),
