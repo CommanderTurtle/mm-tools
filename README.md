@@ -2,6 +2,8 @@
 
 `mm-tools` is a pruned, local-first multimedia workstation monorepo. It contains the runtime source, per-project setup entrypoints, and browser/CLI frontends used by this tool suite. It does not contain checkpoints, virtual environments, caches, generated media, training/evaluation material, upstream documentation, or nested Git repositories.
 
+All tracked source is one AGPLv3 monorepo under the root `LICENSE`. There are no nested project licenses.
+
 Runtime inference is local. Network access is needed only while installing dependencies and downloading the model artifacts you choose to use.
 
 ## What you actually have to do
@@ -182,4 +184,3 @@ ReDesign also defaults to `8173`; change `CW2_UI_PORT` when both browser service
 | `8241` | Video to GIF/AVIF |
 
 Services bind to the configured private-LAN interface and do not add public-facing authentication by default. Keep them behind the host firewall or set the supported bearer token where provided.
-
