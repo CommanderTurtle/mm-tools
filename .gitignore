@@ -1,0 +1,22 @@
+# This monorepo is a deliberately pruned runtime export. The index is the
+# allowlist; every untracked production, vendor, model, cache, output, and
+# archived-history file is denied by default.
+/*
+
+# Root repository files.
+!/.gitignore
+!/LICENSE
+!/README.md
+
+# Runtime projects are already tracked by the root index. Keeping their root
+# directories ignored makes every additional production/vendor file opt-in;
+# tracked files continue to behave normally.
+
+# Models are always reconstructed locally. These are the only two tracked
+# files beneath models/.
+!/models/
+/models/**
+!/models/download_models.py
+!/models/download_models_info.txt
+
+# vox/, even-g2-duet/, and .git-archives/ are consequently excluded in full.
