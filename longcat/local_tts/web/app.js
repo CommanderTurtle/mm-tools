@@ -10,11 +10,13 @@ const message = $("#message");
 const player = $("#player");
 const result = $("#result");
 const download = $("#download");
+const hoist = $("#hoist");
 let loaded = false;
 let localLoaded = false;
 let activeBase = "";
-let uiConfig = { secondary_port: 8230, secondary_scheme: "http" };
+let uiConfig = { secondary_port: 8230, secondary_scheme: "http", router_url: "http://127.0.0.1:8182" };
 let resultUrl = null;
+let resultBlob = null;
 
 async function apiAt(base, path, options = {}) {
   const response = await fetch(`${base}${path}`, options);
@@ -126,6 +128,7 @@ form.addEventListener("submit", async (event) => {
   try {
     const response = await api("/api/synthesize", { method: "POST", body: new FormData(form) });
     const blob = await response.blob();
+    resultBlob = blob;
     if (resultUrl) URL.revokeObjectURL(resultUrl);
     resultUrl = URL.createObjectURL(blob);
     player.src = resultUrl;
@@ -139,6 +142,27 @@ form.addEventListener("submit", async (event) => {
   synthesizeButton.disabled = false;
   synthesizeButton.classList.remove("working");
   await refreshStatus();
+});
+
+hoist.addEventListener("click", async () => {
+  if (!resultBlob) {
+    message.textContent = "Generate speech before hoisting it.";
+    return;
+  }
+  hoist.disabled = true;
+  message.textContent = "Hoisting generated audio to the Vox microphone router…";
+  try {
+    await apiAt(uiConfig.router_url, "/v1/forward", {
+      method: "POST",
+      headers: { "Content-Type": resultBlob.type || "audio/wav" },
+      body: resultBlob,
+    });
+    message.textContent = "Audio queued on the virtual microphone.";
+  } catch (error) {
+    message.textContent = `Vox router unavailable: ${error.message}`;
+  } finally {
+    hoist.disabled = false;
+  }
 });
 
 async function initialize() {

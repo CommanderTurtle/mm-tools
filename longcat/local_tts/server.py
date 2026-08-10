@@ -21,6 +21,7 @@ WEB = ROOT / "web"
 engine = LongCatEngine()
 APP_ROLE = os.getenv("LONGCAT_APP_ROLE", "http")
 SECONDARY_PORT = int(os.getenv("LONGCAT_PORT", "8230"))
+ROUTER_URL = os.getenv("LONGCAT_ROUTER_URL", "http://127.0.0.1:8182").rstrip("/")
 
 
 def _autoload_enabled() -> bool:
@@ -71,6 +72,7 @@ async def ui_config() -> dict:
         "role": APP_ROLE,
         "secondary_port": SECONDARY_PORT,
         "secondary_scheme": "http",
+        "router_url": ROUTER_URL,
     }
 
 
