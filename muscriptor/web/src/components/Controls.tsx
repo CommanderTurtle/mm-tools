@@ -21,6 +21,8 @@ export function Controls(props: {
   // The transport's state isn't React state (and it can auto-stop at the end),
   // so poll it each frame to keep the toggle button's label in sync.
   const [playing, setPlaying] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [playError, setPlayError] = useState<string | null>(null);
   useEffect(() => {
     let raf = 0;
     const tick = () => {
@@ -38,14 +40,28 @@ export function Controls(props: {
           "inline-flex items-center gap-2",
           playing && "border-accent bg-accent text-white hover:border-accent hover:bg-accent",
         )}
-        onClick={(e) => {
+        disabled={starting}
+        onClick={async (e) => {
           e.currentTarget.blur();
-          playing ? audio.pause() : audio.play();
+          if (playing) {
+            audio.pause();
+            return;
+          }
+          setStarting(true);
+          setPlayError(null);
+          try {
+            await audio.play();
+          } catch (error) {
+            setPlayError(error instanceof Error ? error.message : String(error));
+          } finally {
+            setStarting(false);
+          }
         }}
       >
         {playing ? <IconPause /> : <IconPlay />}
-        {playing ? "Pause" : "Play"}
+        {starting ? "Loading sounds…" : playing ? "Pause" : "Play"}
       </Button>
+      {playError && <span className="text-sm text-red" role="alert">Playback unavailable: {playError}</span>}
       <Button
         className={clsx("text-content", following && "border-accent hover:border-accent")}
         aria-pressed={following}

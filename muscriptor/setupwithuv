@@ -13,6 +13,16 @@ command -v bun >/dev/null 2>&1 || {
   exit 1
 }
 
+if ! command -v fluidsynth >/dev/null 2>&1; then
+  if command -v apt-get >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+    printf 'Installing FluidSynth for browser WAV exports…\n'
+    sudo apt-get install -y fluidsynth
+  else
+    printf 'FluidSynth is required for WAV exports. Install the fluidsynth package, then rerun this setup.\n' >&2
+    exit 1
+  fi
+fi
+
 compute="${1:-}"
 if [[ -z "$compute" ]]; then
   read -r -p 'Compute target [gpu/cpu] (gpu): ' compute

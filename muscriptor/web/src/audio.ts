@@ -75,6 +75,8 @@ type NoteOpts = {
 export class AudioEngine {
   private ctx!: AudioContext;
   private synth: WorkletSynthesizer | null = null;
+  private synthReady: Promise<void>;
+  private synthError: Error | null = null;
   /** Notes scheduled while the synth / soundfont was still loading. */
   private pendingNotes: NoteOpts[] = [];
   /** MIDI channel assigned to each instrument group. */
@@ -115,8 +117,9 @@ export class AudioEngine {
     this.wavPanner.connect(this.ctx.destination);
     this.wavGain = this.ctx.createGain();
     this.wavGain.connect(this.wavPanner);
-    this.initSynth().catch((e) => {
-      console.error("Failed to initialize the synthesizer:", e);
+    this.synthReady = this.initSynth().catch((error) => {
+      this.synthError = error instanceof Error ? error : new Error(String(error));
+      console.error("Failed to initialize the synthesizer:", this.synthError);
     });
     this.applyMix();
     Tone.getTransport().on("start", (time) => this.startWavSource(time));
@@ -336,6 +339,8 @@ export class AudioEngine {
 
   async play() {
     await Tone.start();
+    await this.synthReady;
+    if (this.synthError) throw this.synthError;
     const t = Tone.getTransport();
     // If we're at the very start, every previously-fired scheduleOnce is gone;
     // re-schedule every known note (and the auto-stop) from scratch.

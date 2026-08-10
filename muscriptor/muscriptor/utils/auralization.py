@@ -9,6 +9,7 @@ Requires:
 """
 
 import os
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -56,6 +57,14 @@ def _synthesize_midi(midi_path: Path, soundfont_path: Path) -> np.ndarray:
     Raises:
         RuntimeError: If fluidsynth is not available or fails.
     """
+    configured_binary = os.environ.get("MUSCRIPTOR_FLUIDSYNTH", "fluidsynth")
+    fluidsynth = shutil.which(configured_binary)
+    if fluidsynth is None:
+        raise RuntimeError(
+            "FluidSynth is not installed. Re-run ./setupwithuv, or install the "
+            "fluidsynth package and restart MuScriptor."
+        )
+
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         synth_tmp = tmp.name
     try:
@@ -64,7 +73,7 @@ def _synthesize_midi(midi_path: Path, soundfont_path: Path) -> np.ndarray:
         # output file written).
         result = subprocess.run(
             [
-                "fluidsynth",
+                fluidsynth,
                 "-ni",
                 "-F",
                 synth_tmp,
