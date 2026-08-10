@@ -4,7 +4,8 @@ only huggingface_hub and hf_transfer before running download_models.py:
   uv venv --python 3.12.10 --seed --managed-python .venv
   source .venv/bin/activate
   uv pip install huggingface_hub hf_transfer
-  python download_models.py
+  EDIT THE FOLLOWING FILE'S CPU CORES (not 16 if you don't have 16)
+  uv run download_models.py
 
 The script is stateful and resumable through snapshot_download. Run it again
 after an interrupted transfer. It recreates the exact model and ReDesign
