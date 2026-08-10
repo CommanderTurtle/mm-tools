@@ -12,11 +12,72 @@
 # directories ignored makes every additional production/vendor file opt-in;
 # tracked files continue to behave normally.
 
-# Models are always reconstructed locally. These are the only two tracked
-# files beneath models/.
+# Canonical per-project setup and launch entrypoints. Re-open each project
+# directory only long enough to allow these files; every other new file stays
+# denied by default.
+!/ideogram/
+/ideogram/*
+!/ideogram/setupwithuv
+!/ideogram/startwithuv
+!/ideogram/start-object-remover.sh
+
+!/img2svg/
+/img2svg/*
+!/img2svg/setupwithuv
+!/img2svg/startwithuv
+
+!/longcat/
+/longcat/*
+!/longcat/setupwithuv
+!/longcat/starthttp.sh
+!/longcat/startwithuv.sh
+
+!/muscriptor/
+/muscriptor/*
+!/muscriptor/setupwithuv
+!/muscriptor/startwithuv
+!/muscriptor/startwithuv.sh
+
+!/musvit/
+/musvit/*
+!/musvit/setupwithuv
+!/musvit/startwithuv
+
+!/redesign/
+/redesign/*
+!/redesign/setupwithuv
+!/redesign/startwithuv
+!/redesign/startwithuv.sh
+
+!/translate/
+/translate/*
+!/translate/setupwithuv.sh
+!/translate/starthttp.sh
+
+!/video-compact/
+/video-compact/*
+!/video-compact/setupwithuv
+!/video-compact/startwithuv
+!/video-compact/startwithuv.sh
+
+!/video-to-gif-avif/
+/video-to-gif-avif/*
+!/video-to-gif-avif/setupwithuv
+!/video-to-gif-avif/startwithuv
+!/video-to-gif-avif/startwithuv.sh
+
+!/whisper/
+/whisper/*
+!/whisper/setupwithuv
+!/whisper/starthttp.sh
+!/whisper/startwithuv.sh
+
+# Models are always reconstructed locally. These are the only tracked files
+# beneath models/.
 !/models/
 /models/**
 !/models/download_models.py
 !/models/download_models_info.txt
+!/models/which-ones.txt
 
 # vox/, even-g2-duet/, and .git-archives/ are consequently excluded in full.
