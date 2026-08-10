@@ -53,7 +53,7 @@ https://github.com/user-attachments/assets/cb2c3b6d-60e5-4599-9be7-ad5472342b7e
 
 # Translating
 
-\*compatible with vox
+*compatible with vox*
 
 ![translate](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-translate.avif)
 
@@ -61,7 +61,7 @@ https://github.com/user-attachments/assets/cb2c3b6d-60e5-4599-9be7-ad5472342b7e
 
 # Speech-to-Text
 
-\*compatible with vox
+*compatible with vox*
 
 https://github.com/user-attachments/assets/944a9918-28dd-4a29-8e2b-76d1d80cd4e7
 
@@ -71,19 +71,19 @@ https://github.com/user-attachments/assets/944a9918-28dd-4a29-8e2b-76d1d80cd4e7
 
 # Video to GIF
 
-![gif](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-video-to-gif-avif.avif)
+![videotogifavif](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-video-to-gif-avif.avif)
 
-\*because who says ffmpeg is fine in cli?
+*because who says ffmpeg is fine in cli?*
 
 # Background Removal (Locally Hosted) -> AI Perfect SVG
 
-\*view what a combined workflow looks like:
+*view what a combined workflow looks like:*
 
-![comb](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-ideogram+img2svg.avif)
+![combinedflow](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-ideogram+img2svg.avif)
 
 # Redesign's asset-separation (qwen layered):
 
-![giblayers](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-redesign.avif)
+![gibmelayers](https://huggingface.co/sHEL1562/shelling/resolve/main/src/src/2-redesign.avif)
 
 # Music Tools (MusVIT & Muscriptor Frontends)
 
