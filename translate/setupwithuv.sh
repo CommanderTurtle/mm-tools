@@ -67,4 +67,5 @@ fi
 
 printf '%s\n' \
   'Local EraX translation runtime prepared.' \
-  'Review .env, then run ./starthttp.sh.'
+  'Review .env, then run ./startwithuv.sh for the browser UI.' \
+  'Run ./starthttp.sh separately only when the machine API is needed.'

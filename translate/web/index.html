@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Translate Local</title>
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">PRIVATE MULTILINGUAL WORKBENCH</p>
+        <h1>Translate<span>Local</span></h1>
+        <p class="lede">Language detection, multilingual translation, and deterministic local model control in one quiet workspace.</p>
+      </div>
+      <div id="runtime" class="runtime">Checking runtime…</div>
+    </header>
+
+    <section class="toolbar">
+      <button id="model-toggle" class="quiet">Load local model</button>
+      <button id="secondary-toggle" class="quiet">Check External Load</button>
+      <span id="status">Ready</span>
+    </section>
+
+    <section class="workspace">
+      <article class="pane source-pane">
+        <div class="pane-head">
+          <label>From <select id="source-language"><option value="auto">Detect automatically</option></select></label>
+          <button id="paste" class="icon" title="Paste from clipboard">Paste</button>
+        </div>
+        <textarea id="source" autofocus placeholder="Type or paste text in any language…"></textarea>
+        <div class="counter"><span id="source-count">0</span> characters</div>
+      </article>
+
+      <div class="bridge">
+        <button id="swap" class="swap" title="Swap source and target">⇄</button>
+        <span>local inference</span>
+      </div>
+
+      <article class="pane output-pane">
+        <div class="pane-head">
+          <label>To <select id="target-language"></select></label>
+          <button id="copy" class="icon" title="Copy translation">Copy</button>
+        </div>
+        <textarea id="output" readonly placeholder="Translation appears here…"></textarea>
+        <div id="meta" class="counter">No translation yet</div>
+      </article>
+    </section>
+
+    <section class="runbar">
+      <label>Maximum output tokens <input id="max-tokens" type="number" min="16" max="2048" value="512"></label>
+      <button id="translate" class="primary">Translate locally <kbd>Ctrl ↵</kbd></button>
+    </section>
+  </main>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

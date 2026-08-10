@@ -1,0 +1,219 @@
+from __future__ import annotations
+
+import json
+import os
+import urllib.error
+import urllib.request
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Any, Literal
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
+
+from server import (
+    ARBITER_ID,
+    DEFAULT_SYSTEM_PROMPT,
+    DETECTOR_ID,
+    LANGUAGE_NAMES,
+    MODEL_ID,
+    TranslationEngine,
+    _env_path,
+)
+
+
+WEB = Path(__file__).resolve().parents[1] / "web"
+EXTERNAL_HOST = os.getenv("TRANSLATE_EXTERNAL_HOST", "127.0.0.1")
+EXTERNAL_PORT = int(os.getenv("TRANSLATE_PORT", "8176"))
+EXTERNAL_TIMEOUT = float(os.getenv("TRANSLATE_EXTERNAL_TIMEOUT", "10"))
+
+
+def _new_engine() -> TranslationEngine:
+    return TranslationEngine(
+        model_path=_env_path(
+            "TRANSLATE_MODEL_PATH",
+            "~/multimedia/models/text-only/anhbn--raX-Translator-V1.0-GGUF/"
+            "EraX-Translator-V1.0.Q6_K.gguf",
+        ),
+        detector_path=_env_path(
+            "TRANSLATE_DETECTOR_PATH",
+            "~/multimedia/models/text-only/"
+            "papluca--xlm-roberta-base-language-detection",
+        ),
+        arbiter_model_path=_env_path(
+            "TRANSLATE_ARBITER_MODEL_PATH",
+            "~/multimedia/models/text-only/anhbn--EraX-VL-7B-V1.5-Openvino-INT4",
+        ),
+        arbiter_runtime_path=_env_path(
+            "TRANSLATE_ARBITER_RUNTIME_PATH",
+            "~/multimedia/translate/.runtime/erax-vl-openvino",
+        ),
+        arbiter_device=os.getenv("TRANSLATE_ARBITER_DEVICE", "CPU"),
+        arbiter_max_tokens=int(os.getenv("TRANSLATE_ARBITER_MAX_TOKENS", "16")),
+        arbiter_finalists=int(os.getenv("TRANSLATE_ARBITER_FINALISTS", "4")),
+        max_tokens=int(os.getenv("TRANSLATE_MAX_TOKENS", "512")),
+        n_ctx=int(os.getenv("TRANSLATE_CONTEXT", "2048")),
+        n_gpu_layers=int(os.getenv("TRANSLATE_GPU_LAYERS", "-1")),
+        n_threads=int(
+            os.getenv(
+                "TRANSLATE_THREADS", str(max(1, (os.cpu_count() or 4) // 2))
+            )
+        ),
+    )
+
+
+engine = _new_engine()
+
+
+def _autoload() -> bool:
+    return os.getenv("TRANSLATE_UI_AUTOLOAD", "0").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+    }
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    if _autoload():
+        await run_in_threadpool(engine.load)
+    try:
+        yield
+    finally:
+        await run_in_threadpool(engine.unload)
+
+
+app = FastAPI(title="Translate Local Workbench", lifespan=lifespan)
+app.mount("/assets", StaticFiles(directory=WEB), name="assets")
+
+
+class TranslationRequest(BaseModel):
+    text: str = Field(min_length=1)
+    source_language: str = "auto"
+    target_language: str = "English"
+    max_tokens: int | None = Field(default=None, ge=1, le=2048)
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT
+    backend: Literal["local", "external"] = "local"
+
+
+def _external_url(path: str) -> str:
+    return f"http://{EXTERNAL_HOST}:{EXTERNAL_PORT}{path}"
+
+
+def _external_request(
+    path: str, payload: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    headers = {"Accept": "application/json"}
+    api_key = os.getenv("TRANSLATE_API_KEY", "").strip()
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    data = None
+    if payload is not None:
+        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(
+        _external_url(path), data=data, headers=headers, method="POST" if data else "GET"
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=EXTERNAL_TIMEOUT) as response:
+            value = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        message = exc.read().decode("utf-8", errors="replace").strip()
+        try:
+            parsed = json.loads(message)
+            message = str(parsed.get("error") or parsed.get("detail") or message)
+        except (json.JSONDecodeError, AttributeError):
+            pass
+        raise RuntimeError(message or f"External service returned HTTP {exc.code}") from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise RuntimeError(f"External translator is unavailable: {exc}") from exc
+    if not isinstance(value, dict):
+        raise RuntimeError("External translator returned an invalid response")
+    return value
+
+
+@app.get("/")
+def index() -> FileResponse:
+    return FileResponse(WEB / "index.html")
+
+
+@app.get("/api/health")
+def health() -> dict[str, Any]:
+    return {
+        "ok": True,
+        "loaded": engine.loaded,
+        "model": MODEL_ID,
+        "detector": DETECTOR_ID,
+        "arbiter": ARBITER_ID,
+        "runtime": "UI-local · llama.cpp + OpenVINO INT4 + transformers-cpu",
+        "model_present": engine.model_path.is_file(),
+        "cloud": False,
+    }
+
+
+@app.get("/api/languages")
+def languages() -> dict[str, dict[str, str]]:
+    return {"languages": LANGUAGE_NAMES}
+
+
+@app.get("/api/external-health")
+def external_health() -> dict[str, Any]:
+    try:
+        state = _external_request("/health")
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc)) from exc
+    return {"ok": True, "endpoint": _external_url(""), **state}
+
+
+@app.post("/api/load")
+def load() -> dict[str, Any]:
+    engine.load()
+    return {"ok": True, "loaded": True}
+
+
+@app.post("/api/unload")
+def unload() -> dict[str, Any]:
+    engine.unload()
+    return {"ok": True, "loaded": False}
+
+
+@app.post("/api/translate")
+def translate(request: TranslationRequest) -> dict[str, Any]:
+    if request.backend == "external":
+        try:
+            result = _external_request(
+                "/translate",
+                {
+                    "text": request.text,
+                    "source_language": request.source_language,
+                    "target_language": request.target_language,
+                    "system_prompt": request.system_prompt,
+                    "max_tokens": request.max_tokens,
+                },
+            )
+        except RuntimeError as exc:
+            raise HTTPException(503, str(exc)) from exc
+        return {"backend": "external", **result}
+
+    try:
+        value, source, confidence = engine.translate(
+            request.text,
+            source_language=request.source_language,
+            target_language=request.target_language,
+            system_prompt=request.system_prompt,
+            max_tokens=request.max_tokens,
+        )
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(500, f"Translation failed: {exc}") from exc
+    return {
+        "backend": "local",
+        "translation": value,
+        "source_language": source,
+        "source_confidence": confidence,
+        "model": MODEL_ID,
+    }
