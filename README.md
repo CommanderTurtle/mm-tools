@@ -71,7 +71,7 @@ https://github.com/user-attachments/assets/944a9918-28dd-4a29-8e2b-76d1d80cd4e7
 
 # Video to GIF
 
-![videotogifavif](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-video-to-gif-avif.avif)
+https://github.com/user-attachments/assets/5bbf433b-e625-43c0-95ae-b639768bebb1
 
 *because who says ffmpeg is fine in cli?*
 
@@ -79,11 +79,11 @@ https://github.com/user-attachments/assets/944a9918-28dd-4a29-8e2b-76d1d80cd4e7
 
 *view what a combined workflow looks like:*
 
-![combinedflow](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-ideogram+img2svg.avif)
+https://github.com/user-attachments/assets/ef51c085-35ab-4604-b35a-6cc7a3bac730
 
 # Redesign's asset-separation (qwen layered):
 
-![gibmelayers](https://huggingface.co/sHEL1562/shelling/resolve/main/src/src/2-redesign.avif)
+https://github.com/user-attachments/assets/a74bba02-e665-41fe-b380-1824e4882f68
 
 # Music Tools (MusVIT & Muscriptor Frontends)
 
