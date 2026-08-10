@@ -8,13 +8,32 @@ export HF_HUB_DISABLE_TELEMETRY=1
 here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$here"
 
+command -v uv >/dev/null 2>&1 || {
+  printf 'uv is required and was not found on PATH.\n' >&2
+  exit 1
+}
+
 if [[ ! -x .venv/bin/python ]]; then
   uv venv --python 3.12.10 --seed --managed-python .venv
 else
   printf 'Reusing existing isolated environment: %s\n' "$here/.venv"
 fi
 
-accelerator="${TRANSLATE_ACCELERATOR:-gpu}"
+accelerator="${1:-${TRANSLATE_ACCELERATOR:-}}"
+if [[ -z "$accelerator" ]]; then
+  read -r -p 'Compute target [gpu/cpu] (gpu): ' accelerator
+  accelerator="${accelerator:-gpu}"
+fi
+accelerator="${accelerator,,}"
+
+case "$accelerator" in
+  gpu|cpu) ;;
+  *)
+    printf 'Choose either gpu or cpu.\n' >&2
+    exit 2
+    ;;
+esac
+
 if [[ "$accelerator" == "gpu" ]]; then
   torch_index="${TRANSLATE_TORCH_INDEX:-https://download.pytorch.org/whl/cu130}"
 else
