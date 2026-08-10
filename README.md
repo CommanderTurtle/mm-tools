@@ -79,7 +79,7 @@ https://github.com/user-attachments/assets/5bbf433b-e625-43c0-95ae-b639768bebb1
 
 *view what a combined workflow looks like:*
 
-https://github.com/user-attachments/assets/ef51c085-35ab-4604-b35a-6cc7a3bac730
+[2-ideogram%2Bimg2svg.mp4](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-ideogram%2Bimg2svg.mp4)
 
 # Redesign's asset-separation (qwen layered):
 
