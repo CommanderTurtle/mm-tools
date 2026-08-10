@@ -27,11 +27,20 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-import ctranslate2
 import numpy as np
 
 if TYPE_CHECKING:
+    import ctranslate2
+
     from crisperwhisper.engine import CT2Engine
+else:
+    try:
+        import ctranslate2
+    except ImportError:
+        # The post-hoc loop detector below is also used by the Transformers
+        # backend. CT2 remains optional until one of the CT2-only decoding
+        # helpers is actually called.
+        ctranslate2 = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
 

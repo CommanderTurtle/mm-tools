@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CrisperWhisper Local</title>
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">OFFLINE SPEECH WORKBENCH</p>
+        <h1>CrisperWhisper <span>2.0</span></h1>
+        <p>Literal speech, intended speech, alignment, and word-level timing. Your audio never leaves this machine.</p>
+      </div>
+      <div id="runtime" class="runtime">Checking runtime…</div>
+    </header>
+
+    <section class="input-card">
+      <div id="dropzone" class="dropzone" tabindex="0">
+        <input id="file" type="file" accept="audio/*,.m4a,.mp3,.wav,.flac,.ogg,.webm" hidden>
+        <strong id="file-label">Drop audio here or choose a file</strong>
+        <small>MP3 · WAV · M4A · FLAC · OGG · browser recording</small>
+      </div>
+      <div class="recording">
+        <button id="record" class="secondary">● Record microphone</button>
+        <span id="record-time">00:00</span>
+        <audio id="preview" controls></audio>
+      </div>
+    </section>
+
+    <form id="controls">
+      <div class="primary-controls">
+        <label>Operation
+          <select name="operation" id="operation">
+            <option value="both">Literal + intended</option>
+            <option value="verbatim">Literal only</option>
+            <option value="intended">Intended only</option>
+            <option value="verbatimize">Recover literal speech</option>
+            <option value="align">Force-align transcript</option>
+          </select>
+        </label>
+        <label>Language
+          <select name="language">
+            <option value="en">English</option><option value="es">Spanish</option>
+            <option value="fr">French</option><option value="de">German</option>
+            <option value="it">Italian</option><option value="pt">Portuguese</option>
+            <option value="nl">Dutch</option><option value="pl">Polish</option>
+            <option value="ru">Russian</option><option value="uk">Ukrainian</option>
+            <option value="ja">Japanese</option><option value="zh">Chinese</option>
+            <option value="ko">Korean</option><option value="ar">Arabic</option>
+            <option value="hi">Hindi</option><option value="tr">Turkish</option>
+          </select>
+        </label>
+        <label class="check"><input name="word_timestamps" type="checkbox" checked> Word timings</label>
+      </div>
+
+      <label id="transcript-wrap" class="full hidden">Reference transcript
+        <textarea name="transcript" rows="4" placeholder="Paste intended text to verbatimize, or reference text to align…"></textarea>
+      </label>
+
+      <details>
+        <summary>Decoding controls</summary>
+        <div class="advanced">
+          <label>Long-audio strategy
+            <select name="strategy"><option>continuation</option><option>chunked_lcs</option><option>token_lcs</option></select>
+          </label>
+          <label>Chunk seconds <input name="chunk_duration" type="number" min="1" max="30" step="1" value="30"></label>
+          <label>Stride seconds <input name="stride" type="number" min="1" max="30" step="1" value="26"></label>
+          <label>Context words <input name="context_words" type="number" min="0" max="64" value="12"></label>
+          <label>Maximum new tokens <input name="max_new_tokens" type="number" min="32" max="2048" value="256"></label>
+          <label>Hotwords <input name="hotwords" placeholder="Nyra, project name, surname"></label>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button id="run" type="submit">Transcribe locally</button>
+        <button id="unload" class="secondary" type="button">Unload GPU model</button>
+        <span id="status">Ready</span>
+      </div>
+    </form>
+
+    <section id="results" class="results hidden">
+      <nav id="result-tabs"></nav>
+      <article>
+        <div class="result-head"><h2 id="result-title">Transcript</h2><button id="copy" class="secondary">Copy</button></div>
+        <div id="transcript" class="transcript"></div>
+        <div id="metrics" class="metrics"></div>
+      </article>
+      <details class="json"><summary>Structured JSON</summary><pre id="json"></pre></details>
+    </section>
+  </main>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>
