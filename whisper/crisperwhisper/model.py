@@ -475,6 +475,22 @@ class CrisperWhisperModel:
             UserWarning, stacklevel=3,
         )
 
+    def detect_language(
+        self,
+        audio: Union[str, Path, np.ndarray],
+        *,
+        sr: int | None = None,
+    ) -> tuple[str, float]:
+        """Detect the spoken ISO-639-1 language using Whisper's encoder.
+
+        This is a single lightweight decoder-prefix classification pass. It
+        does not transcribe every language and it reuses the already-loaded
+        CrisperWhisper model.
+        """
+        samples = load_audio(audio, sr=sr)
+        features = self._engine.extract_features(samples[: 30 * SAMPLE_RATE])
+        return self._engine.detect_language(features)
+
     def transcribe(
         self,
         audio: Union[str, Path, np.ndarray],

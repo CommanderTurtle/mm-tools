@@ -230,6 +230,15 @@ class CT2Engine:
     def get_language_id(self, language: str) -> int | None:
         return self._lang_ids.get(language)
 
+    def detect_language(self, features) -> tuple[str, float]:
+        """Return Whisper's highest-probability ISO-639-1 language token."""
+        results = self.model.detect_language(features)
+        if not results or not results[0]:
+            raise RuntimeError("Whisper returned no language candidates")
+        token, probability = results[0][0]
+        language = str(token).removeprefix("<|").removesuffix("|>")
+        return language, float(probability)
+
     def get_decoder_prefix(self, language: str = "en") -> list[int]:
         """Build the standard Whisper decoder prefix token IDs."""
         prefix: list[int] = []
@@ -862,5 +871,4 @@ class CT2Engine:
             return np.zeros((0, 0), dtype=np.float32)
         sv = self.model.collected_attention_to_cpu(state, average_heads=average_heads)
         return np.array(sv)
-
 

@@ -159,6 +159,13 @@ class ModelManager:
                 hotwords=hotwords,
             )
 
+    def detect_language(self, audio: Path) -> dict[str, Any]:
+        """Reuse the resident model for a single Whisper language-ID pass."""
+        with self._inference_lock:
+            model = self.load()
+            language, confidence = model.detect_language(audio)
+            return {"language": language, "confidence": confidence}
+
     def _run_locked(
         self,
         audio: Path,

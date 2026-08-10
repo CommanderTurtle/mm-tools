@@ -273,6 +273,27 @@ class TransformersEngine:
     def get_language_id(self, language: str) -> int | None:
         return self._lang_ids.get(language)
 
+    def detect_language(self, features) -> tuple[str, float]:
+        """Return the most likely language from Whisper's first decoder step."""
+        import torch
+
+        if self.sot_id is None or not self._lang_ids:
+            raise RuntimeError("model tokenizer exposes no Whisper language tokens")
+        decoder = torch.tensor([[self.sot_id]], device=self.device, dtype=torch.long)
+        with torch.inference_mode():
+            logits = self.model(
+                input_features=features,
+                decoder_input_ids=decoder,
+            ).logits[0, -1].float()
+        languages = list(self._lang_ids)
+        token_ids = torch.tensor(
+            [self._lang_ids[language] for language in languages],
+            device=logits.device,
+        )
+        probabilities = torch.softmax(logits[token_ids], dim=0)
+        index = int(torch.argmax(probabilities).item())
+        return languages[index], float(probabilities[index].item())
+
     def get_decoder_prefix(self, language: str = "en") -> list[int]:
         """Build the standard Whisper decoder prefix token IDs."""
         prefix: list[int] = []

@@ -151,3 +151,24 @@ async def transcribe(
         raise HTTPException(500, f"Transcription failed: {exc}") from exc
     finally:
         await file.close()
+
+
+@app.post("/api/detect-language")
+async def detect_language(file: UploadFile = File(...)) -> dict:
+    """Classify spoken language without running parallel transcriptions."""
+    suffix = Path(file.filename or "audio").suffix[:12]
+    try:
+        with tempfile.TemporaryDirectory(prefix="cw2-language-") as temp:
+            temp_dir = Path(temp)
+            source = temp_dir / f"source{suffix}"
+            wav = temp_dir / "audio.wav"
+            await run_in_threadpool(_copy_upload, file, source)
+            await run_in_threadpool(normalize_audio, source, wav)
+            result = await run_in_threadpool(manager.detect_language, wav)
+            return {"ok": True, **result}
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(500, f"Language detection failed: {exc}") from exc
+    finally:
+        await file.close()
