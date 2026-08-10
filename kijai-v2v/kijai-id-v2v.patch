@@ -1,0 +1,107 @@
+From 7fb4aefac072720a4bbc75e276b8fb71cd031875 Mon Sep 17 00:00:00 2001
+From: kijai <40791699+kijai@users.noreply.github.com>
+Date: Wed, 29 Jul 2026 18:58:53 +0300
+Subject: [PATCH] Support ID-V2V
+
+---
+ comfy/ldm/wan/model.py    | 11 +++++++++--
+ comfy/model_detection.py  |  2 ++
+ comfy/supported_models.py |  2 +-
+ comfy_extras/nodes_wan.py |  6 +++++-
+ 4 files changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/comfy/ldm/wan/model.py b/comfy/ldm/wan/model.py
+index c042e93c4c9..9a7639749eb 100644
+--- a/comfy/ldm/wan/model.py
++++ b/comfy/ldm/wan/model.py
+@@ -749,12 +749,13 @@ def __init__(self,
+                  image_model=None,
+                  vace_layers=None,
+                  vace_in_dim=None,
++                 vace_image_input=False,
+                  device=None,
+                  dtype=None,
+                  operations=None,
+                  ):
+ 
+-        super().__init__(model_type='t2v', patch_size=patch_size, text_len=text_len, in_dim=in_dim, dim=dim, ffn_dim=ffn_dim, freq_dim=freq_dim, text_dim=text_dim, out_dim=out_dim, num_heads=num_heads, num_layers=num_layers, window_size=window_size, qk_norm=qk_norm, cross_attn_norm=cross_attn_norm, eps=eps, flf_pos_embed_token_number=flf_pos_embed_token_number, image_model=image_model, device=device, dtype=dtype, operations=operations)
++        super().__init__(model_type='i2v' if vace_image_input else 't2v', patch_size=patch_size, text_len=text_len, in_dim=in_dim, dim=dim, ffn_dim=ffn_dim, freq_dim=freq_dim, text_dim=text_dim, out_dim=out_dim, num_heads=num_heads, num_layers=num_layers, window_size=window_size, qk_norm=qk_norm, cross_attn_norm=cross_attn_norm, eps=eps, flf_pos_embed_token_number=flf_pos_embed_token_number, image_model=image_model, device=device, dtype=dtype, operations=operations)
+         operation_settings = {"operations": operations, "device": device, "dtype": dtype}
+ 
+         # Vace
+@@ -807,6 +808,12 @@ def forward_orig(
+                 context = torch.concat([context_clip, context], dim=1)
+             context_img_len = clip_fea.shape[-2]
+ 
++        # vace blocks are t2v pretrained, they attend over text tokens only
++        if context_img_len is None:
++            context_vace = context
++        else:
++            context_vace = context[:, context_img_len:]
++
+         orig_shape = list(vace_context.shape)
+         vace_context = vace_context.movedim(0, 1).reshape([-1] + orig_shape[2:])
+         c = self.vace_patch_embedding(vace_context.float()).to(vace_context.dtype)
+@@ -841,7 +848,7 @@ def block_wrap(args):
+             ii = self.vace_layers_mapping.get(i, None)
+             if ii is not None:
+                 for iii in range(len(c)):
+-                    c_skip, c[iii] = self.vace_blocks[ii](c[iii], x=x_orig, e=e0, freqs=freqs, context=context, context_img_len=context_img_len, transformer_options=transformer_options)
++                    c_skip, c[iii] = self.vace_blocks[ii](c[iii], x=x_orig, e=e0, freqs=freqs, context=context_vace, context_img_len=None, transformer_options=transformer_options)
+                     x += c_skip * vace_strength[iii]
+                 del c_skip
+         # head
+diff --git a/comfy/model_detection.py b/comfy/model_detection.py
+index 39e973d36c7..e80479df982 100644
+--- a/comfy/model_detection.py
++++ b/comfy/model_detection.py
+@@ -688,6 +688,8 @@ def detect_unet_config(state_dict, key_prefix, metadata=None):
+             dit_config["model_type"] = "vace"
+             dit_config["vace_in_dim"] = state_dict['{}vace_patch_embedding.weight'.format(key_prefix)].shape[1]
+             dit_config["vace_layers"] = count_blocks(state_dict_keys, '{}vace_blocks.'.format(key_prefix) + '{}.')
++            if '{}img_emb.proj.0.bias'.format(key_prefix) in state_dict_keys:  # ID-V2V, vace on an i2v model
++                dit_config["vace_image_input"] = True
+         elif '{}control_adapter.conv.weight'.format(key_prefix) in state_dict_keys:
+             if '{}img_emb.proj.0.bias'.format(key_prefix) in state_dict_keys:
+                 dit_config["model_type"] = "camera"
+diff --git a/comfy/supported_models.py b/comfy/supported_models.py
+index ca89850a594..9cd58f1de3b 100644
+--- a/comfy/supported_models.py
++++ b/comfy/supported_models.py
+@@ -1382,7 +1382,7 @@ def __init__(self, unet_config):
+         self.memory_usage_factor = 1.2 * self.memory_usage_factor
+ 
+     def get_model(self, state_dict, prefix="", device=None):
+-        out = model_base.WAN21_Vace(self, image_to_video=False, device=device)
++        out = model_base.WAN21_Vace(self, image_to_video=self.unet_config.get("vace_image_input", False), device=device)
+         return out
+ 
+ class WAN21_HuMo(WAN21_T2V):
+diff --git a/comfy_extras/nodes_wan.py b/comfy_extras/nodes_wan.py
+index 0e47a58df76..3efe156eacf 100644
+--- a/comfy_extras/nodes_wan.py
++++ b/comfy_extras/nodes_wan.py
+@@ -29,6 +29,7 @@ def define_schema(cls):
+                 io.Int.Input("batch_size", default=1, min=1, max=4096),
+                 io.ClipVisionOutput.Input("clip_vision_output", optional=True),
+                 io.Image.Input("start_image", optional=True),
++                io.Image.Input("ref_pad_image", optional=True, tooltip="Fills the padding frames of the image conditioning with this image instead of gray, anchoring identity without pinning frames (SVI-style anti-drift padding, used by models such as ID-V2V)."),
+             ],
+             outputs=[
+                 io.Conditioning.Output(display_name="positive"),
+@@ -38,11 +39,14 @@ def define_schema(cls):
+         )
+ 
+     @classmethod
+-    def execute(cls, positive, negative, vae, width, height, length, batch_size, start_image=None, clip_vision_output=None) -> io.NodeOutput:
++    def execute(cls, positive, negative, vae, width, height, length, batch_size, start_image=None, clip_vision_output=None, ref_pad_image=None) -> io.NodeOutput:
+         latent = torch.zeros([batch_size, 16, ((length - 1) // 4) + 1, height // 8, width // 8], device=comfy.model_management.intermediate_device())
+         if start_image is not None:
+             start_image = comfy.utils.common_upscale(start_image[:length].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
+             image = torch.ones((length, height, width, start_image.shape[-1]), device=start_image.device, dtype=start_image.dtype) * 0.5
++            if ref_pad_image is not None:
++                ref_pad_image = comfy.utils.common_upscale(ref_pad_image[:1].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
++                image[:, :, :, :3] = ref_pad_image[:, :, :, :3].to(device=image.device, dtype=image.dtype)
+             image[:start_image.shape[0]] = start_image
+ 
+             concat_latent_image = vae.encode(image[:, :, :, :3])
