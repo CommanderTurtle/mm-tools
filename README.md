@@ -58,17 +58,6 @@ cd ~/multimedia/img2svg
 ./startwithuv                             # http://127.0.0.1:4170
 ```
 
-### Kijai V2V
-
-Windows ComfyUI Portable patch/workflow kit for Kijai's ID-V2V implementation.
-
-```powershell
-.\Install-KijaiV2V.ps1
-.\Install-KijaiV2V.ps1 -Apply
-```
-
-Run the first command as a dry inspection. Apply only after its three-way patch check succeeds.
-
 ### LongCat
 
 Local LongCat voice synthesis and cloning. The HTTP service and browser workbench own independent model lifecycles.
