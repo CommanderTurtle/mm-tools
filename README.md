@@ -49,7 +49,7 @@ Assuming one has a nice GPU, you can host a wide variety of tools. Emulating the
 
 # Voice Cloning
 
-[insert]
+https://github.com/user-attachments/assets/cb2c3b6d-60e5-4599-9be7-ad5472342b7e
 
 # Translating
 
@@ -59,11 +59,13 @@ Assuming one has a nice GPU, you can host a wide variety of tools. Emulating the
 
 - an in-house built translation pipeline with native web-ui. Compatibile with [vox](https://github.com/CommanderTurtle/vox) system-audio driver. (This exact fork)
 
-# Speech-To-Text
+# Text-to-Speech & Speech-to-Text
 
 \*compatible with vox
 
-[insert]
+https://github.com/user-attachments/assets/f4718137-67cd-46cf-89a6-35a1e2a6ac37
+
+https://github.com/user-attachments/assets/944a9918-28dd-4a29-8e2b-76d1d80cd4e7
 
 # Video Compression
 
@@ -87,7 +89,7 @@ Assuming one has a nice GPU, you can host a wide variety of tools. Emulating the
 
 # Music Tools (MusVIT & Muscriptor Frontends)
 
-[insert]
+https://github.com/user-attachments/assets/263b2134-0891-411b-932a-f0e5ead6b077
 
 ![musvit](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-musvit.png)
 
