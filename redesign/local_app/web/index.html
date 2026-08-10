@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>ReDesign Local</title>
-  <link rel="stylesheet" href="/assets/style.css">
+  <link rel="stylesheet" href="/assets/style.css?v=2">
   <style>select{font:inherit;width:100%;background:#090c10;border:1px solid #292e38;border-radius:6px;color:#edf0f5;padding:8px 9px}.left-panel details>small{display:block;margin-top:10px;color:#858d9c;font-size:10px;line-height:1.4}</style>
 </head>
 <body>
@@ -63,6 +63,15 @@
     </section>
   </main>
 
-  <script src="/assets/app.js" defer></script>
+  <script>
+    window.setTimeout(() => {
+      const readiness = document.getElementById('readiness');
+      if (readiness?.textContent?.includes('Inspecting runtime')) {
+        readiness.textContent = 'Workbench UI failed to start · restart the server and reload';
+        readiness.classList.add('failed');
+      }
+    }, 4000);
+  </script>
+  <script src="/assets/app.js?v=2" defer onerror="document.getElementById('readiness').textContent='Workbench assets unavailable · restart the server and reload'"></script>
 </body>
 </html>
