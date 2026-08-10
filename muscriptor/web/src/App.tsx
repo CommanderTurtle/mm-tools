@@ -9,9 +9,8 @@ import { FeedbackLine } from "./components/FeedbackLine";
 import { PianoRollCanvas } from "./components/PianoRollCanvas";
 import { InstrumentList } from "./components/InstrumentList";
 import { DropOverlay } from "./components/DropOverlay";
-import { Footer, PartnerLogos } from "./components/Footer";
+import { Footer, RuntimeBadge } from "./components/Footer";
 import { WelcomeScreen } from "./components/WelcomeScreen";
-import { ConsentBanner } from "./components/ConsentBanner";
 import { Faq } from "./components/Faq";
 import { track } from "./analytics";
 
@@ -372,15 +371,15 @@ export function App() {
           />
           <div className="flex flex-col gap-1">
             <span className="text-[clamp(2.3rem,6vw,3rem)] font-bold leading-none text-white">MuScriptor</span>
-            <span className="text-sm text-muted">
-              Audio to MIDI transcription
+            <span className="font-mono text-xs uppercase tracking-[0.2em] text-muted">
+              Local Score Lab
             </span>
           </div>
         </div>
 
         {/* Also in the footer; here it's decoration, so it goes away on narrow
             screens rather than wrapping under the wordmark. */}
-        <PartnerLogos className="self-center max-sm:hidden" />
+        <RuntimeBadge className="self-center max-sm:hidden" />
       </header>
 
       {screen === "welcome" ? (
@@ -454,8 +453,6 @@ export function App() {
       )}
 
       <Footer />
-
-      <ConsentBanner />
 
       {screen === "transcribe" && <DropOverlay />}
     </>

@@ -9,19 +9,17 @@
  * generated from the same strings, so it costs ~8 lines and can't go stale.
  */
 
-import { track } from "../analytics";
-
 /** Answers are single strings with `[label](href)` links and `code` spans
  *  inline, so the visible copy and the JSON-LD can't drift: both are rendered
  *  from the same text (see `renderAnswer` / `plainText`). */
 const QA: { q: string; a: string }[] = [
   {
     q: "What is MuScriptor?",
-    a: "MuScriptor is an audio to MIDI converter: you give it a recording and it transcribes the notes played by every instrument into MIDI. It was developed by [Kyutai](https://kyutai.org/) and [Mirelo](https://mirelo.ai/).",
+    a: "MuScriptor is a local audio-to-MIDI workbench. It separates a recording into note events and instruments, then presents the result as downloadable MIDI and an interactive piano roll.",
   },
   {
-    q: "Is it free to use?",
-    a: "Yes. This demo is free, the code is MIT-licensed, and the model weights are published on HuggingFace under CC BY-NC 4.0 (non-commercial use). If you want to run it locally, check out our [GitHub repo](https://github.com/muscriptor/muscriptor).",
+    q: "Does audio leave this machine?",
+    a: "No. This build talks only to the MuScriptor service running beside the page. Uploaded working files are temporary and the finished MIDI is returned directly to the browser.",
   },
   {
     q: "What audio formats can I upload?",
@@ -37,23 +35,19 @@ const QA: { q: string; a: string }[] = [
   },
   {
     q: "Can I run it locally or use it from Python?",
-    a: "Yes. `uvx muscriptor serve` runs this same web UI on your machine, `uvx muscriptor transcribe song.mp3` does it from the command line, and the Python API is a couple of lines. It runs on NVIDIA GPUs, on Apple Silicon via Metal, and on CPU with the small model. [Setup instructions are on GitHub](https://github.com/muscriptor/muscriptor).",
+    a: "Yes. `./startwithuv` opens this local studio, while `./startwithuv song.mp3` runs the single-file CLI. The setup prompt prepares either a GPU or CPU environment.",
   },
   {
     q: "How accurate is it?",
-    a: "It's the strongest open transcription model we know of, but it is not perfect. Expect a very good starting point that you clean up in a DAW. MuScriptor tends to work better on acoustic and guitar music than electronic music. If you'd like a more exact benchmark, [check out the paper](https://arxiv.org/abs/2607.08168).",
-  },
-  {
-    q: "What happens to the audio I upload?",
-    a: "It's transcribed on the server and not kept afterwards. If you'd rather it never leaves your machine, [run MuScriptor locally](https://github.com/muscriptor/muscriptor).",
+    a: "Treat the output as an editable first pass. Clear acoustic parts generally produce cleaner note boundaries than dense or heavily processed mixes, and instrument conditioning can improve difficult material.",
   },
   {
     q: "How does it work, technically?",
     a: "MuScriptor is a decoder-only transformer that reads the audio in 5-second chunks and generates a token stream describing note onsets, offsets and instruments, which is then assembled into MIDI. A major reason why it works so well is the dataset: MuScriptor is trained on 170k songs spanning classical music to heavy metal. [Read more in the paper](https://arxiv.org/abs/2607.08168).",
   },
   {
-    q: "How do I report a bug or send feedback?",
-    a: "Please [email us](mailto:muscriptor@kyutai.org) or [open an issue on GitHub](https://github.com/muscriptor/muscriptor/issues/new).",
+    q: "What is saved after a run?",
+    a: "Only the files you explicitly download. A browser refresh clears the current workspace; the server does not create an account, cloud library, or analytics profile.",
   },
 ];
 
@@ -101,13 +95,7 @@ export function Faq() {
       </h2>
       <div className="border-t border-line">
         {QA.map(({ q, a }) => (
-          <details
-            key={q}
-            className="group border-b border-line"
-            onToggle={(e) => {
-              if (e.currentTarget.open) track("faq_open", { question: q });
-            }}
-          >
+          <details key={q} className="group border-b border-line">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-base font-semibold text-content marker:content-none hover:text-accent">
               <h3 className="m-0 text-base font-semibold">{q}</h3>
               <span
