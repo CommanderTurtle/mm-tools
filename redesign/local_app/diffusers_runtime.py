@@ -44,6 +44,7 @@ class DiffusersRuntime:
         self._error: str | None = None
         self._active_job: str | None = None
         self._cancel = threading.Event()
+        self._load_thread: threading.Thread | None = None
 
     @property
     def model_path(self) -> Path:
@@ -69,6 +70,14 @@ class DiffusersRuntime:
 
     def status(self) -> dict[str, Any]:
         with self._lock:
+            if (
+                self._state == "loading"
+                and self._load_thread is not None
+                and self._load_thread.ident is not None
+                and not self._load_thread.is_alive()
+            ):
+                self._state = "error"
+                self._error = "The model loader exited before creating a pipeline."
             return {
                 "state": self._state,
                 "ready": self._state == "ready",
@@ -94,7 +103,19 @@ class DiffusersRuntime:
                 )
             self._state = "loading"
             self._error = None
-        threading.Thread(target=self._load, name="redesign-diffusers-load", daemon=True).start()
+            thread = threading.Thread(
+                target=self._load,
+                name="redesign-diffusers-load",
+                daemon=True,
+            )
+            self._load_thread = thread
+        try:
+            thread.start()
+        except BaseException as exc:
+            with self._lock:
+                self._state = "error"
+                self._error = f"{type(exc).__name__}: {exc}"
+            raise
         return self.status()
 
     def _load(self) -> None:
@@ -131,13 +152,13 @@ class DiffusersRuntime:
                     self._offload_dir = offload_dir
                     self._state = "ready"
                     self._error = None
-            except Exception as exc:
+            except BaseException as exc:
                 shutil.rmtree(offload_dir, ignore_errors=True)
                 with self._lock:
                     self._pipeline = None
                     self._offload_dir = None
                     self._state = "error"
-                    self._error = str(exc)
+                    self._error = f"{type(exc).__name__}: {exc}"
                 gc.collect()
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
@@ -154,26 +175,42 @@ class DiffusersRuntime:
 
     def _unload(self) -> None:
         with self._operation:
-            with self._lock:
-                pipeline = self._pipeline
-                offload_dir = self._offload_dir
-                self._pipeline = None
-                self._offload_dir = None
-            if pipeline is not None:
-                try:
-                    pipeline.remove_all_hooks()
-                except (AttributeError, RuntimeError):
-                    pass
-                del pipeline
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-                torch.cuda.ipc_collect()
-            if offload_dir:
-                shutil.rmtree(offload_dir, ignore_errors=True)
-            with self._lock:
-                self._state = "unloaded"
-                self._error = None
+            self._release_pipeline()
+
+    def shutdown(self) -> None:
+        """Synchronously release the owned pipeline during server shutdown."""
+        with self._lock:
+            self._cancel.set()
+        # A load or generation already in progress owns this lock. Loading is
+        # allowed to finish and is then immediately released; generation sees
+        # the cancellation event at its next Diffusers callback.
+        with self._operation:
+            self._release_pipeline()
+
+    def _release_pipeline(self) -> None:
+        with self._lock:
+            pipeline = self._pipeline
+            offload_dir = self._offload_dir
+            self._pipeline = None
+            self._offload_dir = None
+        had_pipeline = pipeline is not None
+        if had_pipeline:
+            try:
+                pipeline.remove_all_hooks()
+            except (AttributeError, RuntimeError):
+                pass
+            del pipeline
+        gc.collect()
+        if had_pipeline and torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+        if offload_dir:
+            shutil.rmtree(offload_dir, ignore_errors=True)
+        with self._lock:
+            self._state = "unloaded"
+            self._error = None
+            self._active_job = None
+            self._cancel.clear()
 
     def cancel(self, job_id: str) -> bool:
         with self._lock:

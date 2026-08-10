@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 import json
 import os
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import Body, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
@@ -17,13 +18,40 @@ from .editor import build_editor_document, export_document, validate_document
 
 WEB = Path(__file__).resolve().parent / "web"
 MAX_UPLOAD = int(os.getenv("REDESIGN_MAX_UPLOAD_MB", "80")) * 1024 * 1024
-app = FastAPI(title="ReDesign Local Workbench")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    try:
+        yield
+    finally:
+        # The WebUI owns this model. Ctrl+C must release it before Uvicorn exits.
+        runtime.shutdown()
+
+
+app = FastAPI(title="ReDesign Local Workbench", lifespan=lifespan)
 app.mount("/assets", StaticFiles(directory=WEB), name="assets")
+
+
+@app.middleware("http")
+async def prevent_stale_workbench(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path == "/" or path == "/favicon.ico" or path.startswith("/assets/") or path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 
 @app.get("/")
 def index() -> FileResponse:
     return FileResponse(WEB / "index.html")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon() -> Response:
+    return Response(status_code=204)
 
 
 @app.get("/api/config")

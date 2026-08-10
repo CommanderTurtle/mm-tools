@@ -15,16 +15,25 @@ let interaction = null;
 let modelTimer = null;
 
 async function loadConfig() {
-  config = await fetch('/api/config').then(r => r.json());
-  $('#gpu-note').textContent = config.gpu_note || '';
-  const issues = [];
-  if (!config.venv_present) issues.push('runtime not installed');
-  if (!config.model?.model_present) issues.push('Diffusers checkpoint missing');
-  $('#readiness').textContent = issues.length ? issues.join(' · ') : 'Direct local Diffusers lane configured';
-  renderModel(config.model);
-  clearInterval(modelTimer);
-  modelTimer = setInterval(pollModel, 1200);
-  updateRun();
+  try {
+    const response = await fetch('/api/config', {cache:'no-store'});
+    if (!response.ok) throw new Error(`Configuration request failed (${response.status})`);
+    config = await response.json();
+    $('#gpu-note').textContent = config.gpu_note || '';
+    const issues = [];
+    if (!config.venv_present) issues.push('runtime not installed');
+    if (!config.model?.model_present) issues.push('Diffusers checkpoint missing');
+    $('#readiness').textContent = issues.length ? issues.join(' · ') : 'Direct local Diffusers lane configured';
+    renderModel(config.model);
+    clearInterval(modelTimer);
+    modelTimer = setInterval(pollModel, 1200);
+    updateRun();
+  } catch (error) {
+    config = {venv_present:false, model:{state:'unavailable', ready:false, model_present:false}};
+    renderModel(config.model);
+    $('#readiness').textContent = 'Workbench backend unavailable';
+    setStatus('failed', error.message || String(error));
+  }
 }
 
 function updateRun() {
@@ -32,6 +41,7 @@ function updateRun() {
 }
 
 function renderModel(model) {
+  const previousState = config?.model?.state;
   config.model = model;
   const state = model?.state || 'unavailable';
   $('#model-state').textContent = state[0].toUpperCase() + state.slice(1);
@@ -39,20 +49,37 @@ function renderModel(model) {
   $('#model-load').disabled = ['loading','ready','running','unloading'].includes(state) || !model?.model_present;
   $('#model-unload').disabled = !['ready','error'].includes(state);
   if (model?.error) setStatus('failed', model.error);
+  else if (state === 'loading') setStatus('loading', 'Loading the local Diffusers checkpoint…');
+  else if (state === 'unloading') setStatus('unloading', 'Releasing model memory…');
+  else if (state === 'ready' && previousState === 'loading') setStatus('ready', 'Local Diffusers model loaded. Choose a source design to continue.');
+  else if (state === 'unloaded' && previousState === 'unloading') setStatus('idle', 'The local model is unloaded.');
   updateRun();
 }
 
 async function pollModel() {
-  const response = await fetch('/api/model');
-  if (response.ok) renderModel(await response.json());
+  try {
+    const response = await fetch('/api/model', {cache:'no-store'});
+    if (!response.ok) throw new Error(`Model status request failed (${response.status})`);
+    renderModel(await response.json());
+  } catch (error) {
+    clearInterval(modelTimer);
+    modelTimer = null;
+    setStatus('failed', `${error.message || error}. Reload this page after the server is available.`);
+  }
 }
 
 async function modelAction(action) {
-  const response = await fetch(`/api/model/${action}`, {method:'POST'});
-  const data = await response.json();
-  if (!response.ok) { setStatus('failed', data.detail || `Could not ${action} model`); return; }
-  renderModel(data);
-  setStatus(data.state, action === 'load' ? 'Loading the local Diffusers checkpoint…' : 'Releasing model memory…');
+  $('#model-load').disabled = true;
+  $('#model-unload').disabled = true;
+  try {
+    const response = await fetch(`/api/model/${action}`, {method:'POST', cache:'no-store'});
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.detail || `Could not ${action} model`);
+    renderModel(data);
+  } catch (error) {
+    setStatus('failed', error.message || String(error));
+    await pollModel();
+  }
 }
 $('#model-load').addEventListener('click', () => modelAction('load'));
 $('#model-unload').addEventListener('click', () => modelAction('unload'));
