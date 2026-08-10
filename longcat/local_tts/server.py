@@ -10,6 +10,7 @@ from pathlib import Path
 
 import soundfile as sf
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -18,6 +19,8 @@ from .core import LongCatEngine, SynthesisOptions
 ROOT = Path(__file__).resolve().parent
 WEB = ROOT / "web"
 engine = LongCatEngine()
+APP_ROLE = os.getenv("LONGCAT_APP_ROLE", "http")
+SECONDARY_PORT = int(os.getenv("LONGCAT_PORT", "8230"))
 
 
 def _autoload_enabled() -> bool:
@@ -35,6 +38,13 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="LongCat Local Voice Lab", docs_url="/api/docs", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+    expose_headers=["Content-Disposition", "X-LongCat-Metadata"],
+)
 MAX_UPLOAD = int(os.getenv("LONGCAT_MAX_UPLOAD_MB", "128")) * 1024 * 1024
 
 
@@ -52,7 +62,16 @@ async def _copy_upload(upload: UploadFile, destination: Path) -> None:
 
 @app.get("/api/status")
 async def status() -> dict:
-    return engine.status()
+    return {**engine.status(), "role": APP_ROLE}
+
+
+@app.get("/api/ui-config")
+async def ui_config() -> dict:
+    return {
+        "role": APP_ROLE,
+        "secondary_port": SECONDARY_PORT,
+        "secondary_scheme": "http",
+    }
 
 
 @app.post("/api/load")
