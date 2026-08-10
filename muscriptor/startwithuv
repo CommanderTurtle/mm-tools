@@ -13,8 +13,12 @@ cd "$ROOT"
 # shellcheck disable=SC1091
 source .venv/bin/activate
 
+if [[ $# -gt 0 ]]; then
+  exec uv run --active --no-sync python local_transcribe.py "$@"
+fi
+
 if [[ -x ./startwithuv.sh ]]; then
-  exec ./startwithuv.sh "$@"
+  exec ./startwithuv.sh
 fi
 
 case "$PROJECT" in
