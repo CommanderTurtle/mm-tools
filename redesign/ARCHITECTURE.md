@@ -61,5 +61,5 @@ been checked first.
    canvas, then click **Export layers**.
 6. Click **Unload model** when the GPU memory should be returned.
 
-The direct CLI primitives under `./redesign` remain available for detection,
+The direct CLI primitives under `./redesign-cli` remain available for detection,
 text extraction, connected-component splitting, vectorization, and export.
