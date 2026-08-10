@@ -5,6 +5,7 @@ import json
 import os
 import requests
 import shutil
+import socket
 import sys
 import time
 from pathlib import Path
@@ -34,10 +35,12 @@ DEFAULT_DEVICE = "cuda"
 CUSTOM_SAMPLER_PRESET = "custom"
 MAGIC_PROMPT_PROVIDER_IDEOGRAM = "ideogram"
 MAGIC_PROMPT_PROVIDER_OPENROUTER = "openrouter"
-MAGIC_PROMPT_PROVIDERS = [
-  MAGIC_PROMPT_PROVIDER_IDEOGRAM,
-  MAGIC_PROMPT_PROVIDER_OPENROUTER,
-]
+MAGIC_PROMPT_PROVIDER_LOCAL = "local-vllm"
+# This workstation profile is deliberately local-only. The upstream node also
+# supports hosted Ideogram/OpenRouter prompt expansion; keeping those names
+# below preserves a small, easy-to-rebase patch while removing them from every
+# reachable UI/runtime path.
+MAGIC_PROMPT_PROVIDERS = [MAGIC_PROMPT_PROVIDER_LOCAL]
 IDEOGRAM_MAGIC_PROMPT_CORE_KEY = "ideogram-4-v1"
 DEFAULT_OPENROUTER_MODEL = ""
 OPENROUTER_TIMEOUT_SECONDS = 120.0
@@ -133,7 +136,30 @@ def _is_openrouter_magic_prompt(magic_prompt_provider: str) -> bool:
   return magic_prompt_provider == MAGIC_PROMPT_PROVIDER_OPENROUTER
 
 
-KNOWN_CONFIG_KEYS = ("IDEOGRAM_API_KEY", "OPENROUTER_API_KEY", "HF_TOKEN")
+def _is_local_endpoint(value: str) -> bool:
+  from ipaddress import ip_address
+  from urllib.parse import urlparse
+
+  host = urlparse(value).hostname
+  if not host:
+    return False
+  if host in {"localhost", "127.0.0.1", "::1"}:
+    return True
+  try:
+    address = ip_address(host)
+    return address.is_private or address.is_loopback
+  except ValueError:
+    try:
+      addresses = {item[4][0] for item in socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)}
+      return bool(addresses) and all(
+        ip_address(item).is_private or ip_address(item).is_loopback
+        for item in addresses
+      )
+    except (OSError, ValueError):
+      return False
+
+
+KNOWN_CONFIG_KEYS: tuple[str, ...] = ()
 _CONFIG_PATH = Path(__file__).resolve().parent / "ideogram_config.json"
 
 
@@ -212,6 +238,8 @@ def _apply_hf_token() -> None:
 
 
 def _api_key_for_magic_prompt(magic_prompt_provider: str) -> str:
+  if magic_prompt_provider == MAGIC_PROMPT_PROVIDER_LOCAL:
+    return "local-vllm"
   if _is_openrouter_magic_prompt(magic_prompt_provider):
     env_var = "OPENROUTER_API_KEY"
   elif magic_prompt_provider == MAGIC_PROMPT_PROVIDER_IDEOGRAM:
@@ -400,9 +428,50 @@ def _expand_with_openrouter(
     raise RuntimeError(_openrouter_error_message(exc, MAGIC_PROMPT_PROVIDER_OPENROUTER, model)) from exc
 
 
+def _expand_with_local_vllm(model: str, prompt: str, aspect_ratio: str) -> str:
+  model = model.strip() or os.environ.get("IDEOGRAM_LOCAL_MODEL", "").strip()
+  base_url = os.environ.get("IDEOGRAM_LOCAL_BASE_URL", "http://127.0.0.1:8000/v1").rstrip("/")
+  if not model:
+    raise ValueError("Set IDEOGRAM_LOCAL_MODEL or enter a model override for local-vllm.")
+  if not _is_local_endpoint(base_url):
+    raise ValueError("IDEOGRAM_LOCAL_BASE_URL must resolve to loopback or a private-LAN address.")
+  build_messages, _, strip_aspect_ratio_and_bboxes = _load_custom_magic_prompt_helpers()
+  response = requests.post(
+    f"{base_url}/chat/completions",
+    headers={"Authorization": "Bearer local-vllm", "Content-Type": "application/json"},
+    json={
+      "model": model,
+      "messages": build_messages("v1.txt", prompt, aspect_ratio),
+      "temperature": 0.8,
+      "max_tokens": 8192,
+    },
+    timeout=float(os.environ.get("IDEOGRAM_LOCAL_TIMEOUT", "240")),
+  )
+  response.raise_for_status()
+  choices = response.json().get("choices") or []
+  if not choices:
+    raise RuntimeError("Local VLM returned no choices.")
+  caption = choices[0].get("message", {}).get("content", "").strip()
+  if caption.startswith("```"):
+    lines = caption.splitlines()[1:]
+    if lines and lines[-1].strip() == "```":
+      lines.pop()
+    caption = "\n".join(lines).strip()
+  return strip_aspect_ratio_and_bboxes(caption)
+
+
 def _weights_repo_for_model_weights(model_weights: str) -> str:
   if model_weights not in WEIGHT_REPOS:
     raise ValueError(f"Unsupported model_weights: {model_weights}")
+  override_name = "IDEOGRAM4_NF4_MODEL" if model_weights == "4.0 NF4" else "IDEOGRAM4_FP8_MODEL"
+  override = os.environ.get(override_name, "").strip()
+  if override:
+    resolved = _resolve_path(override)
+    if not (resolved / "model_index.json").is_file():
+      raise FileNotFoundError(f"Incomplete local Ideogram checkpoint: {resolved}")
+    return str(resolved)
+  if os.environ.get("HF_HUB_OFFLINE") == "1":
+    raise RuntimeError(f"{override_name} is unset and Hub access is disabled.")
   return WEIGHT_REPOS[model_weights]
 
 
@@ -567,14 +636,14 @@ class Ideogram4MagicPrompt:
         "height": ("INT", {"default": 2048, "min": MIN_RESOLUTION, "max": MAX_RESOLUTION, "step": 16}),
         "magic_prompt_provider": (
           MAGIC_PROMPT_PROVIDERS,
-          {"default": MAGIC_PROMPT_PROVIDER_IDEOGRAM},
+          {"default": MAGIC_PROMPT_PROVIDER_LOCAL},
         ),
         "openrouter_model": (
           "STRING",
           {
             "default": DEFAULT_OPENROUTER_MODEL,
             "multiline": False,
-            "tooltip": "Only used when magic_prompt_provider is openrouter; leave empty for ideogram.",
+            "tooltip": "Private local-vLLM model override; leave empty to use IDEOGRAM_LOCAL_MODEL.",
           },
         ),
         "verify_json": ("BOOLEAN", {"default": True}),
@@ -622,6 +691,16 @@ class Ideogram4MagicPrompt:
       ),
     )
     pbar.update_absolute(2)
+    if magic_prompt_provider == MAGIC_PROMPT_PROVIDER_LOCAL:
+      caption = _expand_with_local_vllm(openrouter_model, prompt, aspect_ratio)
+      pbar.update_absolute(3)
+      _send_progress_text(unique_id, "Status: Verifying JSON" if verify_json else "Status: JSON verification skipped")
+      _raise_magic_prompt_issues(caption, bool(verify_json))
+      _send_progress_text(unique_id, "Status: Completed")
+      pbar.update_absolute(4)
+      print("Ideogram 4.0 local Magic Prompt finished", flush=True)
+      return (caption,)
+
     if magic_prompt_provider == MAGIC_PROMPT_PROVIDER_OPENROUTER:
       caption = _expand_with_openrouter(
         openrouter_model,
