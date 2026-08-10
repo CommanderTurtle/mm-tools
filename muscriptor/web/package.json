@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.20.0",
+  "packageManager": "bun@1.3.14",
   "scripts": {
     "dev": "vite",
-    "dev:proxy": "BACKEND_URL=https://muscriptor.kyutai.org vite",
+    "dev:local": "BACKEND_URL=http://127.0.0.1:8222 vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
   },
