@@ -19,6 +19,7 @@
         <label>Playback speed<select id="speed"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option><option value="4">4×</option></select></label>
         <label>Loops<input id="loop" type="number" min="0" max="65535" value="0"><small>0 = forever</small></label>
       </div>
+      <label class="sound-option"><input id="sound-companion" type="checkbox"><span><b>Also export sound</b><small>Creates a synchronized WebM companion. GIF and animated AVIF remain silent by design.</small></span></label>
 
       <div id="gif-options" class="format-options">
         <h2>GIF palette</h2>
@@ -52,7 +53,7 @@
     </section>
 
     <section class="result panel">
-      <div class="result-head"><div><h2>Result</h2><p id="status">Waiting for a video.</p></div><a id="download" class="download disabled">Download</a></div>
+      <div class="result-head"><div><h2>Result</h2><p id="status">Waiting for a video.</p></div><div class="downloads"><a id="download" class="download disabled">Download</a><a id="companion-download" class="download secondary disabled">Download WebM + sound</a></div></div>
       <div class="bar"><i id="bar"></i></div>
       <div class="stats"><div><span>Source</span><b id="before">—</b></div><div><span>Output</span><b id="after">—</b></div><div><span>Dimensions</span><b id="dimensions">—</b></div><div><span>FPS</span><b id="actual-fps">—</b></div></div>
       <img id="preview" alt="Converted animation">

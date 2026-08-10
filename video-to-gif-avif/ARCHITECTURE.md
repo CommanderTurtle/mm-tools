@@ -10,9 +10,10 @@ flowchart LR
     Edit --> FFmpeg["Local FFmpeg pipeline"]
     FFmpeg --> GIF["Optimized GIF"]
     FFmpeg --> AVIF["Animated AVIF"]
+    FFmpeg --> WebM["Optional synchronized WebM + audio"]
 ```
 
-GIF and AVIF share the same local media preparation path. GIF adds palette and dithering controls; AVIF adds quality, effort, bit-depth, and available hardware-encoder controls.
+GIF and AVIF share the same local media preparation path. GIF adds palette and dithering controls; AVIF adds quality, effort, bit-depth, and available hardware-encoder controls. Because neither animation format carries a dependable audio track, the sound toggle emits a matching WebM companion with the same trim, crop, rotation, dimensions, frame rate, and playback speed.
 
 ## Setup and run
 

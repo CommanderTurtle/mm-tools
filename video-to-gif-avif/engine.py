@@ -28,6 +28,7 @@ class MediaInfo:
     bytes: int
     codec: str
     video_ordinal: int
+    audio_codec: str | None
 
 
 @dataclass(slots=True)
@@ -53,6 +54,7 @@ class AnimationOptions:
     avif_effort: int = 6
     avif_engine: str = "software"
     avif_10bit: bool = False
+    sound_companion: bool = False
 
     def validate(self) -> None:
         if self.format not in {"gif", "avif"}:
@@ -106,7 +108,9 @@ def probe(path: Path) -> MediaInfo:
         text=True,
     )
     payload = json.loads(process.stdout)
-    streams = [stream for stream in payload.get("streams", []) if stream.get("codec_type") == "video"]
+    all_streams = payload.get("streams", [])
+    streams = [stream for stream in all_streams if stream.get("codec_type") == "video"]
+    audio_streams = [stream for stream in all_streams if stream.get("codec_type") == "audio"]
     if not streams:
         raise ValueError("input has no video stream")
     # Animated AVIF contains a one-frame primary image followed by its animation
@@ -127,6 +131,7 @@ def probe(path: Path) -> MediaInfo:
         bytes=path.stat().st_size,
         codec=str(video.get("codec_name") or "unknown"),
         video_ordinal=ordinal,
+        audio_codec=str(audio_streams[0].get("codec_name") or "unknown") if audio_streams else None,
     )
 
 
@@ -135,7 +140,7 @@ def available_encoders() -> set[str]:
     return {line.split()[1] for line in result.stdout.splitlines() if len(line.split()) >= 2 and line.lstrip().startswith("V")}
 
 
-def _filters(options: AnimationOptions) -> list[str]:
+def _filters(options: AnimationOptions, *, even_dimensions: bool = False) -> list[str]:
     filters: list[str] = []
     if options.crop_width and options.crop_height:
         filters.append(f"crop={options.crop_width}:{options.crop_height}:{options.crop_x}:{options.crop_y}")
@@ -150,14 +155,29 @@ def _filters(options: AnimationOptions) -> list[str]:
     if options.flip in {"vertical", "both"}:
         filters.append("vflip")
     if options.width:
-        width = options.width - (options.width % 2 if options.format == "avif" else 0)
+        width = options.width - (options.width % 2 if options.format == "avif" or even_dimensions else 0)
         filters.append(f"scale={width}:-2:flags=lanczos")
-    elif options.format == "avif":
+    elif options.format == "avif" or even_dimensions:
         filters.append("scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=lanczos")
     filters.append(f"fps={options.fps:g}")
     if abs(options.speed - 1.0) > 0.0001:
         filters.append(f"setpts=PTS/{options.speed:g}")
     return filters
+
+
+def _atempo_filters(speed: float) -> list[str]:
+    """Split arbitrary supported speeds into FFmpeg atempo's 0.5-2.0 range."""
+    remaining = speed
+    factors: list[float] = []
+    while remaining > 2.0:
+        factors.append(2.0)
+        remaining /= 2.0
+    while remaining < 0.5:
+        factors.append(0.5)
+        remaining /= 0.5
+    if abs(remaining - 1.0) > 0.0001:
+        factors.append(remaining)
+    return [f"atempo={factor:g}" for factor in factors]
 
 
 def build_command(input_path: Path, output_path: Path, options: AnimationOptions) -> tuple[list[str], float]:
@@ -203,16 +223,59 @@ def build_command(input_path: Path, output_path: Path, options: AnimationOptions
     return command, duration or info.duration
 
 
-def convert(
+def build_sound_companion_command(
     input_path: Path,
     output_path: Path,
     options: AnimationOptions,
+) -> tuple[list[str], float]:
+    """Build a synchronized WebM because GIF and animated AVIF cannot carry audio."""
+    options.validate()
+    info = probe(input_path)
+    if not info.audio_codec:
+        raise ValueError("The source has no audio stream for a sound companion.")
+    if options.crop_width and (
+        options.crop_x + options.crop_width > info.width
+        or options.crop_y + options.crop_height > info.height
+    ):
+        raise ValueError("crop rectangle extends outside the source video")
+
+    duration = max(0.0, (options.end or info.duration) - options.start) / options.speed
+    command = ["ffmpeg", "-hide_banner", "-y", "-loglevel", "warning"]
+    if options.start:
+        command.extend(["-ss", f"{options.start:.6f}"])
+    command.extend(["-i", str(input_path)])
+    if options.end:
+        command.extend(["-t", f"{(options.end - options.start):.6f}"])
+    command.extend([
+        "-map", f"0:v:{info.video_ordinal}",
+        "-map", "0:a:0",
+        "-vf", ",".join(_filters(options, even_dimensions=True)),
+        "-c:v", "libvpx-vp9",
+        "-crf", "30",
+        "-b:v", "0",
+        "-deadline", "good",
+        "-cpu-used", "2",
+        "-row-mt", "1",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "libopus",
+        "-b:a", "128k",
+    ])
+    audio_filters = _atempo_filters(options.speed)
+    if audio_filters:
+        command.extend(["-af", ",".join(audio_filters)])
+    command.extend(["-shortest", "-progress", "pipe:1", "-nostats", str(output_path)])
+    return command, duration or info.duration
+
+
+def _run_conversion(
+    command: list[str],
+    output_path: Path,
+    duration: float,
     *,
     on_progress: Callable[[float, str], None] | None = None,
     on_process: Callable[[subprocess.Popen[str]], None] | None = None,
     cancel: Event | None = None,
 ) -> MediaInfo:
-    command, duration = build_command(input_path, output_path, options)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
     if on_process:
@@ -241,6 +304,38 @@ def convert(
     if on_progress:
         on_progress(1.0, "conversion complete")
     return probe(output_path)
+
+
+def convert(
+    input_path: Path,
+    output_path: Path,
+    options: AnimationOptions,
+    *,
+    on_progress: Callable[[float, str], None] | None = None,
+    on_process: Callable[[subprocess.Popen[str]], None] | None = None,
+    cancel: Event | None = None,
+) -> MediaInfo:
+    command, duration = build_command(input_path, output_path, options)
+    return _run_conversion(
+        command, output_path, duration,
+        on_progress=on_progress, on_process=on_process, cancel=cancel,
+    )
+
+
+def convert_sound_companion(
+    input_path: Path,
+    output_path: Path,
+    options: AnimationOptions,
+    *,
+    on_progress: Callable[[float, str], None] | None = None,
+    on_process: Callable[[subprocess.Popen[str]], None] | None = None,
+    cancel: Event | None = None,
+) -> MediaInfo:
+    command, duration = build_sound_companion_command(input_path, output_path, options)
+    return _run_conversion(
+        command, output_path, duration,
+        on_progress=on_progress, on_process=on_process, cancel=cancel,
+    )
 
 
 def main() -> None:
