@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>img2svg · local vector studio</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <header>
+    <div><span class="mark">◇</span><strong>img2svg</strong><span class="quiet">local vector studio</span></div>
+    <div class="privacy"><span></span> no uploads · no telemetry · native Rust</div>
+  </header>
+  <main>
+    <aside>
+      <label class="drop" id="drop">
+        <input id="file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp">
+        <span class="drop-icon">↥</span>
+        <strong>Drop a raster image</strong>
+        <small>PNG · JPG · WebP · GIF · BMP</small>
+      </label>
+
+      <section>
+        <h2>Tracing</h2>
+        <label>Mode<select id="mode"><option value="color">Full color</option><option value="mono">Monochrome</option></select></label>
+        <label>Preset<select id="preset"><option value="logo">Logo / icon</option><option value="poster">Illustration / poster</option><option value="photo">Photograph</option><option value="pixel">Pixel art</option></select></label>
+        <label class="range">Palette <output id="colorsOut">8 colors</output><input id="colors" type="range" min="2" max="32" value="8"></label>
+        <label class="range">Smoothness <output id="smoothOut">2</output><input id="smoothness" type="range" min="1" max="5" value="2"></label>
+        <label class="range">Speckle filter <output id="speckleOut">4 px</output><input id="speckle" type="range" min="0" max="64" value="4"></label>
+      </section>
+
+      <section id="monoPanel" hidden>
+        <h2>Monochrome</h2>
+        <label class="range">Threshold <output id="thresholdOut">128</output><input id="threshold" type="range" min="0" max="255" value="128"></label>
+        <label class="check"><input id="invert" type="checkbox">Invert foreground</label>
+      </section>
+
+      <section>
+        <h2>Cleanup</h2>
+        <label class="check"><input id="removeBackground" type="checkbox">Remove corner background</label>
+        <label class="range">Tolerance <output id="toleranceOut">24</output><input id="tolerance" type="range" min="0" max="96" value="24"></label>
+        <label>Maximum dimension<select id="maxDimension"><option value="0">Original</option><option value="2048">2048 px</option><option value="4096" selected>4096 px</option><option value="8192">8192 px</option></select></label>
+      </section>
+
+      <button id="convert" disabled>Vectorize image</button>
+      <p class="error" id="error"></p>
+    </aside>
+
+    <article>
+      <div class="toolbar">
+        <div class="tabs"><button class="tab active" data-tab="vector">Vector</button><button class="tab" data-tab="raster">Raster</button><button class="tab" data-tab="code">Code</button></div>
+        <div class="actions"><button id="copy" disabled>Copy SVG</button><button id="dataUri" disabled>Copy data URI</button><button id="download" disabled>Download SVG</button></div>
+      </div>
+      <div class="stage" id="stage">
+        <div class="empty" id="empty"><span>◇</span><h1>Your vector appears here</h1><p>Choose a raster image and tune the trace without sending it anywhere.</p></div>
+        <img id="vectorPreview" alt="Vector preview" hidden>
+        <img id="rasterPreview" alt="Raster preview" hidden>
+        <pre id="codePreview" hidden><code></code></pre>
+      </div>
+      <footer id="stats"><span>Ready</span></footer>
+    </article>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
+

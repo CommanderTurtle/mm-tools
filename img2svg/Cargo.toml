@@ -1,0 +1,31 @@
+[package]
+name = "img2svg"
+version = "0.1.0"
+edition = "2024"
+description = "Private local raster-to-SVG vectorizer with a native Rust CLI and web studio"
+license = "MIT"
+
+[[bin]]
+name = "img2svg"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+axum = { version = "0.8", features = ["multipart"] }
+clap = { version = "4.5", features = ["derive"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "gif", "bmp"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tempfile = "3.23"
+tokio = { version = "1.48", features = ["macros", "rt-multi-thread", "net"] }
+tower-http = { version = "0.6", features = ["limit", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+visioncortex = "0.8.8"
+vtracer = "0.6.5"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+
