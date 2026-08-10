@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LongCat / Local Voice Lab</title>
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">AUDIO DIT · 3.5B · OFFLINE</p>
+        <h1>LongCat <span>Voice Lab</span></h1>
+        <p class="lede">Local English and Chinese synthesis, with optional zero-shot voice cloning.</p>
+      </div>
+      <div class="model-card">
+        <span id="status-dot"></span>
+        <div><strong id="model-state">Checking model</strong><small id="model-detail">RTX workstation</small></div>
+        <button id="model-toggle" type="button">Load</button>
+      </div>
+    </header>
+
+    <form id="tts-form">
+      <section class="panel text-panel">
+        <div class="section-head"><span>01</span><h2>Speech</h2><small id="characters">0 characters</small></div>
+        <textarea id="text" name="text" required placeholder="Write the line LongCat should speak…"></textarea>
+      </section>
+
+      <section class="panel clone-panel">
+        <div class="section-head"><span>02</span><h2>Voice reference</h2><small>Optional · 3–12 seconds works well</small></div>
+        <div class="clone-grid">
+          <label class="file-drop">Reference audio<input id="prompt-audio" name="prompt_audio" type="file" accept="audio/*"><b id="file-name">Choose WAV, M4A, or MP3</b></label>
+          <label>Exact reference transcript<textarea id="prompt-text" name="prompt_text" placeholder="Type exactly what is spoken in the reference"></textarea></label>
+        </div>
+      </section>
+
+      <section class="panel settings-panel">
+        <div class="section-head"><span>03</span><h2>Synthesis</h2><small>APG is the quality default</small></div>
+        <div class="settings">
+          <label>Guidance<select name="guidance_method"><option value="apg">APG</option><option value="cfg">CFG</option></select></label>
+          <label>ODE steps<input name="steps" type="number" min="2" max="64" value="16"></label>
+          <label>Strength<input name="guidance_strength" type="number" min="0" max="20" step="0.25" value="4"></label>
+          <label>Seed<input name="seed" type="number" value="1024"></label>
+          <label>Duration<input name="duration_scale" type="range" min="0.5" max="2" step="0.05" value="1"><output id="duration-value">1.00×</output></label>
+        </div>
+      </section>
+
+      <div class="action-row">
+        <button id="synthesize" class="primary" type="submit"><span>Generate speech</span><i></i></button>
+        <p id="message">The model loads lazily on the first generation.</p>
+      </div>
+    </form>
+
+    <section id="result" class="panel result-panel" hidden>
+      <div class="section-head"><span>04</span><h2>Result</h2><small id="result-meta"></small></div>
+      <audio id="player" controls></audio>
+      <a id="download" class="download" download="longcat.wav">Download 24-bit WAV</a>
+    </section>
+  </main>
+  <script type="module" src="/assets/app.js"></script>
+</body>
+</html>
