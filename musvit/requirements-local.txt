@@ -1,4 +1,5 @@
 loguru>=0.7.3
+fastapi>=0.116,<1
 numpy>=2.3.4
 opencv-python-headless>=4.11.0.86
 pillow>=12.0.0
@@ -6,4 +7,6 @@ safetensors>=0.6.2
 torch>=2.9.0
 torchvision>=0.24.0
 transformers==4.49.0
+python-multipart>=0.0.20,<1
 verovio==5.0.0
+uvicorn[standard]>=0.35,<1
