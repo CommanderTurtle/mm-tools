@@ -13,6 +13,7 @@ V1 models emit a deprecation warning on load.
 from __future__ import annotations
 
 import logging
+import re
 import time
 import warnings
 from pathlib import Path
@@ -26,6 +27,8 @@ from crisperwhisper.result import TranscriptionResult
 logger = logging.getLogger(__name__)
 
 SHORT_THRESHOLD_S = 30.0
+_SENTENCE_PUNCTUATION = re.compile(r"[.!?。！？؟…]")
+_TRAILING_CLOSERS = "\"'’”»)]}」』】"
 
 # Official CrisperWhisper 2.0 checkpoints. Bare size names are accepted as
 # shorthand everywhere a model id is expected: CrisperWhisperModel("turbo").
@@ -490,6 +493,88 @@ class CrisperWhisperModel:
         samples = load_audio(audio, sr=sr)
         features = self._engine.extract_features(samples[: 30 * SAMPLE_RATE])
         return self._engine.detect_language(features)
+
+    def supported_languages(self) -> list[str]:
+        """Return every decoder language available for parallel routing."""
+        return self._engine.supported_languages()
+
+    def transcribe_candidates(
+        self,
+        audio: Union[str, Path, np.ndarray],
+        *,
+        mode: str = "intended",
+        languages: list[str] | None = None,
+        sr: int | None = None,
+        max_new_tokens: int = 32,
+    ) -> list[dict[str, object]]:
+        """Decode low-budget candidates for every requested language at once.
+
+        This is the first stage of the multilingual MITM route.  It reuses one
+        resident model and one encoder result; each language is an independent
+        decoder row in the same batch.  The candidates are deliberately not
+        treated as final transcripts.  EraX-VL selects the coherent,
+        non-fragment row, XLM-R classifies that text, and only then is the audio
+        transcribed once at full quality using the selected ISO token.
+        """
+        if self._model_version != 2:
+            raise NotImplementedError("Parallel language candidates require CrisperWhisper v2.")
+        if mode not in {"verbatim", "intended"}:
+            raise ValueError("mode must be 'verbatim' or 'intended'")
+        if not 1 <= int(max_new_tokens) <= 128:
+            raise ValueError("max_new_tokens must be between 1 and 128")
+
+        from crisperwhisper.prompt import PromptBuilder, strip_prompt_artifacts
+
+        available = self.supported_languages()
+        requested = available if languages is None else list(dict.fromkeys(languages))
+        unknown = sorted(set(requested) - set(available))
+        if unknown:
+            raise ValueError(f"Unsupported candidate languages: {', '.join(unknown)}")
+        if not requested:
+            raise ValueError("At least one candidate language is required")
+
+        samples = load_audio(audio, sr=sr)
+        features = self._engine.extract_features(samples[: 30 * SAMPLE_RATE])
+        acoustic_scores = dict(self._engine.detect_languages(features))
+        prompts = []
+        for language in requested:
+            builder = PromptBuilder(self._engine, language=language)
+            prompts.append(builder.verbatim() if mode == "verbatim" else builder.intended())
+        generations = self._engine.generate(
+            features, prompts, max_length=int(max_new_tokens), beam_size=1,
+        )
+
+        candidates: list[dict[str, object]] = []
+        for index, (language, token_ids) in enumerate(zip(requested, generations)):
+            text = strip_prompt_artifacts(
+                self._engine.decode_tokens(token_ids, skip_special=True)
+            ).strip()
+            punctuation = _SENTENCE_PUNCTUATION.findall(text)
+            terminal = text.rstrip(_TRAILING_CLOSERS)[-1:] in ".!?。！？؟…"
+            eot_position = None
+            if self._engine.eot_id is not None:
+                try:
+                    eot_position = token_ids.index(self._engine.eot_id)
+                except ValueError:
+                    pass
+            generated_tokens = (
+                eot_position + 1 if eot_position is not None else len(token_ids)
+            )
+            ended_with_eot = eot_position is not None
+            candidates.append({
+                "index": index,
+                "language_prompt": language,
+                "acoustic_probability": float(acoustic_scores.get(language, 0.0)),
+                "text": text,
+                "terminal_punctuation": terminal,
+                "ended_with_eot": ended_with_eot,
+                "hit_token_limit": not ended_with_eot and generated_tokens >= int(max_new_tokens),
+                "generation_tokens": generated_tokens,
+                "punctuation_count": len(punctuation),
+                "word_count": len(text.split()),
+                "character_count": len(text),
+            })
+        return candidates
 
     def transcribe(
         self,

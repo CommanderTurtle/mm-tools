@@ -166,6 +166,30 @@ class ModelManager:
             language, confidence = model.detect_language(audio)
             return {"language": language, "confidence": confidence}
 
+    def transcribe_candidates(
+        self,
+        audio: Path,
+        *,
+        operation: str,
+        languages: list[str] | None,
+        max_new_tokens: int,
+    ) -> dict[str, Any]:
+        """Run all low-budget language rows in one resident-model batch."""
+        with self._inference_lock:
+            model = self.load()
+            candidates = model.transcribe_candidates(
+                audio,
+                mode=operation,
+                languages=languages,
+                max_new_tokens=max_new_tokens,
+            )
+            return {
+                "operation": operation,
+                "candidate_count": len(candidates),
+                "supported_language_count": len(model.supported_languages()),
+                "candidates": candidates,
+            }
+
     def _run_locked(
         self,
         audio: Path,

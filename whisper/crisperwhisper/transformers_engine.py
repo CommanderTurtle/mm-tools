@@ -273,8 +273,12 @@ class TransformersEngine:
     def get_language_id(self, language: str) -> int | None:
         return self._lang_ids.get(language)
 
-    def detect_language(self, features) -> tuple[str, float]:
-        """Return the most likely language from Whisper's first decoder step."""
+    def supported_languages(self) -> list[str]:
+        """Return every ISO-639-1 decoder language exposed by the model."""
+        return sorted(self._lang_ids)
+
+    def detect_languages(self, features) -> list[tuple[str, float]]:
+        """Return all acoustic language priors from one decoder step."""
         import torch
 
         if self.sot_id is None or not self._lang_ids:
@@ -291,8 +295,15 @@ class TransformersEngine:
             device=logits.device,
         )
         probabilities = torch.softmax(logits[token_ids], dim=0)
-        index = int(torch.argmax(probabilities).item())
-        return languages[index], float(probabilities[index].item())
+        order = torch.argsort(probabilities, descending=True)
+        return [
+            (languages[int(index.item())], float(probabilities[index].item()))
+            for index in order
+        ]
+
+    def detect_language(self, features) -> tuple[str, float]:
+        """Return the most likely language from Whisper's first decoder step."""
+        return self.detect_languages(features)[0]
 
     def get_decoder_prefix(self, language: str = "en") -> list[int]:
         """Build the standard Whisper decoder prefix token IDs."""
@@ -507,14 +518,53 @@ class TransformersEngine:
         beam_size: int = 1,
         suppress_tokens: list[int] | None = None,
     ) -> list[list[int]]:
-        """Generate token IDs for each prompt in ``prompt_tokens``."""
-        return [
-            self._run_generate(
-                features, p, max_length,
-                suppress_tokens=suppress_tokens, num_beams=beam_size,
+        """Generate each equal-width prompt in one shared decoder batch.
+
+        Language-routing prompts differ only by their language token, so this
+        is the fast path used by ``transcribe_candidates``.  Uneven prompts
+        retain the former independent behavior for callers that include
+        variable-length context.
+        """
+        import torch
+
+        if not prompt_tokens:
+            return []
+        widths = {len(prompt) for prompt in prompt_tokens}
+        if len(widths) != 1:
+            return [
+                self._run_generate(
+                    features, prompt, max_length,
+                    suppress_tokens=suppress_tokens, num_beams=beam_size,
+                )
+                for prompt in prompt_tokens
+            ]
+
+        batch_size = len(prompt_tokens)
+        decoder = torch.tensor(
+            prompt_tokens, device=self.device, dtype=torch.long,
+        )
+        if features.shape[0] == 1 and batch_size > 1:
+            batch_features = features.expand(batch_size, *features.shape[1:]).contiguous()
+        else:
+            batch_features = features
+        suppress = self._resolve_suppress(suppress_tokens)
+        with torch.no_grad():
+            output = self.model.generate(
+                batch_features,
+                decoder_input_ids=decoder,
+                max_new_tokens=int(max_length),
+                num_beams=int(beam_size),
+                do_sample=False,
+                suppress_tokens=list(suppress),
             )
-            for p in prompt_tokens
-        ]
+
+        results: list[list[int]] = []
+        for prompt, sequence in zip(prompt_tokens, output.tolist()):
+            tokens = [int(token) for token in sequence]
+            if tokens[: len(prompt)] == prompt:
+                tokens = tokens[len(prompt):]
+            results.append(tokens)
+        return results
 
     def generate_sampled(
         self,

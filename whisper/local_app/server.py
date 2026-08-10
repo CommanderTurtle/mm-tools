@@ -172,3 +172,40 @@ async def detect_language(file: UploadFile = File(...)) -> dict:
         raise HTTPException(500, f"Language detection failed: {exc}") from exc
     finally:
         await file.close()
+
+
+@app.post("/api/transcribe-candidates")
+async def transcribe_candidates(
+    file: UploadFile = File(...),
+    operation: str = Form("intended"),
+    languages: str = Form(""),
+    max_new_tokens: int = Form(24),
+) -> dict:
+    """Decode every model language in parallel for MITM arbitration."""
+    if operation not in {"verbatim", "intended"}:
+        raise HTTPException(400, "Operation must be verbatim or intended.")
+    if not 1 <= max_new_tokens <= 128:
+        raise HTTPException(400, "max_new_tokens must be between 1 and 128.")
+    selected = [part.strip() for part in languages.split(",") if part.strip()] or None
+    suffix = Path(file.filename or "audio").suffix[:12]
+    try:
+        with tempfile.TemporaryDirectory(prefix="cw2-candidates-") as temp:
+            temp_dir = Path(temp)
+            source = temp_dir / f"source{suffix}"
+            wav = temp_dir / "audio.wav"
+            await run_in_threadpool(_copy_upload, file, source)
+            await run_in_threadpool(normalize_audio, source, wav)
+            result = await run_in_threadpool(
+                manager.transcribe_candidates,
+                wav,
+                operation=operation,
+                languages=selected,
+                max_new_tokens=max_new_tokens,
+            )
+            return {"ok": True, **result}
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(500, f"Candidate transcription failed: {exc}") from exc
+    finally:
+        await file.close()
