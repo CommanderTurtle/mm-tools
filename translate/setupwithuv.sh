@@ -4,22 +4,34 @@ set -euo pipefail
 here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$here"
 
-uv venv --python 3.12.10 --seed --managed-python .venv
-
-# PyTorch's CUDA wheels are selectable for future hosts. The workstation's
-# established Blackwell/NVFP4 environments use the cached CUDA 13.0 build.
-torch_index="${TRANSLATE_TORCH_INDEX:-https://download.pytorch.org/whl/cu130}"
-uv pip install --python .venv/bin/python \
-  --index-url "$torch_index" torch torchvision torchaudio
-uv pip install --python .venv/bin/python -r requirements-core.txt
-
-mkdir -p .runtime
-if [[ ! -d .runtime/ComfyUI/.git ]]; then
-  git clone --depth 1 --filter=blob:none --sparse \
-    https://github.com/Comfy-Org/ComfyUI.git .runtime/ComfyUI
-  git -C .runtime/ComfyUI sparse-checkout set comfy
+if [[ ! -x .venv/bin/python ]]; then
+  uv venv --python 3.12.10 --seed --managed-python .venv
 else
-  git -C .runtime/ComfyUI pull --ff-only
+  printf 'Reusing existing isolated environment: %s\n' "$here/.venv"
+fi
+
+accelerator="${TRANSLATE_ACCELERATOR:-gpu}"
+if [[ "$accelerator" == "gpu" ]]; then
+  torch_index="${TRANSLATE_TORCH_INDEX:-https://download.pytorch.org/whl/cu130}"
+else
+  torch_index="${TRANSLATE_TORCH_INDEX:-https://download.pytorch.org/whl/cpu}"
+fi
+uv pip install --python .venv/bin/python \
+  --index-url "$torch_index" torch
+
+if [[ "$accelerator" == "gpu" ]]; then
+  cudacxx="${TRANSLATE_CUDACXX:-$(command -v nvcc || true)}"
+  if [[ -z "$cudacxx" && -x /usr/local/cuda/bin/nvcc ]]; then
+    cudacxx=/usr/local/cuda/bin/nvcc
+  fi
+  [[ -n "$cudacxx" ]] || {
+    printf 'CUDA setup requested, but nvcc is not on PATH. Set TRANSLATE_CUDACXX or use TRANSLATE_ACCELERATOR=cpu.\n' >&2
+    exit 1
+  }
+  CUDACXX="$cudacxx" CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_COMPILER=$cudacxx" FORCE_CMAKE=1 \
+    uv pip install --python .venv/bin/python -r requirements-core.txt
+else
+  uv pip install --python .venv/bin/python -r requirements-core.txt
 fi
 
 if [[ ! -f .env ]]; then
@@ -27,5 +39,5 @@ if [[ ! -f .env ]]; then
 fi
 
 printf '%s\n' \
-  'Local translation runtime prepared.' \
+  'Local EraX translation runtime prepared.' \
   'Review .env, then run ./starthttp.sh.'
