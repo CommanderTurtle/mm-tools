@@ -38,12 +38,8 @@ Local Ideogram 4 generation source plus the fuzzy-mask ObjectClear/BiRefNet obje
 
 ```bash
 cd ~/multimedia/ideogram
-uv venv --python 3.12.10 --seed --managed-python .venv
-source .venv/bin/activate
-uv pip install --torch-backend auto torch torchvision
-uv pip install -r requirements-local.txt
-cp .env.local.example .env
-./start-object-remover.sh                 # http://127.0.0.1:8174
+./setupwithuv
+./startwithuv                             # http://127.0.0.1:8174
 ```
 
 The full Ideogram generator is `local_generate.py`; add `src` to `PYTHONPATH` or install the local package when using that lane. The object-removal lane does not load the large Ideogram generator.
@@ -54,7 +50,7 @@ Native VTracer-based raster-to-SVG CLI and browser studio.
 
 ```bash
 cd ~/multimedia/img2svg
-./setupwithuv cpu
+./setupwithuv
 ./startwithuv                             # http://127.0.0.1:4170
 ```
 
@@ -64,7 +60,7 @@ Local LongCat voice synthesis and cloning. The HTTP service and browser workbenc
 
 ```bash
 cd ~/multimedia/longcat
-./setupwithuv gpu
+./setupwithuv
 ./starthttp.sh                            # machine API: :8230
 ./startwithuv.sh                          # browser UI: :8231
 ```
@@ -75,15 +71,14 @@ Audio-to-MIDI/score transcription with a browser piano roll.
 
 ```bash
 cd ~/multimedia/muscriptor
-./setupwithuv gpu
+./setupwithuv
 ./startwithuv                             # http://127.0.0.1:8222
 ```
 
 Single-file CLI:
 
 ```bash
-source .venv/bin/activate
-uv run --active --no-sync python local_transcribe.py INPUT.mp3
+./startwithuv INPUT.mp3
 ```
 
 ### MuSViT
@@ -92,7 +87,7 @@ Sheet-music image/PDF encoding and SMT-backed beKern/MIDI/SVG conversion.
 
 ```bash
 cd ~/multimedia/musvit
-./setupwithuv gpu
+./setupwithuv
 ./startwithuv SCORE_IMAGE_OR_PDF
 ```
 
@@ -104,7 +99,7 @@ Flat-image decomposition into editable layers using local detection, segmentatio
 
 ```bash
 cd ~/multimedia/redesign
-./setupwithuv gpu
+./setupwithuv
 ./startwithuv                             # http://127.0.0.1:8173
 ```
 
@@ -120,7 +115,7 @@ cd ~/multimedia/translate
 ./starthttp.sh                            # http://127.0.0.1:8176
 ```
 
-Set `TRANSLATE_ACCELERATOR=cpu` before setup when CUDA is not wanted.
+The setup prompt accepts GPU or CPU; `TRANSLATE_ACCELERATOR` remains available for noninteractive runs.
 
 ### Video Compact
 
@@ -128,7 +123,7 @@ Private VideoSmaller-style FFmpeg compression.
 
 ```bash
 cd ~/multimedia/video-compact
-./setupwithuv cpu
+./setupwithuv
 ./startwithuv                             # http://127.0.0.1:8240
 ```
 
@@ -138,7 +133,7 @@ Local trim/crop/resize and animated GIF or AVIF conversion.
 
 ```bash
 cd ~/multimedia/video-to-gif-avif
-./setupwithuv cpu
+./setupwithuv
 ./startwithuv                             # http://127.0.0.1:8241
 ```
 
@@ -150,7 +145,7 @@ Local CrisperWhisper 2.0 transcription in normalized or literal mode. The HTTP s
 
 ```bash
 cd ~/multimedia/whisper
-./setupwithuv gpu
+./setupwithuv
 ./starthttp.sh                            # machine API: :8172
 ./startwithuv.sh                          # browser UI: :8173
 ```
