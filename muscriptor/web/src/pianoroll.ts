@@ -1,0 +1,751 @@
+import { INSTRUMENT_ORDER } from "./audio";
+
+export interface RollNote {
+  pitch: number;
+  start: number;
+  end: number;
+  instrument: string;
+  /**
+   * `performance.now()` at which this note's geometry was finalized (its `end`
+   * event arrived), driving the left-to-right reveal. Unset notes are drawn
+   * with no reveal (full width), e.g. when loading a finished MIDI.
+   */
+  spawn?: number;
+  /**
+   * Number of same-pitch notes drawn in front of this one that overlap it in
+   * time. The note is nudged up by this many steps so it peeks out from behind
+   * them. Maintained in {@link PianoRoll.setNoteEnd}.
+   */
+  stackOffset?: number;
+}
+
+/** Constant-tempo grid detected by the backend (the `midi` event's `beat_grid`). */
+export interface BeatGrid {
+  bpm: number;
+  /** null when the meter is unknown — then only beat lines are drawn. */
+  beats_per_bar: number | null;
+  /** Time of the first detected bar line, in seconds of the original audio. */
+  first_downbeat: number;
+}
+
+/** Don't shade measures narrower than this (px) — double the shading step instead. */
+const MIN_BAR_PX = 40;
+
+/**
+ * Shading on every other bar. Translucent so it tints the pitch rows underneath.
+ */
+const BAR_STRIP = "rgba(255, 255, 255, 0.01)";
+/** Beat subdivisions are dropped below this spacing (px) rather than crowding the bars. */
+const MIN_BEAT_PX = 12;
+
+/** Reveal duration in ms — how long a note takes to grow to full width. */
+const REVEAL_MS = 280;
+
+/** Shave this off each note's drawn width so adjacent notes keep a visible gap. */
+const NOTE_GAP_PX = 1.5;
+
+/** Upward nudge per overlapping same-pitch note drawn in front, so it peeks out. */
+const NOTE_STACK_PX = 1.5;
+
+/**
+ * Time grid for the span `[from, to]` seconds: `lines` are beat lines (or plain
+ * seconds when no tempo was detected), `strips` are the shaded half of the
+ * alternating bar shading — every other measure, so bars read as blocks rather
+ * than as separator lines. Both are phase-locked to `first_downbeat` and
+ * extrapolated backwards, so the pickup before the first downbeat is shaded and
+ * ruled like any other bar.
+ */
+export function timeGrid(
+  grid: BeatGrid | null,
+  from: number,
+  to: number,
+  pxPerSec: number,
+): { lines: number[]; strips: { from: number; to: number }[] } {
+  const lines: number[] = [];
+  const strips: { from: number; to: number }[] = [];
+  // No grid: the old one-second ruler, unshaded.
+  if (!grid) {
+    for (let s = Math.max(0, Math.ceil(from)); s <= to; s++) lines.push(s);
+    return { lines, strips };
+  }
+  const beat = 60 / grid.bpm;
+  // Meter unknown: shade every beat, there's nothing coarser to group them into.
+  let step = (grid.beats_per_bar ?? 1) * beat;
+  while (step * pxPerSec < MIN_BAR_PX) step *= 2;
+  // Start one measure early so the bar straddling `from` still gets shaded.
+  for (let k = Math.floor((from - grid.first_downbeat) / step); ; k++) {
+    const t = grid.first_downbeat + k * step;
+    if (t > to) break;
+    // Odd measures carry the shading; even ones show bare background.
+    if (((k % 2) + 2) % 2 === 1 && t + step > 0) {
+      strips.push({ from: Math.max(0, t), to: t + step });
+    }
+  }
+  // Beat lines only where they'd stay legible, and only if they're finer than
+  // the (possibly doubled) shading step.
+  if (step > beat && beat * pxPerSec >= MIN_BEAT_PX) {
+    for (let k = Math.ceil((from - grid.first_downbeat) / beat); ; k++) {
+      const t = grid.first_downbeat + k * beat;
+      if (t > to) break;
+      if (t >= 0) lines.push(t);
+    }
+  }
+  return { lines, strips };
+}
+
+/** Ease-out cubic: fast start, slowing as it reaches the end. */
+function easeOut(t: number): number {
+  const u = 1 - t;
+  return 1 - u * u * u;
+}
+
+/**
+ * Where in the content area the followed position sits, as a fraction of the
+ * view width. Shared by playhead-follow and transcription-follow.
+ */
+const FOLLOW_ANCHOR_FRACTION = 0.66;
+/**
+ * A playhead below this (seconds) counts as "at the start" i.e. the user
+ * hasn't begun listening yet, and we will auto-follow the transcription progress.
+ */
+const PLAYHEAD_START_EPS = 0.05;
+/** Per-frame easing of the frontier value. */
+const FRONTIER_SMOOTHING = 0.12;
+/** Per-frame easing of the *view offset* toward the anchored frontier */
+const FRONTIER_FOLLOW_SMOOTHING = 0.06;
+/** Idle time (ms) after a scroll gesture before auto-follow may re-engage. */
+const RESUME_IDLE_MS = 1000;
+
+const PX_PER_SEC = 80;
+const MIN_PX_PER_SEC = 10;
+const MAX_PX_PER_SEC = 2000;
+const MAX_PX_PER_PITCH = 160;
+const PITCH_MIN = 21; // A0
+const PITCH_MAX = 108; // C8
+/** Top of the auto-fit view; higher pitches are reachable only by zooming. */
+const DEFAULT_PITCH_TOP = 84; // C6
+const DEFAULT_PITCH_RANGE = DEFAULT_PITCH_TOP - PITCH_MIN + 1; // 64
+
+/** Width in px of the piano-key strip on the left edge. */
+export const KEY_WIDTH = 56;
+
+/** Black keys within an octave (C=0): C#, D#, F#, G#, A#. */
+function isBlackKey(pitch: number): boolean {
+  const n = ((pitch % 12) + 12) % 12;
+  return n === 1 || n === 3 || n === 6 || n === 8 || n === 10;
+}
+
+/**
+ * Golden-angle hue step (≈137.5°). Stepping the hue by this each time keeps any
+ * prefix of the generated sequence as evenly spaced around the wheel as
+ * possible, so the palette stays well-separated however many instruments appear.
+ */
+const GOLDEN_ANGLE = 137.508;
+
+/**
+ * Color index per instrument: its position in the canonical instrument list,
+ * so every instrument keeps the same color across tracks, uploads, and
+ * reloads. Names outside the list (e.g. "program_47") get the next free
+ * indices in first-seen order.
+ */
+const instrumentIndex = new Map<string, number>(
+  INSTRUMENT_ORDER.map((name, i) => [name, i]),
+);
+
+export function instrumentColor(name: string): string {
+  let idx = instrumentIndex.get(name);
+  if (idx === undefined) {
+    idx = instrumentIndex.size;
+    instrumentIndex.set(name, idx);
+  }
+  const hue = (idx * GOLDEN_ANGLE) % 360;
+  return `hsl(${hue}, 70%, 55%)`;
+}
+
+/**
+ * The canvas can't use Tailwind classes, so the skin exposes its palette as
+ * CSS custom properties on :root (see style.css); read once and cache.
+ */
+let rollPalette: {
+  stripe: string;
+  grid: string;
+  playhead: string;
+  keyBlack: string;
+  keyWhite: string;
+  labelFont: string;
+} | null = null;
+
+function palette() {
+  if (rollPalette === null) {
+    const style = getComputedStyle(document.documentElement);
+    const v = (name: string) => style.getPropertyValue(name).trim();
+    rollPalette = {
+      stripe: v("--roll-stripe"),
+      grid: v("--roll-grid"),
+      playhead: v("--roll-playhead"),
+      keyBlack: v("--roll-key-black"),
+      keyWhite: v("--roll-key-white"),
+      labelFont: `10px ${v("--font-sans")}`,
+    };
+  }
+  return rollPalette;
+}
+
+export class PianoRoll {
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private notes: RollNote[] = [];
+  private hiddenInstruments = new Set<string>();
+  private mutedInstruments = new Set<string>();
+  /** Instrument hovered in the instrument list; all others draw faded. */
+  private highlightedInstrument: string | null = null;
+  private playhead = 0;
+  /**
+   * Chunk-completion estimate of how far transcription has reached (seconds), or
+   * null when not transcribing. Combined with `latestNoteStart` into the tinted
+   * [0, t) frontier; the chunk estimate is what advances the frontier across
+   * silent spans where no notes arrive.
+   */
+  private chunkFrontier: number | null = null;
+  /**
+   * Whether the frontier is still advancing. False once transcription is done
+   * and the frontier is pinned at the full duration: the wash stays (light =
+   * transcribed) but the view must not chase the frontier to the end.
+   */
+  private frontierLive = true;
+  /** Start time of the latest note seen — a precise lower bound on the frontier. */
+  private latestNoteStart = 0;
+  /** Frontier actually drawn; eases toward the target each frame for a smooth glide. */
+  private transcribedSmooth = 0;
+  /** Seconds-from-start of the left edge when the user has taken over scrolling. */
+  private userOffset: number | null = null;
+  /**
+   * `performance.now()` of the last user scroll/zoom gesture, and whether that
+   * gesture (as opposed to the explicit follow toggle) is what stopped
+   * following. Together they drive the auto-resume in {@link render}: a scroll
+   * that leaves the transcription frontier in view re-engages follow mode after
+   * {@link RESUME_IDLE_MS} of quiet, while an explicit unfollow stays put.
+   */
+  private lastGestureAt = 0;
+  private resumeArmed = false;
+  /** Set when the auto-resume fired; read (and cleared) by {@link consumeAutoResumed}. */
+  private autoResumed = false;
+  /** Last offset we rendered with — handy so external code knows what's visible. */
+  private lastOffset = 0;
+  /** Time-axis zoom, in pixels per second. */
+  private _pxPerSec = PX_PER_SEC;
+  /** Row height in px when the user has zoomed the pitch axis; null = auto-fit all 88 keys. */
+  private pxPerPitch: number | null = null;
+  /** Pitch value at the top edge, used only while pitch-zoomed. */
+  private pitchTop = DEFAULT_PITCH_TOP;
+  /** Loaded audio length in seconds; caps how far the time axis can scroll. */
+  private contentDuration = 0;
+  /** Detected beat grid; null until the final `midi` event arrives (then: seconds grid). */
+  private beatGrid: BeatGrid | null = null;
+
+  get pxPerSec(): number {
+    return this._pxPerSec;
+  }
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d")!;
+    this.resize();
+    window.addEventListener("resize", () => this.resize());
+  }
+
+  private resize() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = this.canvas.getBoundingClientRect();
+    this.canvas.width = rect.width * dpr;
+    this.canvas.height = rect.height * dpr;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  addNote(n: RollNote) {
+    this.notes.push(n);
+    // The transcribed frontier never lags behind the most recent note's onset.
+    if (n.start > this.latestNoteStart) this.latestNoteStart = n.start;
+  }
+
+  /**
+   * Record a note's final end time (its `end` event arrived). Beyond driving the
+   * left-to-right reveal, this restacks same-pitch notes that overlap `n` in
+   * time: whichever of an overlapping pair is drawn behind gets one more upward
+   * step ({@link NOTE_STACK_PX}) so it peeks out above the note in front.
+   *
+   * Iteration order matches draw order (insertion order), so notes seen before
+   * `n` are behind it and notes seen after are in front. Each overlapping pair
+   * is settled exactly once — when the later of the two to arrive finalizes —
+   * since only already-finalized notes (`spawn` set) take part.
+   */
+  setNoteEnd(n: RollNote, end: number) {
+    n.end = end;
+    n.spawn = performance.now();
+    let behindN = true;
+    for (const e of this.notes) {
+      if (e === n) {
+        behindN = false;
+        continue;
+      }
+      if (e.spawn === undefined || e.pitch !== n.pitch) continue;
+      // Half-open overlap test on the final time ranges.
+      if (e.start < n.end && n.start < e.end) {
+        if (behindN) e.stackOffset = (e.stackOffset ?? 0) + 1;
+        else n.stackOffset = (n.stackOffset ?? 0) + 1;
+      }
+    }
+  }
+
+  /** Spotlight `name`'s notes (fading all other instruments); null clears it. */
+  setHighlightedInstrument(name: string | null) {
+    this.highlightedInstrument = name;
+  }
+
+  setPlayhead(seconds: number) {
+    this.playhead = seconds;
+  }
+
+  /**
+   * Switch the time grid from seconds to bars/beats. Note times are untouched:
+   * the grid is drawn in original-audio time, so 0s stays at 0s and the first
+   * bar line lands on the detected downbeat (with earlier bar lines extrapolated
+   * backwards). null keeps the seconds grid.
+   */
+  setBeatGrid(grid: BeatGrid | null) {
+    this.beatGrid = grid;
+  }
+
+  /** Tell the roll the loaded audio length, which bounds the time-axis scroll. */
+  setDuration(seconds: number) {
+    this.contentDuration = seconds;
+  }
+
+  /**
+   * Feed the chunk-completion estimate of the transcribed span, or null when not
+   * transcribing (which disables the tint). The drawn frontier is the max of this
+   * and the latest note onset, eased over a few frames.
+   */
+  setTranscribedUntil(seconds: number | null, live = true) {
+    this.chunkFrontier = seconds;
+    this.frontierLive = live;
+  }
+
+  /** Show or hide every note belonging to `instrument`. */
+  setInstrumentVisible(instrument: string, visible: boolean) {
+    if (visible) this.hiddenInstruments.delete(instrument);
+    else this.hiddenInstruments.add(instrument);
+  }
+
+  /** Dim every note belonging to `instrument` (drawn at 10% alpha) when muted. */
+  setInstrumentMuted(instrument: string, muted: boolean) {
+    if (muted) this.mutedInstruments.add(instrument);
+    else this.mutedInstruments.delete(instrument);
+  }
+
+  clear() {
+    this.notes = [];
+    this.hiddenInstruments.clear();
+    // Unmounting the instrument list mid-hover fires no mouseleave, so drop
+    // any stale spotlight here.
+    this.highlightedInstrument = null;
+    this.playhead = 0;
+    this.chunkFrontier = null;
+    this.frontierLive = true;
+    this.latestNoteStart = 0;
+    this.transcribedSmooth = 0;
+    this.userOffset = null;
+    this.lastGestureAt = 0;
+    this.resumeArmed = false;
+    this.autoResumed = false;
+    this.lastOffset = 0;
+    this._pxPerSec = PX_PER_SEC;
+    this.pxPerPitch = null;
+    this.pitchTop = DEFAULT_PITCH_TOP;
+    this.contentDuration = 0;
+    this.beatGrid = null;
+  }
+
+  /**
+   * Mark a user scroll/zoom gesture: restarts the auto-resume idle timer and
+   * arms it, so follow mode may come back on its own once the gesture settles.
+   */
+  private noteGesture() {
+    this.lastGestureAt = performance.now();
+    this.resumeArmed = true;
+  }
+
+  /** Add `deltaSeconds` to the left-edge offset, taking the view out of follow mode. */
+  scrollBy(deltaSeconds: number) {
+    const base = this.userOffset ?? this.lastOffset;
+    this.userOffset = this.clampOffset(base + deltaSeconds, this._pxPerSec);
+    this.noteGesture();
+  }
+
+  /** Pan the pitch axis by `deltaPx` pixels. */
+  scrollPitchBy(deltaPx: number) {
+    this.noteGesture();
+    const H = this.canvas.getBoundingClientRect().height;
+    if (this.pxPerPitch === null) {
+      // Auto-fit hides everything above C6; entering a panned window at the
+      // same row height lets the user scroll up to it without zooming first.
+      this.pxPerPitch = H / DEFAULT_PITCH_RANGE;
+      this.pitchTop = DEFAULT_PITCH_TOP;
+    }
+    this.pitchTop = this.clampPitchTop(
+      this.pitchTop + deltaPx / this.pxPerPitch,
+      this.pxPerPitch,
+      H,
+    );
+  }
+
+  /**
+   * Zoom the time axis by `factor`, keeping the second under `anchorX` fixed.
+   * `anchorX` is canvas-relative (including the key strip); the gutter is
+   * subtracted here so the content area starts at zero seconds-from-offset.
+   */
+  zoomTime(factor: number, anchorX: number) {
+    this.noteGesture();
+    const old = this._pxPerSec;
+    const next = Math.min(
+      MAX_PX_PER_SEC,
+      Math.max(MIN_PX_PER_SEC, old * factor),
+    );
+    if (next === old) return;
+    const ax = anchorX - KEY_WIDTH;
+    const base = this.userOffset ?? this.lastOffset;
+    const anchorSec = base + ax / old;
+    this._pxPerSec = next;
+    this.userOffset = this.clampOffset(anchorSec - ax / next, next);
+  }
+
+  /** Zoom the pitch axis by `factor`, keeping the pitch under `anchorY` (px) fixed. */
+  zoomPitch(factor: number, anchorY: number) {
+    this.noteGesture();
+    const H = this.canvas.getBoundingClientRect().height;
+    const fit = H / DEFAULT_PITCH_RANGE;
+    const oldRowH = this.pxPerPitch ?? fit;
+    const oldTop = this.pxPerPitch === null ? DEFAULT_PITCH_TOP : this.pitchTop;
+    const next = Math.min(MAX_PX_PER_PITCH, oldRowH * factor);
+    if (next <= fit) {
+      // Zoomed back out to where all 88 keys fit — return to auto-fit mode.
+      this.pxPerPitch = null;
+      return;
+    }
+    const anchorPitch = oldTop - anchorY / oldRowH;
+    this.pxPerPitch = next;
+    this.pitchTop = this.clampPitchTop(anchorPitch + anchorY / next, next, H);
+  }
+
+  /** Keep the zoomed pitch window inside [A0, C8]. */
+  private clampPitchTop(top: number, rowH: number, H: number): number {
+    const visible = H / rowH;
+    const min = Math.min(PITCH_MIN + visible, PITCH_MAX);
+    return Math.min(PITCH_MAX, Math.max(min, top));
+  }
+
+  /** Resume auto-following the playhead. */
+  follow() {
+    this.userOffset = null;
+    this.resumeArmed = false;
+  }
+
+  /** Take over scrolling: freeze the view at its current offset. */
+  unfollow() {
+    this.userOffset = this.lastOffset;
+    // An explicit unfollow means it, so it isn't undone by the auto-resume.
+    this.resumeArmed = false;
+  }
+
+  get isFollowing(): boolean {
+    return this.userOffset === null;
+  }
+
+  /**
+   * True once after follow mode re-engaged on its own (the user scrolled back to
+   * the live transcription frontier and then sat still). Lets the React side
+   * light the "following" indicator back up without polling `isFollowing`, which
+   * would also override the toggle in cases the roll doesn't own.
+   */
+  consumeAutoResumed(): boolean {
+    const v = this.autoResumed;
+    this.autoResumed = false;
+    return v;
+  }
+
+  /** Translate a canvas-relative x pixel coordinate to a transport-time in seconds. */
+  xToSeconds(x: number): number {
+    return Math.max(0, this.lastOffset + (x - KEY_WIDTH) / this._pxPerSec);
+  }
+
+  /** Latest note end across all notes — drives x-axis scroll. */
+  private maxEnd(): number {
+    let m = 0;
+    for (const n of this.notes) if (n.end > m) m = n.end;
+    return m;
+  }
+
+  /** End of the scrollable content: the further of the audio length and last note. */
+  private contentEnd(): number {
+    return Math.max(this.contentDuration, this.maxEnd());
+  }
+
+  /**
+   * Clamp a left-edge offset (seconds) to [0, contentEnd - viewSec] so the view
+   * can't scroll past the start or beyond the end of the audio. `pxPerSec` is
+   * passed in because callers (zoomTime) may be mid-change to it.
+   */
+  private clampOffset(offsetSec: number, pxPerSec: number): number {
+    const contentW = this.canvas.getBoundingClientRect().width - KEY_WIDTH;
+    const viewSec = contentW / pxPerSec;
+    const max = Math.max(0, this.contentEnd() - viewSec);
+    return Math.max(0, Math.min(offsetSec, max));
+  }
+
+  render() {
+    const ctx = this.ctx;
+    const rect = this.canvas.getBoundingClientRect();
+    const W = rect.width;
+    const H = rect.height;
+    ctx.clearRect(0, 0, W, H);
+
+    // The note area starts after the key strip; only that width shows time.
+    const contentW = W - KEY_WIDTH;
+    const maxT = Math.max(this.maxEnd(), this.playhead + 1);
+    const viewSec = contentW / this._pxPerSec;
+
+    // Ease the transcribed frontier toward its target.
+    // null = not transcribing, which turns both the tint and the follow off.
+    if (this.chunkFrontier !== null) {
+      const target = Math.max(this.chunkFrontier, this.latestNoteStart);
+      // Snap once effectively there, so it doesn't creep forever.
+      this.transcribedSmooth +=
+        (target - this.transcribedSmooth) * FRONTIER_SMOOTHING;
+      if (Math.abs(target - this.transcribedSmooth) < 0.01) {
+        this.transcribedSmooth = target;
+      }
+    } else {
+      this.transcribedSmooth = 0; // tint off when there's nothing transcribed
+    }
+    const frontier =
+      this.chunkFrontier !== null ? this.transcribedSmooth : null;
+    // Until the user starts listening, the frontier is the interesting edge, so
+    // the view follows it instead of the playhead parked at zero.
+    const followFrontier =
+      frontier !== null &&
+      this.frontierLive &&
+      this.playhead <= PLAYHEAD_START_EPS;
+
+    // A scroll gesture (unlike the explicit follow toggle) only pauses
+    // following: if it leaves the moving frontier in view, follow re-engages
+    // once the user has been still for a second — so glancing back and
+    // returning doesn't cost them the auto-scroll.
+    if (this.userOffset !== null && this.resumeArmed && followFrontier) {
+      const inView =
+        frontier >= this.userOffset && frontier <= this.userOffset + viewSec;
+      if (inView && performance.now() - this.lastGestureAt >= RESUME_IDLE_MS) {
+        this.userOffset = null;
+        this.resumeArmed = false;
+        this.autoResumed = true;
+      }
+    }
+
+    // Auto-scroll: keep the view still while the playhead is inside it; only
+    // scroll once the playhead reaches the right third (or leaves the view to
+    // the left, e.g. on stop). Manual scrolling (userOffset !== null) wins.
+    let offsetSec: number;
+    if (this.userOffset !== null) {
+      // Re-clamp each frame so a window resize or newly-streamed notes can't
+      // leave the frozen view stranded past the content end.
+      offsetSec = Math.max(
+        0,
+        Math.min(this.userOffset, Math.max(0, this.contentEnd() - viewSec)),
+      );
+    } else if (followFrontier) {
+      // Ease toward parking the frontier at the follow anchor. The frontier is
+      // already smoothed, so this second ease just adds a little give.
+      const target = Math.max(
+        0,
+        Math.min(
+          frontier - viewSec * FOLLOW_ANCHOR_FRACTION,
+          Math.max(0, this.contentEnd() - viewSec),
+        ),
+      );
+      offsetSec =
+        this.lastOffset +
+        (target - this.lastOffset) * FRONTIER_FOLLOW_SMOOTHING;
+      if (Math.abs(target - offsetSec) < 0.005) offsetSec = target;
+    } else {
+      offsetSec = this.lastOffset;
+      if (this.playhead > offsetSec + viewSec * FOLLOW_ANCHOR_FRACTION) {
+        offsetSec = this.playhead - viewSec * FOLLOW_ANCHOR_FRACTION;
+      } else if (
+        this.playhead > PLAYHEAD_START_EPS &&
+        this.playhead < offsetSec
+      ) {
+        // A playhead parked at zero (transcription just finished, nothing
+        // playing) isn't a reason to yank the view back to the start.
+        offsetSec = this.playhead;
+      }
+      offsetSec = Math.max(0, Math.min(offsetSec, Math.max(0, maxT - viewSec)));
+    }
+    this.lastOffset = offsetSec;
+    const pxPerSec = this._pxPerSec;
+
+    // Pitch axis: auto-fit all 88 keys, or use the zoomed window if the user
+    // has pinched vertically.
+    const rowH = this.pxPerPitch ?? H / DEFAULT_PITCH_RANGE;
+    const pitchTop =
+      this.pxPerPitch === null ? DEFAULT_PITCH_TOP : this.pitchTop;
+
+    // Everything time-indexed lives in the content area to the right of the
+    // key strip; clip so notes/grid can't bleed under the keyboard.
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(KEY_WIDTH, 0, contentW, H);
+    ctx.clip();
+
+    // Pitch grid: darker rows under the black keys, so each octave's shape is
+    // readable at a glance (the keyboard's own pattern, mirrored into the notes).
+    ctx.fillStyle = palette().stripe;
+    for (let p = PITCH_MIN; p <= PITCH_MAX; p++) {
+      if (isBlackKey(p)) {
+        const y = (pitchTop - p) * rowH;
+        ctx.fillRect(KEY_WIDTH, y, contentW, rowH);
+      }
+    }
+
+    // Time grid: alternating bar shading plus beat lines once the tempo is
+    // known, else a plain one-second ruler. The shading is translucent, so it
+    // lifts the black-key rows above too instead of painting over them.
+    const { lines, strips } = timeGrid(
+      this.beatGrid,
+      offsetSec,
+      offsetSec + viewSec,
+      pxPerSec,
+    );
+    const xAt = (t: number) => KEY_WIDTH + (t - offsetSec) * pxPerSec;
+    ctx.fillStyle = BAR_STRIP;
+    for (const s of strips)
+      ctx.fillRect(xAt(s.from), 0, xAt(s.to) - xAt(s.from), H);
+    ctx.strokeStyle = palette().grid;
+    ctx.lineWidth = 1;
+    for (const t of lines) {
+      const x = xAt(t);
+      ctx.beginPath();
+      ctx.moveTo(x + 0.5, 0);
+      ctx.lineTo(x + 0.5, H);
+      ctx.stroke();
+    }
+
+    // Transcribed-so-far overlay: a faint light wash over the [0, t) time span
+    // the backend has already processed. The frontier is the furthest of the
+    // chunk-completion estimate (which advances across silent spans) and the
+    // latest note onset (precise where notes exist); it's eased above, before
+    // the scroll decision. Drawn over the grid but under the notes so they stay
+    // crisp; clipped to content.
+    if (frontier !== null) {
+      const x0 = KEY_WIDTH + (0 - offsetSec) * pxPerSec;
+      const x1 = KEY_WIDTH + (frontier - offsetSec) * pxPerSec;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.025)";
+      ctx.fillRect(x0, 0, x1 - x0, H);
+    }
+
+    // Notes
+    const now = performance.now();
+    // Sliver of background between adjacent semitones, so notes on
+    // consecutive pitches read as separate bars at any zoom level.
+    const rowGap = Math.max(0.5, Math.min(4, rowH * 0.1));
+    // Stack-shift budget for overlapping same-pitch notes: at most 3px, and
+    // never past the row gap (minus a 1px border) — so a shifted note can't
+    // collide with a note one semitone up. At the unzoomed row height this
+    // rounds to no shift at all.
+    const maxShift = Math.min(3, Math.max(0, rowGap - 1));
+    for (const n of this.notes) {
+      if (n.pitch < PITCH_MIN || n.pitch > PITCH_MAX) continue;
+      if (this.hiddenInstruments.has(n.instrument)) continue;
+      const x = KEY_WIDTH + (n.start - offsetSec) * pxPerSec;
+      const full = Math.max(2, (n.end - n.start) * pxPerSec - NOTE_GAP_PX);
+      // Left-to-right reveal: grow from the note's onset to its full width,
+      // easing out over REVEAL_MS. Unstamped notes draw at full width.
+      const reveal =
+        n.spawn === undefined
+          ? 1
+          : easeOut(Math.min(1, (now - n.spawn) / REVEAL_MS));
+      const w = full * reveal;
+      if (x + w < KEY_WIDTH || x > W) continue;
+      // Nudge up so notes hidden behind an overlapping same-pitch note peek
+      // out. stackOffset counts overlapping notes, so it can grow large (a
+      // sustained note under a run of staccato hits collects +1 per hit) —
+      // cap the TOTAL shift at the budget above.
+      const shift = Math.min((n.stackOffset ?? 0) * NOTE_STACK_PX, maxShift);
+      const y = (pitchTop - n.pitch) * rowH - shift;
+      if (y + rowH < 0 || y > H) continue;
+      // Muting dims a track; while an instrument is highlighted (hovered in
+      // the instrument list), every other track fades even further back.
+      let alpha = this.mutedInstruments.has(n.instrument) ? 0.2 : 1;
+      if (
+        this.highlightedInstrument !== null &&
+        n.instrument !== this.highlightedInstrument
+      ) {
+        alpha = Math.min(alpha, 0.15);
+      }
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = instrumentColor(n.instrument);
+      ctx.fillRect(x, y, w, Math.max(2, rowH - rowGap));
+    }
+    ctx.globalAlpha = 1;
+
+    // Playhead
+    const px = KEY_WIDTH + (this.playhead - offsetSec) * pxPerSec;
+    ctx.strokeStyle = palette().playhead;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(px, 0);
+    ctx.lineTo(px, H);
+    ctx.stroke();
+
+    ctx.restore();
+
+    this.drawKeyboard(ctx, H, rowH, pitchTop);
+  }
+
+  /** Draw the piano-key strip down the left edge, aligned to the pitch axis. */
+  private drawKeyboard(
+    ctx: CanvasRenderingContext2D,
+    H: number,
+    rowH: number,
+    pitchTop: number,
+  ) {
+    const showLabels = rowH >= 8;
+    if (showLabels) {
+      ctx.font = palette().labelFont;
+      ctx.textBaseline = "middle";
+    }
+    for (let p = PITCH_MIN; p <= PITCH_MAX; p++) {
+      const y = (pitchTop - p) * rowH;
+      if (y + rowH < 0 || y > H) continue;
+      ctx.fillStyle = isBlackKey(p) ? palette().keyBlack : palette().keyWhite;
+      ctx.fillRect(0, y, KEY_WIDTH, rowH);
+      // Thin separator between adjacent keys.
+      ctx.strokeStyle = palette().stripe;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, y + 0.5);
+      ctx.lineTo(KEY_WIDTH, y + 0.5);
+      ctx.stroke();
+      // Octave label on each C (MIDI 60 = C4).
+      if (showLabels && p % 12 === 0) {
+        ctx.fillStyle = palette().stripe;
+        ctx.fillText(`C${p / 12 - 1}`, 4, y + rowH / 2);
+      }
+    }
+    // Boundary between keyboard and note area.
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(KEY_WIDTH + 0.5, 0);
+    ctx.lineTo(KEY_WIDTH + 0.5, H);
+    ctx.stroke();
+  }
+}

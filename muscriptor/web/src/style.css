@@ -1,0 +1,256 @@
+@import "tailwindcss";
+
+/* ---- design tokens ----------------------------------------------------- */
+/* Exposed to utilities: bg-surface, text-muted, border-line, font-serif,
+   rounded-card, ease-fluid, animate-rise, etc. */
+@theme {
+  --color-bg: #0b0c10;
+  --color-surface: #121319;
+  --color-surface-2: #16171f;
+  --color-line: rgba(255, 255, 255, 0.07);
+  --color-line-strong: rgba(255, 255, 255, 0.13);
+  --color-content: #edecf0;
+  --color-muted: #aaacb9;
+  --color-faint: #5a5c68;
+  --color-accent: #ff5b7a; /* echoes the piano-roll playhead */
+  --color-accent-2: #ff8a5c;
+  --color-accent-soft: rgba(255, 91, 122, 0.13);
+  --color-accent-glow: rgba(255, 91, 122, 0.5);
+  --color-ok: #4ad295;
+  --color-red: #ff5577; /* errors + the mute toggle; the playhead pink */
+
+  --radius-card: 12px;
+
+  /* Named shadows so reskins can restyle them from @theme alone:
+     pop     — floating panels (dropdowns, tooltips, menus)
+     overlay — the full-screen drop-target card
+     canvas  — the piano-roll frame
+     glow    — the per-instrument color swatch */
+  --shadow-pop: 0 18px 40px -20px rgba(0, 0, 0, 0.9);
+  --shadow-overlay: 0 24px 60px -24px rgba(0, 0, 0, 0.9);
+  --shadow-canvas:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 40px -28px rgba(0, 0, 0, 0.9);
+  --shadow-glow: 0 0 10px -1px currentColor;
+
+  --ease-fluid: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --font-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-sans: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --animate-rise: rise 0.7s var(--ease-fluid) both;
+  --animate-drag-glow: drag-glow 1.7s var(--ease-fluid) infinite;
+
+  @keyframes drag-glow {
+    0%,
+    100% {
+      box-shadow:
+        0 0 0 1px var(--color-accent-soft),
+        0 0 14px -2px var(--color-accent-glow);
+    }
+    50% {
+      box-shadow:
+        0 0 0 1px var(--color-accent),
+        0 0 40px 2px var(--color-accent-glow);
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes ping {
+    0% {
+      box-shadow: 0 0 0 0 var(--color-accent-glow);
+    }
+    70% {
+      box-shadow: 0 0 0 7px transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+}
+
+/* Piano-roll canvas palette — pianoroll.ts reads these via getComputedStyle,
+   since canvas drawing can't use utility classes. */
+:root {
+  --roll-stripe: #16161c; /* C-row stripes, key separators, octave labels */
+  --roll-grid: #22222a;
+  --roll-playhead: #ff5577;
+  --roll-key-black: #23232b;
+  --roll-key-white: #cfd2dc;
+}
+
+/* ---- base -------------------------------------------------------------- */
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    color: var(--color-content);
+    background:
+      radial-gradient(
+        900px 500px at 88% -8%,
+        rgba(255, 91, 122, 0.1),
+        transparent 60%
+      ),
+      /* A very dark grey page base — lifted off the near-black --color-bg
+         (#0b0c10), which is kept for the dark insets inside the cards. */
+      #1b1c21;
+    background-attachment: fixed;
+  }
+
+  /* Default button look; specific buttons override via utilities. */
+  button {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-content);
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-line-strong);
+    padding: 8px 16px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition:
+      background 0.15s var(--ease-fluid),
+      border-color 0.15s var(--ease-fluid),
+      transform 0.08s var(--ease-fluid);
+  }
+  button:hover {
+    background: #20212b;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  button:active {
+    transform: translateY(1px);
+  }
+  button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+/* ---- signature surfaces & buttons -------------------------------------- */
+
+/* The frosted panel look shared by every card-like container. */
+@utility card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 120px),
+    var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 18px 40px -28px rgba(0, 0, 0, 0.9);
+}
+
+/* The glowing accent gradient used by the primary download / transcribe CTAs. */
+@utility btn-primary {
+  background: linear-gradient(180deg, var(--color-accent), #e84668);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+  box-shadow:
+    0 0 0 1px rgba(255, 91, 122, 0.4),
+    0 8px 22px -10px var(--color-accent-glow);
+  &:hover:not(:disabled) {
+    filter: brightness(1.08);
+    background: linear-gradient(180deg, var(--color-accent), #e84668);
+    border-color: transparent;
+  }
+}
+
+/* The logo waveform, masked so it takes its colour from the element's
+   background (pair with a bg-* utility and a size). */
+@utility wave-mark {
+  -webkit-mask: url("/muscriptor-wave.svg") center / contain no-repeat;
+  mask: url("/muscriptor-wave.svg") center / contain no-repeat;
+}
+
+/* ---- atmosphere (fixed overlays) --------------------------------------- */
+
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Status dot: colour + ping keyed off the body's transcription state. */
+body[data-state="transcribing"] .status-dot {
+  background: var(--color-accent);
+  animation: ping 1.3s var(--ease-fluid) infinite;
+}
+body[data-state="done"] .status-dot {
+  background: var(--color-ok);
+}
+body[data-state="error"] .status-dot {
+  background: var(--color-accent);
+}
+
+/* Drop overlay fades in via the body.drag class (set outside React). */
+body.drag .drop-overlay {
+  opacity: 1;
+}
+
+/* ---- crossfade slider -------------------------------------------------- */
+/* Range thumbs need vendor pseudo-elements that utilities can't reach. */
+.mix-slider {
+  appearance: none;
+  width: 170px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-muted), var(--color-accent));
+  cursor: pointer;
+}
+.mix-slider:disabled {
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+.mix-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--color-accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transition: transform 0.1s var(--ease-fluid);
+}
+.mix-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+.mix-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--color-accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
