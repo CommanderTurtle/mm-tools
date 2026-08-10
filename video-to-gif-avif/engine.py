@@ -50,15 +50,18 @@ class AnimationOptions:
     gif_dither: str = "sierra2_4a"
     gif_palette: str = "diff"
     gif_alpha_threshold: int = 128
+    gif_engine: str = "cpu"
     avif_quality: int = 78
     avif_effort: int = 6
     avif_engine: str = "software"
     avif_10bit: bool = False
-    sound_companion: bool = False
+    webm_quality: int = 78
+    webm_engine: str = "nvenc"
+    webm_audio: bool = True
 
     def validate(self) -> None:
-        if self.format not in {"gif", "avif"}:
-            raise ValueError("format must be gif or avif")
+        if self.format not in {"gif", "avif", "webm"}:
+            raise ValueError("format must be gif, avif, or webm")
         if self.start < 0 or self.end < 0 or (self.end and self.end <= self.start):
             raise ValueError("end must be greater than start")
         if self.width and not 16 <= self.width <= 16384:
@@ -86,10 +89,16 @@ class AnimationOptions:
             raise ValueError("GIF palette mode must be full, diff, or single")
         if not 0 <= self.gif_alpha_threshold <= 255:
             raise ValueError("alpha threshold must be between 0 and 255")
+        if self.gif_engine not in {"cpu", "cuda"}:
+            raise ValueError("GIF engine must be cpu or cuda")
         if not 0 <= self.avif_quality <= 100 or not 0 <= self.avif_effort <= 8:
             raise ValueError("AVIF quality must be 0-100 and effort 0-8")
         if self.avif_engine not in {"software", "nvenc"}:
             raise ValueError("AVIF engine must be software or nvenc")
+        if not 0 <= self.webm_quality <= 100:
+            raise ValueError("WebM quality must be between 0 and 100")
+        if self.webm_engine not in {"software", "nvenc"}:
+            raise ValueError("WebM engine must be software or nvenc")
 
 
 def _rate(value: str) -> float:
@@ -140,7 +149,12 @@ def available_encoders() -> set[str]:
     return {line.split()[1] for line in result.stdout.splitlines() if len(line.split()) >= 2 and line.lstrip().startswith("V")}
 
 
-def _filters(options: AnimationOptions, *, even_dimensions: bool = False) -> list[str]:
+def _filters(
+    options: AnimationOptions,
+    *,
+    even_dimensions: bool = False,
+    include_scale: bool = True,
+) -> list[str]:
     filters: list[str] = []
     if options.crop_width and options.crop_height:
         filters.append(f"crop={options.crop_width}:{options.crop_height}:{options.crop_x}:{options.crop_y}")
@@ -154,15 +168,36 @@ def _filters(options: AnimationOptions, *, even_dimensions: bool = False) -> lis
         filters.append("hflip")
     if options.flip in {"vertical", "both"}:
         filters.append("vflip")
-    if options.width:
+    if include_scale and options.width:
         width = options.width - (options.width % 2 if options.format == "avif" or even_dimensions else 0)
         filters.append(f"scale={width}:-2:flags=lanczos")
-    elif options.format == "avif" or even_dimensions:
+    elif include_scale and (options.format == "avif" or even_dimensions):
         filters.append("scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=lanczos")
     filters.append(f"fps={options.fps:g}")
     if abs(options.speed - 1.0) > 0.0001:
         filters.append(f"setpts=PTS/{options.speed:g}")
     return filters
+
+
+def _gif_cuda_filters(options: AnimationOptions) -> list[str]:
+    """Use CUDA for decode/color conversion and resize when geometry permits."""
+    has_cpu_geometry = bool(options.crop_width) or options.rotate != "none" or options.flip != "none"
+    if has_cpu_geometry:
+        return [
+            "scale_cuda=iw:ih:format=yuv420p:passthrough=0",
+            "hwdownload",
+            "format=yuv420p",
+            *_filters(options),
+        ]
+
+    width = str(options.width) if options.width else "iw"
+    height = "-2" if options.width else "ih"
+    return [
+        f"scale_cuda={width}:{height}:interp_algo=lanczos:format=yuv420p:passthrough=0",
+        "hwdownload",
+        "format=yuv420p",
+        *_filters(options, include_scale=False),
+    ]
 
 
 def _atempo_filters(speed: float) -> list[str]:
@@ -192,10 +227,20 @@ def build_command(input_path: Path, output_path: Path, options: AnimationOptions
     command = ["ffmpeg", "-hide_banner", "-y", "-loglevel", "warning"]
     if options.start:
         command.extend(["-ss", f"{options.start:.6f}"])
+    if options.format == "gif" and options.gif_engine == "cuda":
+        if "cuda" not in subprocess.run(
+            ["ffmpeg", "-hide_banner", "-hwaccels"], capture_output=True, text=True, check=True
+        ).stdout.split():
+            raise ValueError("CUDA hardware acceleration is unavailable in this FFmpeg build")
+        command.extend(["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"])
     command.extend(["-i", str(input_path)])
     if options.end:
         command.extend(["-t", f"{(options.end - options.start):.6f}"])
-    chain = ",".join(_filters(options))
+    chain = ",".join(
+        _gif_cuda_filters(options)
+        if options.format == "gif" and options.gif_engine == "cuda"
+        else _filters(options, even_dimensions=options.format == "webm")
+    )
 
     if options.format == "gif":
         palette = f"palettegen=max_colors={options.gif_colors}:reserve_transparent=1:stats_mode={options.gif_palette}"
@@ -206,7 +251,7 @@ def build_command(input_path: Path, output_path: Path, options: AnimationOptions
             use += ":new=1"
         command.extend(["-filter_complex", f"[0:v:{info.video_ordinal}]{chain},split[v0][v1];[v0]{palette}[p];[v1][p]{use}[out]"])
         command.extend(["-map", "[out]", "-an", "-loop", str(options.loop), "-gifflags", "+transdiff"])
-    else:
+    elif options.format == "avif":
         command.extend(["-map", f"0:v:{info.video_ordinal}", "-vf", chain, "-an"])
         if options.avif_engine == "nvenc":
             if "av1_nvenc" not in available_encoders():
@@ -219,51 +264,37 @@ def build_command(input_path: Path, output_path: Path, options: AnimationOptions
             crf = max(0, min(63, round(63 - options.avif_quality * 0.55)))
             command.extend(["-c:v", "libaom-av1", "-crf", str(crf), "-b:v", "0", "-cpu-used", str(options.avif_effort), "-row-mt", "1", "-still-picture", "0"])
         command.extend(["-pix_fmt", "yuv420p10le" if options.avif_10bit else "yuv420p", "-loop", str(options.loop), "-f", "avif"])
+    else:
+        command.extend(["-map", f"0:v:{info.video_ordinal}", "-vf", chain])
+        if options.webm_engine == "nvenc":
+            if "av1_nvenc" not in available_encoders():
+                raise ValueError("av1_nvenc is unavailable in this FFmpeg build")
+            cq = max(0, min(51, round(51 - options.webm_quality * 0.43)))
+            command.extend([
+                "-c:v", "av1_nvenc", "-preset", "p5", "-tune", "hq",
+                "-rc", "vbr", "-cq", str(cq), "-b:v", "0",
+            ])
+        else:
+            if "libvpx-vp9" not in available_encoders():
+                raise ValueError("libvpx-vp9 is unavailable in this FFmpeg build")
+            crf = max(4, min(63, round(63 - options.webm_quality * 0.55)))
+            command.extend([
+                "-c:v", "libvpx-vp9", "-crf", str(crf), "-b:v", "0",
+                "-deadline", "good", "-cpu-used", "2", "-row-mt", "1",
+            ])
+        command.extend(["-pix_fmt", "yuv420p"])
+        if options.webm_audio:
+            if not info.audio_codec:
+                raise ValueError("The source has no audio stream to keep in the WebM output.")
+            command.extend(["-map", "0:a:0", "-c:a", "libopus", "-b:a", "128k"])
+            audio_filters = _atempo_filters(options.speed)
+            if audio_filters:
+                command.extend(["-af", ",".join(audio_filters)])
+            command.append("-shortest")
+        else:
+            command.append("-an")
+        command.extend(["-f", "webm"])
     command.extend(["-progress", "pipe:1", "-nostats", str(output_path)])
-    return command, duration or info.duration
-
-
-def build_sound_companion_command(
-    input_path: Path,
-    output_path: Path,
-    options: AnimationOptions,
-) -> tuple[list[str], float]:
-    """Build a synchronized WebM because GIF and animated AVIF cannot carry audio."""
-    options.validate()
-    info = probe(input_path)
-    if not info.audio_codec:
-        raise ValueError("The source has no audio stream for a sound companion.")
-    if options.crop_width and (
-        options.crop_x + options.crop_width > info.width
-        or options.crop_y + options.crop_height > info.height
-    ):
-        raise ValueError("crop rectangle extends outside the source video")
-
-    duration = max(0.0, (options.end or info.duration) - options.start) / options.speed
-    command = ["ffmpeg", "-hide_banner", "-y", "-loglevel", "warning"]
-    if options.start:
-        command.extend(["-ss", f"{options.start:.6f}"])
-    command.extend(["-i", str(input_path)])
-    if options.end:
-        command.extend(["-t", f"{(options.end - options.start):.6f}"])
-    command.extend([
-        "-map", f"0:v:{info.video_ordinal}",
-        "-map", "0:a:0",
-        "-vf", ",".join(_filters(options, even_dimensions=True)),
-        "-c:v", "libvpx-vp9",
-        "-crf", "30",
-        "-b:v", "0",
-        "-deadline", "good",
-        "-cpu-used", "2",
-        "-row-mt", "1",
-        "-pix_fmt", "yuv420p",
-        "-c:a", "libopus",
-        "-b:a", "128k",
-    ])
-    audio_filters = _atempo_filters(options.speed)
-    if audio_filters:
-        command.extend(["-af", ",".join(audio_filters)])
-    command.extend(["-shortest", "-progress", "pipe:1", "-nostats", str(output_path)])
     return command, duration or info.duration
 
 
@@ -322,27 +353,11 @@ def convert(
     )
 
 
-def convert_sound_companion(
-    input_path: Path,
-    output_path: Path,
-    options: AnimationOptions,
-    *,
-    on_progress: Callable[[float, str], None] | None = None,
-    on_process: Callable[[subprocess.Popen[str]], None] | None = None,
-    cancel: Event | None = None,
-) -> MediaInfo:
-    command, duration = build_sound_companion_command(input_path, output_path, options)
-    return _run_conversion(
-        command, output_path, duration,
-        on_progress=on_progress, on_process=on_process, cancel=cancel,
-    )
-
-
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Private local video-to-GIF/animated-AVIF converter")
+    parser = argparse.ArgumentParser(description="Private local video-to-GIF/animated-AVIF/WebM converter")
     parser.add_argument("input", type=Path)
     parser.add_argument("output", type=Path)
-    parser.add_argument("--format", choices=("gif", "avif"), default="gif")
+    parser.add_argument("--format", choices=("gif", "avif", "webm"), default="gif")
     parser.add_argument("--start", type=float, default=0)
     parser.add_argument("--end", type=float, default=0)
     parser.add_argument("--width", type=int, default=640)
@@ -352,10 +367,14 @@ def main() -> None:
     parser.add_argument("--colors", type=int, default=256)
     parser.add_argument("--dither", choices=DITHERS, default="sierra2_4a")
     parser.add_argument("--palette", choices=("full", "diff", "single"), default="diff")
+    parser.add_argument("--gif-engine", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--quality", type=int, default=78)
     parser.add_argument("--effort", type=int, default=6)
     parser.add_argument("--avif-engine", choices=("software", "nvenc"), default="software")
     parser.add_argument("--ten-bit", action="store_true")
+    parser.add_argument("--webm-engine", choices=("software", "nvenc"), default="nvenc")
+    parser.add_argument("--webm-quality", type=int, default=78)
+    parser.add_argument("--no-audio", action="store_true")
     args = parser.parse_args()
     if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
         parser.error("ffmpeg and ffprobe must be on PATH")
@@ -363,7 +382,10 @@ def main() -> None:
         format=args.format, start=args.start, end=args.end, width=args.width,
         fps=args.fps, speed=args.speed, loop=args.loop, gif_colors=args.colors,
         gif_dither=args.dither, gif_palette=args.palette, avif_quality=args.quality,
-        avif_effort=args.effort, avif_engine=args.avif_engine, avif_10bit=args.ten_bit,
+        gif_engine=args.gif_engine, avif_effort=args.effort,
+        avif_engine=args.avif_engine, avif_10bit=args.ten_bit,
+        webm_engine=args.webm_engine, webm_quality=args.webm_quality,
+        webm_audio=not args.no_audio,
     )
     before = probe(args.input)
     after = convert(args.input, args.output, options, on_progress=lambda _p, line: print(line))

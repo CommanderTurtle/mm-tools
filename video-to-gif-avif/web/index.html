@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Motion Forge</title><link rel="stylesheet" href="/assets/app.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Motion Forge</title><link rel="stylesheet" href="/assets/app.css?v=webm1"></head>
 <body>
-  <header><div class="brand"><b>MOTION FORGE</b><span>VIDEO → GIF / ANIMATED AVIF</span></div><div id="runtime" class="runtime">Inspecting local encoders…</div></header>
+  <header><div class="brand"><b>MOTION FORGE</b><span>VIDEO → GIF / ANIMATED AVIF / WEBM</span></div><div id="runtime" class="runtime">Inspecting local encoders…</div></header>
   <main>
     <section class="stage panel">
       <label id="drop" class="drop"><input id="file" type="file" accept="video/*" hidden><b>Choose or drop a video</b><span>MP4 · WebM · MOV · MKV · anything FFmpeg reads</span></label>
@@ -12,15 +12,13 @@
     </section>
 
     <section class="editor panel">
-      <div class="tabs"><button class="active" data-format="gif">GIF</button><button data-format="avif">Animated AVIF</button></div>
+      <div class="tabs"><button class="active" data-format="gif">GIF</button><button data-format="avif">Animated AVIF</button><button data-format="webm">WebM + sound</button></div>
       <div class="grid basic">
         <label>Output width<input id="width" type="number" min="0" max="16384" value="640"><small>0 preserves source; 3840 is valid.</small></label>
         <label>Frames / second<input id="fps" type="number" min="1" max="120" step="1" value="15"></label>
         <label>Playback speed<select id="speed"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option><option value="4">4×</option></select></label>
         <label>Loops<input id="loop" type="number" min="0" max="65535" value="0"><small>0 = forever</small></label>
       </div>
-      <label class="sound-option"><input id="sound-companion" type="checkbox"><span><b>Also export sound</b><small>Creates a synchronized WebM companion. GIF and animated AVIF remain silent by design.</small></span></label>
-
       <div id="gif-options" class="format-options">
         <h2>GIF palette</h2>
         <div class="grid four">
@@ -28,6 +26,7 @@
           <label>Dithering<select id="gif-dither"><option value="sierra2_4a">Sierra Lite · balanced</option><option value="floyd_steinberg">Floyd–Steinberg</option><option value="bayer">Bayer · crisp</option><option value="atkinson">Atkinson</option><option value="none">None</option></select></label>
           <label>Palette analysis<select id="gif-palette"><option value="diff">Motion regions</option><option value="full">Whole clip</option><option value="single">Per-frame</option></select></label>
           <label>Alpha cutoff<input id="gif-alpha" type="number" min="0" max="255" value="128"></label>
+          <label>Processing<select id="gif-engine"><option value="cpu">CPU · universal</option><option value="cuda">RTX-assisted · decode + resize</option></select><small>Palette creation and GIF encoding remain CPU operations.</small></label>
         </div>
       </div>
 
@@ -38,6 +37,15 @@
           <label>Encoder<select id="avif-engine"><option value="software">libaom · smallest</option><option value="nvenc">RTX 5090 · fast</option></select></label>
           <label>Software effort<select id="avif-effort"><option value="8">8 · fastest</option><option value="6" selected>6 · balanced</option><option value="4">4 · thorough</option><option value="2">2 · very slow</option><option value="0">0 · exhaustive</option></select></label>
           <label class="check"><input id="avif-10bit" type="checkbox"> 10-bit color</label>
+        </div>
+      </div>
+
+      <div id="webm-options" class="format-options hidden">
+        <h2>WebM video</h2>
+        <div class="grid four">
+          <label>Quality <output id="webm-quality-out">78</output><input id="webm-quality" type="range" min="0" max="100" value="78"></label>
+          <label>Encoder<select id="webm-engine"><option value="nvenc">RTX 5090 · AV1 NVENC</option><option value="software">VP9 software</option></select></label>
+          <label class="check"><input id="webm-audio" type="checkbox" checked> Keep source audio</label>
         </div>
       </div>
 
@@ -53,12 +61,13 @@
     </section>
 
     <section class="result panel">
-      <div class="result-head"><div><h2>Result</h2><p id="status">Waiting for a video.</p></div><div class="downloads"><a id="download" class="download disabled">Download</a><a id="companion-download" class="download secondary disabled">Download WebM + sound</a></div></div>
+      <div class="result-head"><div><h2>Result</h2><p id="status">Waiting for a video.</p></div><div class="downloads"><a id="download" class="download disabled">Download</a></div></div>
       <div class="bar"><i id="bar"></i></div>
       <div class="stats"><div><span>Source</span><b id="before">—</b></div><div><span>Output</span><b id="after">—</b></div><div><span>Dimensions</span><b id="dimensions">—</b></div><div><span>FPS</span><b id="actual-fps">—</b></div></div>
       <img id="preview" alt="Converted animation">
+      <video id="video-preview" controls loop playsinline></video>
       <details class="logs"><summary>FFmpeg output</summary><pre id="log">No job output.</pre></details>
     </section>
   </main>
-  <script src="/assets/app.js" defer></script>
+  <script src="/assets/app.js?v=webm1" defer></script>
 </body></html>

@@ -15,7 +15,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from engine import AnimationOptions, available_encoders, convert, convert_sound_companion, probe
+from engine import AnimationOptions, available_encoders, convert, probe
 
 
 ROOT = Path(__file__).resolve().parent
@@ -34,14 +34,12 @@ class Job:
     input_path: Path
     output_path: Path
     options: AnimationOptions
-    companion_path: Path | None = None
     status: str = "queued"
     progress: float = 0.0
     error: str | None = None
     created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     before: dict | None = None
     after: dict | None = None
-    companion_after: dict | None = None
     logs: deque[str] = field(default_factory=lambda: deque(maxlen=300), repr=False)
     process: subprocess.Popen[str] | None = field(default=None, repr=False)
     cancel: threading.Event = field(default_factory=threading.Event, repr=False)
@@ -51,14 +49,8 @@ class Job:
             "id": self.id, "name": self.name, "status": self.status,
             "progress": self.progress, "error": self.error, "created_at": self.created_at,
             "before": self.before, "after": self.after, "options": asdict(self.options),
-            "companion_after": self.companion_after,
             "logs": list(self.logs),
             "output_ready": self.status == "complete" and self.output_path.is_file(),
-            "companion_ready": (
-                self.status == "complete"
-                and self.companion_path is not None
-                and self.companion_path.is_file()
-            ),
         }
 
 
@@ -85,40 +77,21 @@ class Jobs:
         try:
             job.before = asdict(probe(job.input_path))
 
-            animation_weight = 0.75 if job.companion_path else 1.0
-
-            def update_animation(progress: float, line: str) -> None:
+            def update(progress: float, line: str) -> None:
                 if progress >= 0:
-                    job.progress = progress * animation_weight
+                    job.progress = progress
                 elif line and not line.startswith(("frame=", "fps=", "bitrate=", "speed=")):
                     job.logs.append(line)
 
-            job.logs.append(f"Encoding {job.options.format.upper()} animation.")
+            job.logs.append(f"Encoding {job.options.format.upper()} output.")
             job.after = asdict(
                 convert(
                     job.input_path, job.output_path, job.options,
-                    on_progress=update_animation,
+                    on_progress=update,
                     on_process=lambda process: setattr(job, "process", process),
                     cancel=job.cancel,
                 )
             )
-            if job.companion_path:
-                job.logs.append("Encoding synchronized WebM sound companion.")
-
-                def update_companion(progress: float, line: str) -> None:
-                    if progress >= 0:
-                        job.progress = animation_weight + progress * (1.0 - animation_weight)
-                    elif line and not line.startswith(("frame=", "fps=", "bitrate=", "speed=")):
-                        job.logs.append(line)
-
-                job.companion_after = asdict(
-                    convert_sound_companion(
-                        job.input_path, job.companion_path, job.options,
-                        on_progress=update_companion,
-                        on_process=lambda process: setattr(job, "process", process),
-                        cancel=job.cancel,
-                    )
-                )
             job.status = "complete"
             job.progress = 1.0
         except InterruptedError:
@@ -134,8 +107,16 @@ class Jobs:
 
 
 jobs = Jobs()
-app = FastAPI(title="Video to GIF / AVIF", docs_url=None, redoc_url=None)
+app = FastAPI(title="Video to GIF / AVIF / WebM", docs_url=None, redoc_url=None)
 app.mount("/assets", StaticFiles(directory=WEB), name="assets")
+
+
+@app.middleware("http")
+async def disable_browser_cache(request, call_next):
+    response = await call_next(request)
+    if request.url.path == "/" or request.url.path.startswith("/assets/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.get("/")
@@ -151,6 +132,11 @@ def capabilities() -> dict:
         "gif": "gif" in encoders,
         "avif_software": "libaom-av1" in encoders,
         "avif_nvenc": "av1_nvenc" in encoders,
+        "gif_cuda": "cuda" in subprocess.run(
+            ["ffmpeg", "-hide_banner", "-hwaccels"], capture_output=True, text=True, check=True
+        ).stdout.split(),
+        "webm_software": "libvpx-vp9" in encoders,
+        "webm_nvenc": "av1_nvenc" in encoders,
         "unlimited_upload": True,
     }
 
@@ -185,14 +171,21 @@ async def create_job(
     rotate: str = Form("none"), flip: str = Form("none"), loop: int = Form(0),
     gif_colors: int = Form(256), gif_dither: str = Form("sierra2_4a"),
     gif_palette: str = Form("diff"), gif_alpha_threshold: int = Form(128),
+    gif_engine: str = Form("cpu"),
     avif_quality: int = Form(78), avif_effort: int = Form(6),
     avif_engine: str = Form("software"), avif_10bit: bool = Form(False),
-    sound_companion: bool = Form(False),
+    webm_quality: int = Form(78), webm_engine: str = Form("nvenc"),
+    webm_audio: bool = Form(True),
 ) -> dict:
     options = AnimationOptions(
-        format, start, end, width, fps, speed, crop_x, crop_y, crop_width, crop_height,
-        rotate, flip, loop, gif_colors, gif_dither, gif_palette, gif_alpha_threshold,
-        avif_quality, avif_effort, avif_engine, avif_10bit, sound_companion,
+        format=format, start=start, end=end, width=width, fps=fps, speed=speed,
+        crop_x=crop_x, crop_y=crop_y, crop_width=crop_width, crop_height=crop_height,
+        rotate=rotate, flip=flip, loop=loop, gif_colors=gif_colors,
+        gif_dither=gif_dither, gif_palette=gif_palette,
+        gif_alpha_threshold=gif_alpha_threshold, gif_engine=gif_engine,
+        avif_quality=avif_quality, avif_effort=avif_effort,
+        avif_engine=avif_engine, avif_10bit=avif_10bit,
+        webm_quality=webm_quality, webm_engine=webm_engine, webm_audio=webm_audio,
     )
     try:
         options.validate()
@@ -206,8 +199,8 @@ async def create_job(
     try:
         await save_upload(video, input_path)
         info = probe(input_path)
-        if sound_companion and not info.audio_codec:
-            raise ValueError("This video has no audio stream for a sound companion.")
+        if format == "webm" and webm_audio and not info.audio_codec:
+            raise ValueError("This video has no audio stream to keep in the WebM output.")
     except (ValueError, subprocess.CalledProcessError, json.JSONDecodeError) as exc:
         input_path.unlink(missing_ok=True)
         raise HTTPException(400, f"Could not read the video: {exc}") from exc
@@ -217,7 +210,6 @@ async def create_job(
         input_path,
         OUTPUTS / f"{job_id}.{format}",
         options,
-        companion_path=OUTPUTS / f"{job_id}-sound.webm" if sound_companion else None,
         before=asdict(info),
     )
     try:
@@ -256,22 +248,10 @@ def output_file(job_id: str, download: bool = False) -> FileResponse:
         raise HTTPException(404, str(exc)) from exc
     if job.status != "complete" or not job.output_path.is_file():
         raise HTTPException(404, "Output is not ready.")
-    media_type = "image/gif" if job.output_path.suffix == ".gif" else "image/avif"
+    media_type = {
+        ".gif": "image/gif",
+        ".avif": "image/avif",
+        ".webm": "video/webm",
+    }[job.output_path.suffix]
     filename = f"{job.name}.{job.options.format}"
     return FileResponse(job.output_path, media_type=media_type, filename=filename if download else None)
-
-
-@app.get("/api/jobs/{job_id}/companion")
-def companion_file(job_id: str, download: bool = False) -> FileResponse:
-    try:
-        job = jobs.get(job_id)
-    except KeyError as exc:
-        raise HTTPException(404, str(exc)) from exc
-    if job.status != "complete" or not job.companion_path or not job.companion_path.is_file():
-        raise HTTPException(404, "Sound companion is not ready.")
-    filename = f"{job.name}-sound.webm"
-    return FileResponse(
-        job.companion_path,
-        media_type="video/webm",
-        filename=filename if download else None,
-    )
