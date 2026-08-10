@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Local Editing Workbench</title><link rel="stylesheet" href="/assets/style.css"></head>
+<body>
+  <header>
+    <div><strong>Editing Workbench</strong><small>PRIVATE · LOCAL MODELS · NO UPLOADS</small></div>
+    <div class="actions">
+      <button id="download" class="quiet" disabled>Download</button>
+      <button id="background" class="quiet" disabled>Remove background</button>
+      <button id="remove" disabled>Remove selection</button>
+    </div>
+  </header>
+  <main>
+    <aside>
+      <label id="dropzone" class="dropzone"><input id="file" type="file" accept="image/*" hidden><span>＋</span><strong>Open image</strong><small>PNG · JPEG · WebP</small></label>
+      <h2>Local models</h2>
+      <div class="model-rack">
+        <article class="model-card" data-engine="objectclear">
+          <div><strong>ObjectClear</strong><small id="objectclear-state">Checking…</small></div>
+          <div class="model-actions"><button class="model-load quiet" data-engine="objectclear">Load</button><button class="model-unload quiet" data-engine="objectclear">Unload</button></div>
+        </article>
+        <article class="model-card" data-engine="birefnet">
+          <div><strong>BiRefNet</strong><small id="birefnet-state">Checking…</small></div>
+          <div class="model-actions"><button class="model-load quiet" data-engine="birefnet">Load</button><button class="model-unload quiet" data-engine="birefnet">Unload</button></div>
+        </article>
+        <div class="model-meta"><span id="device-state">Device: checking…</span><button id="unload-all" class="link-button">Unload all</button></div>
+      </div>
+      <h2>Selection</h2>
+      <div class="tools"><button class="tool active" data-tool="brush">Brush</button><button class="tool" data-tool="erase">Erase</button><button class="tool" data-tool="fuzzy">Fuzzy click</button></div>
+      <label>Brush size <input id="brush-size" type="range" min="2" max="180" value="42"><output id="brush-value">42 px</output></label>
+      <label>Fuzzy tolerance <input id="tolerance" type="range" min="0" max="100" value="24"><output id="tolerance-value">24</output></label>
+      <div class="row"><button id="undo" class="quiet">Undo</button><button id="clear" class="quiet">Clear mask</button></div>
+      <div class="row export-row">
+        <button id="download-mask" class="quiet" disabled title="White selection on black, at the source image resolution">Mask PNG</button>
+        <button id="download-comfy" class="quiet" disabled title="Original image with the selection encoded for ComfyUI's Load Image mask output">Comfy PNG</button>
+        <button id="copy-comfy" class="quiet" disabled title="Copy the original image and embedded mask as one PNG, ready to paste into ComfyUI">Copy to Comfy</button>
+      </div>
+      <p class="export-help"><strong>Comfy PNG</strong> carries the original image and selection in one file. Load it with ComfyUI’s <strong>Load Image</strong> node and use its IMAGE and MASK outputs.</p>
+      <h2>Fill</h2>
+      <label>Engine<select id="engine"><option value="objectclear">AI · ObjectClear</option><option value="opencv">Fast · OpenCV</option></select></label>
+      <div id="ai-controls" class="control-group">
+        <label>Inference steps <input id="steps" type="number" min="4" max="60" value="20"></label>
+        <label>Removal strength <input id="guidance" type="number" min="0" max="10" step=".1" value="2.5"></label>
+        <label>Seed <input id="seed" type="number" value="42"></label>
+      </div>
+      <div id="opencv-controls" class="control-group hidden">
+        <label>Algorithm<select id="method"><option value="telea">Fast marching (Telea)</option><option value="navier-stokes">Navier–Stokes</option></select></label>
+        <label>Repair radius <input id="radius" type="number" min="1" max="64" step=".5" value="5"></label>
+        <label>Mask growth <input id="grow" type="number" min="0" max="64" value="5"></label>
+        <label>Edge feather <input id="feather" type="number" min="0" max="64" value="4"></label>
+      </div>
+      <p class="note"><strong>ObjectClear</strong> reconstructs the scene and removes associated shadows or reflections. <strong>BiRefNet</strong> creates a transparent foreground cutout. OpenCV remains available for instant blemish and wire cleanup.</p>
+    </aside>
+    <section class="stage">
+      <nav><button class="tab active" data-view="edit">Mask</button><button class="tab" data-view="result">Result</button><span id="status">Choose an image</span></nav>
+      <div id="viewport" class="viewport empty">
+        <div id="empty"><span>◌</span><h1>Paint what should disappear</h1><p>Brush a mask or use fuzzy click, then reconstruct the selected region with a private local model.</p></div>
+        <div id="stack"><canvas id="source"></canvas><canvas id="mask"></canvas></div>
+        <img id="result" alt="Object removal result">
+      </div>
+    </section>
+  </main>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

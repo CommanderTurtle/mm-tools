@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 import warnings
 from dataclasses import dataclass
+from pathlib import Path
 from posixpath import dirname as _posix_dirname, join as _posix_join
 from typing import Optional, Sequence
 
 import torch
+from accelerate import init_empty_weights
 from huggingface_hub import hf_hub_download
 from huggingface_hub.errors import EntryNotFoundError
 from PIL import Image
@@ -45,6 +47,18 @@ from ideogram4.scheduler import (
 )
 
 
+def _resolve_weight_file(repo_id: str, filename: str) -> str:
+  """Resolve a model file locally before considering Hugging Face Hub."""
+  root = Path(repo_id).expanduser()
+  if root.is_dir():
+    resolved_root = root.resolve()
+    target = (resolved_root / filename).resolve()
+    if resolved_root not in target.parents or not target.is_file():
+      raise FileNotFoundError(f"Missing local model file: {target}")
+    return str(target)
+  return hf_hub_download(repo_id=repo_id, filename=filename)
+
+
 def _load_subfolder_state_dict(
   repo_id: str, subfolder: str, basename: str
 ) -> dict[str, torch.Tensor]:
@@ -57,10 +71,8 @@ def _load_subfolder_state_dict(
   index_filename = f"{prefix}{basename}.safetensors.index.json"
   try:
     return _load_sharded_state_dict(repo_id, index_filename)
-  except EntryNotFoundError:
-    single_path = hf_hub_download(
-      repo_id=repo_id, filename=f"{prefix}{basename}.safetensors"
-    )
+  except (EntryNotFoundError, FileNotFoundError):
+    single_path = _resolve_weight_file(repo_id, f"{prefix}{basename}.safetensors")
     return load_file(single_path)
 
 
@@ -81,9 +93,15 @@ def _load_fp8_text_encoder(
   config = AutoConfig.from_pretrained(
     repo_id, subfolder=text_encoder_subfolder, trust_remote_code=True
   )
-  model = AutoModel.from_config(config, trust_remote_code=True)
+  # Materializing the unquantized Qwen-VL parameters before replacing its
+  # Linear layers can consume tens of GiB of host RAM. Keep parameters on the
+  # meta device while still allowing the constructor's small rotary buffers to
+  # be computed normally.
+  with init_empty_weights(include_buffers=False):
+    model = AutoModel.from_config(config, trust_remote_code=True)
   state_dict = _load_subfolder_state_dict(repo_id, text_encoder_subfolder, "model")
-  swap_linears_to_fp8(model, state_dict, compute_dtype=dtype)
+  with torch.device("meta"):
+    swap_linears_to_fp8(model, state_dict, compute_dtype=dtype)
   # assign=True so unquantized params take the loaded dtype and the computed
   # rotary buffers (absent from the checkpoint) survive; tied weights, if any,
   # surface as benign missing keys.
@@ -116,11 +134,9 @@ def _load_qwen3_vl(
   model_kwargs = {"subfolder": text_encoder_subfolder} if text_encoder_subfolder else {}
   tokenizer = AutoTokenizer.from_pretrained(repo_id, **tokenizer_kwargs)
 
-  cfg_path = hf_hub_download(
-    repo_id=repo_id,
-    filename=f"{text_encoder_subfolder}/config.json"
-    if text_encoder_subfolder
-    else "config.json",
+  cfg_path = _resolve_weight_file(
+    repo_id,
+    f"{text_encoder_subfolder}/config.json" if text_encoder_subfolder else "config.json",
   )
   with open(cfg_path) as f:
     cfg_data = json.load(f)
@@ -158,18 +174,28 @@ def _build_transformer(
   device: torch.device,
   dtype: torch.dtype,
 ) -> "Ideogram4Transformer":
-  model = Ideogram4Transformer(transformer_config)
+  fp8 = is_fp8_state_dict(state_dict)
+  if fp8:
+    # Constructing the original BF16/FP32 model before swapping its Linears
+    # defeats the memory benefit of a pre-quantized checkpoint. Parameters are
+    # created empty, then the saved FP8 tensors are assigned directly.
+    with init_empty_weights(include_buffers=False):
+      model = Ideogram4Transformer(transformer_config)
+    with torch.device("meta"):
+      swap_linears_to_fp8(model, state_dict, compute_dtype=dtype)
+    load_fp8_state_dict(
+      model, state_dict, device=device, dtype=dtype, assign=True
+    )
+  else:
+    model = Ideogram4Transformer(transformer_config)
+
   if is_bnb4bit_state_dict(state_dict):
     if device.type != "cuda":
       raise ValueError(f"bnb 4-bit weights require a CUDA device, got device={device}")
     swap_linears_to_bnb4bit(model, compute_dtype=dtype)
     load_bnb4bit_state_dict(model, state_dict, device=device, dtype=dtype)
-  elif is_fp8_state_dict(state_dict):
-    # Weight-only FP8: cast the unquantized params to the compute dtype first,
-    # then swap in Fp8Linear layers (which keep their weights as float8).
-    model.to(dtype)
-    swap_linears_to_fp8(model, state_dict, compute_dtype=dtype)
-    load_fp8_state_dict(model, state_dict, device=device, dtype=dtype)
+  elif fp8:
+    pass
   else:
     model.load_state_dict(state_dict)
     model.to(device=device, dtype=dtype)
@@ -196,7 +222,7 @@ def _load_sharded_state_dict(
   the index are interpreted relative to that index's directory, matching the
   layout written by ``huggingface_hub.save_torch_state_dict``.
   """
-  index_path = hf_hub_download(repo_id=repo_id, filename=index_filename)
+  index_path = _resolve_weight_file(repo_id, index_filename)
   with open(index_path) as f:
     index = json.load(f)
   weight_map: dict[str, str] = index["weight_map"]
@@ -206,7 +232,7 @@ def _load_sharded_state_dict(
   state_dict: dict[str, torch.Tensor] = {}
   for shard in shard_filenames:
     shard_repo_path = _posix_join(shard_dir, shard) if shard_dir else shard
-    shard_path = hf_hub_download(repo_id=repo_id, filename=shard_repo_path)
+    shard_path = _resolve_weight_file(repo_id, shard_repo_path)
     state_dict.update(load_file(shard_path))
   return state_dict
 
@@ -223,9 +249,9 @@ def _load_indexed_or_single_state_dict(
   """
   try:
     return _load_sharded_state_dict(repo_id, index_filename)
-  except EntryNotFoundError:
+  except (EntryNotFoundError, FileNotFoundError):
     single_filename = index_filename.removesuffix(".index.json")
-    single_path = hf_hub_download(repo_id=repo_id, filename=single_filename)
+    single_path = _resolve_weight_file(repo_id, single_filename)
     return load_file(single_path)
 
 
@@ -290,17 +316,19 @@ class Ideogram4Pipeline:
     conditional_state_dict = _load_indexed_or_single_state_dict(
       config.weights_repo, config.conditional_index_filename
     )
-    unconditional_state_dict = _load_indexed_or_single_state_dict(
-      config.weights_repo, config.unconditional_index_filename
-    )
-    autoencoder_weights = hf_hub_download(
-      repo_id=config.weights_repo, filename=config.autoencoder_filename
-    )
+    autoencoder_weights = _resolve_weight_file(config.weights_repo, config.autoencoder_filename)
 
     conditional_transformer = _build_transformer(
       transformer_config, conditional_state_dict, device, dtype
     )
     del conditional_state_dict
+
+    # Build the two 9+ GiB transformers sequentially. Opening both state dicts
+    # before constructing either model needlessly doubles peak host memory and
+    # can trigger the WSL OOM killer on an otherwise sufficient workstation.
+    unconditional_state_dict = _load_indexed_or_single_state_dict(
+      config.weights_repo, config.unconditional_index_filename
+    )
     unconditional_transformer = _build_transformer(
       transformer_config, unconditional_state_dict, device, dtype
     )

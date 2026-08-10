@@ -1,0 +1,196 @@
+{
+    "id": "955c8a4b-2e9f-4286-8d7a-de3da453c1b9",
+    "revision": 0,
+    "last_node_id": 5,
+    "last_link_id": 4,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "Ideogram4PipelineLoader",
+            "pos": [
+                1159.473448057328,
+                137.0820730307899
+            ],
+            "size": [
+                326.9375,
+                194.296875
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "pipeline",
+                    "type": "IDEOGRAM4_PIPELINE",
+                    "links": [
+                        4
+                    ]
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "Ideogram4PipelineLoader"
+            },
+            "widgets_values": [
+                "4.0 NF4"
+            ]
+        },
+        {
+            "id": 2,
+            "type": "Ideogram4MagicPrompt",
+            "pos": [
+                549.1976534317452,
+                312.89583591463196
+            ],
+            "size": [
+                400,
+                366.65625
+            ],
+            "flags": {},
+            "order": 1,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "expanded_prompt",
+                    "type": "STRING",
+                    "links": [
+                        2
+                    ]
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "Ideogram4MagicPrompt"
+            },
+            "widgets_values": [
+                "Dog surfing, the dog is holding a sign in mouth says Ideogram 4.0, now in ComfyUI",
+                1024,
+                1024,
+                "local-vllm",
+                "",
+                true
+            ]
+        },
+        {
+            "id": 3,
+            "type": "Ideogram4Generate",
+            "pos": [
+                1712.4943392960513,
+                281.6619172031951
+            ],
+            "size": [
+                393.171875,
+                392.25
+            ],
+            "flags": {},
+            "order": 2,
+            "mode": 0,
+            "showAdvanced": false,
+            "inputs": [
+                {
+                    "name": "pipeline",
+                    "type": "IDEOGRAM4_PIPELINE",
+                    "link": 4
+                },
+                {
+                    "name": "prompt",
+                    "type": "STRING",
+                    "widget": {
+                        "name": "prompt"
+                    },
+                    "link": 2
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "image",
+                    "type": "IMAGE",
+                    "links": [
+                        1
+                    ]
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "Ideogram4Generate"
+            },
+            "widgets_values": [
+                "",
+                1024,
+                1024,
+                "4.0 Default 20",
+                20,
+                7,
+                0,
+                1.75,
+                558601834750487,
+                "randomize"
+            ]
+        },
+        {
+            "id": 5,
+            "type": "SaveImage",
+            "pos": [
+                2227.951011809608,
+                281.6921617859009
+            ],
+            "size": [
+                412.015625,
+                451.015625
+            ],
+            "flags": {},
+            "order": 3,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "images",
+                    "type": "IMAGE",
+                    "link": 1
+                }
+            ],
+            "outputs": [],
+            "properties": {},
+            "widgets_values": [
+                "ComfyUI"
+            ]
+        }
+    ],
+    "links": [
+        [
+            1,
+            3,
+            0,
+            5,
+            0,
+            "IMAGE"
+        ],
+        [
+            2,
+            2,
+            0,
+            3,
+            1,
+            "STRING"
+        ],
+        [
+            4,
+            1,
+            0,
+            3,
+            0,
+            "IDEOGRAM4_PIPELINE"
+        ]
+    ],
+    "groups": [],
+    "config": {},
+    "extra": {
+        "ds": {
+            "scale": 0.5585140917038958,
+            "offset": [
+                -177.01312555195912,
+                353.16009363763067
+            ]
+        },
+        "frontendVersion": "1.44.19"
+    },
+    "version": 0.4
+}
