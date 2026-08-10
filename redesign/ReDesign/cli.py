@@ -3,9 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
-import subprocess
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -23,25 +20,34 @@ def _load_local_config() -> None:
     load_dotenv(ROOT / ".env.local", override=True)
     home = Path.home()
     qwen = home / "multimedia" / "models" / "qwen"
-    os.environ.setdefault("REDESIGN_QWEN_BACKEND", "native-fp8")
-    os.environ.setdefault(
-        "REDESIGN_QWEN_MODEL",
+    transformer = os.environ.get(
+        "REDESIGN_DIFFUSERS_TRANSFORMER",
         str(qwen / "T5B--qwen-image-layered-fp8" / "qwen_image_layered_fp8_e4m3fn.safetensors"),
     )
-    os.environ.setdefault(
-        "REDESIGN_QWEN_COMPONENTS",
+    components = os.environ.get(
+        "REDESIGN_DIFFUSERS_COMPONENTS",
         str(qwen / "diffusers--hfstaff--Qwen-Image-Layered-modular"),
     )
-    os.environ.setdefault(
-        "REDESIGN_QWEN_TEXT_ENCODER_COMPONENTS",
+    text_encoder = os.environ.get(
+        "REDESIGN_DIFFUSERS_TEXT_ENCODER",
         str(
             qwen
             / "suzukimain--extraint4stuff--Qwen-Image-Layered-Control-SDNQ-int4"
             / "text_encoder"
         ),
     )
-    os.environ.setdefault("REDESIGN_QWEN_DTYPE", "bfloat16")
-    os.environ.setdefault("REDESIGN_NATIVE_OFFLOAD", "model")
+    # The local CLI and WebUI deliberately select a direct Diffusers pipeline,
+    # even when a legacy .env still contains old agent/controller keys.
+    os.environ["REDESIGN_QWEN_BACKEND"] = "native-fp8"
+    os.environ["REDESIGN_QWEN_MODEL"] = transformer
+    os.environ["REDESIGN_QWEN_COMPONENTS"] = components
+    os.environ["REDESIGN_QWEN_TEXT_ENCODER_COMPONENTS"] = text_encoder
+    os.environ["REDESIGN_QWEN_DTYPE"] = os.environ.get(
+        "REDESIGN_DIFFUSERS_DTYPE", "bfloat16"
+    )
+    os.environ["REDESIGN_NATIVE_OFFLOAD"] = os.environ.get(
+        "REDESIGN_DIFFUSERS_OFFLOAD", "group"
+    )
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
     os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
     os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
@@ -105,6 +111,9 @@ def cmd_doctor(_args: argparse.Namespace) -> int:
         "fp8_transformer": Path(os.environ["REDESIGN_QWEN_MODEL"]).expanduser(),
         "diffusers_components": Path(os.environ["REDESIGN_QWEN_COMPONENTS"]).expanduser()
         / "modular_model_index.json",
+        "layer_transformer_config": Path(os.environ["REDESIGN_QWEN_COMPONENTS"]).expanduser()
+        / "transformer"
+        / "config.json",
         "caption_encoder": Path(os.environ["REDESIGN_QWEN_TEXT_ENCODER_COMPONENTS"]).expanduser()
         / "config.json",
         "grounding_dino": ROOT / "weights" / "groundingdino_swinb_cogcoor.pth",
@@ -117,33 +126,27 @@ def cmd_doctor(_args: argparse.Namespace) -> int:
         present = path.is_file()
         failed |= not present
         print(f"{'ok' if present else 'MISSING':7} {name:22} {path}")
-    print(f"profile native-fp8 / BF16 compute / model CPU offload / GPU 0")
-    print(f"controller {os.environ.get('OPENAI_BASE_URL', 'unset')} :: {os.environ.get('VLM_MODEL', 'unset')}")
+    print("profile direct Diffusers / native FP8 / transformer group offload / GPU 0")
+    print("controller none (the local lane never contacts vLLM)")
     return 1 if failed else 0
 
 
 def cmd_decompose(args: argparse.Namespace) -> int:
     source = _input(args.input)
     destination = _output(source, "decompose", args.output)
-    command = [
-        sys.executable,
-        "-m",
-        "ReDesign.run_single_image",
-        "--image",
+    from ReDesign.tools.qwen_layered_tool import run_qwen_layered
+
+    result = run_qwen_layered(
         str(source),
-        "--output_dir",
         str(destination),
-        "--qwen_gpus",
-        args.qwen_gpus,
-        "--qwen_pair_size",
-        str(args.qwen_pair_size),
-        "--tool_gpus",
-        args.tool_gpus,
-        "--workers",
-        str(args.workers),
-    ]
-    print(" ".join(command), flush=True)
-    return subprocess.call(command, cwd=ROOT, env=os.environ.copy())
+        num_layers=args.count,
+        seed=args.seed,
+        resolution=args.resolution,
+        num_inference_steps=args.steps,
+        true_cfg_scale=args.cfg,
+    )
+    _write(destination / "layers.json", result)
+    return 0
 
 
 def cmd_layers(args: argparse.Namespace) -> int:
@@ -295,13 +298,14 @@ def build_parser() -> argparse.ArgumentParser:
     doctor = sub.add_parser("doctor", help="Check the local offline runtime and model files.")
     doctor.set_defaults(func=cmd_doctor)
 
-    decompose = sub.add_parser("decompose", help="Run the complete controller + verifier reconstruction.")
+    decompose = sub.add_parser("decompose", help="Run direct local Qwen Diffusers layer decomposition.")
     decompose.add_argument("input")
     decompose.add_argument("-o", "--output")
-    decompose.add_argument("--qwen-gpus", default="0")
-    decompose.add_argument("--qwen-pair-size", type=int, default=1)
-    decompose.add_argument("--tool-gpus", default="0")
-    decompose.add_argument("--workers", type=int, default=1)
+    decompose.add_argument("--count", type=int, default=4)
+    decompose.add_argument("--steps", type=int, default=50)
+    decompose.add_argument("--resolution", type=int, choices=(640, 1024), default=640)
+    decompose.add_argument("--cfg", type=float, default=4.0)
+    decompose.add_argument("--seed", type=int, default=777)
     decompose.set_defaults(func=cmd_decompose)
 
     layers = sub.add_parser("layers", help="Fork one image into z-ordered Qwen RGBA layers.")

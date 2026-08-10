@@ -12,29 +12,50 @@ let editorImages = new Map();
 let undoStack = [];
 let redoStack = [];
 let interaction = null;
+let modelTimer = null;
 
 async function loadConfig() {
   config = await fetch('/api/config').then(r => r.json());
-  $('#controller-url').value = config.controller_url || '';
-  $('#controller-model').value = config.controller_model || '';
-  $('#qwen-backend').value = ['comfy', 'comfyui'].includes(config.qwen_backend)
-    ? 'comfyui'
-    : config.qwen_backend === 'diffusers' ? 'diffusers' : 'native-fp8';
-  $('#comfy-url').value = config.comfy_url || 'http://127.0.0.1:8188';
-  $('#qwen-model').value = config.qwen_model || '';
   $('#gpu-note').textContent = config.gpu_note || '';
-  updateBackendFields();
   const issues = [];
   if (!config.venv_present) issues.push('runtime not installed');
-  if (!config.controller_local) issues.push('controller is not local');
-  if (!config.qwen_present) issues.push('Qwen layered components missing');
-  $('#readiness').textContent = issues.length ? issues.join(' · ') : 'Private controller and local Qwen components configured';
+  if (!config.model?.model_present) issues.push('Diffusers checkpoint missing');
+  $('#readiness').textContent = issues.length ? issues.join(' · ') : 'Direct local Diffusers lane configured';
+  renderModel(config.model);
+  clearInterval(modelTimer);
+  modelTimer = setInterval(pollModel, 1200);
   updateRun();
 }
 
 function updateRun() {
-  $('#run').disabled = !sourceFile || !config?.venv_present || job?.status === 'running';
+  $('#run').disabled = !sourceFile || !config?.venv_present || !config?.model?.ready || ['queued','running','stopping'].includes(job?.status);
 }
+
+function renderModel(model) {
+  config.model = model;
+  const state = model?.state || 'unavailable';
+  $('#model-state').textContent = state[0].toUpperCase() + state.slice(1);
+  $('#model-path').textContent = model?.model || '';
+  $('#model-load').disabled = ['loading','ready','running','unloading'].includes(state) || !model?.model_present;
+  $('#model-unload').disabled = !['ready','error'].includes(state);
+  if (model?.error) setStatus('failed', model.error);
+  updateRun();
+}
+
+async function pollModel() {
+  const response = await fetch('/api/model');
+  if (response.ok) renderModel(await response.json());
+}
+
+async function modelAction(action) {
+  const response = await fetch(`/api/model/${action}`, {method:'POST'});
+  const data = await response.json();
+  if (!response.ok) { setStatus('failed', data.detail || `Could not ${action} model`); return; }
+  renderModel(data);
+  setStatus(data.state, action === 'load' ? 'Loading the local Diffusers checkpoint…' : 'Releasing model memory…');
+}
+$('#model-load').addEventListener('click', () => modelAction('load'));
+$('#model-unload').addEventListener('click', () => modelAction('unload'));
 
 function choose(file) {
   sourceFile = file;
@@ -54,17 +75,12 @@ drop.addEventListener('drop', e => e.dataTransfer.files[0] && choose(e.dataTrans
 $('#run').addEventListener('click', async () => {
   const body = new FormData();
   body.set('image', sourceFile);
-  body.set('controller_url', $('#controller-url').value);
-  body.set('controller_model', $('#controller-model').value);
-  body.set('qwen_backend', $('#qwen-backend').value);
-  body.set('comfy_url', $('#comfy-url').value);
-  body.set('qwen_model', $('#qwen-model').value);
-  body.set('qwen_gpus', $('#qwen-gpus').value);
-  body.set('qwen_pair_size', $('#pair-size').value);
-  body.set('tool_gpus', $('#tool-gpus').value);
-  body.set('workers', $('#workers').value);
-  body.set('cpu_offload', $('#cpu-offload').checked ? 'true' : 'false');
-  $('#run').disabled = true; setStatus('queued', 'Preparing isolated run…');
+  body.set('layers', $('#layers').value);
+  body.set('steps', $('#steps').value);
+  body.set('resolution', $('#resolution').value);
+  body.set('cfg', $('#cfg').value);
+  body.set('seed', $('#seed').value);
+  $('#run').disabled = true; setStatus('queued', 'Preparing direct Diffusers run…');
   const response = await fetch('/api/jobs', {method:'POST', body});
   const data = await response.json();
   if (!response.ok) { setStatus('failed', data.detail || 'Could not start'); updateRun(); return; }
@@ -89,7 +105,7 @@ async function poll() {
   }
   artifacts = job.artifacts || [];
   renderArtifacts();
-  setStatus(job.status, job.status === 'running' ? 'Agent is rebuilding editable structure…' : `Process ${job.returncode ?? ''}`);
+  setStatus(job.status, job.status === 'running' ? 'Qwen-Image-Layered is rebuilding editable structure…' : `Process ${job.returncode ?? ''}`);
   if (!['queued','running'].includes(job.status)) {
     clearInterval(timer); $('#stop').disabled = true; updateRun(); await renderLayers();
     const preferred = artifactFor('reconstructed.png') || artifactFor('reconstructed_bordered.png');
@@ -138,8 +154,8 @@ document.querySelectorAll('.view-switch button').forEach(button => button.addEve
   $('#editor-canvas').classList.add('hidden'); $('#canvas-image').classList.remove('hidden');
   if (currentView === 'original') $('#canvas-image').src = sourceFile ? URL.createObjectURL(sourceFile) : '';
   else {
-    const names = {reconstructed:'reconstructed.png', bordered:'reconstructed_bordered.png', tree:'tree_final.png'};
-    const found = artifactFor(names[currentView]) || artifacts.find(a => currentView === 'tree' && /tree.*\.png/i.test(a.name));
+    const names = {reconstructed:'reconstructed.png', bordered:'reconstructed_bordered.png'};
+    const found = artifactFor(names[currentView]);
     if (found) showArtifact(found);
   }
 }));
@@ -152,17 +168,6 @@ document.querySelectorAll('.panel-tabs button').forEach(button => button.addEven
 }));
 $('#clear-log').addEventListener('click', () => $('#console').textContent = '');
 function escapeHtml(value){const node=document.createElement('span');node.textContent=value;return node.innerHTML;}
-function updateBackendFields(){
-  const backend = $('#qwen-backend').value;
-  $('#comfy-row').hidden = backend !== 'comfyui';
-  $('#diffusers-row').hidden = backend === 'comfyui';
-  $('#offload-row').hidden = backend !== 'diffusers';
-  $('#qwen-model-label').textContent = backend === 'native-fp8'
-    ? 'Native FP8 transformer file'
-    : 'Complete Diffusers checkpoint';
-}
-$('#qwen-backend').addEventListener('change', updateBackendFields);
-
 function cloneEditor(){ return JSON.parse(JSON.stringify(editorDoc)); }
 function remember(){ if (!editorDoc) return; undoStack.push(cloneEditor()); if (undoStack.length > 80) undoStack.shift(); redoStack = []; updateHistoryButtons(); }
 function updateHistoryButtons(){ $('#undo').disabled = !undoStack.length; $('#redo').disabled = !redoStack.length; }

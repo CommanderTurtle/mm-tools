@@ -11,7 +11,7 @@
   <header class="topbar">
     <div class="brand"><span class="mark">R</span><div><strong>ReDesign</strong><small>LOCAL WORKBENCH</small></div></div>
     <div id="readiness" class="readiness">Inspecting runtime…</div>
-    <div class="top-actions"><button id="undo" class="quiet" disabled>Undo</button><button id="redo" class="quiet" disabled>Redo</button><button id="save-editor" class="quiet" disabled>Export layers</button><button id="stop" class="quiet" disabled>Stop</button><button id="run" disabled>Decompose design</button></div>
+    <div class="top-actions"><button id="model-load" class="quiet">Load model</button><button id="model-unload" class="quiet" disabled>Unload model</button><button id="undo" class="quiet" disabled>Undo</button><button id="redo" class="quiet" disabled>Redo</button><button id="save-editor" class="quiet" disabled>Export layers</button><button id="stop" class="quiet" disabled>Stop</button><button id="run" disabled>Decompose design</button></div>
   </header>
 
   <main class="workspace">
@@ -25,25 +25,22 @@
         <div id="source-info" class="source-info">No source selected</div>
       </section>
       <section>
-        <h2>Controller</h2>
-        <label>Private VLM endpoint<input id="controller-url" placeholder="http://compute1:8000/v1"></label>
-        <label>Served model<input id="controller-model" placeholder="local multimodal model name"></label>
+        <h2>Local model</h2>
+        <div class="source-info"><strong id="model-state">Unloaded</strong><br><span id="model-path">Inspecting checkpoint…</span></div>
+        <small id="gpu-note"></small>
       </section>
       <details open>
-        <summary>Compute profile</summary>
-        <label>Layer backend<select id="qwen-backend"><option value="native-fp8">Native Diffusers · FP8/BF16 (recommended)</option><option value="comfyui">ComfyUI · INT8 TensorWise</option><option value="diffusers">Legacy complete Diffusers tree</option></select></label>
-        <label id="comfy-row" hidden>Private ComfyUI endpoint<input id="comfy-url" placeholder="http://127.0.0.1:8188"></label>
-        <label id="diffusers-row"><span id="qwen-model-label">Native FP8 transformer file</span><input id="qwen-model" placeholder="~/multimedia/models/qwen/...safetensors"></label>
-        <div class="split"><label>Qwen GPUs<input id="qwen-gpus" value="0"></label><label>Pair size<input id="pair-size" type="number" min="1" value="1"></label></div>
-        <div class="split"><label>Tool GPUs<input id="tool-gpus" value="0"></label><label>Workers<input id="workers" type="number" min="1" max="8" value="1"></label></div>
-        <label id="offload-row" class="warning" hidden><input id="cpu-offload" type="checkbox"> Permit slow CPU offload for an unquantized Diffusers checkpoint</label>
-        <small id="gpu-note"></small>
+        <summary>Decomposition</summary>
+        <div class="split"><label>Layers<input id="layers" type="number" min="2" max="8" value="4"></label><label>Steps<input id="steps" type="number" min="1" max="100" value="50"></label></div>
+        <div class="split"><label>Resolution<select id="resolution"><option value="640">640 · faster</option><option value="1024">1024 · detailed</option></select></label><label>True CFG<input id="cfg" type="number" min="0" max="20" step="0.1" value="4.0"></label></div>
+        <label>Seed<input id="seed" type="number" min="0" value="777"></label>
+        <small>Uses the official Qwen-Image-Layered defaults: blank negative prompt, CFG normalization, and English image captioning.</small>
       </details>
     </aside>
 
     <section class="canvas-panel">
       <div class="canvas-toolbar">
-        <div class="view-switch"><button class="active" data-view="original">Original</button><button data-view="reconstructed">Reconstruction</button><button data-view="edit">Edit layers</button><button data-view="bordered">Layer borders</button><button data-view="tree">Agent tree</button></div>
+        <div class="view-switch"><button class="active" data-view="original">Original</button><button data-view="reconstructed">Reconstruction</button><button data-view="edit">Edit layers</button><button data-view="bordered">Layer borders</button></div>
         <span id="zoom-label">Fit</span>
       </div>
       <div id="canvas" class="canvas empty">
@@ -61,8 +58,8 @@
     </aside>
 
     <section class="console-panel">
-      <header><strong>Agent activity</strong><button id="clear-log" class="quiet">Clear view</button></header>
-      <pre id="console">Ready. No cloud endpoints are accepted by this workbench.</pre>
+      <header><strong>Diffusers activity</strong><button id="clear-log" class="quiet">Clear view</button></header>
+      <pre id="console">Ready. This workbench has no controller or cloud endpoint path.</pre>
     </section>
   </main>
 

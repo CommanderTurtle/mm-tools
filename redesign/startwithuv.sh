@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 if [[ ! -x .venv/bin/python ]]; then
-  printf 'Missing .venv. Run ./uvsetup.sh first.\n' >&2
+  printf 'Missing .venv. Run ./setupwithuv first.\n' >&2
   exit 1
 fi
 if [[ -f .env ]]; then

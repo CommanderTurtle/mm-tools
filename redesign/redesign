@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 if [[ ! -x "$ROOT/.venv/bin/python" ]]; then
-  printf 'ReDesign runtime missing. Run: %s/uvsetup.sh\n' "$ROOT" >&2
+  printf 'ReDesign runtime missing. Run: %s/setupwithuv\n' "$ROOT" >&2
   exit 1
 fi
 

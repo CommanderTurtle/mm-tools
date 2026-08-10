@@ -10,22 +10,13 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
-from .jobs import OUTPUT_ROOT, ROOT, endpoint_is_local, manager
+from .diffusers_runtime import runtime
+from .jobs import OUTPUT_ROOT, ROOT, manager
 from .editor import build_editor_document, export_document, validate_document
 
 
 WEB = Path(__file__).resolve().parent / "web"
 MAX_UPLOAD = int(os.getenv("REDESIGN_MAX_UPLOAD_MB", "80")) * 1024 * 1024
-QWEN_ROOT = ROOT.parent / "models" / "qwen"
-DEFAULT_DIFFUSERS = QWEN_ROOT / "suzukimain--extraint4stuff--Qwen-Image-Layered-Control-SDNQ-int4"
-DEFAULT_NATIVE_FP8 = QWEN_ROOT / "T5B--qwen-image-layered-fp8" / "qwen_image_layered_fp8_e4m3fn.safetensors"
-DEFAULT_NATIVE_COMPONENTS = QWEN_ROOT / "diffusers--hfstaff--Qwen-Image-Layered-modular"
-DEFAULT_NATIVE_TEXT_ENCODER = DEFAULT_DIFFUSERS / "text_encoder"
-DEFAULT_COMFY_SOURCES = {
-    "diffusion": QWEN_ROOT / "appmana--diffusion--qwen-image-layered-int8convrot" / "qwen_image_layered_int8convrot.safetensors",
-    "text_encoder": QWEN_ROOT / "comfy-org--text--qwen_2.5_vl_7b_fp8_scaled.safetensors" / "split_files" / "text_encoders" / "qwen_2.5_vl_7b_fp8_scaled.safetensors",
-    "vae": QWEN_ROOT / "comfy-org--vae--qwen_image_layered_vae.safetensors" / "split_files" / "vae" / "qwen_image_layered_vae.safetensors",
-}
 app = FastAPI(title="ReDesign Local Workbench")
 app.mount("/assets", StaticFiles(directory=WEB), name="assets")
 
@@ -37,76 +28,58 @@ def index() -> FileResponse:
 
 @app.get("/api/config")
 def config() -> dict:
-    backend = os.getenv("REDESIGN_QWEN_BACKEND", "native-fp8").strip().lower()
-    model_value = os.getenv("REDESIGN_QWEN_MODEL", "").strip() or str(DEFAULT_NATIVE_FP8)
-    model = Path(model_value).expanduser() if model_value else None
-    comfy_sources = {
-        "diffusion": os.getenv("REDESIGN_QWEN_INT8_PATH", str(DEFAULT_COMFY_SOURCES["diffusion"])),
-        "text_encoder": os.getenv("REDESIGN_QWEN_TEXT_ENCODER_PATH", str(DEFAULT_COMFY_SOURCES["text_encoder"])),
-        "vae": os.getenv("REDESIGN_QWEN_VAE_PATH", str(DEFAULT_COMFY_SOURCES["vae"])),
-    }
-    comfy_present = all(
-        value and Path(os.path.expandvars(value)).expanduser().is_file()
-        for value in comfy_sources.values()
-    )
-    native_present = bool(
-        model
-        and model.is_file()
-        and Path(os.getenv("REDESIGN_QWEN_COMPONENTS", str(DEFAULT_NATIVE_COMPONENTS))).expanduser().joinpath("modular_model_index.json").is_file()
-        and Path(os.getenv("REDESIGN_QWEN_TEXT_ENCODER_COMPONENTS", str(DEFAULT_NATIVE_TEXT_ENCODER))).expanduser().joinpath("config.json").is_file()
-    )
-    diffusers_present = bool(model and model.is_dir() and (model / "model_index.json").is_file())
-    endpoint = os.getenv("OPENAI_BASE_URL", "http://127.0.0.1:8000/v1")
+    model = runtime.status()
     return {
-        "controller_url": endpoint,
-        "controller_local": endpoint_is_local(endpoint),
-        "controller_model": os.getenv("VLM_MODEL", ""),
-        "qwen_backend": backend,
-        "comfy_url": os.getenv("REDESIGN_COMFY_URL", "http://127.0.0.1:8188"),
-        "qwen_model": str(model) if model else "",
-        "qwen_present": (
-            comfy_present if backend in {"comfy", "comfyui"}
-            else diffusers_present if backend == "diffusers"
-            else native_present
-        ),
-        "native_present": native_present,
-        "comfy_models_present": comfy_present,
-        "diffusers_present": diffusers_present,
-        "comfy_sources": comfy_sources,
+        "backend": "diffusers",
+        "model": model,
         "venv_present": (ROOT / ".venv/bin/python").is_file(),
         "output_root": str(OUTPUT_ROOT),
-        "gpu_note": "Preferred: native mixed FP8/BF16 Diffusers with module offload. ComfyUI INT8 and SDNQ are compatibility fallbacks.",
+        "gpu_note": (
+            "Direct local QwenImageLayeredPipeline with transformer group offload. "
+            "No controller, vLLM, OpenAI-compatible endpoint, or ComfyUI process is contacted."
+        ),
     }
+
+
+@app.get("/api/model")
+def model_status() -> dict:
+    return runtime.status()
+
+
+@app.post("/api/model/load")
+def model_load() -> dict:
+    try:
+        return runtime.load_async()
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.post("/api/model/unload")
+def model_unload() -> dict:
+    try:
+        return runtime.unload_async()
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
 
 
 @app.post("/api/jobs")
 def create_job(
     image: UploadFile = File(...),
-    controller_url: str = Form(...),
-    controller_model: str = Form(...),
-    qwen_backend: str = Form("native-fp8"),
-    comfy_url: str = Form("http://127.0.0.1:8188"),
-    qwen_model: str = Form(""),
-    qwen_gpus: str = Form("0"),
-    qwen_pair_size: int = Form(1),
-    tool_gpus: str = Form("0"),
-    workers: int = Form(1),
-    cpu_offload: bool = Form(False),
+    layers: int = Form(4),
+    steps: int = Form(50),
+    resolution: int = Form(640),
+    cfg: float = Form(4.0),
+    seed: int = Form(777),
 ) -> dict:
     try:
         return manager.create(
             image.file,
             image.filename or "design.png",
-            controller_url=controller_url,
-            controller_model=controller_model,
-            qwen_backend=qwen_backend,
-            comfy_url=comfy_url,
-            qwen_model=qwen_model,
-            qwen_gpus=qwen_gpus,
-            qwen_pair_size=max(1, qwen_pair_size),
-            tool_gpus=tool_gpus,
-            workers=max(1, min(workers, 8)),
-            cpu_offload=cpu_offload,
+            layers=layers,
+            steps=steps,
+            resolution=resolution,
+            cfg=cfg,
+            seed=seed,
             max_bytes=MAX_UPLOAD,
         ).public()
     except ValueError as exc:

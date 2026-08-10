@@ -362,8 +362,29 @@ def _load_native_fp8_pipeline():
         pipeline.enable_model_cpu_offload()
     elif offload == "sequential":
         pipeline.enable_sequential_cpu_offload()
-    elif offload != "none":
-        raise RuntimeError("REDESIGN_NATIVE_OFFLOAD must be model, sequential, or none.")
+    elif offload == "group":
+        use_stream = os.environ.get("REDESIGN_GROUP_OFFLOAD_STREAM", "1") == "1"
+        pipeline.enable_group_offload(
+            onload_device=torch.device("cuda"),
+            offload_device=torch.device("cpu"),
+            offload_type="block_level",
+            num_blocks_per_group=max(
+                1, int(os.environ.get("REDESIGN_GROUP_OFFLOAD_BLOCKS", "1"))
+            ),
+            non_blocking=use_stream,
+            use_stream=use_stream,
+            low_cpu_mem_usage=True,
+            # The quantized Qwen-VL encoder is small enough to stay resident
+            # and must not be leaf-offloaded during autoregressive captioning.
+            # The VAE is similarly small and runs only before/after denoising.
+            exclude_modules=["text_encoder", "vae"],
+        )
+    elif offload == "none":
+        pipeline.to("cuda")
+    else:
+        raise RuntimeError(
+            "REDESIGN_NATIVE_OFFLOAD must be group, model, sequential, or none."
+        )
     return pipeline
 
 
