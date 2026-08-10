@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Video Compact</title>
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <header><div><b>VIDEO COMPACT</b><span>PRIVATE FFMPEG WORKBENCH</span></div><div id="runtime" class="chip">Inspecting FFmpeg…</div></header>
+  <main>
+    <section class="source card">
+      <h1>Make the video smaller.</h1>
+      <p>VideoSmaller’s useful choices, rebuilt on your workstation. Nothing is uploaded and there is no service file-size ceiling.</p>
+      <label id="drop" class="drop"><input id="file" type="file" accept="video/*" hidden><strong>Drop a video here</strong><span>or choose a local file</span></label>
+      <video id="source-preview" controls playsinline></video>
+      <div id="source-meta" class="meta">No video selected</div>
+    </section>
+
+    <section class="controls card">
+      <h2>Compression</h2>
+      <div class="quality">
+        <button data-quality="best"><b>Best quality</b><small>Low compression</small></button>
+        <button class="active" data-quality="balanced"><b>Balanced</b><small>Recommended</small></button>
+        <button data-quality="small"><b>Smallest</b><small>More compression</small></button>
+      </div>
+      <div class="grid two">
+        <label>Video codec<select id="codec"><option value="h265">H.265 · efficient MP4</option><option value="av1">AV1 · smallest modern MP4</option><option value="h264">H.264 · widest compatibility</option><option value="vp9">VP9 · WebM</option></select></label>
+        <label>Encoder<select id="engine"><option value="auto">Auto · prefer RTX NVENC</option><option value="nvenc">RTX 5090 · fast</option><option value="software">Software · maximum efficiency</option></select></label>
+        <label>Reduce width<select id="width"><option value="0">Keep original</option><option value="3840">3840 · 4K</option><option value="2560">2560 · QHD</option><option value="1920">1920 · Full HD</option><option value="1280">1280 · HD</option><option value="854">854 · compact</option><option value="640">640 · tiny</option></select></label>
+        <label class="check"><input id="remove-audio" type="checkbox"> Remove audio</label>
+      </div>
+      <details>
+        <summary>Advanced controls</summary>
+        <div class="grid three">
+          <label>Start (seconds)<input id="start" type="number" min="0" step="0.01" value="0"></label>
+          <label>End (0 = full)<input id="end" type="number" min="0" step="0.01" value="0"></label>
+          <label>Max FPS (0 = source)<input id="fps" type="number" min="0" max="240" step="1" value="0"></label>
+          <label>Audio bitrate<select id="audio-bitrate"><option>64</option><option>96</option><option selected>128</option><option>160</option><option>192</option><option>256</option><option>320</option></select></label>
+          <label class="check"><input id="strip-metadata" type="checkbox" checked> Strip metadata</label>
+          <label class="check"><input id="faststart" type="checkbox" checked> Web fast-start</label>
+        </div>
+      </details>
+      <div class="actions"><button id="stop" class="secondary" disabled>Stop</button><button id="run" disabled>Compress locally</button></div>
+    </section>
+
+    <section class="result card">
+      <div class="result-head"><div><h2>Output</h2><p id="status">Waiting for a source.</p></div><a id="download" class="button disabled">Download</a></div>
+      <div class="bar"><i id="bar"></i></div>
+      <div class="compare"><div><span>Before</span><b id="before">—</b></div><div><span>After</span><b id="after">—</b></div><div><span>Reduction</span><b id="saved">—</b></div></div>
+      <video id="output-preview" controls playsinline></video>
+      <details class="log"><summary>FFmpeg output</summary><pre id="log">No job output.</pre></details>
+    </section>
+  </main>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>
