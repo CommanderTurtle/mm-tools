@@ -186,7 +186,7 @@ def node(state: GraphState) -> Dict[str, Any]:
                 # Use the resized base64 string
                 "image_url": {"url": f"data:image/png;base64,{root_b64}"},
             },
-            {"type": "text", "text": "\Current Image: "},
+            {"type": "text", "text": "\nCurrent Image: "},
             {
                 "type": "image_url",
                 # Use the resized base64 string

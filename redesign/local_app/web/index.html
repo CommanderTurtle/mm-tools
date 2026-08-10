@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ReDesign Local</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <style>select{font:inherit;width:100%;background:#090c10;border:1px solid #292e38;border-radius:6px;color:#edf0f5;padding:8px 9px}.left-panel details>small{display:block;margin-top:10px;color:#858d9c;font-size:10px;line-height:1.4}</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="mark">R</span><div><strong>ReDesign</strong><small>LOCAL WORKBENCH</small></div></div>
+    <div id="readiness" class="readiness">Inspecting runtime…</div>
+    <div class="top-actions"><button id="undo" class="quiet" disabled>Undo</button><button id="redo" class="quiet" disabled>Redo</button><button id="save-editor" class="quiet" disabled>Export layers</button><button id="stop" class="quiet" disabled>Stop</button><button id="run" disabled>Decompose design</button></div>
+  </header>
+
+  <main class="workspace">
+    <aside class="left-panel">
+      <section>
+        <h2>Source</h2>
+        <label id="dropzone" class="dropzone">
+          <input id="image" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+          <span>＋</span><strong>Choose flat design</strong><small>PNG · JPEG · WebP</small>
+        </label>
+        <div id="source-info" class="source-info">No source selected</div>
+      </section>
+      <section>
+        <h2>Controller</h2>
+        <label>Private VLM endpoint<input id="controller-url" placeholder="http://compute1:8000/v1"></label>
+        <label>Served model<input id="controller-model" placeholder="local multimodal model name"></label>
+      </section>
+      <details open>
+        <summary>Compute profile</summary>
+        <label>Layer backend<select id="qwen-backend"><option value="native-fp8">Native Diffusers · FP8/BF16 (recommended)</option><option value="comfyui">ComfyUI · INT8 TensorWise</option><option value="diffusers">Legacy complete Diffusers tree</option></select></label>
+        <label id="comfy-row" hidden>Private ComfyUI endpoint<input id="comfy-url" placeholder="http://127.0.0.1:8188"></label>
+        <label id="diffusers-row"><span id="qwen-model-label">Native FP8 transformer file</span><input id="qwen-model" placeholder="~/multimedia/models/qwen/...safetensors"></label>
+        <div class="split"><label>Qwen GPUs<input id="qwen-gpus" value="0"></label><label>Pair size<input id="pair-size" type="number" min="1" value="1"></label></div>
+        <div class="split"><label>Tool GPUs<input id="tool-gpus" value="0"></label><label>Workers<input id="workers" type="number" min="1" max="8" value="1"></label></div>
+        <label id="offload-row" class="warning" hidden><input id="cpu-offload" type="checkbox"> Permit slow CPU offload for an unquantized Diffusers checkpoint</label>
+        <small id="gpu-note"></small>
+      </details>
+    </aside>
+
+    <section class="canvas-panel">
+      <div class="canvas-toolbar">
+        <div class="view-switch"><button class="active" data-view="original">Original</button><button data-view="reconstructed">Reconstruction</button><button data-view="edit">Edit layers</button><button data-view="bordered">Layer borders</button><button data-view="tree">Agent tree</button></div>
+        <span id="zoom-label">Fit</span>
+      </div>
+      <div id="canvas" class="canvas empty">
+        <div id="empty-state"><span>◈</span><h1>Recover the structure</h1><p>Load a finished design to rebuild its text, images, vectors, groups, and z-order.</p></div>
+        <img id="canvas-image" alt="Design preview">
+        <canvas id="editor-canvas" class="hidden" aria-label="Editable layer canvas"></canvas>
+      </div>
+      <div class="timeline"><span id="status-dot"></span><strong id="job-status">Idle</strong><span id="job-note">The model remains unloaded until a run begins.</span></div>
+    </section>
+
+    <aside class="right-panel">
+      <div class="panel-tabs"><button class="active" data-panel="layers">Layers</button><button data-panel="artifacts">Artifacts</button></div>
+      <div id="layers-panel" class="panel-content"><div id="properties" class="hidden"></div><div id="layer-list"><div class="placeholder">Recovered layers appear here.</div></div></div>
+      <div id="artifacts-panel" class="panel-content hidden"><div class="placeholder">Run artifacts appear here.</div></div>
+    </aside>
+
+    <section class="console-panel">
+      <header><strong>Agent activity</strong><button id="clear-log" class="quiet">Clear view</button></header>
+      <pre id="console">Ready. No cloud endpoints are accepted by this workbench.</pre>
+    </section>
+  </main>
+
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>
