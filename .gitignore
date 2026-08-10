@@ -23,8 +23,8 @@
 
 !/img2svg/
 /img2svg/*
-!/img2svg/setupwithuv
-!/img2svg/startwithuv
+!/img2svg/setupwithrust
+!/img2svg/startwithrust
 
 !/longcat/
 /longcat/*
@@ -42,6 +42,15 @@
 /musvit/*
 !/musvit/setupwithuv
 !/musvit/startwithuv
+!/musvit/local_app/
+/musvit/local_app/*
+!/musvit/local_app/__init__.py
+!/musvit/local_app/server.py
+!/musvit/local_app/web/
+/musvit/local_app/web/*
+!/musvit/local_app/web/app.js
+!/musvit/local_app/web/index.html
+!/musvit/local_app/web/style.css
 
 !/redesign/
 /redesign/*
@@ -53,6 +62,16 @@
 /translate/*
 !/translate/setupwithuv.sh
 !/translate/starthttp.sh
+!/translate/startwithuv.sh
+!/translate/local_app/
+/translate/local_app/*
+!/translate/local_app/__init__.py
+!/translate/local_app/server.py
+!/translate/web/
+/translate/web/*
+!/translate/web/app.js
+!/translate/web/index.html
+!/translate/web/style.css
 
 !/video-compact/
 /video-compact/*

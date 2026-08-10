@@ -50,8 +50,8 @@ Native VTracer-based raster-to-SVG CLI and browser studio.
 
 ```bash
 cd ~/multimedia/img2svg
-./setupwithuv
-./startwithuv                             # http://127.0.0.1:4170
+./setupwithrust
+./startwithrust                           # http://127.0.0.1:417
 ```
 
 ### LongCat
@@ -88,7 +88,8 @@ Sheet-music image/PDF encoding and SMT-backed beKern/MIDI/SVG conversion.
 ```bash
 cd ~/multimedia/musvit
 ./setupwithuv
-./startwithuv SCORE_IMAGE_OR_PDF
+./startwithuv                             # browser studio: :8223
+./startwithuv SCORE_IMAGE_OR_PDF          # direct CLI
 ```
 
 Use `musvit_embed.py` directly for the embedding lane.
@@ -113,9 +114,10 @@ Local EraX translation, language classification, and the optional INT4 arbitrati
 cd ~/multimedia/translate
 ./setupwithuv.sh
 ./starthttp.sh                            # http://127.0.0.1:8176
+./startwithuv.sh                          # standalone browser UI: :8177
 ```
 
-The setup prompt accepts GPU or CPU; `TRANSLATE_ACCELERATOR` remains available for noninteractive runs.
+The setup prompt accepts GPU or CPU; `TRANSLATE_ACCELERATOR` remains available for noninteractive runs. The browser UI owns an independent model lifecycle. Its explicit external-load button can attach to an already-loaded `starthttp.sh` instance, but it never falls back between them automatically.
 
 ### Video Compact
 
@@ -156,12 +158,14 @@ ReDesign also defaults to `8173`; change `CW2_UI_PORT` when both browser service
 
 | Port | Runtime |
 | --- | --- |
-| `4170` | img2svg |
+| `417` | img2svg |
 | `8172` | CrisperWhisper HTTP |
 | `8173` | CrisperWhisper UI or ReDesign |
 | `8174` | Ideogram/ObjectClear editor |
 | `8176` | Translate |
+| `8177` | Translate standalone UI |
 | `8222` | MuScriptor |
+| `8223` | MuSViT local score studio |
 | `8230` | LongCat HTTP |
 | `8231` | LongCat UI |
 | `8240` | Video Compact |
