@@ -22,8 +22,14 @@ MODEL_ROOT="$(realpath -m -- "$MODEL_ROOT")"
 export ACESTEP_CHECKPOINTS_DIR="$MODEL_ROOT"
 
 for required in \
-  "$MODEL_ROOT/acestep-v15-turbo/model.safetensors" \
-  "$MODEL_ROOT/acestep-5Hz-lm-1.7B/model.safetensors" \
+  "$MODEL_ROOT/acestep-v15-xl-sft/model.safetensors.index.json" \
+  "$MODEL_ROOT/acestep-v15-xl-sft/model-00001-of-00004.safetensors" \
+  "$MODEL_ROOT/acestep-v15-xl-sft/model-00002-of-00004.safetensors" \
+  "$MODEL_ROOT/acestep-v15-xl-sft/model-00003-of-00004.safetensors" \
+  "$MODEL_ROOT/acestep-v15-xl-sft/model-00004-of-00004.safetensors" \
+  "$MODEL_ROOT/acestep-5Hz-lm-4B/model.safetensors.index.json" \
+  "$MODEL_ROOT/acestep-5Hz-lm-4B/model-00001-of-00002.safetensors" \
+  "$MODEL_ROOT/acestep-5Hz-lm-4B/model-00002-of-00002.safetensors" \
   "$MODEL_ROOT/Qwen3-Embedding-0.6B/model.safetensors" \
   "$MODEL_ROOT/vae/diffusion_pytorch_model.safetensors"; do
   [[ -f "$required" ]] || {
@@ -51,8 +57,8 @@ exec uv run --active --no-sync python -m acestep.acestep_v15_pipeline \
   --port "$PORT" \
   --init_service true \
   --init_llm "${ACESTEP_INIT_LM:-true}" \
-  --config_path "${ACESTEP_CONFIG_PATH:-acestep-v15-turbo}" \
-  --lm_model_path "${ACESTEP_LM_MODEL:-acestep-5Hz-lm-1.7B}" \
+  --config_path "${ACESTEP_CONFIG_PATH:-acestep-v15-xl-sft}" \
+  --lm_model_path "${ACESTEP_LM_MODEL:-acestep-5Hz-lm-4B}" \
   --backend "${ACESTEP_LM_BACKEND:-pt}" \
   --device "${ACESTEP_DEVICE:-auto}" \
   --offload_to_cpu "${ACESTEP_OFFLOAD_TO_CPU:-false}" \
