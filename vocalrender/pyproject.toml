@@ -1,0 +1,99 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vocalrender"
+version = "0.1.0"
+description = "VocalRender: singing voice synthesis with word/pitch/note interleaved conditioning, based on OpenBMB VoxCPM"
+readme = "README.md"
+license = "Apache-2.0"
+authors = [
+    {name = "pymaster17", email = "pymaster17@gmail.com"}
+]
+keywords = ["vocalrender", "singing-voice-synthesis", "svs", "speech-synthesis", "ai", "deep-learning", "pytorch"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.5.0",
+    "torchaudio>=2.5.0",
+    "transformers>=4.36.2",
+    "einops",
+    "numpy",
+    "scipy",
+    "datasets>=3,<4",
+    "huggingface-hub",
+    "pydantic",
+    "pyyaml",
+    "tqdm",
+    "soundfile",
+    "librosa",
+    "matplotlib",
+    "argbind",
+    "safetensors",
+    "tensorboard>=2.20.0",
+    "accelerate>=1.13.0",
+    # Validation metrics: SingMOS (via torch.hub) needs s3prl; AES needs
+    # audiobox-aesthetics.
+    "s3prl>=0.4.18",
+    "audiobox-aesthetics>=0.0.4",
+]
+
+[project.optional-dependencies]
+# Staff-notation score rendering (save_score: true in inference).
+viz = [
+    "music21>=9.9.1",
+    "lilypond>=2.25.12",
+]
+dev = [
+    "pytest>=6.0",
+    "black>=21.0",
+    "flake8>=3.8",
+]
+
+[tool.uv]
+# Pin the lockfile to the stack this release was validated against.
+# These are constraints on resolution, not install requirements — pip
+# users are only bound by [project.dependencies].
+constraint-dependencies = [
+    "torch==2.10.0",
+    "torchaudio==2.10.0",
+    "transformers==5.0.0",
+    "datasets==3.6.0",
+    "accelerate==1.13.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/pymaster17/VocalRender"
+Repository = "https://github.com/pymaster17/VocalRender.git"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["vocalrender*"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.black]
+line-length = 120
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
