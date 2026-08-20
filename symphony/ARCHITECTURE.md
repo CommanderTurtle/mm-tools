@@ -21,11 +21,11 @@ The setup prompt selects GPU-aware or CPU-only PyTorch. The UI is available at `
 Equivalent CLI examples:
 
 ```bash
-uv run --active --no-sync python arch/harmo/generator.py \
+uv run --active --no-sync python -m arch.harmo.generator \
   ../models/SymphonyGen--SymphonyGen/stage_one_pretrained.pt \
   --batch_size 4 --save_dir outputs/harmony
 
-uv run --active --no-sync python arch/symph/generator.py \
+uv run --active --no-sync python -m arch.symph.generator \
   ../models/SymphonyGen--SymphonyGen/grpo_clamp+track_epoch_6.pt input.mid \
   --analyze_harmo --group_size 2 --save_dir outputs/orchestration
 ```

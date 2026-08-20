@@ -110,7 +110,7 @@ async def generate_harmony(count: int = Form(4)) -> dict:
         run_dir = _new_run("harmony")
         command = [
             sys.executable,
-            str(ROOT / "arch" / "harmo" / "generator.py"),
+            "-m", "arch.harmo.generator",
             str(HARMONY_MODEL),
             "--num_batches", "1",
             "--batch_size", str(count),
@@ -163,7 +163,7 @@ async def orchestrate(
         await run_in_threadpool(_copy_upload, midi, source)
         command = [
             sys.executable,
-            str(ROOT / "arch" / "symph" / "generator.py"),
+            "-m", "arch.symph.generator",
             str(model_path),
             str(source),
             "--group_size", str(group_size),
