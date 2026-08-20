@@ -35,8 +35,7 @@ export PIP_DISABLE_PIP_VERSION_CHECK=1
 uv venv --python 3.12.10 --seed --managed-python
 # shellcheck disable=SC1091
 source .venv/bin/activate
-uv pip install torch torchaudio
-uv pip install -r requirements-local.txt
+uv pip install torch torchaudio -r requirements-local.txt
 
 printf '\nSymphonyGen is ready in %s/.venv (torch backend: %s).\n' "$ROOT" "$torch_backend"
 printf 'Start the private browser studio with ./startwithuv.sh\n'
