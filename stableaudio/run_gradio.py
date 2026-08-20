@@ -16,7 +16,12 @@ def main(args):
         gradio_title=args.title
     )
     interface.queue()
-    interface.launch(share=args.share, auth=(args.username, args.password) if args.username is not None else None)
+    interface.launch(
+        server_name=args.host,
+        server_port=args.port,
+        share=args.share,
+        auth=(args.username, args.password) if args.username is not None else None,
+    )
 
 if __name__ == "__main__":
     import argparse
@@ -25,6 +30,8 @@ if __name__ == "__main__":
     parser.add_argument('--model-config', type=str, help='Path to model config', required=False)
     parser.add_argument('--ckpt-path', type=str, help='Path to model checkpoint', required=False)
     parser.add_argument('--pretransform-ckpt-path', type=str, help='Optional to model pretransform checkpoint', required=False)
+    parser.add_argument('--host', type=str, default='127.0.0.1', help='Interface to bind (default: 127.0.0.1)')
+    parser.add_argument('--port', type=int, default=7860, help='Interface port (default: 7860)')
     parser.add_argument('--share', action='store_true', help='Create a publicly shareable link', required=False)
     parser.add_argument('--username', type=str, help='Gradio username', required=False)
     parser.add_argument('--password', type=str, help='Gradio password', required=False)

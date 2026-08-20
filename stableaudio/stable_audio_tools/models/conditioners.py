@@ -5,6 +5,8 @@ import logging, warnings
 import string
 import typing as tp
 import gc
+import os
+from pathlib import Path
 
 from .adp import NumberEmbedder
 from ..inference.utils import set_audio_channels
@@ -282,8 +284,26 @@ class T5Conditioner(Conditioner):
             try:
                 # self.tokenizer = T5Tokenizer.from_pretrained(t5_model_name, model_max_length = max_length)
                 # model = T5EncoderModel.from_pretrained(t5_model_name, max_length=max_length).train(enable_grad).requires_grad_(enable_grad)
-                self.tokenizer = AutoTokenizer.from_pretrained(t5_model_name)
-                model = T5EncoderModel.from_pretrained(t5_model_name).train(enable_grad).requires_grad_(enable_grad).to(torch.float16)
+                model_source = t5_model_name
+                load_kwargs = {}
+                local_override = os.environ.get("STABLE_AUDIO_T5_MODEL_PATH", "").strip()
+                if local_override:
+                    local_path = Path(local_override).expanduser()
+                    if not local_path.is_absolute():
+                        local_path = (Path.cwd() / local_path).resolve()
+                    if not local_path.is_dir():
+                        raise FileNotFoundError(
+                            f"Local T5 conditioner is missing: {local_path}"
+                        )
+                    model_source = str(local_path)
+                    load_kwargs["local_files_only"] = True
+
+                self.tokenizer = AutoTokenizer.from_pretrained(model_source, **load_kwargs)
+                model = T5EncoderModel.from_pretrained(model_source, **load_kwargs)
+                model = model.train(enable_grad).requires_grad_(enable_grad)
+                model = model.to(
+                    torch.float16 if torch.cuda.is_available() else torch.float32
+                )
             finally:
                 logging.disable(previous_level)
             
