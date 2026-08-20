@@ -80,7 +80,7 @@ https://github.com/user-attachments/assets/5bbf433b-e625-43c0-95ae-b639768bebb1
 
 *view what a combined workflow looks like:*
 
-[2-ideogram%2Bimg2svg.mp4](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-ideogram%2Bimg2svg.mp4)
+https://github.com/user-attachments/assets/2b6de3b7-21a0-4354-9fad-9dc20af4cade
 
 # Redesign's asset-separation (qwen layered):
 
@@ -91,6 +91,12 @@ https://github.com/user-attachments/assets/a74bba02-e665-41fe-b380-1824e4882f68
 https://github.com/user-attachments/assets/263b2134-0891-411b-932a-f0e5ead6b077
 
 ![musvit](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-musvit.png)
+
+# Update 8-20, added minimax music custom stdio
+
+> (uses minimized, stripped comfyUI pipeline directly, but custom WebUI)
+
+https://github.com/user-attachments/assets/278fbb3b-93c9-4d4a-a4d8-0acaff4bc30a
 
 ## Have a 5090? 
 
