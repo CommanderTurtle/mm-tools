@@ -426,15 +426,71 @@ Expected folder: models/Ace-Step--Ace-Step1.5
 models/Ace-Step--Ace-Step1.5/
 ├── config.json
 ├── Qwen3-Embedding-0.6B/
-├── acestep-5Hz-lm-1.7B/
-├── acestep-v15-turbo/
 └── vae/
 ```
 
-Used by: acestep through ACESTEP_CHECKPOINTS_DIR for the native turbo DiT,
-prompt embedding, 5 Hz language model, and audio VAE pipeline.
+Used by: acestep through ACESTEP_CHECKPOINTS_DIR for the common prompt
+embedding and audio VAE components. The lower-quality turbo DiT and 1.7B
+language model are deliberately omitted.
 
-33. RoyalCities/Foundation-1
+33. ACE-Step/acestep-v15-xl-sft
+Expected folder: models/Ace-Step--Ace-Step1.5/acestep-v15-xl-sft
+
+```text
+models/Ace-Step--Ace-Step1.5/acestep-v15-xl-sft/
+├── apg_guidance.py
+├── config.json
+├── configuration_acestep_v15.py
+├── model-00001-of-00004.safetensors
+├── model-00002-of-00004.safetensors
+├── model-00003-of-00004.safetensors
+├── model-00004-of-00004.safetensors
+├── model.safetensors.index.json
+├── modeling_acestep_v15_xl_base.py
+└── silence_latent.pt
+```
+
+Used by: acestep as its highest-quality native XL-SFT diffusion model.
+
+34. ACE-Step/acestep-5Hz-lm-4B
+Expected folder: models/Ace-Step--Ace-Step1.5/acestep-5Hz-lm-4B
+
+```text
+models/Ace-Step--Ace-Step1.5/acestep-5Hz-lm-4B/
+├── added_tokens.json
+├── chat_template.jinja
+├── config.json
+├── merges.txt
+├── model-00001-of-00002.safetensors
+├── model-00002-of-00002.safetensors
+├── model.safetensors.index.json
+├── special_tokens_map.json
+├── tokenizer.json
+├── tokenizer_config.json
+└── vocab.json
+```
+
+Used by: acestep as its highest-quality native 5 Hz language model.
+
+35. Comfy-Org/MiniMax-Music-3
+Expected folder: models/Comfy-Org--Minimax-Music-3
+
+```text
+models/Comfy-Org--Minimax-Music-3/
+├── diffusion_models/
+│   └── minimax_music3_dit_fp16.safetensors
+├── text_encoders/
+│   └── minimax_music3_text_encoder_pruned_int8_convrot.safetensors
+└── vae/
+    └── minimax_music3_dav.safetensors
+```
+
+Used by: minimax for the standalone official-quality text-to-music graph. The
+portable set uses the full FP16 DiT, the official practical pruned INT8 text
+encoder, and the sole DAV decoder; redundant FP32, INT8-DiT, and full encoder
+variants are omitted.
+
+36. RoyalCities/Foundation-1
 Expected folder: models/RoyalCities--Foundation-1
 
 ```text
@@ -446,7 +502,7 @@ models/RoyalCities--Foundation-1/
 Used by: stableaudio through STABLE_AUDIO_MODEL_DIR for local text-to-audio
 generation. Non-runtime charts, examples, and repository prose are omitted.
 
-34. google-t5/t5-base
+37. google-t5/t5-base
 Expected folder: models/google-t5--t5-base
 
 ```text
@@ -461,7 +517,7 @@ models/google-t5--t5-base/
 Used by: stableaudio through STABLE_AUDIO_T5_MODEL_PATH. Foundation-1 names
 this T5 conditioner in model_config.json; the runtime resolves it locally.
 
-35. SymphonyGen/SymphonyGen
+38. SymphonyGen/SymphonyGen
 Expected folder: models/SymphonyGen--SymphonyGen
 
 ```text
@@ -475,17 +531,11 @@ models/SymphonyGen--SymphonyGen/
 Used by: symphony for stage-one harmony generation and the three selectable
 stage-two orchestration paths.
 
-36. pymaster/VocalRender
+39. pymaster/VocalRender
 Expected folder: models/pymaster--VocalRender
 
 ```text
 models/pymaster--VocalRender/
-├── VocalRender/
-│   ├── audiovae.pth
-│   ├── config.json
-│   ├── model.safetensors
-│   ├── tokenizer.json
-│   └── tokenizer_config.json
 └── VocalRender-Pro/
     ├── audiovae.pth
     ├── config.json
@@ -494,5 +544,6 @@ models/pymaster--VocalRender/
     └── tokenizer_config.json
 ```
 
-Used by: vocalrender through VOCALRENDER_MODEL_DIR for both selectable local
-singing-synthesis variants.
+Used by: vocalrender through VOCALRENDER_MODEL_DIR for its highest-quality
+local singing-synthesis path. The lower-quality standard checkpoint is not
+part of the portable model set.

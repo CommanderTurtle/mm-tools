@@ -43,7 +43,7 @@ The downloader is resumable. Run it again after an interrupted transfer. Model d
 
 Assuming one has a nice GPU, you can host a wide variety of tools. Emulating the top-tier closed source software out there, solely with open-source runtimes. It wouldn't be without the community that building something like this would be possible.
 
-~16-20gb vram recommended. BUT. Each project has their upper unbounded cap. None is authoritative if you run them one at a time. (only ~8-9gb for LongCat)
+~16-20gb vram recommended for most tools. The largest quality-first music paths benefit from 24-32 GB. Each project has its own upper bound, and none is authoritative if you run them one at a time. (only ~8-9gb for LongCat)
 
 > So. What can you do?
 
@@ -200,7 +200,19 @@ cd ~/multimedia/acestep
 ./startwithuv.sh                          # http://127.0.0.1:8250
 ```
 
-The browser process preloads the turbo DiT and 1.7B 5 Hz language model. It reads the shared native ACE-Step model tree directly and releases all weights on `Ctrl+C`.
+The browser process preloads the native XL-SFT DiT and 4B 5 Hz language model: the quality-first ACE combination for a 24 GB+ workstation. It reads the shared native ACE-Step model tree directly and releases all weights on `Ctrl+C`.
+
+### MiniMax Music 3
+
+Standalone MiniMax Music 3 text-to-song production desk using the official graph: full FP16 DiT, pruned INT8 text encoder, DAV decoder, real CFG/top-k/sampler controls, and an animated lyrics-and-spectrum performance view. It does not require a separately running ComfyUI.
+
+```bash
+cd ~/multimedia/minimax
+./setupwithuv
+./startwithuv.sh                          # http://127.0.0.1:8254
+```
+
+The browser owns a private loopback inference engine. `Load models` and `Unload` control residency explicitly; `Ctrl+C` unloads the models and closes both processes. Links in the studio hand covers/editing to ACE-Step, loops to Foundation-1, and audio reverse engineering to MuScriptor.
 
 ### Stable Audio Foundation
 
@@ -226,7 +238,7 @@ The web process is model-free while idle. Each generation request owns and relea
 
 ### VocalRender
 
-Prompt-conditioned local singing synthesis with selectable standard/Pro weights, explicit load/unload controls, browser playback, and WAV downloads.
+Prompt-conditioned local singing synthesis with the highest-quality Pro weights only, explicit load/unload controls, browser playback, and WAV downloads.
 
 ```bash
 cd ~/multimedia/vocalrender
@@ -343,6 +355,7 @@ ReDesign also defaults to `8173`; change `CW2_UI_PORT` when both browser service
 | `8251` | Stable Audio Foundation-1 |
 | `8252` | SymphonyGen local studio |
 | `8253` | VocalRender local studio |
+| `8254` | MiniMax Music 3 local studio |
 
 Services bind to the configured private-LAN interface and do not add public-facing authentication by default. Keep them behind the host firewall or set the supported bearer token where provided.
 

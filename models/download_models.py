@@ -49,9 +49,48 @@ snapshot_download(
     allow_patterns=[
         "config.json",
         "Qwen3-Embedding-0.6B/*",
-        "acestep-5Hz-lm-1.7B/*",
-        "acestep-v15-turbo/*",
         "vae/*",
+    ],
+)
+snapshot_download(
+    repo_id="ACE-Step/acestep-v15-xl-sft",
+    local_dir=MODELS / "Ace-Step--Ace-Step1.5/acestep-v15-xl-sft",
+    local_dir_use_symlinks=False,
+    allow_patterns=[
+        "apg_guidance.py",
+        "config.json",
+        "configuration_acestep_v15.py",
+        "model-*.safetensors",
+        "model.safetensors.index.json",
+        "modeling_acestep_v15_xl_base.py",
+        "silence_latent.pt",
+    ],
+)
+snapshot_download(
+    repo_id="ACE-Step/acestep-5Hz-lm-4B",
+    local_dir=MODELS / "Ace-Step--Ace-Step1.5/acestep-5Hz-lm-4B",
+    local_dir_use_symlinks=False,
+    allow_patterns=[
+        "added_tokens.json",
+        "chat_template.jinja",
+        "config.json",
+        "merges.txt",
+        "model-*.safetensors",
+        "model.safetensors.index.json",
+        "special_tokens_map.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "vocab.json",
+    ],
+)
+snapshot_download(
+    repo_id="Comfy-Org/MiniMax-Music-3",
+    local_dir=MODELS / "Comfy-Org--Minimax-Music-3",
+    local_dir_use_symlinks=False,
+    allow_patterns=[
+        "diffusion_models/minimax_music3_dit_fp16.safetensors",
+        "text_encoders/minimax_music3_text_encoder_pruned_int8_convrot.safetensors",
+        "vae/minimax_music3_dav.safetensors",
     ],
 )
 snapshot_download(
@@ -87,7 +126,7 @@ snapshot_download(
     repo_id="pymaster/VocalRender",
     local_dir=MODELS / "pymaster--VocalRender",
     local_dir_use_symlinks=False,
-    allow_patterns=["VocalRender/*", "VocalRender-Pro/*"],
+    allow_patterns=["VocalRender-Pro/*"],
 )
 snapshot_download(
     repo_id="MuScriptor/muscriptor-large",
