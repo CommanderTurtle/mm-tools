@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>VocalRender Local Studio</title>
+    <link rel="stylesheet" href="/assets/style.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <div>
+          <p class="eyebrow">Prompt-conditioned singing · entirely local</p>
+          <h1>Give the score<br>a living voice.</h1>
+          <p class="lede">Pair structured lyrics and notes with a clean 2–8 second singing reference. VocalRender carries the performance into a new local WAV.</p>
+        </div>
+        <aside class="model-card">
+          <div class="state"><span id="signal"></span><div><strong id="state-title">Checking local models…</strong><p id="state-detail">No cloud services are used.</p></div></div>
+          <label><span>Model variant</span><select id="variant"><option>VocalRender-Pro</option><option>VocalRender</option></select></label>
+          <div class="model-actions"><button id="load" type="button">Load</button><button id="unload" class="quiet" type="button">Unload</button></div>
+        </aside>
+      </header>
+
+      <form id="generate-form" class="workspace">
+        <section class="panel source-panel">
+          <p class="number">01 / Reference</p>
+          <label class="drop">
+            <input id="prompt-audio" name="prompt_audio" type="file" accept=".wav,.flac,.ogg" required>
+            <span class="wave">∿</span>
+            <strong id="audio-title">Choose clean prompt singing</strong>
+            <small>WAV, FLAC, or OGG · a focused 2–8 second phrase works best</small>
+          </label>
+          <div class="tip"><strong>Voice fidelity begins here.</strong><span>Avoid accompaniment, reverb tails, clipping, and background speech.</span></div>
+        </section>
+
+        <section class="panel score-panel">
+          <p class="number">02 / Score data</p>
+          <label><span>SVS entry JSON</span><textarea name="entry_json" id="entry-json" rows="15" required>{
+  "item_name": "phrase-01",
+  "word": ["你", "好"],
+  "pitch": [60, 64],
+  "note": ["&lt;NOTE_DOT_4&gt;", "&lt;NOTE_DOT_4&gt;"],
+  "pitch2word": [0, 1],
+  "bpm": 100
+}</textarea></label>
+          <div class="row"><label><span>Item name (only for JSON lists)</span><input name="item_name" placeholder="phrase-01"></label><label class="check"><input name="lyrics_only" type="checkbox"><span>Lyrics-only mode</span></label></div>
+        </section>
+
+        <section class="panel controls-panel">
+          <p class="number">03 / Render</p>
+          <div class="controls">
+            <label><span>CFG</span><input name="cfg_value" type="number" min="0" max="10" step="0.1" value="2"></label>
+            <label><span>Inference steps</span><input name="inference_timesteps" type="number" min="1" max="100" value="10"></label>
+            <label><span>Max sequence length</span><input name="max_len" type="number" min="64" max="8000" value="2000"></label>
+            <label><span>Prompt frames</span><input name="prompt_max_frames" type="number" min="1" max="200" value="50"></label>
+            <label><span>Temperature</span><input name="temperature" type="number" min="0" max="4" step="0.05" value="1"></label>
+            <label><span>FSQ temperature</span><input name="fsq_temperature" type="number" min="0" max="4" step="0.05" value="0"></label>
+          </div>
+          <button class="render" type="submit">Render singing voice</button>
+          <p id="status" class="status">Ready to render.</p>
+          <div id="result" class="result" hidden><audio id="player" controls></audio><a id="download" download>Download WAV</a></div>
+        </section>
+      </form>
+      <footer><span>Weights remain local</span><span>Outputs remain in <code>vocalrender/outputs</code></span><span>Ctrl+C unloads the model</span></footer>
+    </main>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>

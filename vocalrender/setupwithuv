@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+
+command -v uv >/dev/null 2>&1 || {
+  printf 'uv is required and was not found on PATH.\n' >&2
+  exit 1
+}
+
+compute="${1:-}"
+if [[ -z "$compute" ]]; then
+  read -r -p 'Compute target [gpu/cpu] (gpu): ' compute
+  compute="${compute:-gpu}"
+fi
+
+case "${compute,,}" in
+  gpu) torch_backend="${UV_TORCH_BACKEND:-auto}" ;;
+  cpu) torch_backend="cpu" ;;
+  *)
+    printf 'Choose either gpu or cpu.\n' >&2
+    exit 2
+    ;;
+esac
+
+if [[ ! -f .env ]]; then
+  cp .env.local.example .env
+  printf 'Created %s/.env from .env.local.example.\n' "$ROOT"
+fi
+
+export UV_TORCH_BACKEND="$torch_backend"
+export PIP_DISABLE_PIP_VERSION_CHECK=1
+
+uv venv --python 3.12.10 --seed --managed-python
+# shellcheck disable=SC1091
+source .venv/bin/activate
+uv pip install torch torchaudio
+uv pip install -r requirements-local.txt
+uv pip install --no-deps -e .
+
+printf '\nVocalRender is ready in %s/.venv (torch backend: %s).\n' "$ROOT" "$torch_backend"
+printf 'Start the private browser studio with ./startwithuv.sh\n'

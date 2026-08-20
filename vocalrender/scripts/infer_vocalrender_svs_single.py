@@ -161,19 +161,22 @@ def build_svs_prompt_from_entry(
 
 # Cached lightweight preprocessor
 _cached_preprocessor = None
+_cached_tokenizer = None
 
 
 def _get_preprocessor(model):
     """Build a lightweight SVSPreprocessor (token maps only, no VAE)."""
-    global _cached_preprocessor
-    if _cached_preprocessor is not None:
+    global _cached_preprocessor, _cached_tokenizer
+    tokenizer = model.text_tokenizer.tokenizer
+    if _cached_preprocessor is not None and _cached_tokenizer is tokenizer:
         return _cached_preprocessor
 
     from vocalrender.preprocessing import create_lightweight_preprocessor
 
     _cached_preprocessor = create_lightweight_preprocessor(
-        model.text_tokenizer.tokenizer,
+        tokenizer,
     )
+    _cached_tokenizer = tokenizer
     return _cached_preprocessor
 
 

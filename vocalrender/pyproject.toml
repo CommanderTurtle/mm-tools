@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "vocalrender"
 version = "0.1.0"
 description = "VocalRender: singing voice synthesis with word/pitch/note interleaved conditioning, based on OpenBMB VoxCPM"
-readme = "README.md"
+readme = {text = "VocalRender local singing-voice runtime package.", content-type = "text/plain"}
 license = "Apache-2.0"
 authors = [
     {name = "pymaster17", email = "pymaster17@gmail.com"}
