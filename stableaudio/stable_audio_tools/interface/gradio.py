@@ -922,7 +922,7 @@ def create_sampling_ui(model_config, initial_ckpt, inpainting=False):
 
         with gr.Column():
             midi_piano_roll_output = gr.Image(label="MIDI Piano Roll", interactive=False)
-            midi_download_button = gr.File(label="Download MIDI", file_count="single", type="filepath", interactive=False)
+            midi_download_button = gr.File(label="Download MIDI", file_count="single", type="file", interactive=False)
             audio_spectrogram_output = gr.Gallery(label="Output spectrogram", show_label=False)
 
     # IMPORTANT: int4_checkbox exists only if TORCHAO_INT4_SUPPORTED.
