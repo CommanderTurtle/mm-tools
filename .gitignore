@@ -40,6 +40,63 @@
 !/longcat/starthttp.sh
 !/longcat/startwithuv.sh
 
+!/minimax/
+/minimax/*
+!/minimax/.env.local.example
+!/minimax/ARCHITECTURE.md
+!/minimax/requirements-local.txt
+!/minimax/setupwithuv
+!/minimax/startwithuv.sh
+!/minimax/local_app/
+/minimax/local_app/*
+!/minimax/local_app/__init__.py
+!/minimax/local_app/server.py
+!/minimax/local_app/web/
+/minimax/local_app/web/*
+!/minimax/local_app/web/app.js
+!/minimax/local_app/web/index.html
+!/minimax/local_app/web/style.css
+!/minimax/runtime/
+/minimax/runtime/*
+!/minimax/runtime/alembic.ini
+!/minimax/runtime/comfyui_version.py
+!/minimax/runtime/cuda_malloc.py
+!/minimax/runtime/execution.py
+!/minimax/runtime/folder_paths.py
+!/minimax/runtime/hook_breaker_ac10a0.py
+!/minimax/runtime/latent_preview.py
+!/minimax/runtime/main.py
+!/minimax/runtime/node_helpers.py
+!/minimax/runtime/nodes.py
+!/minimax/runtime/protocol.py
+!/minimax/runtime/requirements.txt
+!/minimax/runtime/server.py
+!/minimax/runtime/alembic_db/
+!/minimax/runtime/alembic_db/**
+!/minimax/runtime/api_server/
+!/minimax/runtime/api_server/**
+!/minimax/runtime/app/
+!/minimax/runtime/app/**
+!/minimax/runtime/comfy/
+!/minimax/runtime/comfy/**
+!/minimax/runtime/comfy_api/
+!/minimax/runtime/comfy_api/**
+!/minimax/runtime/comfy_config/
+!/minimax/runtime/comfy_config/**
+!/minimax/runtime/comfy_execution/
+!/minimax/runtime/comfy_execution/**
+!/minimax/runtime/comfy_extras/
+!/minimax/runtime/comfy_extras/**
+!/minimax/runtime/middleware/
+!/minimax/runtime/middleware/**
+!/minimax/runtime/utils/
+!/minimax/runtime/utils/**
+!/minimax/runtime/custom_nodes/
+/minimax/runtime/custom_nodes/*
+!/minimax/runtime/custom_nodes/mmtools_minimax/
+/minimax/runtime/custom_nodes/mmtools_minimax/*
+!/minimax/runtime/custom_nodes/mmtools_minimax/__init__.py
+
 !/muscriptor/
 /muscriptor/*
 !/muscriptor/setupwithuv
@@ -150,3 +207,8 @@
 !/models/which-ones.txt
 
 # vox/, even-g2-duet/, and .git-archives/ are consequently excluded in full.
+
+# Runtime bytecode is always disposable, including beneath explicitly opened
+# vendor-runtime directories.
+**/__pycache__/
+**/*.py[cod]
