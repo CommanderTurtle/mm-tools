@@ -32,7 +32,7 @@ WEB = Path(__file__).resolve().parent / "web"
 MODEL_ROOT = Path(os.getenv("VOCALRENDER_MODEL_DIR", ROOT.parent / "models" / "pymaster--VocalRender")).expanduser().resolve()
 OUTPUT_ROOT = Path(os.getenv("VOCALRENDER_OUTPUT_DIR", ROOT / "outputs")).expanduser().resolve()
 MAX_UPLOAD = int(os.getenv("VOCALRENDER_MAX_UPLOAD_MB", "128")) * 1024 * 1024
-VARIANTS = {"VocalRender", "VocalRender-Pro"}
+VARIANTS = {"VocalRender-Pro"}
 OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
 
 

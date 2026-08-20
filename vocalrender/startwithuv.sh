@@ -21,7 +21,7 @@ OUTPUT_ROOT="${VOCALRENDER_OUTPUT_DIR:-outputs}"
 export VOCALRENDER_MODEL_DIR="$(realpath -m -- "$MODEL_ROOT")"
 export VOCALRENDER_OUTPUT_DIR="$(realpath -m -- "$OUTPUT_ROOT")"
 
-for variant in VocalRender VocalRender-Pro; do
+for variant in VocalRender-Pro; do
   for name in config.json model.safetensors audiovae.pth tokenizer.json; do
     [[ -f "$VOCALRENDER_MODEL_DIR/$variant/$name" ]] || {
       printf 'VocalRender artifact is missing: %s\nRun models/download_models.py first.\n' "$VOCALRENDER_MODEL_DIR/$variant/$name" >&2

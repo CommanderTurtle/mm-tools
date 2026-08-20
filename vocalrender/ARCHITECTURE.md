@@ -1,6 +1,6 @@
 # VocalRender local runtime
 
-This folder adds a private browser studio to VocalRender’s released single-sample singing synthesis path. It supports both `VocalRender` and `VocalRender-Pro`, an explicit model load/unload lifecycle, structured SVS JSON, clean prompt singing, browser playback, and permanent local WAV downloads.
+This folder adds a private browser studio to VocalRender’s highest-quality released single-sample singing synthesis path. It uses only `VocalRender-Pro`, with an explicit model load/unload lifecycle, structured SVS JSON, clean prompt singing, browser playback, and permanent local WAV downloads.
 
 ## Start
 
