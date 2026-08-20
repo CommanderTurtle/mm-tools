@@ -15,6 +15,14 @@
 # Canonical per-project setup and launch entrypoints. Re-open each project
 # directory only long enough to allow these files; every other new file stays
 # denied by default.
+!/acestep/
+/acestep/*
+!/acestep/.env.local.example
+!/acestep/ARCHITECTURE.md
+!/acestep/requirements-local.txt
+!/acestep/setupwithuv
+!/acestep/startwithuv.sh
+
 !/ideogram/
 /ideogram/*
 !/ideogram/setupwithuv
@@ -58,6 +66,31 @@
 !/redesign/startwithuv
 !/redesign/startwithuv.sh
 
+!/stableaudio/
+/stableaudio/*
+!/stableaudio/.env.local.example
+!/stableaudio/ARCHITECTURE.md
+!/stableaudio/requirements-local.txt
+!/stableaudio/setupwithuv
+!/stableaudio/startwithuv.sh
+
+!/symphony/
+/symphony/*
+!/symphony/.env.local.example
+!/symphony/ARCHITECTURE.md
+!/symphony/requirements-local.txt
+!/symphony/setupwithuv
+!/symphony/startwithuv.sh
+!/symphony/local_app/
+/symphony/local_app/*
+!/symphony/local_app/__init__.py
+!/symphony/local_app/server.py
+!/symphony/local_app/web/
+/symphony/local_app/web/*
+!/symphony/local_app/web/app.js
+!/symphony/local_app/web/index.html
+!/symphony/local_app/web/style.css
+
 !/translate/
 /translate/*
 !/translate/setupwithuv.sh
@@ -84,6 +117,23 @@
 !/video-to-gif-avif/setupwithuv
 !/video-to-gif-avif/startwithuv
 !/video-to-gif-avif/startwithuv.sh
+
+!/vocalrender/
+/vocalrender/*
+!/vocalrender/.env.local.example
+!/vocalrender/ARCHITECTURE.md
+!/vocalrender/requirements-local.txt
+!/vocalrender/setupwithuv
+!/vocalrender/startwithuv.sh
+!/vocalrender/local_app/
+/vocalrender/local_app/*
+!/vocalrender/local_app/__init__.py
+!/vocalrender/local_app/server.py
+!/vocalrender/local_app/web/
+/vocalrender/local_app/web/*
+!/vocalrender/local_app/web/app.js
+!/vocalrender/local_app/web/index.html
+!/vocalrender/local_app/web/style.css
 
 !/whisper/
 /whisper/*

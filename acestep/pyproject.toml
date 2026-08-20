@@ -2,7 +2,7 @@
 name = "ace-step"
 version = "1.5.0"
 description = "ACE-Step 1.5"
-readme = "README.md"
+readme = {text = "ACE-Step 1.5 local runtime package.", content-type = "text/plain"}
 requires-python = ">=3.11,<3.13"
 license = {text = "MIT"}
 dependencies = [
