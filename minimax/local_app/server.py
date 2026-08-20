@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -42,6 +43,15 @@ ENGINE_PORT = int(os.getenv("MINIMAX_ENGINE_PORT", "8264"))
 ENGINE_URL = f"http://{ENGINE_HOST}:{ENGINE_PORT}"
 ENGINE_START_TIMEOUT = float(os.getenv("MINIMAX_ENGINE_START_TIMEOUT", "120"))
 JOB_TIMEOUT = float(os.getenv("MINIMAX_JOB_TIMEOUT", "7200"))
+GUIDE_MODEL_ROOT = _path_from_env("MINIMAX_GUIDE_MODEL_ROOT", ROOT.parent / "models" / "qwen")
+GUIDE_DEFAULT_MODEL = os.getenv(
+    "MINIMAX_GUIDE_DEFAULT_MODEL",
+    "text-encoder-vl-nvfp4/qwen3_vl_4b_nvfp4_full.safetensors",
+).replace("\\", "/")
+GUIDE_HOST = "127.0.0.1"
+GUIDE_PORT = int(os.getenv("MINIMAX_GUIDE_ENGINE_PORT", "8265"))
+GUIDE_URL = f"http://{GUIDE_HOST}:{GUIDE_PORT}"
+GUIDE_STATE_ROOT = STATE_ROOT / "prompt-guide"
 
 UNET_NAME = "minimax_music3_dit_fp16.safetensors"
 CLIP_NAME = "minimax_music3_text_encoder_pruned_int8_convrot.safetensors"
@@ -64,6 +74,33 @@ SAMPLERS = {
 }
 SCHEDULERS = {"simple", "normal", "karras", "exponential", "sgm_uniform", "ddim_uniform", "beta"}
 FORMATS = {"flac", "mp3", "opus"}
+
+PROMPT_GUIDE_SYSTEM = """You are a focused prompt rewriter for MiniMax Music 3. Transform the user's musical intent into a new, generation-oriented structured caption plus conservative tuning guidance.
+
+Faithfulness and constraint rules:
+- Preserve every explicit genre, mood, tempo limit, required instrument, vocal identity, instrumental requirement, exclusion, and section-local directive.
+- Treat lyric prose only as broad emotional context. Never quote, paraphrase, summarize, continue, or rewrite lyric lines. Only bracketed tags are executable structural, musical, vocal, or production directives.
+- Do not invent a precise BPM, key, scale, vocalist identity, instrument, or production technique when the input does not support it. A range or qualitative description is preferable.
+- Never turn an instrumental into a vocal song. Never silently reverse a vocal requirement or prohibited element.
+- Use vivid English sentences rather than a comma-separated tag pile. Prefer concrete musical behavior over decorative prose.
+- Build a coherent section-by-section energy arc. For every included section, say what enters, exits, changes, or intensifies; keep transitions and instrument lifecycles plausible.
+
+MiniMax Music 3 output contract:
+Return exactly these four Markdown headings, in this order, with no preface, title, reasoning trace, code fence, or closing note.
+
+### Global Metadata
+In 60–90 words, write genre and subgenres, approximate tempo or groove, emotional progression, listening context when useful, and the overall sonic and production profile. Include exact BPM, key, or scale only when explicit or strongly justified.
+
+### Vocal Details
+In 35–60 words, describe lead configuration, timbre, register, delivery, harmony or backing vocals, diction, and restrained vocal effects. For instrumental music, state that it is instrumental and identify the texture carrying the lead melodic role. Do not reproduce lyrical subject matter.
+
+### Arrangement
+In 110–150 words, describe a chronological section-aware timeline. Explain primary and secondary instruments, groove and percussion development, transitions, embellishments, dynamics, texture, spatial effects, and the ending only where relevant. Honor all supplied bracketed tags.
+
+### Tuning Notes
+Always include this final heading. In 35–55 words, give one concise paragraph specific to the supplied local MiniMax controls. Treat 30 steps, CFG 1.7, acoustic top-k 50, Euler, and the simple scheduler as the official reference graph—not universal quality promises. Explain only changes justified by duration, variation, latency, or VRAM. Tiled decode reduces decode memory but can be slower and may introduce seams; otherwise leave it off.
+
+Keep the complete response within 250–350 English words so every heading fits the generation budget. Section tags and caption details are generative guidance, not symbolic guarantees. Validate once for faithfulness, non-fabrication, readable timeline, and the four exact headings, then return only the corrected result."""
 
 OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
 
@@ -94,6 +131,53 @@ class GenerationRequest(BaseModel):
         if self.arrangement.strip():
             sections.append(("Arrangement", self.arrangement.strip()))
         return "\n\n".join(f"{name}: {value}" for name, value in sections)
+
+
+class PromptGuideRequest(BaseModel):
+    model: str = Field(min_length=1, max_length=1024)
+    direction: str = Field(min_length=1, max_length=12000)
+    lyrics: str = Field(default="", max_length=30000)
+    constraints: str = Field(default="", max_length=8000)
+    duration: float = Field(default=120.0, ge=0.04, le=300.0)
+    steps: int = Field(default=30, ge=1, le=100)
+    cfg: float = Field(default=1.7, ge=0.0, le=100.0)
+    acoustic_top_k: int = Field(default=50, ge=1, le=1024)
+    sampler: str = "euler"
+    scheduler: str = "simple"
+    tiled_decode: bool = False
+    max_length: int = Field(default=512, ge=1, le=32768)
+    temperature: float = Field(default=0.7, ge=0.01, le=2.0)
+    top_k: int = Field(default=64, ge=0, le=1000)
+    top_p: float = Field(default=0.95, ge=0.0, le=1.0)
+    min_p: float = Field(default=0.05, ge=0.0, le=1.0)
+    repetition_penalty: float = Field(default=1.05, ge=0.0, le=5.0)
+    seed: int = Field(default=0, ge=0, le=0xFFFFFFFFFFFFFFFF)
+    presence_penalty: float = Field(default=0.0, ge=0.0, le=5.0)
+    sampling: bool = True
+    thinking: bool = False
+    use_default_template: bool = True
+
+    def prompt(self) -> str:
+        lyrics = self.lyrics.strip() or "(No lyrics supplied.)"
+        constraints = self.constraints.strip() or "(No additional constraints.)"
+        return (
+            f"{PROMPT_GUIDE_SYSTEM}\n\n"
+            "User music brief:\n"
+            f"{self.direction.strip()}\n\n"
+            "Optional lyrics (use prose only for broad emotional context; preserve only bracketed tags as directives):\n"
+            f"{lyrics}\n\n"
+            "Additional constraints:\n"
+            f"{constraints}\n\n"
+            "Current local MiniMax controls:\n"
+            f"duration={self.duration:g}s; steps={self.steps}; CFG={self.cfg:g}; "
+            f"acoustic top-k={self.acoustic_top_k}; sampler={self.sampler}; "
+            f"scheduler={self.scheduler}; tiled decode={'on' if self.tiled_decode else 'off'}\n\n"
+            "Rewrite now."
+        )
+
+
+class PromptGuideLoadRequest(BaseModel):
+    model: str = Field(min_length=1, max_length=1024)
 
 
 class EngineManager:
@@ -301,6 +385,299 @@ class EngineManager:
         await self._client.aclose()
 
 
+def _resolve_guide_model(selection: str, *, require_file: bool = True) -> tuple[Path, str]:
+    normalized = selection.strip().replace("\\", "/")
+    if not normalized or Path(normalized).is_absolute():
+        raise ValueError("Choose a checkpoint inside the configured prompt-guide model root")
+    candidate = (GUIDE_MODEL_ROOT / normalized).resolve()
+    try:
+        relative = candidate.relative_to(GUIDE_MODEL_ROOT).as_posix()
+    except ValueError as exc:
+        raise ValueError("Prompt-guide checkpoint escapes the configured model root") from exc
+    if candidate.suffix.lower() != ".safetensors":
+        raise ValueError("Prompt Guide accepts .safetensors checkpoints only")
+    if require_file and not candidate.is_file():
+        raise ValueError(f"Prompt-guide checkpoint is missing: {relative}")
+    return candidate, relative
+
+
+def _guide_graph(model: str, prompt: str, request: PromptGuideRequest | None = None) -> dict[str, Any]:
+    sampling: dict[str, Any]
+    if request is None or not request.sampling:
+        sampling = {"sampling_mode": "off"}
+    else:
+        sampling = {
+            "sampling_mode": "on",
+            "sampling_mode.temperature": request.temperature,
+            "sampling_mode.top_k": request.top_k,
+            "sampling_mode.top_p": request.top_p,
+            "sampling_mode.min_p": request.min_p,
+            "sampling_mode.repetition_penalty": request.repetition_penalty,
+            "sampling_mode.seed": request.seed,
+            "sampling_mode.presence_penalty": request.presence_penalty,
+        }
+    text_inputs: dict[str, Any] = {
+        "clip": ["1", 0],
+        "prompt": prompt,
+        "max_length": 8 if request is None else request.max_length,
+        "thinking": False if request is None else request.thinking,
+        "use_default_template": True if request is None else request.use_default_template,
+    }
+    text_inputs.update(sampling)
+    return {
+        "1": {
+            "class_type": "CLIPLoader",
+            "inputs": {"clip_name": model, "type": "krea2", "device": "default"},
+        },
+        "2": {
+            "class_type": "TextGenerate",
+            "inputs": text_inputs,
+        },
+        "3": {"class_type": "PreviewAny", "inputs": {"source": ["2", 0]}},
+    }
+
+
+def _history_text(history: dict[str, Any]) -> str:
+    for output in history.get("outputs", {}).values():
+        values = output.get("text")
+        if isinstance(values, (list, tuple)) and values and isinstance(values[0], str):
+            return values[0].strip()
+        if isinstance(values, str):
+            return values.strip()
+    raise RuntimeError("Prompt Guide completed without returning text")
+
+
+def _guide_sections(text: str) -> dict[str, str]:
+    heading = re.compile(
+        r"(?im)^[ \t]*(?:#{1,6}[ \t]*)?(?:\*\*)?"
+        r"(Global Metadata|Vocal Details|Arrangement|Tuning Notes)"
+        r"(?:\*\*)?[ \t]*:?[ \t]*$"
+    )
+    matches = list(heading.finditer(text))
+    sections: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        sections[match.group(1)] = text[match.end():end].strip()
+    return sections
+
+
+class PromptGuideEngine:
+    def __init__(self) -> None:
+        self.process: subprocess.Popen[bytes] | None = None
+        self.loaded_model: str | None = None
+        self._client = httpx.AsyncClient(base_url=GUIDE_URL, timeout=30.0)
+        self._lifecycle_lock = asyncio.Lock()
+        self._operation_lock = asyncio.Lock()
+
+    @property
+    def running(self) -> bool:
+        return self.process is not None and self.process.poll() is None
+
+    async def _probe(self) -> bool:
+        try:
+            response = await self._client.get("/system_stats", timeout=2.0)
+            return response.is_success
+        except httpx.HTTPError:
+            return False
+
+    def _write_runtime_config(self) -> Path:
+        for path in (
+            GUIDE_STATE_ROOT,
+            GUIDE_STATE_ROOT / "input",
+            GUIDE_STATE_ROOT / "output",
+            GUIDE_STATE_ROOT / "temp",
+            GUIDE_STATE_ROOT / "user",
+        ):
+            path.mkdir(parents=True, exist_ok=True)
+        config = GUIDE_STATE_ROOT / "extra_model_paths.yaml"
+        config.write_text(
+            yaml.safe_dump(
+                {
+                    "mm_tools_prompt_guide": {
+                        "base_path": str(GUIDE_MODEL_ROOT),
+                        "text_encoders": ".",
+                    }
+                },
+                sort_keys=False,
+            ),
+            encoding="utf-8",
+        )
+        return config
+
+    async def start(self) -> None:
+        async with self._lifecycle_lock:
+            if self.running and await self._probe():
+                return
+            if await self._probe():
+                raise RuntimeError(
+                    f"Port {GUIDE_PORT} already hosts another process; stop it before enabling Prompt Guide"
+                )
+            if GUIDE_PORT == ENGINE_PORT:
+                raise RuntimeError("Prompt Guide and MiniMax engine ports must be different")
+            config = self._write_runtime_config()
+            env = os.environ.copy()
+            env.update(
+                {
+                    "HF_HUB_OFFLINE": "1",
+                    "TRANSFORMERS_OFFLINE": "1",
+                    "HF_HUB_DISABLE_TELEMETRY": "1",
+                    "DO_NOT_TRACK": "1",
+                    "TOKENIZERS_PARALLELISM": "false",
+                }
+            )
+            command = [
+                sys.executable,
+                str(RUNTIME / "main.py"),
+                "--listen",
+                GUIDE_HOST,
+                "--port",
+                str(GUIDE_PORT),
+                "--extra-model-paths-config",
+                str(config),
+                "--output-directory",
+                str(GUIDE_STATE_ROOT / "output"),
+                "--input-directory",
+                str(GUIDE_STATE_ROOT / "input"),
+                "--temp-directory",
+                str(GUIDE_STATE_ROOT / "temp"),
+                "--user-directory",
+                str(GUIDE_STATE_ROOT / "user"),
+                "--database-url",
+                f"sqlite:///{GUIDE_STATE_ROOT / 'user' / 'comfyui.db'}",
+                "--disable-auto-launch",
+                "--disable-api-nodes",
+                "--disable-metadata",
+                "--disable-all-custom-nodes",
+            ]
+            self.process = subprocess.Popen(
+                command,
+                cwd=RUNTIME,
+                env=env,
+                start_new_session=True,
+            )
+            deadline = time.monotonic() + ENGINE_START_TIMEOUT
+            while time.monotonic() < deadline:
+                if self.process.poll() is not None:
+                    code = self.process.returncode
+                    self.process = None
+                    raise RuntimeError(f"Prompt Guide engine exited during startup (code {code})")
+                if await self._probe():
+                    return
+                await asyncio.sleep(0.5)
+            await self._stop_process()
+            raise RuntimeError(f"Prompt Guide engine did not become ready in {ENGINE_START_TIMEOUT:g} seconds")
+
+    async def request(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
+        if not await self._probe():
+            await self.start()
+        response = await self._client.request(method, path, **kwargs)
+        response.raise_for_status()
+        return response
+
+    async def queue_prompt(self, graph: dict[str, Any]) -> str:
+        response = await self.request(
+            "POST",
+            "/prompt",
+            json={"prompt": graph, "client_id": f"mm-tools-guide-{uuid.uuid4().hex}"},
+            timeout=60.0,
+        )
+        payload = response.json()
+        errors = payload.get("node_errors") or {}
+        if errors:
+            raise RuntimeError(f"Prompt Guide graph validation failed: {json.dumps(errors, ensure_ascii=False)}")
+        prompt_id = payload.get("prompt_id")
+        if not prompt_id:
+            raise RuntimeError("Prompt Guide accepted no prompt id")
+        return str(prompt_id)
+
+    async def wait_for_history(self, prompt_id: str, timeout: float = 1800.0) -> dict[str, Any]:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            response = await self.request("GET", f"/history/{prompt_id}", timeout=30.0)
+            payload = response.json()
+            if prompt_id in payload:
+                entry = payload[prompt_id]
+                status = entry.get("status", {})
+                if status.get("status_str") == "error":
+                    raise RuntimeError(
+                        f"Prompt Guide inference failed: {json.dumps(status.get('messages', []), ensure_ascii=False)}"
+                    )
+                return entry
+            await asyncio.sleep(0.5)
+        raise TimeoutError(f"Prompt Guide inference exceeded {timeout:g} seconds")
+
+    async def _free_weights(self) -> None:
+        if await self._probe():
+            try:
+                await self._client.post("/interrupt", timeout=10.0)
+            except httpx.HTTPError:
+                pass
+            response = await self._client.post(
+                "/free",
+                json={"unload_models": True, "free_memory": True},
+                timeout=120.0,
+            )
+            response.raise_for_status()
+        self.loaded_model = None
+
+    async def _load_model(self, selection: str) -> str:
+        _, model = _resolve_guide_model(selection)
+        if self.loaded_model == model and await self._probe():
+            return model
+        if self.loaded_model is not None:
+            await self._free_weights()
+        await self.start()
+        prompt_id = await self.queue_prompt(_guide_graph(model, "Reply with only: OK"))
+        await self.wait_for_history(prompt_id)
+        self.loaded_model = model
+        return model
+
+    async def load_model(self, selection: str) -> str:
+        async with self._operation_lock:
+            return await self._load_model(selection)
+
+    async def enhance(self, request: PromptGuideRequest) -> str:
+        async with self._operation_lock:
+            model = await self._load_model(request.model)
+            prompt_id = await self.queue_prompt(_guide_graph(model, request.prompt(), request))
+            history = await self.wait_for_history(prompt_id)
+            self.loaded_model = model
+            return _history_text(history)
+
+    async def _stop_process(self) -> None:
+        process = self.process
+        self.process = None
+        if process is None or process.poll() is not None:
+            return
+        try:
+            if os.name == "posix":
+                os.killpg(process.pid, signal.SIGINT)
+            else:
+                process.send_signal(signal.SIGINT)
+            await asyncio.to_thread(process.wait, 20)
+        except (ProcessLookupError, subprocess.TimeoutExpired):
+            process.terminate()
+            try:
+                await asyncio.to_thread(process.wait, 10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                await asyncio.to_thread(process.wait)
+
+    async def disable(self) -> None:
+        async with self._operation_lock:
+            try:
+                await self._free_weights()
+            finally:
+                self.loaded_model = None
+                await self._stop_process()
+
+    async def shutdown(self) -> None:
+        try:
+            await self.disable()
+        finally:
+            await self._client.aclose()
+
+
 def _load_graph() -> dict[str, Any]:
     return {
         "1": {"class_type": "UNETLoader", "inputs": {"unet_name": UNET_NAME, "weight_dtype": "default"}},
@@ -405,6 +782,7 @@ def _history_audio_paths(history: dict[str, Any], job_id: str) -> list[Path]:
 
 
 engine = EngineManager()
+guide_engine = PromptGuideEngine()
 jobs: dict[str, dict[str, Any]] = {}
 job_tasks: set[asyncio.Task[None]] = set()
 generation_gate = asyncio.Lock()
@@ -450,6 +828,7 @@ async def lifespan(_: FastAPI):
             task.cancel()
         if job_tasks:
             await asyncio.gather(*job_tasks, return_exceptions=True)
+        await guide_engine.shutdown()
         await engine.stop()
 
 
@@ -493,6 +872,85 @@ def capabilities() -> dict[str, Any]:
             "tile_overlap": 64,
         },
     }
+
+
+@app.get("/api/guide/status")
+async def guide_status() -> dict[str, Any]:
+    default_exists = False
+    try:
+        default_exists = _resolve_guide_model(GUIDE_DEFAULT_MODEL)[0].is_file()
+    except ValueError:
+        pass
+    return {
+        "ok": True,
+        "cloud": False,
+        "running": guide_engine.running and await guide_engine._probe(),
+        "loaded": guide_engine.loaded_model is not None,
+        "loaded_model": guide_engine.loaded_model,
+        "default_model": GUIDE_DEFAULT_MODEL,
+        "default_exists": default_exists,
+        "model_root": str(GUIDE_MODEL_ROOT),
+        "backend": "Comfy CLIPLoader(krea2) → TextGenerate",
+    }
+
+
+@app.get("/api/guide/models")
+def guide_models() -> dict[str, Any]:
+    models: list[dict[str, Any]] = []
+    if GUIDE_MODEL_ROOT.is_dir():
+        for path in sorted(GUIDE_MODEL_ROOT.rglob("*.safetensors"), key=lambda item: item.as_posix().lower()):
+            try:
+                resolved = path.resolve()
+                relative = resolved.relative_to(GUIDE_MODEL_ROOT).as_posix()
+                size = resolved.stat().st_size
+            except (OSError, ValueError):
+                continue
+            models.append({"path": relative, "name": resolved.name, "bytes": size})
+    return {
+        "models": models,
+        "default_model": GUIDE_DEFAULT_MODEL,
+        "model_root": str(GUIDE_MODEL_ROOT),
+    }
+
+
+@app.post("/api/guide/load")
+async def guide_load(request: PromptGuideLoadRequest) -> dict[str, Any]:
+    try:
+        model = await guide_engine.load_model(request.model)
+        return {"ok": True, "loaded": True, "model": model}
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(500, f"Prompt Guide load failed: {exc}") from exc
+
+
+@app.post("/api/guide/unload")
+async def guide_unload() -> dict[str, Any]:
+    try:
+        await guide_engine.disable()
+        return {"ok": True, "loaded": False, "running": False}
+    except Exception as exc:
+        raise HTTPException(500, f"Prompt Guide unload failed: {exc}") from exc
+
+
+@app.post("/api/guide/enhance")
+async def guide_enhance(request: PromptGuideRequest) -> dict[str, Any]:
+    if request.sampler not in SAMPLERS:
+        raise HTTPException(400, f"Unsupported sampler: {request.sampler}")
+    if request.scheduler not in SCHEDULERS:
+        raise HTTPException(400, f"Unsupported scheduler: {request.scheduler}")
+    try:
+        text = await guide_engine.enhance(request)
+        return {
+            "ok": True,
+            "model": guide_engine.loaded_model,
+            "text": text,
+            "sections": _guide_sections(text),
+        }
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(500, f"Prompt enhancement failed: {exc}") from exc
 
 
 @app.post("/api/load")

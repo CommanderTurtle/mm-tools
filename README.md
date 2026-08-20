@@ -212,7 +212,7 @@ cd ~/multimedia/minimax
 ./startwithuv.sh                          # http://127.0.0.1:8254
 ```
 
-The browser owns a private loopback inference engine. `Load models` and `Unload` control residency explicitly; `Ctrl+C` unloads the models and closes both processes. Links in the studio hand covers/editing to ACE-Step, loops to Foundation-1, and audio reverse engineering to MuScriptor.
+The browser owns a private loopback song engine. Its separate Prompt Guide tab uses the bundled Comfy `CLIPLoader(type=krea2) → TextGenerate` path with a preselected local Qwen checkpoint, but begins fully off and unloaded; enabling it starts a second loopback-only engine. Guide results remain detached, with manual copy controls for MiniMax's Global Metadata, Vocal Details, Arrangement, and tuning notes. `Load models` and `Unload` control song-model residency explicitly, while `Ctrl+C` unloads all weights and closes the web app plus both private engines. Links in the studio hand covers/editing to ACE-Step, loops to Foundation-1, and audio reverse engineering to MuScriptor.
 
 ### Stable Audio Foundation
 

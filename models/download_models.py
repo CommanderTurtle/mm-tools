@@ -94,6 +94,12 @@ snapshot_download(
     ],
 )
 snapshot_download(
+    repo_id="SergiusFlavius/Qwen3-VL-4B-Instruct-heretic-NVFP4",
+    local_dir=MODELS / "qwen/text-encoder-vl-nvfp4",
+    local_dir_use_symlinks=False,
+    allow_patterns=["qwen3_vl_4b_nvfp4_full.safetensors"],
+)
+snapshot_download(
     repo_id="RoyalCities/Foundation-1",
     local_dir=MODELS / "RoyalCities--Foundation-1",
     local_dir_use_symlinks=False,

@@ -21,6 +21,14 @@ fi
 MODEL_ROOT="$(realpath -m -- "$MODEL_ROOT")"
 export MINIMAX_MODEL_DIR="$MODEL_ROOT"
 
+GUIDE_ROOT="${MINIMAX_GUIDE_MODEL_ROOT:-../models/qwen}"
+if [[ "$GUIDE_ROOT" != /* ]]; then
+  GUIDE_ROOT="$ROOT/$GUIDE_ROOT"
+fi
+GUIDE_ROOT="$(realpath -m -- "$GUIDE_ROOT")"
+export MINIMAX_GUIDE_MODEL_ROOT="$GUIDE_ROOT"
+GUIDE_DEFAULT="${MINIMAX_GUIDE_DEFAULT_MODEL:-text-encoder-vl-nvfp4/qwen3_vl_4b_nvfp4_full.safetensors}"
+
 for artifact in \
   diffusion_models/minimax_music3_dit_fp16.safetensors \
   text_encoders/minimax_music3_text_encoder_pruned_int8_convrot.safetensors \
@@ -30,6 +38,10 @@ for artifact in \
     exit 1
   }
 done
+
+if [[ ! -f "$GUIDE_ROOT/$GUIDE_DEFAULT" ]]; then
+  printf 'Optional Prompt Guide checkpoint is not present: %s\nThe studio will still start; use Browse in the Prompt Guide tab or run models/download_models.py.\n' "$GUIDE_ROOT/$GUIDE_DEFAULT" >&2
+fi
 
 LOCAL_URL="http://127.0.0.1:${PORT}"
 if curl --fail --silent --max-time 2 "$LOCAL_URL/api/health" >/dev/null 2>&1; then
@@ -44,7 +56,7 @@ fi
 # shellcheck disable=SC1091
 source .venv/bin/activate
 printf 'MiniMax Music Studio: %s\n' "$LOCAL_URL"
-printf 'The internal inference engine is private to this process. Load/Unload controls weights; Ctrl+C unloads and stops it.\n'
+printf 'The song engine is private to this process. Prompt Guide owns a second loopback engine only while its switch is on. Ctrl+C unloads and stops both.\n'
 exec python -m uvicorn local_app.server:app \
   --host "$HOST" \
   --port "$PORT"

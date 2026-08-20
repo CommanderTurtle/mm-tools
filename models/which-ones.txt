@@ -547,3 +547,15 @@ models/pymaster--VocalRender/
 Used by: vocalrender through VOCALRENDER_MODEL_DIR for its highest-quality
 local singing-synthesis path. The lower-quality standard checkpoint is not
 part of the portable model set.
+
+40. SergiusFlavius/Qwen3-VL-4B-Instruct-heretic-NVFP4
+Expected folder: models/qwen/text-encoder-vl-nvfp4
+
+```text
+models/qwen/text-encoder-vl-nvfp4/
+└── qwen3_vl_4b_nvfp4_full.safetensors
+```
+
+Used by: minimax as the default optional Prompt Guide checkpoint. It is loaded
+through the bundled Comfy runtime with `CLIPLoader(type=krea2)` and remains
+fully unloaded until the user enables the isolated guide tab.

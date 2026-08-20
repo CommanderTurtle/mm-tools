@@ -15,6 +15,7 @@
         <div><strong>MINIMAX</strong><small>Music 3 · local studio</small></div>
       </div>
       <div class="runtime">
+        <small>SONG ENGINE</small>
         <span id="statusDot" class="status-dot"></span>
         <span id="statusText">Starting private engine…</span>
         <button id="refreshStatus" class="icon-button" title="Refresh status">↻</button>
@@ -23,7 +24,13 @@
       </div>
     </header>
 
+    <nav class="workspace-tabs" aria-label="Studio workspace">
+      <button class="workspace-tab active" type="button" data-tab="songStudio">Song Studio <small>MiniMax Music 3</small></button>
+      <button class="workspace-tab" type="button" data-tab="promptGuide">Prompt Guide <small>Qwen · isolated</small></button>
+    </nav>
+
     <main>
+      <section id="songStudio" class="workspace-panel active">
       <section class="intro">
         <p class="eyebrow">Five-minute local song generation</p>
         <h1>Write the record.<br><em>See it perform.</em></h1>
@@ -137,7 +144,130 @@ Where the blue turns into gold
         <a data-port="8251"><span>Foundation-1</span><small>Seamless loops</small><b>↗</b></a>
         <a data-port="8222"><span>MuScriptor</span><small>Reverse engineer audio</small><b>↗</b></a>
       </section>
+      </section>
+
+      <section id="promptGuide" class="workspace-panel" hidden>
+        <section class="intro guide-intro">
+          <p class="eyebrow">Optional local writing room</p>
+          <h1>Shape the brief.<br><em>Keep the controls.</em></h1>
+          <p class="intro-copy">The exact Comfy text path you already trust—Qwen loaded as Krea2, then Generate Text—tuned to MiniMax Music 3's official structured-caption contract. It never writes into Song Studio. Copy only the pieces you want.</p>
+        </section>
+
+        <section class="guide-runtime-card">
+          <div>
+            <p class="eyebrow">Private inference lane</p>
+            <h2>Prompt Guide is off</h2>
+            <p id="guideStatus">No secondary process and no Qwen weights are resident.</p>
+          </div>
+          <label class="switch guide-power">
+            <input id="guideEnabled" type="checkbox">
+            <i></i>
+            <span>Load isolated guide</span>
+          </label>
+        </section>
+
+        <section class="guide-model-card">
+          <div class="section-label"><span>01</span> Local Krea2 text encoder</div>
+          <div class="model-picker">
+            <label class="field">
+              <span>Selected .safetensors</span>
+              <input id="guideModel" type="text" readonly value="text-encoder-vl-nvfp4/qwen3_vl_4b_nvfp4_full.safetensors">
+            </label>
+            <button id="browseGuideModels" class="quiet-button" type="button">Browse local models</button>
+          </div>
+          <p class="model-note"><b>Backend:</b> CLIPLoader <code>type=krea2</code> → TextGenerate. Selection is stateless; changing the file never persists a hidden preference.</p>
+        </section>
+
+        <form id="promptGuideForm" class="prompt-guide-form">
+          <fieldset id="guideFields" disabled>
+            <section class="guide-writing-grid">
+              <div>
+                <div class="section-label"><span>02</span> Music brief</div>
+                <label class="field">
+                  <span>What should MiniMax make?</span>
+                  <textarea id="guideDirection" rows="11" required>A nocturnal alternative R&amp;B song with an intimate verse and a wider, confident chorus. Warm analog color, patient groove, expressive lead vocal, and an ending that feels unresolved rather than faded.</textarea>
+                  <small>State hard requirements and exclusions plainly. Unsupported precision will not be invented.</small>
+                </label>
+                <label class="field">
+                  <span>Additional constraints</span>
+                  <textarea id="guideConstraints" rows="6" placeholder="Required instruments, prohibited elements, vocal identity, tempo limit, production or spatial constraints…"></textarea>
+                </label>
+              </div>
+              <div>
+                <div class="section-label"><span>03</span> Optional song sheet</div>
+                <label class="field guide-lyrics-field">
+                  <span>Lyrics and section tags</span>
+                  <textarea id="guideLyrics" rows="20" spellcheck="true" placeholder="[Intro]\n\n[Verse]\n…\n\n[Chorus]\n…"></textarea>
+                  <small>Qwen uses prose only for broad emotional context and preserves bracketed tags as structural directives. It will not rewrite or echo lyric lines.</small>
+                </label>
+              </div>
+            </section>
+
+            <section class="guide-controls">
+              <div class="section-label"><span>04</span> MiniMax context</div>
+              <p class="control-explainer">These values give the guide real tuning context. They remain independent from Song Studio and are never applied automatically.</p>
+              <div class="control-grid guide-control-grid">
+                <label><span>Duration (s)</span><input id="guideDuration" type="number" min="0.04" max="300" step="1" value="120"></label>
+                <label><span>Steps</span><input id="guideSteps" type="number" min="1" max="100" value="30"></label>
+                <label><span>CFG</span><input id="guideCfg" type="number" min="0" max="100" step="0.1" value="1.7"></label>
+                <label><span>Acoustic top-k</span><input id="guideAcousticTopK" type="number" min="1" max="1024" value="50"></label>
+                <label><span>Sampler</span><select id="guideSampler"><option value="euler">Euler</option><option value="euler_cfg_pp">Euler CFG++</option><option value="euler_ancestral">Euler ancestral</option><option value="heun">Heun</option><option value="dpm_2">DPM 2</option><option value="dpmpp_2m">DPM++ 2M</option><option value="dpmpp_2m_sde">DPM++ 2M SDE</option><option value="uni_pc">UniPC</option></select></label>
+                <label><span>Scheduler</span><select id="guideScheduler"><option value="simple">Simple</option><option value="normal">Normal</option><option value="karras">Karras</option><option value="exponential">Exponential</option><option value="sgm_uniform">SGM uniform</option><option value="ddim_uniform">DDIM uniform</option><option value="beta">Beta</option></select></label>
+              </div>
+              <label class="switch inline-switch"><input id="guideTiled" type="checkbox"><i></i><span>Tiled VAE decode</span></label>
+            </section>
+
+            <details class="qwen-controls">
+              <summary><span>05</span> Exact Generate Text controls</summary>
+              <p>The defaults mirror your proven Comfy node: sampling on, 0.7 temperature, top-k 64, top-p 0.95, min-p 0.05, repetition penalty 1.05, seed 0, no thinking, default template on.</p>
+              <div class="control-grid guide-control-grid">
+                <label><span>Max tokens</span><input id="guideMaxLength" type="number" min="1" max="32768" value="512"></label>
+                <label><span>Temperature</span><input id="guideTemperature" type="number" min="0.01" max="2" step="0.01" value="0.7"></label>
+                <label><span>Top-k</span><input id="guideTopK" type="number" min="0" max="1000" value="64"></label>
+                <label><span>Top-p</span><input id="guideTopP" type="number" min="0" max="1" step="0.01" value="0.95"></label>
+                <label><span>Min-p</span><input id="guideMinP" type="number" min="0" max="1" step="0.01" value="0.05"></label>
+                <label><span>Repeat penalty</span><input id="guideRepeatPenalty" type="number" min="0" max="5" step="0.01" value="1.05"></label>
+                <label><span>Seed</span><input id="guideSeed" type="number" min="0" max="9007199254740991" value="0"></label>
+                <label><span>Presence penalty</span><input id="guidePresencePenalty" type="number" min="0" max="5" step="0.01" value="0"></label>
+              </div>
+              <div class="advanced-switches">
+                <label class="switch"><input id="guideSampling" type="checkbox" checked><i></i><span>Sampling</span></label>
+                <label class="switch"><input id="guideThinking" type="checkbox"><i></i><span>Thinking</span></label>
+                <label class="switch"><input id="guideDefaultTemplate" type="checkbox" checked><i></i><span>Default template</span></label>
+              </div>
+            </details>
+
+            <section class="guide-run-row">
+              <button id="runPromptGuide" class="primary-button" type="submit"><span>Rewrite for MiniMax</span><b>↗</b></button>
+              <p id="guideRunStatus" role="status">Guide output stays detached from every generation field.</p>
+            </section>
+          </fieldset>
+        </form>
+
+        <section id="guideResults" class="guide-results" hidden>
+          <div class="section-label"><span>06</span> Manual copy desk</div>
+          <div class="guide-result-head">
+            <p>Nothing below is auto-applied. Copy a single section or the complete response, then paste where it belongs.</p>
+            <button class="quiet-button copy-guide" type="button" data-copy="guideRawOutput">Copy complete response</button>
+          </div>
+          <div class="guide-output-grid">
+            <article><header><span>Global Metadata</span><button class="copy-guide" type="button" data-copy="guideGlobalOutput">Copy</button></header><pre id="guideGlobalOutput"></pre></article>
+            <article><header><span>Vocal Details</span><button class="copy-guide" type="button" data-copy="guideVocalOutput">Copy</button></header><pre id="guideVocalOutput"></pre></article>
+            <article><header><span>Arrangement</span><button class="copy-guide" type="button" data-copy="guideArrangementOutput">Copy</button></header><pre id="guideArrangementOutput"></pre></article>
+            <article><header><span>Tuning Notes</span><button class="copy-guide" type="button" data-copy="guideTuningOutput">Copy</button></header><pre id="guideTuningOutput"></pre></article>
+          </div>
+          <details class="raw-output"><summary>Raw model response</summary><pre id="guideRawOutput"></pre></details>
+        </section>
+      </section>
     </main>
+
+    <dialog id="guideModelDialog" class="model-dialog">
+      <form method="dialog">
+        <header><div><p class="eyebrow">Configured model root</p><h2>Choose a Krea2-compatible checkpoint</h2><small id="guideModelRoot"></small></div><button class="icon-button" value="cancel" aria-label="Close">×</button></header>
+        <label class="field"><span>Filter local .safetensors</span><input id="guideModelSearch" type="search" placeholder="qwen, nvfp4, fp8…"></label>
+        <div id="guideModelList" class="model-list"></div>
+      </form>
+    </dialog>
 
     <script src="/assets/app.js" defer></script>
   </body>
