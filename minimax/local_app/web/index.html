@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>MiniMax Music Studio</title>
+    <link rel="stylesheet" href="/assets/style.css">
+  </head>
+  <body>
+    <div class="noise" aria-hidden="true"></div>
+    <header class="masthead">
+      <div class="brand">
+        <span class="brand-mark"><i></i><i></i><i></i><i></i></span>
+        <div><strong>MINIMAX</strong><small>Music 3 · local studio</small></div>
+      </div>
+      <div class="runtime">
+        <span id="statusDot" class="status-dot"></span>
+        <span id="statusText">Starting private engine…</span>
+        <button id="refreshStatus" class="icon-button" title="Refresh status">↻</button>
+        <button id="loadModel" class="quiet-button">Load models</button>
+        <button id="unloadModel" class="quiet-button">Unload</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="intro">
+        <p class="eyebrow">Five-minute local song generation</p>
+        <h1>Write the record.<br><em>See it perform.</em></h1>
+        <p class="intro-copy">The official MiniMax Music 3 graph, separated from ComfyUI and wrapped in a private production desk. No cloud calls, no telemetry, no hidden generation defaults.</p>
+      </section>
+
+      <form id="composer" class="composer">
+        <section class="writing-grid">
+          <div class="details-column">
+            <div class="section-label"><span>01</span> Direction</div>
+            <label class="field large-field">
+              <span>Global metadata</span>
+              <textarea id="globalMetadata" rows="7" required>Dreamy alternative R&amp;B, 92 BPM, D minor. Intimate late-night mood with a confident lift into the chorus. Polished studio mix, deep sub bass, warm tape color, wide but restrained ambience.</textarea>
+              <small>Genre, tempo, key, mood, production, and overall arc.</small>
+            </label>
+            <label class="field">
+              <span>Vocal details</span>
+              <textarea id="vocalDetails" rows="5">Close, expressive lead vocal with breathy verses and a clear full-voice chorus. Sparse double tracking, low harmonies on final phrases, natural diction.</textarea>
+            </label>
+            <label class="field">
+              <span>Arrangement</span>
+              <textarea id="arrangement" rows="7">Muted electric piano and filtered drums open alone. Bass enters in the first verse. Chorus expands with bright guitar harmonics and layered backing vocals. Bridge strips to piano and room tone before the final full chorus. End on a dry unresolved chord.</textarea>
+            </label>
+          </div>
+
+          <div class="lyrics-column">
+            <div class="section-label"><span>02</span> Lyrics &amp; form</div>
+            <label class="field lyrics-field">
+              <span>Song sheet</span>
+              <textarea id="lyrics" spellcheck="true">[Intro]
+(Breathe in, let the city fade)
+
+[Verse]
+Neon on the window, quarter after two
+Every road I followed drew a line to you
+I can hear the distance giving up its name
+Nothing in the silence ever stays the same
+
+[Chorus]
+Meet me where the midnight opens
+Where the blue turns into gold
+We can leave the old words broken
+We can write the ones we hold
+
+[Bridge]
+No map, no warning
+Only the morning
+
+[Chorus]
+Meet me where the midnight opens
+Where the blue turns into gold
+
+[Outro]
+(Stay until the light comes in)</textarea>
+              <small>Use [Intro], [Verse], [Chorus], [Bridge], and [Outro]. Parentheses indicate secondary vocals.</small>
+            </label>
+          </div>
+        </section>
+
+        <section class="control-deck">
+          <div class="section-label"><span>03</span> Render controls</div>
+          <div class="control-grid">
+            <label><span>Duration <b id="durationReadout">120 s</b></span><input id="duration" type="range" min="10" max="300" step="1" value="120"></label>
+            <label><span>Seed</span><div class="inline-control"><input id="seed" type="number" min="0" max="9007199254740991" value="197122968890040"><button id="randomSeed" type="button" title="Random seed">✦</button></div></label>
+            <label><span>Steps</span><input id="steps" type="number" min="1" max="100" value="30"></label>
+            <label><span>CFG</span><input id="cfg" type="number" min="0" max="100" step="0.1" value="1.7"></label>
+            <label><span>Acoustic top-k</span><input id="topK" type="number" min="1" max="1024" value="50"></label>
+            <label><span>Batch</span><input id="batch" type="number" min="1" max="8" value="1"></label>
+            <label><span>Sampler</span><select id="sampler"><option value="euler">Euler</option><option value="euler_cfg_pp">Euler CFG++</option><option value="euler_ancestral">Euler ancestral</option><option value="heun">Heun</option><option value="dpm_2">DPM 2</option><option value="dpmpp_2m">DPM++ 2M</option><option value="dpmpp_2m_sde">DPM++ 2M SDE</option><option value="uni_pc">UniPC</option></select></label>
+            <label><span>Scheduler</span><select id="scheduler"><option value="simple">Simple</option><option value="normal">Normal</option><option value="karras">Karras</option><option value="exponential">Exponential</option><option value="sgm_uniform">SGM uniform</option><option value="ddim_uniform">DDIM uniform</option><option value="beta">Beta</option></select></label>
+            <label><span>Format</span><select id="outputFormat"><option value="flac">FLAC</option><option value="mp3">MP3</option><option value="opus">Opus</option></select></label>
+            <label><span>Quality</span><select id="quality"><option value="V0">V0 / highest</option><option value="320k">320 kbps</option><option value="192k">192 kbps</option><option value="128k">128 kbps</option><option value="96k">96 kbps</option></select></label>
+          </div>
+          <div class="tiled-row">
+            <label class="switch"><input id="tiledDecode" type="checkbox"><i></i><span>Tiled VAE decode</span></label>
+            <label><span>Tile</span><input id="tileSize" type="number" min="32" max="8192" step="8" value="1536"></label>
+            <label><span>Overlap</span><input id="tileOverlap" type="number" min="0" max="1024" step="8" value="64"></label>
+            <p>Leave tiled decode off on a 24 GB+ card for the fastest, cleanest render.</p>
+          </div>
+          <div class="render-actions">
+            <button id="generate" class="primary-button" type="submit"><span>Generate song</span><b>↗</b></button>
+            <button id="interrupt" class="quiet-button" type="button">Stop render</button>
+            <p id="renderStatus" role="status">Ready for a local render.</p>
+          </div>
+        </section>
+      </form>
+
+      <section class="performance-section">
+        <div class="section-label"><span>04</span> Performance view</div>
+        <div id="performance" class="performance">
+          <div class="performance-copy">
+            <article>
+              <small>GLOBAL METADATA</small>
+              <p id="performanceMetadata">Your direction appears here when a render starts.</p>
+              <small>VOCAL DETAILS</small>
+              <p id="performanceVocals">—</p>
+              <small>ARRANGEMENT</small>
+              <p id="performanceArrangement">—</p>
+            </article>
+            <div id="performanceLyrics" class="performance-lyrics"><p class="active">Your lyrics will move with playback.</p></div>
+          </div>
+          <canvas id="spectrum" aria-label="Animated audio spectrum"></canvas>
+          <div class="performance-footer"><span id="nowPlaying">MINIMAX MUSIC 3</span><time id="playTime">00:00 / 00:00</time></div>
+        </div>
+        <div id="audioOutputs" class="audio-outputs"></div>
+      </section>
+
+      <section class="tool-links">
+        <div><p class="eyebrow">Continue the session</p><h2>Specialists, one port away.</h2></div>
+        <a data-port="8250"><span>ACE-Step</span><small>Covers · repaint · extend</small><b>↗</b></a>
+        <a data-port="8251"><span>Foundation-1</span><small>Seamless loops</small><b>↗</b></a>
+        <a data-port="8222"><span>MuScriptor</span><small>Reverse engineer audio</small><b>↗</b></a>
+      </section>
+    </main>
+
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
