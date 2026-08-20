@@ -1,0 +1,47 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #f7f2e8;
+  background: #11121a;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 15% 0%, #29213e 0, transparent 34rem), radial-gradient(circle at 100% 30%, #362224 0, transparent 38rem), #11121a; }
+button, input, select { font: inherit; }
+.shell { width: min(1200px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 28px; }
+.masthead { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 42px; align-items: end; margin-bottom: 32px; }
+.eyebrow, .step { color: #e5bd73; font-size: .76rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+h1 { max-width: 760px; margin: 8px 0 14px; font-family: Georgia, serif; font-size: clamp(3rem, 6vw, 6.3rem); font-weight: 500; line-height: .91; letter-spacing: -.05em; }
+.lede { max-width: 720px; color: #b9b7c4; font-size: 1.08rem; line-height: 1.65; }
+.runtime-card { display: flex; gap: 14px; padding: 20px; border: 1px solid #ffffff22; border-radius: 18px; background: #ffffff0a; box-shadow: inset 0 1px #ffffff12; }
+.runtime-card p { margin: 5px 0 0; color: #9e9ba8; line-height: 1.45; }
+.signal { flex: 0 0 auto; width: 12px; height: 12px; margin-top: 4px; border-radius: 50%; background: #a89572; box-shadow: 0 0 18px currentColor; }
+.signal.ready { color: #67ddb2; background: currentColor; }
+.signal.error { color: #ff766d; background: currentColor; }
+.grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 20px; }
+.panel { position: relative; overflow: hidden; padding: 28px; border: 1px solid #ffffff1f; border-radius: 22px; background: #171822e8; box-shadow: 0 24px 70px #0007; }
+.panel::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: var(--accent); }
+.accent-gold { --accent: #dfb76d; }
+.accent-coral { --accent: #ef7e72; }
+h2 { margin: 5px 0 10px; font-family: Georgia, serif; font-size: 2rem; font-weight: 500; }
+.panel > p:not(.step):not(.status) { color: #aaa7b4; line-height: 1.55; }
+label { display: grid; gap: 8px; color: #c9c6d1; font-size: .88rem; }
+input, select { width: 100%; padding: 12px 13px; color: #f8f4eb; border: 1px solid #ffffff22; border-radius: 10px; background: #0f1017; outline: none; }
+input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
+.drop { margin: 20px 0; padding: 26px 20px; text-align: center; border: 1px dashed #ffffff35; border-radius: 15px; background: #0e0f16aa; cursor: pointer; }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.drop small { color: #8f8c99; }
+.settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
+.checks label { display: flex; align-items: center; gap: 9px; }
+.checks input { width: auto; accent-color: var(--accent); }
+.primary { width: 100%; margin-top: 20px; padding: 14px 18px; border: 0; border-radius: 12px; color: #171217; background: var(--accent); font-weight: 800; cursor: pointer; }
+.primary:disabled { opacity: .55; cursor: wait; }
+.status { min-height: 22px; margin: 14px 0 0; color: #b8b5c1; }
+.results { display: grid; gap: 8px; margin-top: 14px; }
+.results a { padding: 11px 13px; color: #f1d299; border: 1px solid #ffffff19; border-radius: 10px; background: #ffffff08; text-decoration: none; }
+.results a:hover { border-color: var(--accent); }
+footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 18px; padding: 0 5px; color: #767481; font-size: .82rem; }
+code { color: #c8a96f; }
+@media (max-width: 850px) { .masthead, .grid { grid-template-columns: 1fr; } .masthead { gap: 16px; } .runtime-card { width: 100%; } }
+@media (max-width: 560px) { .shell { width: min(100% - 20px, 1200px); padding-top: 28px; } .panel { padding: 21px; } .settings, .checks { grid-template-columns: 1fr; } }

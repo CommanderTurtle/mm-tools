@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>SymphonyGen Local Studio</title>
+    <link rel="stylesheet" href="/assets/style.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="masthead">
+        <div>
+          <p class="eyebrow">Symbolic composition · entirely local</p>
+          <h1>Sketch harmony. Build an orchestra.</h1>
+          <p class="lede">Generate structural MIDI ideas or turn an existing harmonic sketch into full multi-instrument arrangements. Every checkpoint and output stays on this machine.</p>
+        </div>
+        <div class="runtime-card">
+          <span class="signal" id="signal"></span>
+          <div><strong id="runtime-title">Checking checkpoints…</strong><p id="runtime-detail">The studio is model-free while idle.</p></div>
+        </div>
+      </header>
+
+      <section class="grid">
+        <form id="harmony-form" class="panel accent-gold">
+          <p class="step">Stage one</p>
+          <h2>Generate harmony sketches</h2>
+          <p>Create compact MIDI foundations with the dedicated harmony checkpoint.</p>
+          <label><span>Number of sketches</span><input name="count" type="number" min="1" max="16" value="4"></label>
+          <button class="primary" type="submit">Generate MIDI sketches</button>
+          <p class="status" id="harmony-status">Ready.</p>
+          <div class="results" id="harmony-results"></div>
+        </form>
+
+        <form id="orchestrate-form" class="panel accent-coral">
+          <p class="step">Stage two</p>
+          <h2>Orchestrate a MIDI sketch</h2>
+          <label class="drop" id="drop-zone">
+            <input id="midi" name="midi" type="file" accept=".mid,.midi" required>
+            <strong id="file-title">Choose or drop a MIDI file</strong>
+            <small>Harmony-only MIDI and complete songs are both accepted.</small>
+          </label>
+          <div class="settings">
+            <label><span>Checkpoint</span><select name="model"><option value="grpo-clamp-track">GRPO clamp + track</option><option value="grpo-clamp">GRPO clamp</option><option value="stage-two">Stage-two baseline</option></select></label>
+            <label><span>Variations</span><input name="group_size" type="number" min="1" max="8" value="2"></label>
+            <label><span>Harmony-note weight</span><input name="hn_weight" type="number" min="0" max="100" step="0.5" value="10"></label>
+            <label><span>Neighbor-note weight</span><input name="nn_weight" type="number" min="0" max="100" step="0.5" value="10"></label>
+          </div>
+          <div class="checks">
+            <label><input name="analyze_harmony" type="checkbox" checked><span>Analyze harmony from the MIDI</span></label>
+            <label><input name="dissonance_averse" type="checkbox" checked><span>Dissonance-aware sampling</span></label>
+            <label><input name="forbid_piano" type="checkbox"><span>Exclude piano</span></label>
+            <label><input name="register_decay" type="checkbox" checked><span>Register decay</span></label>
+          </div>
+          <button class="primary" type="submit">Create orchestration</button>
+          <p class="status" id="orchestrate-status">Ready for MIDI.</p>
+          <div class="results" id="orchestrate-results"></div>
+        </form>
+      </section>
+
+      <footer><span>Offline by construction</span><span>Workers unload after every job</span><span>Outputs remain in <code>symphony/outputs</code></span></footer>
+    </main>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
