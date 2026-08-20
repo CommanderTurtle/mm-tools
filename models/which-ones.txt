@@ -418,3 +418,81 @@ Expected folder: ~/.paddlex/official_models/PP-OCRv5_server_rec
 
 Used by: redesign OCR tools for local text recognition after detection. This
 location follows PaddleX's native model lookup path.
+
+32. ACE-Step/Ace-Step1.5
+Expected folder: models/Ace-Step--Ace-Step1.5
+
+```text
+models/Ace-Step--Ace-Step1.5/
+├── config.json
+├── Qwen3-Embedding-0.6B/
+├── acestep-5Hz-lm-1.7B/
+├── acestep-v15-turbo/
+└── vae/
+```
+
+Used by: acestep through ACESTEP_CHECKPOINTS_DIR for the native turbo DiT,
+prompt embedding, 5 Hz language model, and audio VAE pipeline.
+
+33. RoyalCities/Foundation-1
+Expected folder: models/RoyalCities--Foundation-1
+
+```text
+models/RoyalCities--Foundation-1/
+├── Foundation_1.safetensors
+└── model_config.json
+```
+
+Used by: stableaudio through STABLE_AUDIO_MODEL_DIR for local text-to-audio
+generation. Non-runtime charts, examples, and repository prose are omitted.
+
+34. google-t5/t5-base
+Expected folder: models/google-t5--t5-base
+
+```text
+models/google-t5--t5-base/
+├── config.json
+├── generation_config.json
+├── model.safetensors
+├── spiece.model
+└── tokenizer.json
+```
+
+Used by: stableaudio through STABLE_AUDIO_T5_MODEL_PATH. Foundation-1 names
+this T5 conditioner in model_config.json; the runtime resolves it locally.
+
+35. SymphonyGen/SymphonyGen
+Expected folder: models/SymphonyGen--SymphonyGen
+
+```text
+models/SymphonyGen--SymphonyGen/
+├── stage_one_pretrained.pt
+├── stage_two_pretrained.pt
+├── grpo_clamp_epoch_10.pt
+└── grpo_clamp+track_epoch_6.pt
+```
+
+Used by: symphony for stage-one harmony generation and the three selectable
+stage-two orchestration paths.
+
+36. pymaster/VocalRender
+Expected folder: models/pymaster--VocalRender
+
+```text
+models/pymaster--VocalRender/
+├── VocalRender/
+│   ├── audiovae.pth
+│   ├── config.json
+│   ├── model.safetensors
+│   ├── tokenizer.json
+│   └── tokenizer_config.json
+└── VocalRender-Pro/
+    ├── audiovae.pth
+    ├── config.json
+    ├── model.safetensors
+    ├── tokenizer.json
+    └── tokenizer_config.json
+```
+
+Used by: vocalrender through VOCALRENDER_MODEL_DIR for both selectable local
+singing-synthesis variants.

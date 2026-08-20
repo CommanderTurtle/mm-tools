@@ -85,7 +85,7 @@ https://github.com/user-attachments/assets/5bbf433b-e625-43c0-95ae-b639768bebb1
 
 https://github.com/user-attachments/assets/a74bba02-e665-41fe-b380-1824e4882f68
 
-# Music Tools (MusVIT & Muscriptor Frontends)
+# Music Tools (generation, singing, orchestration, OMR, and transcription)
 
 https://github.com/user-attachments/assets/263b2134-0891-411b-932a-f0e5ead6b077
 
@@ -99,19 +99,12 @@ https://github.com/user-attachments/assets/263b2134-0891-411b-932a-f0e5ead6b077
 
 The install sequence is simple for each project. Requiring WSL if on Windows.
 
-Jump into any project folder. Run the setup: `./setupwithuv` or similar. 
-
-`cp .env.local.example .env` --edit for config beforehand.
-
-Source into the venv for py projects. With info above. Run setups first.
-
-Tutorial:
+Jump into a project folder, run its setup once, and start it. Setup creates the ignored `.env` and isolated `.venv` automatically.
 
 ```bash
-ls -a # (see venv?)
-source .venv/bin/activate # Activate it (`deactivate` after)
-# Start (once ur in venv):
-./startwithuv.sh # or similar
+cd ~/multimedia/PROJECT
+./setupwithuv
+./startwithuv.sh
 ```
 
 ### [Vox](https://github.com/CommanderTurtle/vox) - Native Audio/Translate Routing for *this* repo.
@@ -195,6 +188,50 @@ cd ~/multimedia/longcat
 ./setupwithuv
 ./starthttp.sh                            # machine API: :8230
 ./startwithuv.sh                          # browser UI: :8231
+```
+
+### ACE-Step
+
+Native ACE-Step 1.5 music generation, editing, repainting, extension, and audio-to-audio controls.
+
+```bash
+cd ~/multimedia/acestep
+./setupwithuv
+./startwithuv.sh                          # http://127.0.0.1:8250
+```
+
+The browser process preloads the turbo DiT and 1.7B 5 Hz language model. It reads the shared native ACE-Step model tree directly and releases all weights on `Ctrl+C`.
+
+### Stable Audio Foundation
+
+Foundation-1 text-to-audio with the enhanced Stable Audio Gradio controls, local T5 conditioning, MIDI analysis, and optional TorchAO controls.
+
+```bash
+cd ~/multimedia/stableaudio
+./setupwithuv
+./startwithuv.sh                          # http://127.0.0.1:8251
+```
+
+### SymphonyGen
+
+Two-stage symbolic composition: generate harmony MIDI, then orchestrate a MIDI sketch with baseline or GRPO checkpoints.
+
+```bash
+cd ~/multimedia/symphony
+./setupwithuv
+./startwithuv.sh                          # http://127.0.0.1:8252
+```
+
+The web process is model-free while idle. Each generation request owns and releases its model in a short-lived worker.
+
+### VocalRender
+
+Prompt-conditioned local singing synthesis with selectable standard/Pro weights, explicit load/unload controls, browser playback, and WAV downloads.
+
+```bash
+cd ~/multimedia/vocalrender
+./setupwithuv
+./startwithuv.sh                          # http://127.0.0.1:8253
 ```
 
 ### MuScriptor
@@ -302,6 +339,10 @@ ReDesign also defaults to `8173`; change `CW2_UI_PORT` when both browser service
 | `8231` | LongCat UI |
 | `8240` | Video Compact |
 | `8241` | Video to GIF/AVIF |
+| `8250` | ACE-Step 1.5 |
+| `8251` | Stable Audio Foundation-1 |
+| `8252` | SymphonyGen local studio |
+| `8253` | VocalRender local studio |
 
 Services bind to the configured private-LAN interface and do not add public-facing authentication by default. Keep them behind the host firewall or set the supported bearer token where provided.
 

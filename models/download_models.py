@@ -43,6 +43,53 @@ snapshot_download(
     ],
 )
 snapshot_download(
+    repo_id="ACE-Step/Ace-Step1.5",
+    local_dir=MODELS / "Ace-Step--Ace-Step1.5",
+    local_dir_use_symlinks=False,
+    allow_patterns=[
+        "config.json",
+        "Qwen3-Embedding-0.6B/*",
+        "acestep-5Hz-lm-1.7B/*",
+        "acestep-v15-turbo/*",
+        "vae/*",
+    ],
+)
+snapshot_download(
+    repo_id="RoyalCities/Foundation-1",
+    local_dir=MODELS / "RoyalCities--Foundation-1",
+    local_dir_use_symlinks=False,
+    allow_patterns=["Foundation_1.safetensors", "model_config.json"],
+)
+snapshot_download(
+    repo_id="google-t5/t5-base",
+    local_dir=MODELS / "google-t5--t5-base",
+    local_dir_use_symlinks=False,
+    allow_patterns=[
+        "config.json",
+        "generation_config.json",
+        "model.safetensors",
+        "spiece.model",
+        "tokenizer.json",
+    ],
+)
+snapshot_download(
+    repo_id="SymphonyGen/SymphonyGen",
+    local_dir=MODELS / "SymphonyGen--SymphonyGen",
+    local_dir_use_symlinks=False,
+    allow_patterns=[
+        "stage_one_pretrained.pt",
+        "stage_two_pretrained.pt",
+        "grpo_clamp_epoch_10.pt",
+        "grpo_clamp+track_epoch_6.pt",
+    ],
+)
+snapshot_download(
+    repo_id="pymaster/VocalRender",
+    local_dir=MODELS / "pymaster--VocalRender",
+    local_dir_use_symlinks=False,
+    allow_patterns=["VocalRender/*", "VocalRender-Pro/*"],
+)
+snapshot_download(
     repo_id="MuScriptor/muscriptor-large",
     local_dir=MODELS / "MuScriptor--muscriptor-large",
     local_dir_use_symlinks=False,
