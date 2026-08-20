@@ -1,15 +1,17 @@
 Create and activate a small uv environment in this directory, then install
-only huggingface_hub and hf_transfer before running download_models.py:
+only huggingface_hub and hf_xet before running download_models.py:
 
   uv venv --python 3.12.10 --seed --managed-python .venv
   source .venv/bin/activate
-  uv pip install huggingface_hub hf_transfer
-  EDIT THE FOLLOWING FILE'S CPU CORES (not 16 if you don't have 16)
+  uv pip install huggingface_hub hf_xet
+  Optional: export TOKIO_WORKER_THREADS to override the 16-thread default.
   uv run download_models.py
 
-The script is stateful and resumable through snapshot_download. Run it again
-after an interrupted transfer. It recreates the exact model and ReDesign
-weight paths expected by this monorepo; it does not create project venvs.
+The script presents numbered project bundles; press Enter for all models. Use
+`uv run download_models.py all --yes` for the former non-interactive behavior.
+It is stateful and resumable through snapshot_download. Run it again after an
+interrupted transfer. It recreates the exact model and ReDesign weight paths
+expected by this monorepo; it does not create project venvs.
 
 Notice: downloading a model binds the downloader to that model repository's
 upstream terms. Model artifacts are not part of this AGPLv3 source tree.

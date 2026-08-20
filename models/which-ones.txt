@@ -1,9 +1,63 @@
-Models and expected locations
-=============================
+MM Tools model downloader and inventory
+=======================================
 
-This list mirrors download_models.py. Trees show the files or major component
-directories expected from a fresh run; an ellipsis means the remainder of that
-repository snapshot is retained in the same folder.
+`download_models.py` resolves `MODELS` from its own tracked location, so it can
+be launched from any working directory and still targets `<mm-tools>/models`.
+Before every selected download it explicitly creates the complete destination
+with `parents=True`. A fresh clone therefore does not need pre-existing `qwen`,
+`text-only`, `kijai`, `redesign/weights`, or PaddleX directories.
+Current Hugging Face Hub writes real files into `local_dir`; older Hub releases
+receive their former `local_dir_use_symlinks=False` compatibility flag only
+when that argument still exists.
+
+Create the small downloader environment once:
+
+```bash
+cd ~/multimedia/models
+uv venv --python 3.12 --seed --managed-python .venv
+source .venv/bin/activate
+uv pip install -U huggingface_hub hf_xet
+```
+
+Interactive selection is the default. Press Enter at its selection prompt to
+retain the original behavior and download everything:
+
+```bash
+uv run download_models.py
+```
+
+The same choices work non-interactively by number or name:
+
+```bash
+uv run download_models.py --list
+uv run download_models.py 2,6,10
+uv run download_models.py minimax stableaudio
+uv run download_models.py all --yes
+```
+
+Bundle selection numbers are deliberately separate from the 40 inventory
+numbers below. Each bundle includes every artifact needed by that runtime.
+
+```text
+ 1  ideogram     inventory 1-3
+ 2  longcat      inventory 4-5
+ 3  muscriptor   inventory 6-7
+ 4  musvit       inventory 8-9
+ 5  whisper      inventory 10
+ 6  translate    inventory 11-13
+ 7  redesign     inventory 14-19 and 24-31
+ 8  kijai        inventory 20-23 (standalone V2V extras)
+ 9  acestep      inventory 32-34
+10  minimax      inventory 35 and 40
+11  stableaudio  inventory 36-37
+12  symphony     inventory 38
+13  vocalrender  inventory 39
+```
+
+The inventory mirrors all 40 artifact definitions in the downloader. Trees
+show files or major component directories expected from a fresh run; an
+ellipsis means the remainder of that repository snapshot is retained in the
+same folder. Model use remains governed by each upstream model license.
 
 1. ideogram-ai/ideogram-4-fp8
 Expected folder: models/ideogram-ai--ideogram-4-fp8
@@ -202,8 +256,8 @@ models/qwen/T5B--qwen-image-layered-fp8/
 └── qwen_image_layered_fp8_e4m3fn.safetensors
 ```
 
-Used by: redesign through REDESIGN_QWEN_MODEL as the native layered-image
-transformer.
+Used by: redesign through `REDESIGN_DIFFUSERS_TRANSFORMER` as the native
+layered-image transformer.
 
 15. diffusers/Qwen-Image-Layered-modular
 Expected folder: models/qwen/diffusers--hfstaff--Qwen-Image-Layered-modular
@@ -219,8 +273,8 @@ models/qwen/diffusers--hfstaff--Qwen-Image-Layered-modular/
 └── vae/
 ```
 
-Used by: redesign through REDESIGN_QWEN_COMPONENTS for the native modular
-pipeline configuration and non-transformer components.
+Used by: redesign through `REDESIGN_DIFFUSERS_COMPONENTS` for the native
+modular pipeline configuration and non-transformer components.
 
 16. suzukimain/Qwen-Image-Layered-Control-SDNQ-int4
 Expected folder:
@@ -237,8 +291,8 @@ models/qwen/suzukimain--extraint4stuff--Qwen-Image-Layered-Control-SDNQ-int4/
 └── vae/
 ```
 
-Used by: redesign through REDESIGN_QWEN_TEXT_ENCODER_COMPONENTS and the
-fallback Diffusers path, primarily for the local text-encoder components.
+Used by: redesign through `REDESIGN_DIFFUSERS_TEXT_ENCODER`, which points to
+this snapshot's `text_encoder` directory.
 
 17. appmana/qwen-image-layered-int8convrot
 Expected folder: models/qwen/appmana--diffusion--qwen-image-layered-int8convrot
@@ -248,8 +302,8 @@ models/qwen/appmana--diffusion--qwen-image-layered-int8convrot/
 └── qwen_image_layered_int8convrot.safetensors
 ```
 
-Used by: redesign through REDESIGN_QWEN_INT8_PATH for the optional INT8
-diffusion/Comfy-compatible route.
+Used by: the optional ReDesign Comfy-compatible INT8 transformer route. The
+standalone browser defaults to the FP8 transformer in inventory item 14.
 
 18. Comfy-Org/HunyuanVideo_1.5_repackaged Qwen text encoder
 Expected folder:
@@ -262,8 +316,8 @@ models/qwen/comfy-org--text--qwen_2.5_vl_7b_fp8_scaled.safetensors/
         └── qwen_2.5_vl_7b_fp8_scaled.safetensors
 ```
 
-Used by: redesign through REDESIGN_QWEN_TEXT_ENCODER_PATH and by its optional
-Comfy-compatible layered pipeline.
+Used by: the optional ReDesign Comfy-compatible layered pipeline as its FP8
+Qwen text encoder. The standalone browser uses inventory item 16 instead.
 
 19. Comfy-Org/Qwen-Image-Layered_ComfyUI VAE
 Expected folder: models/qwen/comfy-org--vae--qwen_image_layered_vae.safetensors
@@ -275,8 +329,8 @@ models/qwen/comfy-org--vae--qwen_image_layered_vae.safetensors/
         └── qwen_image_layered_vae.safetensors
 ```
 
-Used by: redesign through REDESIGN_QWEN_VAE_PATH and by its optional
-Comfy-compatible layered pipeline.
+Used by: the optional ReDesign Comfy-compatible layered pipeline as its VAE.
+The standalone browser obtains its VAE from the modular components in item 15.
 
 20. Kijai/Wan_ID_V2V_comfy
 Expected folder: models/kijai/Kijai--Wan_ID_V2V_comfy

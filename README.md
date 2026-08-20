@@ -31,11 +31,12 @@ cd ~ && git clone https://github.com/CommanderTurtle/mm-tools multimedia && cd m
 cd models
 uv venv --python 3.12.10 --seed --managed-python
 source .venv/bin/activate
-uv pip install huggingface_hub hf_transfer
+uv pip install huggingface_hub hf_xet
 
-### EDIT THE CPU CORES INSIDE `download_models.py` (16 threads by default)
+# Optional: export TOKIO_WORKER_THREADS to override the 16-thread default.
 uv run download_models.py
-# (This might take a while)
+# Select project bundles by number, or press Enter for all models.
+# Non-interactive full install: uv run download_models.py all --yes
 deactivate # when done
 ```
 
