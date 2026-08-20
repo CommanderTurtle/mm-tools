@@ -5,6 +5,7 @@ descript-audio-codec<=1.0.0
 einops<=0.7.0
 einops-exts<=0.0.4
 encodec<=0.1.1
+fastapi==0.104.1
 gradio==3.50.2
 hffs
 huggingface-hub>=0.24.0
@@ -16,15 +17,18 @@ matplotlib<=3.7.1
 numpy<1.25
 packaging>=23.0
 pretty-midi<=0.2.10
+pydantic==2.4.2
 PyWavelets<=1.4.1
 safetensors>=0.4.0
 scipy>=1.10.1,<1.11
 sentencepiece<=0.1.99
 setuptools<72
 soxr>=0.3.7
+starlette==0.27.0
 torchao>=0.13.0
 tqdm>=4.66.0
 transformers>=4.36.0,<4.47.0
+uvicorn==0.23.2
 v-diffusion-pytorch<=0.0.2
 vector-quantize-pytorch<=1.9.14
 x-transformers<1.27.0
