@@ -41,7 +41,7 @@ Open `http://127.0.0.1:8254`. Both inference engines bind only to loopback. `Loa
 
 The source tree deliberately selects the full FP16 DiT, the official pruned INT8 text encoder, and the sole DAV checkpoint. Lower-quality DiT variants and the unpruned encoder are not part of the portable model manifest.
 
-The optional default guide checkpoint is loaded through Comfy's native `CLIPLoader` with `type=krea2`, then its native `TextGenerate` node. The browser can enumerate other `.safetensors` files beneath `MINIMAX_GUIDE_MODEL_ROOT`; selecting one does not persist a preference, upload a file, or make a network request. Alternate checkpoints must themselves be compatible with the Krea2 loader.
+The optional default guide checkpoint is downloaded from `SergiusFlavius/Qwen3-VL-4B-Instruct-heretic-NVFP4` and loaded through Comfy's native `CLIPLoader` with `type=krea2`, then its native `TextGenerate` node. The browser can enumerate other `.safetensors` files beneath `MINIMAX_GUIDE_MODEL_ROOT`; selecting one does not persist a preference, upload a file, or make a network request. Alternate checkpoints must themselves be compatible with the Krea2 loader.
 
 ## Real workflow controls
 
@@ -52,5 +52,7 @@ Tiled VAE decoding is useful when long songs exceed available VRAM. Leave it dis
 ## Prompt Guide contract
 
 Prompt Guide mirrors the proven Comfy graph and controls: sampling enabled, temperature `0.7`, text top-k `64`, top-p `0.95`, min-p `0.05`, repetition penalty `1.05`, seed `0`, presence penalty `0`, thinking disabled, and the checkpoint's default template enabled. Its MiniMax-specific instruction follows the official caption-rewriter contract for `Global Metadata`, `Vocal Details`, and a chronological `Arrangement`, then adds a separate `Tuning Notes` block grounded in the visible generation controls.
+
+The Guided Brief Lab is a browser-only writing aid in front of that model. One-click recipes and expandable genre, palette, tonal-center, mode, BPM, meter, groove, harmony, performance, form, production, and listening-context choices assemble an editable English pre-prompt. Unselected dimensions remain absent. The user can copy, replace, or append the result to the ordinary music brief; no recipe queues inference or changes Song Studio controls. Exact tempo, key, meter, instrumentation, and structure remain generative guidance rather than symbolic guarantees. The exact Generate Text controls include a one-click seed reroll so a weak Qwen sample can be retried without disturbing a sound brief.
 
 Guide output is intentionally one-way. It never mutates the composer, queues music, or applies recommended values. Each section and the raw response have explicit copy controls so the user decides what reaches MiniMax.

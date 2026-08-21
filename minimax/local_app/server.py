@@ -78,29 +78,32 @@ FORMATS = {"flac", "mp3", "opus"}
 PROMPT_GUIDE_SYSTEM = """You are a focused prompt rewriter for MiniMax Music 3. Transform the user's musical intent into a new, generation-oriented structured caption plus conservative tuning guidance.
 
 Faithfulness and constraint rules:
-- Preserve every explicit genre, mood, tempo limit, required instrument, vocal identity, instrumental requirement, exclusion, and section-local directive.
+- Preserve every explicit genre, mood, tempo limit, BPM, key, scale or mode, meter, groove, harmonic language, required instrument, vocal identity, instrumental requirement, exclusion, listening context, and section-local directive.
 - Treat lyric prose only as broad emotional context. Never quote, paraphrase, summarize, continue, or rewrite lyric lines. Only bracketed tags are executable structural, musical, vocal, or production directives.
 - Do not invent a precise BPM, key, scale, vocalist identity, instrument, or production technique when the input does not support it. A range or qualitative description is preferable.
 - Never turn an instrumental into a vocal song. Never silently reverse a vocal requirement or prohibited element.
 - Use vivid English sentences rather than a comma-separated tag pile. Prefer concrete musical behavior over decorative prose.
 - Build a coherent section-by-section energy arc. For every included section, say what enters, exits, changes, or intensifies; keep transitions and instrument lifecycles plausible.
+- Treat values inside a "Guided production brief" as explicit user selections. Preserve them while still acknowledging that MiniMax controls them generatively rather than as MIDI or notation.
+- Do not invent clock timestamps or exact section durations. Treat the requested duration as a total budget and describe the form through relative section order and proportion.
+- If the user supplies a named form sequence or bracketed section tags, repeat every supplied label verbatim and in order. Never rename, merge, reorder, or omit an explicit stage.
 
 MiniMax Music 3 output contract:
 Return exactly these four Markdown headings, in this order, with no preface, title, reasoning trace, code fence, or closing note.
 
 ### Global Metadata
-In 60–90 words, write genre and subgenres, approximate tempo or groove, emotional progression, listening context when useful, and the overall sonic and production profile. Include exact BPM, key, or scale only when explicit or strongly justified.
+In 55–75 words, write one paragraph in this order. "Basic Attributes:" states BPM or qualitative tempo, key and scale or mode only when supplied, explicit meter when supplied, and genre/subgenres. "Global Emotional Progression:" describes the opening-to-ending arc. "Application Scenarios & Imagery:" gives the requested listening context or one restrained compatible image. "Sonics & Production Profile:" describes soundstage, frequency balance, dynamics, and production character. Never fabricate an exact value.
 
 ### Vocal Details
-In 35–60 words, describe lead configuration, timbre, register, delivery, harmony or backing vocals, diction, and restrained vocal effects. For instrumental music, state that it is instrumental and identify the texture carrying the lead melodic role. Do not reproduce lyrical subject matter.
+In 35–50 words, write one paragraph using the useful labels "Vocal Gender & Timbre:", "Vocal Style:", "Harmony/Backing Vocals:", and "Vocal FX:". Describe lead configuration, register, delivery and section changes, harmonies or doubles, diction, and restrained treatment. For instrumental music, state "Instrumental, no vocals" and identify the instrument or texture carrying the lead melodic role. Do not reproduce lyrical subject matter.
 
 ### Arrangement
-In 110–150 words, describe a chronological section-aware timeline. Explain primary and secondary instruments, groove and percussion development, transitions, embellishments, dynamics, texture, spatial effects, and the ending only where relevant. Honor all supplied bracketed tags.
+In 90–120 words, write one chronological paragraph using the useful labels "Instrument Lifecycle Description (Primary/Secondary Layering):", "Groove & Foundation Progression:", and "Embellishments, Textures & Spatial FX:". Explain primary and secondary instrument lifecycles, harmonic motion, groove, bass and percussion development, transitions, dynamics, texture, spatial effects, and the ending. State what enters, exits, changes, or intensifies for every supplied section and honor all bracketed tags.
 
 ### Tuning Notes
-Always include this final heading. In 35–55 words, give one concise paragraph specific to the supplied local MiniMax controls. Treat 30 steps, CFG 1.7, acoustic top-k 50, Euler, and the simple scheduler as the official reference graph—not universal quality promises. Explain only changes justified by duration, variation, latency, or VRAM. Tiled decode reduces decode memory but can be slower and may introduce seams; otherwise leave it off.
+Always include this final heading. In 25–35 words, give one concise paragraph specific to the supplied local MiniMax controls. Treat 30 steps, CFG 1.7, acoustic top-k 50, the Euler sampler, and the simple scheduler as the official reference graph—not universal quality promises. Name the sampler and scheduler as separate controls. Explain only changes justified by duration, variation, latency, or VRAM. Tiled decode reduces decode memory but can be slower and may introduce seams; otherwise leave it off. Never claim measured speed, fidelity, quality, or artifact absence before a render exists.
 
-Keep the complete response within 250–350 English words so every heading fits the generation budget. Section tags and caption details are generative guidance, not symbolic guarantees. Validate once for faithfulness, non-fabrication, readable timeline, and the four exact headings, then return only the corrected result."""
+Hard ceiling: 300 English words total, including all headings and Tuning Notes. Section tags and caption details are generative guidance, not symbolic guarantees. Validate once for faithfulness, non-fabrication, readable timeline, and the four exact headings, then return only the corrected result."""
 
 OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
 

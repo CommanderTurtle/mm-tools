@@ -180,9 +180,83 @@ Where the blue turns into gold
 
         <form id="promptGuideForm" class="prompt-guide-form">
           <fieldset id="guideFields" disabled>
+            <section class="theory-lab">
+              <div class="theory-lab-head">
+                <div>
+                  <div class="section-label"><span>02</span> Guided brief lab</div>
+                  <h2>Choose like a producer.<br><em>Write like a music director.</em></h2>
+                  <p>Start with a one-click recipe or assemble only the details you actually mean. Every choice becomes plain English for Qwen; nothing is sent to MiniMax until you copy it into the brief.</p>
+                </div>
+                <span class="semantic-badge">Generative guidance · not MIDI</span>
+              </div>
+
+              <div id="theoryPresets" class="theory-presets" aria-label="Guided music brief recipes"></div>
+
+              <div class="theory-lab-grid">
+                <div class="theory-control-stack">
+                  <details open>
+                    <summary>Identity &amp; palette <small>genre · blend · instruments</small></summary>
+                    <div class="theory-selector-grid">
+                      <label><span>Primary family</span><select id="theoryGenre"></select></label>
+                      <label><span>Secondary color</span><select id="theoryFusion"></select></label>
+                      <label class="wide"><span>Core instrument palette</span><select id="theoryPalette"></select></label>
+                    </div>
+                  </details>
+
+                  <details open>
+                    <summary>Harmony &amp; pulse <small>tonal center · meter · groove</small></summary>
+                    <div class="theory-selector-grid">
+                      <label><span>Key center</span><select id="theoryKey"></select></label>
+                      <label><span>Scale / mode</span><select id="theoryMode"></select></label>
+                      <label><span>Exact BPM <i>optional</i></span><input id="theoryBpm" type="number" min="30" max="260" step="1" placeholder="leave open"></label>
+                      <label><span>Tempo character</span><select id="theoryTempo"></select></label>
+                      <label><span>Meter</span><select id="theoryMeter"></select></label>
+                      <label><span>Groove</span><select id="theoryGroove"></select></label>
+                      <label class="wide"><span>Harmonic language</span><select id="theoryHarmony"></select></label>
+                    </div>
+                    <p id="theoryHint" class="theory-hint">Leave a field open when it is not a real requirement; the prompt rewriter will not fabricate it.</p>
+                  </details>
+
+                  <details>
+                    <summary>Performance &amp; trajectory <small>voice · energy · form · mix</small></summary>
+                    <div class="theory-selector-grid">
+                      <label><span>Lead performance</span><select id="theoryVocal"></select></label>
+                      <label><span>Emotional arc</span><select id="theoryArc"></select></label>
+                      <label><span>Form</span><select id="theoryForm"></select></label>
+                      <label><span>Production profile</span><select id="theoryProduction"></select></label>
+                      <label class="wide"><span>Listening scene / use</span><select id="theoryScene"></select></label>
+                      <label class="wide"><span>One detail only you know</span><textarea id="theoryCustom" rows="3" placeholder="A required instrument, section-local change, hard exclusion, or unusual performance cue…"></textarea></label>
+                    </div>
+                  </details>
+                </div>
+
+                <aside class="theory-draft">
+                  <div class="theory-draft-label"><span>Live copypasta</span><small>updates locally</small></div>
+                  <textarea id="theoryPromptPreview" rows="18" readonly aria-label="Generated guided music brief"></textarea>
+                  <p>The guide treats exact BPM, key, meter, instrumentation, and form as strong semantic requests—not guaranteed symbolic output.</p>
+                  <div class="theory-actions">
+                    <button id="appendTheoryBrief" class="primary-button" type="button"><span>Append to music brief</span><b>↓</b></button>
+                    <button id="replaceTheoryBrief" class="quiet-button" type="button">Replace brief</button>
+                    <button id="copyTheoryBrief" class="quiet-button" type="button">Copy</button>
+                    <button id="clearTheoryBrief" class="text-button" type="button">Clear choices</button>
+                  </div>
+                </aside>
+              </div>
+
+              <details class="prompt-anatomy">
+                <summary>What MiniMax can hear in a structured caption</summary>
+                <div class="anatomy-grid">
+                  <article><b>Global Metadata</b><p>Genre and fusion, tempo, key or mode when intentional, emotional progression, listening scene, and the overall sonic profile.</p></article>
+                  <article><b>Vocal Details</b><p>Lead configuration, register, timbre, delivery, section changes, harmonies, doubles, diction, and restrained vocal effects.</p></article>
+                  <article><b>Arrangement</b><p>A chronological instrument lifecycle: what enters, exits, intensifies, strips back, transitions, and carries the ending.</p></article>
+                  <article><b>Best practice</b><p>Use vivid sentences, specify two or three defining elements, preserve hard exclusions, and leave everything else room to breathe.</p></article>
+                </div>
+              </details>
+            </section>
+
             <section class="guide-writing-grid">
               <div>
-                <div class="section-label"><span>02</span> Music brief</div>
+                <div class="section-label"><span>03</span> Music brief</div>
                 <label class="field">
                   <span>What should MiniMax make?</span>
                   <textarea id="guideDirection" rows="11" required>A nocturnal alternative R&amp;B song with an intimate verse and a wider, confident chorus. Warm analog color, patient groove, expressive lead vocal, and an ending that feels unresolved rather than faded.</textarea>
@@ -194,17 +268,28 @@ Where the blue turns into gold
                 </label>
               </div>
               <div>
-                <div class="section-label"><span>03</span> Optional song sheet</div>
+                <div class="section-label"><span>04</span> Optional song sheet</div>
                 <label class="field guide-lyrics-field">
                   <span>Lyrics and section tags</span>
                   <textarea id="guideLyrics" rows="20" spellcheck="true" placeholder="[Intro]\n\n[Verse]\n…\n\n[Chorus]\n…"></textarea>
+                  <div class="section-tag-shelf" aria-label="Insert a MiniMax section tag">
+                    <button type="button" data-section-tag="[Intro]">Intro</button>
+                    <button type="button" data-section-tag="[Verse]">Verse</button>
+                    <button type="button" data-section-tag="[Pre-Chorus]">Pre-Chorus</button>
+                    <button type="button" data-section-tag="[Chorus]">Chorus</button>
+                    <button type="button" data-section-tag="[Post-Chorus]">Post-Chorus</button>
+                    <button type="button" data-section-tag="[Bridge]">Bridge</button>
+                    <button type="button" data-section-tag="[Instrumental]">Instrumental</button>
+                    <button type="button" data-section-tag="[Solo]">Solo</button>
+                    <button type="button" data-section-tag="[Outro]">Outro</button>
+                  </div>
                   <small>Qwen uses prose only for broad emotional context and preserves bracketed tags as structural directives. It will not rewrite or echo lyric lines.</small>
                 </label>
               </div>
             </section>
 
             <section class="guide-controls">
-              <div class="section-label"><span>04</span> MiniMax context</div>
+              <div class="section-label"><span>05</span> MiniMax context</div>
               <p class="control-explainer">These values give the guide real tuning context. They remain independent from Song Studio and are never applied automatically.</p>
               <div class="control-grid guide-control-grid">
                 <label><span>Duration (s)</span><input id="guideDuration" type="number" min="0.04" max="300" step="1" value="120"></label>
@@ -218,8 +303,8 @@ Where the blue turns into gold
             </section>
 
             <details class="qwen-controls">
-              <summary><span>05</span> Exact Generate Text controls</summary>
-              <p>The defaults mirror your proven Comfy node: sampling on, 0.7 temperature, top-k 64, top-p 0.95, min-p 0.05, repetition penalty 1.05, seed 0, no thinking, default template on.</p>
+              <summary><span>06</span> Exact Generate Text controls</summary>
+              <p>The defaults mirror your proven Comfy node: sampling on, 0.7 temperature, top-k 64, top-p 0.95, min-p 0.05, repetition penalty 1.05, seed 0, no thinking, default template on. If one rewrite derails, reroll the seed before changing an otherwise good brief.</p>
               <div class="control-grid guide-control-grid">
                 <label><span>Max tokens</span><input id="guideMaxLength" type="number" min="1" max="32768" value="512"></label>
                 <label><span>Temperature</span><input id="guideTemperature" type="number" min="0.01" max="2" step="0.01" value="0.7"></label>
@@ -227,7 +312,7 @@ Where the blue turns into gold
                 <label><span>Top-p</span><input id="guideTopP" type="number" min="0" max="1" step="0.01" value="0.95"></label>
                 <label><span>Min-p</span><input id="guideMinP" type="number" min="0" max="1" step="0.01" value="0.05"></label>
                 <label><span>Repeat penalty</span><input id="guideRepeatPenalty" type="number" min="0" max="5" step="0.01" value="1.05"></label>
-                <label><span>Seed</span><input id="guideSeed" type="number" min="0" max="9007199254740991" value="0"></label>
+                <label><span>Seed</span><div class="inline-control"><input id="guideSeed" type="number" min="0" max="9007199254740991" value="0"><button id="guideRandomSeed" type="button" title="Reroll guide seed" aria-label="Reroll guide seed">✦</button></div></label>
                 <label><span>Presence penalty</span><input id="guidePresencePenalty" type="number" min="0" max="5" step="0.01" value="0"></label>
               </div>
               <div class="advanced-switches">
@@ -245,7 +330,7 @@ Where the blue turns into gold
         </form>
 
         <section id="guideResults" class="guide-results" hidden>
-          <div class="section-label"><span>06</span> Manual copy desk</div>
+          <div class="section-label"><span>07</span> Manual copy desk</div>
           <div class="guide-result-head">
             <p>Nothing below is auto-applied. Copy a single section or the complete response, then paste where it belongs.</p>
             <button class="quiet-button copy-guide" type="button" data-copy="guideRawOutput">Copy complete response</button>
