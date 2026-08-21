@@ -140,8 +140,8 @@ Still WIP. Doing lots of editing as I continue development. Especially with Diog
 ### Web-Development:
 
 - [orc](https://github.com/CommanderTurtle/orc) - a multisite/multiframework F# engine for modular websites in py, ts, c#, js, and ruby.
-- [reactor](https://github.com/CommanderTurtle/librarian) - a lightweight rust-poller that allows for a live fsharp repo in 7+ languages. Side-hosts vite dev server, zensical serve, jekyll serve, netdocs serving (C#), and more with [preview](https://github.com/CommanderTurtle/preview)
-- [tools](https://github.com/CommanderTurtle/retrieval) - just some lightweight tools that help making maintaining websites easy in modular languages
+- [reactor](https://github.com/CommanderTurtle/reactor) - a lightweight rust-poller that allows for a live fsharp repo in 7+ languages. Side-hosts vite dev server, zensical serve, jekyll serve, netdocs serving (C#), and more with [preview](https://github.com/CommanderTurtle/preview)
+- [tools](https://github.com/CommanderTurtle/tools) - just some lightweight tools that help making maintaining websites easy in modular languages
 
 ### Libraries:
 
