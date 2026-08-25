@@ -1,5 +1,4 @@
 const $ = (id) => document.getElementById(id);
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let currentAudio = null;
 let audioContext = null;
@@ -8,6 +7,26 @@ let animationFrame = 0;
 let lyricRows = [];
 let activeLyricIndex = -1;
 let guideModels = [];
+let latestGuideResult = null;
+let liveSessionId = "";
+let selectedJobId = "";
+let performanceJobId = "";
+let jobPollTimer = 0;
+let jobsRefreshPromise = null;
+let restoringSessionState = false;
+const jobsById = new Map();
+
+const LIVE_STATE_KEY = "minimax-music-studio:live-session";
+const ACTIVE_JOB_STATUSES = new Set(["queued", "waiting", "generating"]);
+const TERMINAL_JOB_STATUSES = new Set(["complete", "error", "cancelled"]);
+const JOB_STATUS_LABELS = {
+  queued: "Queued",
+  waiting: "Waiting for lane",
+  generating: "Rendering",
+  complete: "Ready",
+  error: "Failed",
+  cancelled: "Cancelled",
+};
 
 const THEORY_OPTIONS = {
   theoryGenre: [
@@ -217,6 +236,66 @@ const THEORY_PRESETS = [
   },
 ];
 
+function rememberedControls() {
+  return Array.from(document.querySelectorAll(
+    "#composer input[id], #composer textarea[id], #composer select[id], "
+    + "#promptGuideForm input[id], #promptGuideForm textarea[id], #promptGuideForm select[id]",
+  )).filter((control) => !["button", "submit"].includes(control.type));
+}
+
+function saveSessionState() {
+  if (!liveSessionId || restoringSessionState) return;
+  const controls = {};
+  rememberedControls().forEach((control) => {
+    controls[control.id] = control.type === "checkbox" ? control.checked : control.value;
+  });
+  const activeWorkspace = document.querySelector(".workspace-tab.active")?.dataset.tab || "songStudio";
+  try {
+    sessionStorage.setItem(LIVE_STATE_KEY, JSON.stringify({
+      session_id: liveSessionId,
+      active_workspace: activeWorkspace,
+      selected_job_id: selectedJobId,
+      controls,
+      guide_result: latestGuideResult,
+    }));
+  } catch (_) {
+    // Session storage can be unavailable in hardened browser contexts. The
+    // server-side take ledger still restores generation history in that case.
+  }
+}
+
+function restoreSessionState() {
+  let saved = null;
+  try {
+    saved = JSON.parse(sessionStorage.getItem(LIVE_STATE_KEY) || "null");
+  } catch (_) {
+    saved = null;
+  }
+  if (!saved || saved.session_id !== liveSessionId) {
+    try { sessionStorage.removeItem(LIVE_STATE_KEY); } catch (_) { /* unavailable */ }
+    return;
+  }
+
+  restoringSessionState = true;
+  Object.entries(saved.controls || {}).forEach(([id, value]) => {
+    const control = $(id);
+    if (!control) return;
+    if (control.type === "checkbox") control.checked = Boolean(value);
+    else control.value = String(value);
+  });
+  selectedJobId = saved.selected_job_id || "";
+  latestGuideResult = saved.guide_result || null;
+  $("durationReadout").textContent = `${$("duration").value} s`;
+  updateTheoryPreview();
+  if (latestGuideResult) renderGuideResult(latestGuideResult, false);
+  switchWorkspace(saved.active_workspace === "promptGuide" ? "promptGuide" : "songStudio", false);
+  restoringSessionState = false;
+}
+
+function initializeSessionMemory() {
+  rememberedControls().forEach((control) => control.addEventListener("input", saveSessionState));
+}
+
 function setStatus(kind, text) {
   $("statusDot").className = `status-dot ${kind || ""}`;
   $("statusText").textContent = text;
@@ -274,6 +353,7 @@ async function unloadModels() {
     setStatus("error", error.message);
   } finally {
     setBusy(button, false, "");
+    try { await refreshJobs(true); } catch (_) { /* health reports engine failures */ }
     await refreshHealth();
   }
 }
@@ -320,6 +400,270 @@ function preparePerformance(request) {
   }
 }
 
+function orderedJobs() {
+  return Array.from(jobsById.values()).sort((left, right) => (
+    (left.take || 0) - (right.take || 0) || left.created_at - right.created_at
+  ));
+}
+
+function takeName(job) {
+  return `Take ${String(job.take || 0).padStart(2, "0")}`;
+}
+
+function createTakeCard(jobId) {
+  const card = document.createElement("article");
+  card.className = "take-card";
+  card.dataset.jobId = jobId;
+  card.innerHTML = `
+    <header class="take-card-header">
+      <div class="take-identity"><strong class="take-number"></strong><span class="take-state"></span></div>
+      <div class="take-card-actions">
+        <button class="take-action take-view" type="button">Show brief</button>
+        <button class="take-action take-cancel" type="button">Cancel</button>
+        <button class="take-action take-clear" type="button">Clear</button>
+      </div>
+    </header>
+    <p class="take-caption"></p>
+    <p class="take-facts"></p>
+    <p class="take-error" hidden></p>
+    <div class="take-audio-list"></div>`;
+  card.querySelector(".take-view").addEventListener("click", () => selectTake(card.dataset.jobId, true));
+  card.querySelector(".take-cancel").addEventListener("click", (event) => cancelTake(card.dataset.jobId, event.currentTarget));
+  card.querySelector(".take-clear").addEventListener("click", (event) => clearTake(card.dataset.jobId, event.currentTarget));
+  return card;
+}
+
+function syncTakeAudio(card, job) {
+  const urls = job.audio || [];
+  const signature = urls.join("\n");
+  if (card.dataset.audioSignature === signature) return;
+  card.dataset.audioSignature = signature;
+  const container = card.querySelector(".take-audio-list");
+  container.replaceChildren();
+  urls.forEach((url, index) => {
+    const row = document.createElement("div");
+    row.className = "take-audio-row";
+    const label = document.createElement("span");
+    label.textContent = urls.length > 1 ? `Output ${String(index + 1).padStart(2, "0")}` : "Final audio";
+    const audio = document.createElement("audio");
+    audio.controls = true;
+    audio.preload = "metadata";
+    audio.src = url;
+    audio.addEventListener("play", () => {
+      document.querySelectorAll("audio").forEach((other) => { if (other !== audio) other.pause(); });
+      const currentJob = jobsById.get(card.dataset.jobId);
+      if (currentJob) {
+        selectTake(currentJob.id, false);
+        $("nowPlaying").textContent = `${takeName(currentJob).toUpperCase()}${urls.length > 1 ? ` · OUTPUT ${String(index + 1).padStart(2, "0")}` : ""} · MINIMAX MUSIC 3`;
+      }
+      connectVisualizer(audio);
+    });
+    const download = document.createElement("a");
+    download.href = url;
+    download.download = "";
+    download.textContent = "Download ↘";
+    row.append(label, audio, download);
+    container.appendChild(row);
+  });
+}
+
+function updateTakeCard(card, job) {
+  card.className = `take-card take-${job.status}${job.id === selectedJobId ? " selected" : ""}`;
+  card.querySelector(".take-number").textContent = takeName(job);
+  const state = card.querySelector(".take-state");
+  state.className = `take-state take-state-${job.status}`;
+  state.textContent = JOB_STATUS_LABELS[job.status] || job.status;
+  card.querySelector(".take-caption").textContent = job.request?.global_metadata || "Untitled local generation";
+  const created = new Date(job.created_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const request = job.request || {};
+  const batch = Number(request.batch || 1);
+  card.querySelector(".take-facts").textContent = [
+    `${request.duration || "?"} s`,
+    `seed ${request.seed ?? "?"}`,
+    `${batch} output${batch === 1 ? "" : "s"}`,
+    String(request.output_format || "audio").toUpperCase(),
+    created,
+  ].join(" · ");
+  const error = card.querySelector(".take-error");
+  error.hidden = !job.error;
+  error.textContent = job.error || "";
+  card.querySelector(".take-cancel").hidden = !ACTIVE_JOB_STATUSES.has(job.status);
+  card.querySelector(".take-clear").hidden = !TERMINAL_JOB_STATUSES.has(job.status);
+  syncTakeAudio(card, job);
+}
+
+function selectTake(jobId, scroll = false) {
+  const job = jobsById.get(jobId);
+  if (!job) return;
+  selectedJobId = jobId;
+  if (performanceJobId !== jobId) {
+    preparePerformance(job.request || {});
+    performanceJobId = jobId;
+  }
+  document.querySelectorAll(".take-card").forEach((card) => {
+    card.classList.toggle("selected", card.dataset.jobId === jobId);
+  });
+  saveSessionState();
+  if (scroll) $("performance").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function updateRenderSummary(jobs) {
+  const active = jobs.filter((job) => ACTIVE_JOB_STATUSES.has(job.status));
+  if (active.length) {
+    const rendering = active.find((job) => job.status === "generating");
+    const waiting = active.length - (rendering ? 1 : 0);
+    $("renderStatus").textContent = rendering
+      ? `${takeName(rendering)} is rendering${waiting ? ` · ${waiting} queued` : ""}.`
+      : `${active.length} take${active.length === 1 ? "" : "s"} waiting for the local lane.`;
+    return;
+  }
+  const latest = jobs.at(-1);
+  if (!latest) {
+    $("renderStatus").textContent = "Ready for a local render.";
+  } else if (latest.status === "complete") {
+    $("renderStatus").textContent = `${takeName(latest)} is ready.`;
+  } else if (latest.status === "cancelled") {
+    $("renderStatus").textContent = `${takeName(latest)} was cancelled.`;
+  } else if (latest.status === "error") {
+    $("renderStatus").textContent = `${takeName(latest)} failed: ${latest.error || "unknown error"}`;
+  }
+}
+
+function syncTakeHistory() {
+  const jobs = orderedJobs();
+  const container = $("audioOutputs");
+  const liveIds = new Set(jobs.map((job) => job.id));
+  container.querySelectorAll(".take-card").forEach((card) => {
+    if (!liveIds.has(card.dataset.jobId)) card.remove();
+  });
+  container.querySelector(".take-empty")?.remove();
+
+  if (!jobs.length) {
+    const empty = document.createElement("p");
+    empty.className = "take-empty";
+    empty.textContent = "No takes in this live server session yet.";
+    container.appendChild(empty);
+    selectedJobId = "";
+    performanceJobId = "";
+  } else {
+    if (!selectedJobId || !jobsById.has(selectedJobId)) selectedJobId = jobs.at(-1).id;
+    jobs.forEach((job) => {
+      let card = container.querySelector(`[data-job-id="${job.id}"]`);
+      if (!card) card = createTakeCard(job.id);
+      updateTakeCard(card, job);
+      container.appendChild(card);
+    });
+    selectTake(selectedJobId, false);
+  }
+
+  const activeCount = jobs.filter((job) => ACTIVE_JOB_STATUSES.has(job.status)).length;
+  $("takeHistoryStatus").textContent = jobs.length
+    ? `${jobs.length} take${jobs.length === 1 ? "" : "s"} in this live server session${activeCount ? ` · ${activeCount} active` : ""}.`
+    : "Refresh-safe while this server runs; a server restart begins a clean session.";
+  $("clearFinishedTakes").disabled = !jobs.some((job) => TERMINAL_JOB_STATUSES.has(job.status));
+  updateRenderSummary(jobs);
+  saveSessionState();
+
+  if (currentAudio && !document.body.contains(currentAudio)) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+}
+
+function applyJobListing(list) {
+  jobsById.clear();
+  (list || []).forEach((job) => jobsById.set(job.id, job));
+  syncTakeHistory();
+  if (orderedJobs().some((job) => ACTIVE_JOB_STATUSES.has(job.status))) scheduleJobPolling();
+  else if (jobPollTimer) {
+    clearTimeout(jobPollTimer);
+    jobPollTimer = 0;
+  }
+}
+
+async function refreshJobs(force = false) {
+  if (jobsRefreshPromise) {
+    if (!force) return jobsRefreshPromise;
+    try { await jobsRefreshPromise; } catch (_) { /* force a fresh request below */ }
+  }
+  const pending = (async () => {
+    const listing = await api("/api/jobs");
+    if (liveSessionId && listing.session_id !== liveSessionId) {
+      try { sessionStorage.removeItem(LIVE_STATE_KEY); } catch (_) { /* unavailable */ }
+      location.reload();
+      return listing;
+    }
+    if (!liveSessionId) {
+      liveSessionId = listing.session_id;
+      restoreSessionState();
+    }
+    applyJobListing(listing.jobs);
+    return listing;
+  })();
+  jobsRefreshPromise = pending;
+  try {
+    return await pending;
+  } finally {
+    if (jobsRefreshPromise === pending) jobsRefreshPromise = null;
+  }
+}
+
+function scheduleJobPolling() {
+  if (jobPollTimer) return;
+  jobPollTimer = window.setTimeout(async () => {
+    jobPollTimer = 0;
+    try {
+      await refreshJobs();
+    } catch (error) {
+      $("renderStatus").textContent = `Take status unavailable: ${error.message}`;
+      if (orderedJobs().some((job) => ACTIVE_JOB_STATUSES.has(job.status))) scheduleJobPolling();
+    }
+  }, 1200);
+}
+
+async function cancelTake(jobId, button) {
+  button.disabled = true;
+  try {
+    const job = await api(`/api/jobs/${jobId}/cancel`, { method: "POST" });
+    jobsById.set(job.id, job);
+    syncTakeHistory();
+    if (job.interrupt_warning) $("renderStatus").textContent = `Take cancelled; engine warning: ${job.interrupt_warning}`;
+    await refreshJobs(true);
+  } catch (error) {
+    $("renderStatus").textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function clearTake(jobId, button) {
+  button.disabled = true;
+  try {
+    await api(`/api/jobs/${jobId}`, { method: "DELETE" });
+    await refreshJobs(true);
+  } catch (error) {
+    $("renderStatus").textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function clearFinishedTakes() {
+  const button = $("clearFinishedTakes");
+  button.disabled = true;
+  try {
+    const result = await api("/api/jobs", { method: "DELETE" });
+    await refreshJobs(true);
+    $("renderStatus").textContent = result.removed.length
+      ? `Cleared ${result.removed.length} finished take${result.removed.length === 1 ? "" : "s"} from the session. Audio files remain on disk.`
+      : "No finished takes to clear.";
+  } catch (error) {
+    $("renderStatus").textContent = error.message;
+  } finally {
+    button.disabled = !orderedJobs().some((job) => TERMINAL_JOB_STATUSES.has(job.status));
+  }
+}
+
 async function generate(event) {
   event.preventDefault();
   const button = $("generate");
@@ -333,16 +677,11 @@ async function generate(event) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
     });
-    while (!["complete", "error", "cancelled"].includes(job.status)) {
-      $("renderStatus").textContent = job.status === "waiting" ? "Waiting for the local generation lane…" : "Rendering locally. Long songs can take a while.";
-      await sleep(1200);
-      job = await api(`/api/jobs/${job.id}`);
-    }
-    if (job.status === "error") throw new Error(job.error || "Generation failed");
-    if (job.status === "cancelled") throw new Error("Generation was cancelled");
-    renderAudioOutputs(job.audio);
-    $("renderStatus").textContent = `${job.audio.length} local audio file${job.audio.length === 1 ? "" : "s"} ready.`;
-    await refreshHealth();
+    jobsById.set(job.id, job);
+    selectedJobId = job.id;
+    performanceJobId = job.id;
+    syncTakeHistory();
+    await refreshJobs(true);
   } catch (error) {
     $("renderStatus").textContent = error.message;
   } finally {
@@ -414,36 +753,11 @@ function drawSpectrum() {
   animationFrame = requestAnimationFrame(drawSpectrum);
 }
 
-function renderAudioOutputs(urls) {
-  const container = $("audioOutputs");
-  container.replaceChildren();
-  urls.forEach((url, index) => {
-    const card = document.createElement("div");
-    card.className = "audio-card";
-    const label = document.createElement("span");
-    label.textContent = `Take ${String(index + 1).padStart(2, "0")}`;
-    const audio = document.createElement("audio");
-    audio.controls = true;
-    audio.preload = "metadata";
-    audio.src = url;
-    audio.addEventListener("play", () => {
-      document.querySelectorAll("audio").forEach((other) => { if (other !== audio) other.pause(); });
-      $("nowPlaying").textContent = `TAKE ${String(index + 1).padStart(2, "0")} · MINIMAX MUSIC 3`;
-      connectVisualizer(audio);
-    });
-    const download = document.createElement("a");
-    download.href = url;
-    download.download = "";
-    download.textContent = "Download ↘";
-    card.append(label, audio, download);
-    container.appendChild(card);
-  });
-}
-
 function randomSeedFor(inputId) {
   const values = new Uint32Array(2);
   crypto.getRandomValues(values);
   $(inputId).value = String((values[0] * 0x100000 + (values[1] & 0xfffff)) % Number.MAX_SAFE_INTEGER);
+  $(inputId).dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 function randomSeed() {
@@ -452,14 +766,17 @@ function randomSeed() {
 
 async function interrupt() {
   try {
-    await api("/api/interrupt", { method: "POST" });
-    $("renderStatus").textContent = "Interrupt requested.";
+    const result = await api("/api/interrupt", { method: "POST" });
+    await refreshJobs(true);
+    $("renderStatus").textContent = result.interrupt_warning
+      ? `Takes cancelled; engine warning: ${result.interrupt_warning}`
+      : `${result.cancelled.length} active take${result.cancelled.length === 1 ? "" : "s"} cancelled.`;
   } catch (error) {
     $("renderStatus").textContent = error.message;
   }
 }
 
-function switchWorkspace(panelId) {
+function switchWorkspace(panelId, smooth = true) {
   document.querySelectorAll(".workspace-tab").forEach((button) => {
     button.classList.toggle("active", button.dataset.tab === panelId);
   });
@@ -468,7 +785,8 @@ function switchWorkspace(panelId) {
     panel.classList.toggle("active", active);
     panel.hidden = !active;
   });
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  saveSessionState();
+  if (smooth) window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function theoryValue(id) {
@@ -558,6 +876,7 @@ function applyTheoryPreset(preset, button) {
   clearActiveTheoryPreset();
   button.classList.add("active");
   updateTheoryPreview();
+  saveSessionState();
 }
 
 function renderTheoryPresets() {
@@ -644,6 +963,7 @@ function clearTheoryBrief() {
   $("theoryCustom").value = "";
   clearActiveTheoryPreset();
   updateTheoryPreview();
+  saveSessionState();
 }
 
 function insertSectionTag(tag) {
@@ -656,6 +976,7 @@ function insertSectionTag(tag) {
   const suffix = after.startsWith("\n") || !after ? "\n" : "\n\n";
   const insertion = `${prefix}${tag}${suffix}`;
   field.setRangeText(insertion, start, end, "end");
+  field.dispatchEvent(new Event("input", { bubbles: true }));
   field.focus();
 }
 
@@ -738,6 +1059,7 @@ async function refreshGuideStatus() {
   try {
     const state = await api("/api/guide/status");
     const enabled = Boolean(state.loaded);
+    if (state.loaded_model) $("guideModel").value = state.loaded_model;
     $("guideEnabled").checked = enabled;
     $("guideFields").disabled = !enabled;
     $("browseGuideModels").disabled = enabled;
@@ -815,7 +1137,8 @@ function promptGuideBody() {
   };
 }
 
-function renderGuideResult(result) {
+function renderGuideResult(result, scroll = true) {
+  latestGuideResult = result;
   const sections = result.sections || {};
   $("guideGlobalOutput").textContent = sections["Global Metadata"] || "Section was not isolated; inspect the raw response below.";
   $("guideVocalOutput").textContent = sections["Vocal Details"] || "Section was not isolated; inspect the raw response below.";
@@ -823,7 +1146,8 @@ function renderGuideResult(result) {
   $("guideTuningOutput").textContent = sections["Tuning Notes"] || "Section was not isolated; inspect the raw response below.";
   $("guideRawOutput").textContent = result.text || "";
   $("guideResults").hidden = false;
-  $("guideResults").scrollIntoView({ behavior: "smooth", block: "start" });
+  saveSessionState();
+  if (scroll) $("guideResults").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function runPromptGuide(event) {
@@ -852,6 +1176,17 @@ async function copyGuideText(elementId, button) {
   await writeClipboard(text, button);
 }
 
+async function initializeApplication() {
+  drawSpectrum();
+  try {
+    await refreshJobs();
+  } catch (error) {
+    $("renderStatus").textContent = `Live session unavailable: ${error.message}`;
+  }
+  await Promise.all([refreshHealth(), refreshGuideModels()]);
+  await refreshGuideStatus();
+}
+
 document.querySelectorAll("[data-port]").forEach((link) => {
   link.href = `${location.protocol}//${location.hostname}:${link.dataset.port}/`;
 });
@@ -868,6 +1203,7 @@ $("refreshStatus").addEventListener("click", refreshHealth);
 $("loadModel").addEventListener("click", loadModels);
 $("unloadModel").addEventListener("click", unloadModels);
 $("interrupt").addEventListener("click", interrupt);
+$("clearFinishedTakes").addEventListener("click", clearFinishedTakes);
 $("composer").addEventListener("submit", generate);
 $("guideEnabled").addEventListener("change", toggleGuide);
 $("browseGuideModels").addEventListener("click", async () => {
@@ -879,8 +1215,6 @@ $("guideModelSearch").addEventListener("input", () => renderGuideModels($("guide
 $("promptGuideForm").addEventListener("submit", runPromptGuide);
 
 initializeTheoryLab();
-drawSpectrum();
-refreshHealth();
-refreshGuideModels();
-refreshGuideStatus();
+initializeSessionMemory();
+initializeApplication();
 setInterval(() => { refreshHealth(); refreshGuideStatus(); }, 15000);

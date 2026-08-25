@@ -112,7 +112,7 @@ Where the blue turns into gold
           </div>
           <div class="render-actions">
             <button id="generate" class="primary-button" type="submit"><span>Generate song</span><b>↗</b></button>
-            <button id="interrupt" class="quiet-button" type="button">Stop render</button>
+            <button id="interrupt" class="quiet-button" type="button">Stop all renders</button>
             <p id="renderStatus" role="status">Ready for a local render.</p>
           </div>
         </section>
@@ -135,7 +135,18 @@ Where the blue turns into gold
           <canvas id="spectrum" aria-label="Animated audio spectrum"></canvas>
           <div class="performance-footer"><span id="nowPlaying">MINIMAX MUSIC 3</span><time id="playTime">00:00 / 00:00</time></div>
         </div>
-        <div id="audioOutputs" class="audio-outputs"></div>
+        <div class="take-history-head">
+          <div>
+            <p class="eyebrow">Live take ledger</p>
+            <h2>Every render in this session.</h2>
+            <p id="takeHistoryStatus">Refresh-safe while this server runs; a server restart begins a clean session.</p>
+          </div>
+          <button id="clearFinishedTakes" class="quiet-button" type="button" disabled>Clear finished</button>
+        </div>
+        <div id="audioOutputs" class="audio-outputs" aria-live="polite">
+          <p class="take-empty">No takes in this live server session yet.</p>
+        </div>
+        <p class="take-retention-note">Clear removes a take from this live list only. Rendered audio remains in the local outputs directory.</p>
       </section>
 
       <section class="tool-links">

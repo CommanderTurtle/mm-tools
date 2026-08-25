@@ -27,6 +27,8 @@ cd ~/multimedia/minimax
 
 Open `http://127.0.0.1:8254`. Both inference engines bind only to loopback. `Load models` makes the DiT, MiniMax text encoder, and DAV resident; `Unload` releases them. Prompt Guide is stateless and off at every server start: its secondary process does not exist and its Qwen weights are not resident until the tab's switch is enabled. Turning the switch off interrupts that lane, frees its weights, and stops its process. `Ctrl+C` unloads all resident weights and stops the web app plus both private engines.
 
+Song Studio has one intentionally process-local take ledger. A browser refresh reattaches to every queued, rendering, completed, failed, or cancelled take owned by the running server and restores that tab's current form draft. Each generation receives a stable `Take` number; batch outputs remain grouped beneath that take. Individual active takes can be cancelled without cancelling a different queued take. Clearing a finished take removes it from the live ledger but never deletes its rendered audio. Restarting the server creates a new session identifier and returns the browser to the baseline form and empty ledger, while existing files remain in `outputs/`.
+
 ## Exact local model layout
 
 ```text

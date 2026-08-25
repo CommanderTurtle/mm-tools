@@ -10,6 +10,7 @@ import sys
 import time
 import uuid
 from contextlib import asynccontextmanager
+from itertools import count
 from pathlib import Path
 from typing import Any
 
@@ -789,6 +790,11 @@ guide_engine = PromptGuideEngine()
 jobs: dict[str, dict[str, Any]] = {}
 job_tasks: set[asyncio.Task[None]] = set()
 generation_gate = asyncio.Lock()
+engine_action_gate = asyncio.Lock()
+take_numbers = count(1)
+LIVE_SESSION_ID = uuid.uuid4().hex
+ACTIVE_JOB_STATUSES = frozenset({"queued", "waiting", "generating"})
+TERMINAL_JOB_STATUSES = frozenset({"complete", "error", "cancelled"})
 
 
 def _public_job(job: dict[str, Any]) -> dict[str, Any]:
@@ -802,11 +808,14 @@ async def _run_generation(job: dict[str, Any], request: GenerationRequest) -> No
     job["status"] = "waiting"
     try:
         async with generation_gate:
-            job["status"] = "generating"
-            job["started_at"] = time.time()
-            prompt_id = await engine.queue_prompt(_generation_graph(request, job["id"]))
-            job["prompt_id"] = prompt_id
+            async with engine_action_gate:
+                job["status"] = "generating"
+                job["started_at"] = time.time()
+                prompt_id = await engine.queue_prompt(_generation_graph(request, job["id"]))
+                job["prompt_id"] = prompt_id
             history = await engine.wait_for_history(prompt_id)
+            if job["status"] == "cancelled":
+                return
             job["paths"] = _history_audio_paths(history, job["id"])
             job["status"] = "complete"
             job["completed_at"] = time.time()
@@ -819,6 +828,37 @@ async def _run_generation(job: dict[str, Any], request: GenerationRequest) -> No
         job["status"] = "error"
         job["error"] = str(exc)
         job["completed_at"] = time.time()
+
+
+async def _cancel_jobs(selected: list[dict[str, Any]]) -> tuple[list[str], str | None]:
+    cancelled: list[str] = []
+    interrupt_error: str | None = None
+    tasks: list[asyncio.Task[None]] = []
+
+    # Keep new prompts from entering Comfy while an active prompt is interrupted.
+    # Waiting jobs may acquire generation_gate as their predecessor unwinds, but they
+    # remain behind this gate until the engine is safe to use again.
+    async with engine_action_gate:
+        active = [job for job in selected if job.get("status") in ACTIVE_JOB_STATUSES]
+        should_interrupt = any(job.get("status") == "generating" for job in active)
+        now = time.time()
+        for job in active:
+            job["status"] = "cancelled"
+            job["completed_at"] = now
+            cancelled.append(str(job["id"]))
+            task = job.get("task")
+            if isinstance(task, asyncio.Task) and not task.done():
+                task.cancel()
+                tasks.append(task)
+        if should_interrupt:
+            try:
+                await engine.request("POST", "/interrupt", timeout=10.0)
+            except Exception as exc:
+                interrupt_error = str(exc)
+
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
+    return cancelled, interrupt_error
 
 
 @asynccontextmanager
@@ -850,6 +890,7 @@ async def health() -> dict[str, Any]:
     return {
         "ok": True,
         "cloud": False,
+        "session_id": LIVE_SESSION_ID,
         "engine": engine.running and bool(stats),
         "loaded": engine.model_loaded,
         "model_dir": str(MODEL_ROOT),
@@ -970,26 +1011,27 @@ async def load_models() -> dict[str, Any]:
 
 @app.post("/api/unload")
 async def unload_models() -> dict[str, Any]:
-    for task in list(job_tasks):
-        if not task.done():
-            task.cancel()
+    cancelled, interrupt_error = await _cancel_jobs(list(jobs.values()))
     try:
         await engine.unload_models()
-        return {"ok": True, "loaded": False}
+        return {
+            "ok": True,
+            "loaded": False,
+            "cancelled": cancelled,
+            "interrupt_warning": interrupt_error,
+        }
     except Exception as exc:
         raise HTTPException(500, f"Model unload failed: {exc}") from exc
 
 
 @app.post("/api/interrupt")
 async def interrupt() -> dict[str, Any]:
-    for task in list(job_tasks):
-        if not task.done():
-            task.cancel()
-    try:
-        await engine.request("POST", "/interrupt", timeout=10.0)
-        return {"ok": True}
-    except Exception as exc:
-        raise HTTPException(500, f"Interrupt failed: {exc}") from exc
+    cancelled, interrupt_error = await _cancel_jobs(list(jobs.values()))
+    return {
+        "ok": interrupt_error is None,
+        "cancelled": cancelled,
+        "interrupt_warning": interrupt_error,
+    }
 
 
 @app.post("/api/generate", status_code=202)
@@ -1008,6 +1050,7 @@ async def generate(request: GenerationRequest) -> dict[str, Any]:
     job_id = uuid.uuid4().hex[:16]
     job: dict[str, Any] = {
         "id": job_id,
+        "take": next(take_numbers),
         "status": "queued",
         "created_at": time.time(),
         "request": request.model_dump(),
@@ -1021,12 +1064,64 @@ async def generate(request: GenerationRequest) -> dict[str, Any]:
     return _public_job(job)
 
 
+@app.get("/api/jobs")
+async def job_list() -> dict[str, Any]:
+    ordered = sorted(jobs.values(), key=lambda job: (job["take"], job["created_at"]))
+    return {
+        "session_id": LIVE_SESSION_ID,
+        "jobs": [_public_job(job) for job in ordered],
+    }
+
+
+@app.delete("/api/jobs")
+async def clear_finished_jobs() -> dict[str, Any]:
+    removed = [
+        job_id
+        for job_id, job in jobs.items()
+        if job.get("status") in TERMINAL_JOB_STATUSES
+    ]
+    for job_id in removed:
+        del jobs[job_id]
+    return {
+        "ok": True,
+        "removed": removed,
+        "outputs_preserved": True,
+    }
+
+
 @app.get("/api/jobs/{job_id}")
-def job_status(job_id: str) -> dict[str, Any]:
+async def job_status(job_id: str) -> dict[str, Any]:
     job = jobs.get(job_id)
     if job is None:
         raise HTTPException(404, "Unknown generation job")
     return _public_job(job)
+
+
+@app.post("/api/jobs/{job_id}/cancel")
+async def cancel_job(job_id: str) -> dict[str, Any]:
+    job = jobs.get(job_id)
+    if job is None:
+        raise HTTPException(404, "Unknown generation job")
+    _, interrupt_error = await _cancel_jobs([job])
+    result = _public_job(job)
+    if interrupt_error:
+        result["interrupt_warning"] = interrupt_error
+    return result
+
+
+@app.delete("/api/jobs/{job_id}")
+async def clear_job(job_id: str) -> dict[str, Any]:
+    job = jobs.get(job_id)
+    if job is None:
+        raise HTTPException(404, "Unknown generation job")
+    if job.get("status") in ACTIVE_JOB_STATUSES:
+        raise HTTPException(409, "Cancel this take before clearing it from the session")
+    del jobs[job_id]
+    return {
+        "ok": True,
+        "removed": job_id,
+        "outputs_preserved": True,
+    }
 
 
 @app.get("/api/jobs/{job_id}/audio/{index}")
