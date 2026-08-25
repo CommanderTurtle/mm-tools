@@ -41,9 +41,13 @@
       <article class="pane output-pane">
         <div class="pane-head">
           <label>To <select id="target-language"></select></label>
-          <button id="copy" class="icon" title="Copy translation">Copy</button>
+          <div class="output-actions">
+            <button id="preview-toggle" class="icon" type="button" aria-pressed="false" disabled>View pretty Markdown</button>
+            <button id="copy" class="icon" type="button" title="Copy translation">Copy</button>
+          </div>
         </div>
         <textarea id="output" readonly placeholder="Translation appears here…"></textarea>
+        <article id="markdown-preview" class="markdown-preview" aria-label="Rendered translation" hidden></article>
         <div id="meta" class="counter">No translation yet</div>
       </article>
     </section>
