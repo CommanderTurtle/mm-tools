@@ -1,0 +1,15 @@
+Underbelly adds local multilingual routing to Firecrawl and AnyDoc. It opens up the underbelly of the web without removing Firecrawl's default result count, translating only the sections that matter while preserving the output.
+
+```bash
+cd ~/multimedia/translate/underbelly
+
+./integrate.sh
+./integrate.sh --verify
+
+firecrawl search "query" --ml
+firecrawl search "query" --ml cn,rs
+firecrawl scrape "https://github.com/CommanderTurtle/vox" --ml
+anydoc document.pdf --ml -o document.en.md
+```
+
+Rerun `./integrate.sh` after upgrading Firecrawl CLI, AnyDoc, or the Firecrawl service. It will validate the new source layout and fail explicitly if an upstream anchor changed.
