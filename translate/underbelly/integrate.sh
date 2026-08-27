@@ -117,6 +117,9 @@ export UB_HOST_TRANSLATE_URL="$HOST_TRANSLATE_URL"
 export UB_SERVICE_TRANSLATE_URL="$SERVICE_TRANSLATE_URL"
 export UB_NATIVE_LANGUAGE="$NATIVE_LANGUAGE"
 export UB_WRITE=$([[ "$MODE" == install ]] && printf 1 || printf 0)
+readonly STATUS_FILE="$(mktemp "${TMPDIR:-/tmp}/underbelly-status.XXXXXX")"
+trap 'rm -f -- "$STATUS_FILE"' EXIT
+export UB_STATUS_FILE="$STATUS_FILE"
 
 run_patcher() {
 python3 <<'PY'
@@ -1096,13 +1099,43 @@ text = upsert_marked(
 updates[paths["UB_FIRECRAWL_ROUTES"]] = text
 updates[paths["UB_FIRECRAWL_CORE"]] = render_core(SERVICE_URL, "ts")
 
+component_paths = {
+    "firecrawl-cli": (
+        paths["UB_CLI_INDEX"], paths["UB_CLI_OPTIONS"],
+        paths["UB_CLI_SEARCH"], paths["UB_CLI_SCRAPE"],
+        paths["UB_CLI_SEARCH_TYPES"], paths["UB_CLI_SCRAPE_TYPES"],
+    ),
+    "anydoc": (paths["UB_ANYDOC_CLI"], paths["UB_ANYDOC_CORE"]),
+    "firecrawl-v2": (
+        paths["UB_FIRECRAWL_ROUTES"], paths["UB_FIRECRAWL_CORE"],
+    ),
+}
+normalized: dict[Path, str] = {}
+changed: dict[Path, bool] = {}
 for path, content in updates.items():
     if not content.endswith("\n"):
         content += "\n"
-    if WRITE:
+    normalized[path] = content
+    changed[path] = not path.exists() or path.read_text() != content
+
+status = {
+    component: {
+        "changed": any(changed[path] for path in members),
+        "changedPaths": [str(path) for path in members if changed[path]],
+    }
+    for component, members in component_paths.items()
+}
+Path(os.environ["UB_STATUS_FILE"]).write_text(json.dumps(status, sort_keys=True))
+
+for path, content in normalized.items():
+    if WRITE and changed[path]:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content)
-    print(f"{'updated' if WRITE else 'validated'}: {path}")
+    if WRITE:
+        action = "updated" if changed[path] else "unchanged"
+    else:
+        action = "would update" if changed[path] else "validated"
+    print(f"{action}: {path}")
 PY
 }
 
@@ -1110,9 +1143,59 @@ syntax_check_js() {
   bun build --no-bundle --target=node --outfile=/dev/null "$1" >/dev/null
 }
 
+component_changed() {
+  python3 - "$STATUS_FILE" "$1" <<'PY'
+import json
+import sys
+
+state = json.loads(open(sys.argv[1], encoding="utf-8").read())
+raise SystemExit(0 if state[sys.argv[2]]["changed"] else 1)
+PY
+}
+
+any_component_changed() {
+  python3 - "$STATUS_FILE" <<'PY'
+import json
+import sys
+
+state = json.loads(open(sys.argv[1], encoding="utf-8").read())
+raise SystemExit(0 if any(item["changed"] for item in state.values()) else 1)
+PY
+}
+
+report_components() {
+  local context=${1:-install}
+  python3 - "$STATUS_FILE" "$context" <<'PY'
+import json
+import sys
+
+state = json.loads(open(sys.argv[1], encoding="utf-8").read())
+context = sys.argv[2]
+labels = {
+    "firecrawl-cli": "Firecrawl CLI",
+    "anydoc": "AnyDoc",
+    "firecrawl-v2": "Firecrawl /v2",
+}
+for key in ("firecrawl-cli", "anydoc", "firecrawl-v2"):
+    changed = state[key]["changed"]
+    if context == "dry-run":
+        result = "patch required" if changed else "patched"
+    elif context == "verify":
+        result = "stale" if changed else "patched"
+    else:
+        result = "updated" if changed else "already patched"
+    print(f"  {labels[key]}: {result}")
+PY
+}
+
 if [[ "$MODE" == verify ]]; then
   export UB_WRITE=0
   run_patcher >/dev/null
+  if any_component_changed; then
+    printf 'underbelly: verification found stale or missing integration files\n' >&2
+    report_components verify >&2
+    exit 1
+  fi
   for marker_file in \
     "$CLI_INDEX" "$CLI_OPTIONS" "$CLI_SEARCH" "$CLI_SCRAPE" \
     "$ANYDOC_CLI" "$FIRECRAWL_ROUTES"; do
@@ -1138,6 +1221,8 @@ if [[ "$MODE" == verify ]]; then
     )
   fi
   printf 'underbelly: integration verified (native language: %s)\n' "$NATIVE_LANGUAGE"
+  report_components verify
+  printf 'underbelly: all three integrations are patched\n'
   exit 0
 fi
 
@@ -1146,8 +1231,20 @@ if [[ "$MODE" == dry-run ]]; then
   if [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
     (cd "$FIRECRAWL_INSTALL_LOCATION" && docker compose config --quiet)
   fi
+  report_components dry-run
   printf 'underbelly: dry-run passed; no files changed\n'
   exit 0
+fi
+
+export UB_WRITE=0
+run_patcher >/dev/null
+MUTATED=0
+FIRECRAWL_CHANGED=0
+if any_component_changed; then
+  MUTATED=1
+fi
+if component_changed firecrawl-v2; then
+  FIRECRAWL_CHANGED=1
 fi
 
 mkdir -p "$STATE_ROOT"
@@ -1179,7 +1276,6 @@ backup_path anydoc-core "$ANYDOC_CORE"
 backup_path firecrawl-routes "$FIRECRAWL_ROUTES"
 backup_path firecrawl-core "$FIRECRAWL_CORE"
 
-MUTATED=0
 DOCKER_REPLACED=0
 rollback() {
   local status=${1:-$?}
@@ -1207,7 +1303,7 @@ trap 'rollback $?' ERR
 trap 'rollback 130' INT
 trap 'rollback 143' TERM
 
-MUTATED=1
+export UB_WRITE=1
 run_patcher
 
 syntax_check_js "$ANYDOC_CORE"
@@ -1218,23 +1314,25 @@ syntax_check_js "$CLI_SCRAPE"
 
 
 if [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
-  DOCKER_REPLACED=1
-  (
-    trap - ERR
-    cd "$FIRECRAWL_INSTALL_LOCATION"
-    docker compose build api
-    docker compose up -d api
-  )
-  for attempt in $(seq 1 60); do
-    if curl --fail --silent --max-time 3 http://127.0.0.1:3002/ >/dev/null 2>&1; then
-      break
-    fi
-    if (( attempt == 60 )); then
-      printf 'underbelly: rebuilt Firecrawl API did not become healthy\n' >&2
-      false
-    fi
-    sleep 1
-  done
+  if (( FIRECRAWL_CHANGED )); then
+    DOCKER_REPLACED=1
+    (
+      trap - ERR
+      cd "$FIRECRAWL_INSTALL_LOCATION"
+      docker compose build api
+      docker compose up -d api
+    )
+    for attempt in $(seq 1 60); do
+      if curl --fail --silent --max-time 3 http://127.0.0.1:3002/ >/dev/null 2>&1; then
+        break
+      fi
+      if (( attempt == 60 )); then
+        printf 'underbelly: rebuilt Firecrawl API did not become healthy\n' >&2
+        false
+      fi
+      sleep 1
+    done
+  fi
   (
     cd "$FIRECRAWL_INSTALL_LOCATION"
     docker compose exec -T api curl --fail --silent --show-error \
@@ -1252,3 +1350,5 @@ printf '%s\n' \
   "  native language: $NATIVE_LANGUAGE" \
   "  translator:      $HOST_TRANSLATE_URL" \
   "  backup:          $BACKUP_DIR"
+report_components install
+printf 'underbelly: all three integrations are patched\n'
