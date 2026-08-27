@@ -1060,7 +1060,8 @@ text = upsert_marked(
     text,
     "anydoc-args",
     "  args.ml = null",
-    anchor="  const args = { input: null, output: null, format: null }",
+    anchor="  let positionalOnly = false",
+    where="before",
 )
 text = upsert_marked(
     text,
