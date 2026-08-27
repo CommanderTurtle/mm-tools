@@ -1,5 +1,9 @@
 Underbelly adds local multilingual routing to Firecrawl and AnyDoc. It opens up the underbelly of the web without removing Firecrawl's default result count, translating only the sections that matter while preserving the output.
 
+Not only do you receive an (up to 9) additional multilingual searches, but, one may specify languages dynamically.
+Traditional firecrawl searches also natively check the exact query in chinese, russian, korean, spanish, etcetra.
+You can now convert pdfs with firecrawl/anydoc ! Including a translation middleman !!
+
 ```bash
 cd ~/multimedia/translate/underbelly
 
@@ -13,3 +17,33 @@ anydoc document.pdf --ml -o document.en.md
 ```
 
 Rerun `./integrate.sh` after upgrading Firecrawl CLI, AnyDoc, or the Firecrawl service. It will validate the new source layout and fail explicitly if an upstream anchor changed.
+
+------------------------------------------------------------
+
+`integrate.sh` expands the existing:
+
+- `/v2/search`
+- `/v2/scrape`
+
+of Firecrawl.
+
+It intercepts requests containing `ml` (multilang), and lets the existing Firecrawl pipeline complete, then transforms the completed in-memory response before returning it. Requests without `ml` retain normal Firecrawl behavior.
+
+The only external calls are to the already-existing translation server endpoints on port `8176`:
+
+- `/detect`
+- `/translate`
+
+So the API surface stays compatible; the new behavior is middleware/helper logic attached to existing routes.
+
+------------------------------------------------------------
+
+Adjust the config file as needed. It assumes a zero-auth firecrawl instance at the localhost, simply adding the flag works with all commands.
+
+One may set info fields for:
+- the running translate http
+- anydoc
+- firecrawl-cli
+- firecrawl(server)
+- IsFirecrawlDocker
+- and native preferred language.
