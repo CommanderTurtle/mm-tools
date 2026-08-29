@@ -31,7 +31,7 @@ cd ~ && git clone https://github.com/CommanderTurtle/mm-tools multimedia && cd m
 cd models
 uv venv --python 3.12.10 --seed --managed-python
 source .venv/bin/activate
-uv pip install huggingface_hub hf_xet
+uv pip install huggingface_hub hf_xet hf-transfer
 
 # Optional: export TOKIO_WORKER_THREADS to override the 16-thread default.
 uv run download_models.py
