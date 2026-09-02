@@ -153,6 +153,12 @@
 !/translate/setupwithuv.sh
 !/translate/starthttp.sh
 !/translate/startwithuv.sh
+!/translate/underbelly/
+/translate/underbelly/*
+!/translate/underbelly/config.env
+!/translate/underbelly/integrate.sh
+!/translate/underbelly/README.md
+!/translate/underbelly/what-is-this.txt
 !/translate/local_app/
 /translate/local_app/*
 !/translate/local_app/__init__.py

@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-readonly UNDERBELLY_VERSION="1"
+readonly UNDERBELLY_VERSION="2"
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly CONFIG_FILE="${UNDERBELLY_CONFIG:-$SCRIPT_DIR/config.env}"
 readonly STATE_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/mm-tools-underbelly"
 
 usage() {
   printf '%s\n' \
-    "Usage: ./integrate.sh [--dry-run|--verify]" \
+    "Usage: ./integrate.sh [--dry-run|--verify|--uninstall]" \
     "" \
     "With no arguments, validates every target, installs --ml support into" \
     "Firecrawl CLI, Firecrawl /v2/search and /v2/scrape, and AnyDoc, then" \
     "rebuilds/restarts the configured Firecrawl Docker API." \
     "" \
     "  --dry-run  Validate paths, source anchors, and the translator; write nothing" \
-    "  --verify   Verify an existing integration and its live service connections"
+    "  --verify   Verify an existing integration and its live service connections" \
+    "  --uninstall, --unintegrate" \
+    "              Remove only Underbelly-owned blocks and generated modules"
 }
 
 MODE=install
@@ -23,6 +25,7 @@ case "${1:-}" in
   "") ;;
   --dry-run) MODE=dry-run ;;
   --verify) MODE=verify ;;
+  --uninstall|--unintegrate) MODE=uninstall ;;
   -h|--help) usage; exit 0 ;;
   *) printf 'underbelly: unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
 esac
@@ -63,7 +66,7 @@ else
   readonly SERVICE_TRANSLATE_URL="$HOST_TRANSLATE_URL"
 fi
 
-for command_name in python3 bun curl sha256sum; do
+for command_name in python3 bun curl; do
   command -v "$command_name" >/dev/null 2>&1 || {
     printf 'underbelly: required command is missing: %s\n' "$command_name" >&2
     exit 1
@@ -81,18 +84,19 @@ readonly ANYDOC_CORE="$ANYDOC_INSTALL_LOCATION/underbelly.cjs"
 readonly FIRECRAWL_ROUTES="$FIRECRAWL_INSTALL_LOCATION/apps/api/src/routes/v2.ts"
 readonly FIRECRAWL_CORE="$FIRECRAWL_INSTALL_LOCATION/apps/api/src/lib/underbelly.ts"
 
-for required_path in \
-  "$CLI_INDEX" "$CLI_OPTIONS" "$CLI_SEARCH" "$CLI_SCRAPE" \
-  "$CLI_SEARCH_TYPES" "$CLI_SCRAPE_TYPES" "$ANYDOC_CLI" \
-  "$FIRECRAWL_ROUTES" "$FIRECRAWL_INSTALL_LOCATION/docker-compose.yaml"; do
-  if [[ ! -f "$required_path" ]]; then
-    printf 'underbelly: required target not found: %s\n' "$required_path" >&2
-    exit 1
-  fi
-done
+if [[ "$MODE" != uninstall ]]; then
+  for required_path in \
+    "$CLI_INDEX" "$CLI_OPTIONS" "$CLI_SEARCH" "$CLI_SCRAPE" \
+    "$CLI_SEARCH_TYPES" "$CLI_SCRAPE_TYPES" "$ANYDOC_CLI" \
+    "$FIRECRAWL_ROUTES" "$FIRECRAWL_INSTALL_LOCATION/docker-compose.yaml"; do
+    if [[ ! -f "$required_path" ]]; then
+      printf 'underbelly: required target not found: %s\n' "$required_path" >&2
+      exit 1
+    fi
+  done
 
-health_json="$(curl --fail --silent --show-error --max-time 10 "$HOST_TRANSLATE_URL/health")"
-python3 - "$health_json" <<'PY'
+  health_json="$(curl --fail --silent --show-error --max-time 10 "$HOST_TRANSLATE_URL/health")"
+  python3 - "$health_json" <<'PY'
 import json
 import sys
 
@@ -102,6 +106,7 @@ if payload.get("status") != "ok" or not payload.get("loaded"):
 if payload.get("cloud") is not False:
     raise SystemExit("underbelly: translation service did not report local-only mode")
 PY
+fi
 
 export UB_CLI_INDEX="$CLI_INDEX"
 export UB_CLI_OPTIONS="$CLI_OPTIONS"
@@ -130,7 +135,7 @@ import os
 import re
 from pathlib import Path
 
-VERSION = "1"
+VERSION = "2"
 WRITE = os.environ["UB_WRITE"] == "1"
 NATIVE = os.environ["UB_NATIVE_LANGUAGE"].strip().lower()
 HOST_URL = os.environ["UB_HOST_TRANSLATE_URL"].rstrip("/")
@@ -177,26 +182,31 @@ def upsert_marked(text: str, identifier: str, body: str, *, anchor: str,
     block = marked(identifier, body, comment)
     begin = re.escape(f"{comment} UNDERBELLY-BEGIN:{identifier}:")
     end = re.escape(f"{comment} UNDERBELLY-END:{identifier}")
-    pattern = re.compile(begin + r"v\d+\n.*?" + end + r"\n?", re.DOTALL)
+    pattern = re.compile(begin + r"v\d+\n.*?" + end, re.DOTALL)
     matches = list(pattern.finditer(text))
     if len(matches) > 1:
         raise RuntimeError(f"duplicate installed blocks for {identifier}")
     if matches:
-        return pattern.sub(block, text, count=1)
+        # A callable replacement preserves JavaScript escape sequences such as
+        # ``\\n``. Passing the block directly would make re.sub interpret them.
+        replacement = block.rstrip("\n")
+        return pattern.sub(lambda _match: replacement, text, count=1)
     count = text.count(anchor)
     if count != 1:
         raise RuntimeError(
             f"source anchor for {identifier} matched {count} times; target version is unsupported"
         )
     if where == "after":
-        return text.replace(anchor, anchor + "\n" + block, 1)
+        # The original newline after the anchor remains in ``text``. Omitting
+        # the block's final newline avoids creating a legacy extra blank line.
+        return text.replace(anchor, anchor + "\n" + block.rstrip("\n"), 1)
     if where == "before":
         return text.replace(anchor, block + anchor, 1)
     raise ValueError(where)
 
 
 CORE = r'''
-const UNDERBELLY_VERSION = "1";
+const UNDERBELLY_VERSION = "2";
 const TRANSLATE_BASE_URL = __TRANSLATE_BASE_URL__;
 const NATIVE_LANGUAGE = __NATIVE_LANGUAGE__;
 const SEARCH_EXTRA_RESULTS = 9;
@@ -249,13 +259,22 @@ function parseMlSpec(value, purpose = "content") {
     const language = normalizeLanguage(item);
     if (!languages.includes(language)) languages.push(language);
   }
-  if (languages.length > 9) throw new Error("--ml accepts at most 9 languages");
-  if (purpose === "search" && languages.length === 0) {
-    languages = [...DEFAULT_SEARCH_LANGUAGES];
+  if (purpose === "search") {
+    if (languages.length > 9) throw new Error("search --ml accepts at most 9 languages");
+    if (languages.length === 0) languages = [...DEFAULT_SEARCH_LANGUAGES];
+    return { requested: true, languages };
   }
+  if (languages.length > 2) {
+    throw new Error("content --ml accepts a target or source,target pair");
+  }
+  const sourceLanguage = languages.length === 2 ? languages[0] : null;
+  const targetLanguage = languages.length === 0
+    ? NATIVE_LANGUAGE
+    : languages[languages.length - 1];
   return {
     requested: true,
-    allSourceLanguages: purpose === "content" && languages.length === 0,
+    sourceLanguage,
+    targetLanguage,
     languages
   };
 }
@@ -368,14 +387,9 @@ async function translateChunk(text, spec, stats, forcedTarget = null, forcedSour
     return text;
   }
   const [, leading, body, trailing] = match;
-  const source = forcedSource || await detectLanguage(body);
-  const target = forcedTarget || NATIVE_LANGUAGE;
+  const source = forcedSource || spec?.sourceLanguage || await detectLanguage(body);
+  const target = forcedTarget || spec?.targetLanguage || NATIVE_LANGUAGE;
   if (source === target) {
-    stats.skippedSegments += 1;
-    return text;
-  }
-  if (!forcedTarget && spec && !spec.allSourceLanguages &&
-      spec.languages.length > 0 && !spec.languages.includes(source)) {
     stats.skippedSegments += 1;
     return text;
   }
@@ -713,7 +727,8 @@ async function translateDocument(document, mlValue = true) {
   }
   metadata.underbelly = {
     version: UNDERBELLY_VERSION,
-    targetLanguage: NATIVE_LANGUAGE,
+    sourceLanguage: spec.sourceLanguage || "detect",
+    targetLanguage: spec.targetLanguage,
     translatedSegments: stats.translatedSegments,
     skippedSegments: stats.skippedSegments,
     preservedSegments: stats.preservedSegments,
@@ -971,7 +986,7 @@ text = paths["UB_CLI_INDEX"].read_text()
 text = upsert_marked(
     text,
     "cli-scrape-option",
-    "        .option('--ml [languages]', 'Translate scraped prose to the configured native language; optionally restrict source languages (for example: cn,rs)')",
+    "        .option('--ml [target-or-pair]', 'Translate scraped prose: no value uses configured native target; es detects to Spanish; en,es forces English to Spanish')",
     anchor="        .option('-Q, --query <prompt>', 'Ask a question about the page content (query format)')",
     where="before",
 )
@@ -1035,7 +1050,7 @@ text = paths["UB_CLI_SCRAPE_TYPES"].read_text()
 text = upsert_marked(
     text,
     "cli-scrape-type",
-    "    /** Translate emitted prose to the configured native language. */\n    ml?: boolean | string;",
+    "    /** Translate prose to the native target, a target code, or an explicit source,target pair. */\n    ml?: boolean | string;",
     anchor="    /** Redact personally identifiable information from returned content */",
     where="before",
 )
@@ -1055,7 +1070,7 @@ text = paths["UB_ANYDOC_CLI"].read_text()
 text = upsert_marked(
     text,
     "anydoc-help",
-    "  --ml [languages]       Translate Markdown prose to the configured native language;\\n                         optionally restrict source languages (for example: cn,rs)",
+    "  --ml [target|source,target]\\n                         Translate prose; default target is configured native language",
     anchor="  -f, --format <format>  Name the input format instead of detecting it:",
     where="before",
 )
@@ -1139,8 +1154,141 @@ for path, content in normalized.items():
 PY
 }
 
+run_unpatcher() {
+python3 <<'PY'
+from __future__ import annotations
+
+from collections import Counter
+import json
+import os
+import re
+from pathlib import Path
+
+WRITE = os.environ["UB_WRITE"] == "1"
+OWNER_LINE = "Generated by ~/multimedia/translate/underbelly/integrate.sh."
+
+paths = {key: Path(os.environ[key]) for key in [
+    "UB_CLI_INDEX", "UB_CLI_OPTIONS", "UB_CLI_SEARCH", "UB_CLI_SCRAPE",
+    "UB_CLI_SEARCH_TYPES", "UB_CLI_SCRAPE_TYPES", "UB_ANYDOC_CLI",
+    "UB_ANYDOC_CORE", "UB_FIRECRAWL_ROUTES", "UB_FIRECRAWL_CORE",
+]}
+
+source_paths = (
+    paths["UB_CLI_INDEX"], paths["UB_CLI_OPTIONS"],
+    paths["UB_CLI_SEARCH"], paths["UB_CLI_SCRAPE"],
+    paths["UB_CLI_SEARCH_TYPES"], paths["UB_CLI_SCRAPE_TYPES"],
+    paths["UB_ANYDOC_CLI"], paths["UB_FIRECRAWL_ROUTES"],
+)
+generated_paths = (paths["UB_ANYDOC_CORE"], paths["UB_FIRECRAWL_CORE"])
+
+
+def strip_marked(path: Path, text: str) -> str:
+    begin_pattern = re.compile(
+        r"^// UNDERBELLY-BEGIN:([A-Za-z0-9_-]+):v\d+[ \t]*$", re.MULTILINE
+    )
+    end_pattern = re.compile(
+        r"^// UNDERBELLY-END:([A-Za-z0-9_-]+)[ \t]*$", re.MULTILINE
+    )
+    begins = begin_pattern.findall(text)
+    ends = end_pattern.findall(text)
+    if Counter(begins) != Counter(ends):
+        raise RuntimeError(f"unbalanced Underbelly markers in {path}")
+    if any(count != 1 for count in Counter(begins).values()):
+        raise RuntimeError(f"duplicate Underbelly markers in {path}")
+
+    result = text
+    for identifier in begins:
+        block = re.compile(
+            rf"^// UNDERBELLY-BEGIN:{re.escape(identifier)}:v\d+[ \t]*\n"
+            rf".*?^// UNDERBELLY-END:{re.escape(identifier)}[ \t]*\n?",
+            re.MULTILINE | re.DOTALL,
+        )
+        result, count = block.subn("", result, count=1)
+        if count != 1:
+            raise RuntimeError(
+                f"could not safely remove Underbelly block {identifier} from {path}"
+            )
+    if "UNDERBELLY-BEGIN:" in result or "UNDERBELLY-END:" in result:
+        raise RuntimeError(f"unrecognized Underbelly marker remains in {path}")
+    return result
+
+
+updates: dict[Path, str | None] = {}
+for path in source_paths:
+    if not path.exists():
+        continue
+    original = path.read_text()
+    cleaned = strip_marked(path, original)
+    if cleaned != original:
+        updates[path] = cleaned
+
+for path in generated_paths:
+    if not path.exists():
+        continue
+    content = path.read_text()
+    if OWNER_LINE not in content:
+        raise RuntimeError(
+            f"refusing to remove generated-module path not owned by Underbelly: {path}"
+        )
+    updates[path] = None
+
+component_paths = {
+    "firecrawl-cli": (
+        paths["UB_CLI_INDEX"], paths["UB_CLI_OPTIONS"],
+        paths["UB_CLI_SEARCH"], paths["UB_CLI_SCRAPE"],
+        paths["UB_CLI_SEARCH_TYPES"], paths["UB_CLI_SCRAPE_TYPES"],
+    ),
+    "anydoc": (paths["UB_ANYDOC_CLI"], paths["UB_ANYDOC_CORE"]),
+    "firecrawl-v2": (paths["UB_FIRECRAWL_ROUTES"], paths["UB_FIRECRAWL_CORE"]),
+}
+status = {
+    component: {
+        "changed": any(path in updates for path in members),
+        "changedPaths": [str(path) for path in members if path in updates],
+    }
+    for component, members in component_paths.items()
+}
+Path(os.environ["UB_STATUS_FILE"]).write_text(json.dumps(status, sort_keys=True))
+
+for path in (*source_paths, *generated_paths):
+    if path not in updates:
+        print(f"already clean: {path}")
+        continue
+    content = updates[path]
+    if WRITE:
+        if content is None:
+            path.unlink()
+            action = "removed"
+        else:
+            path.write_text(content)
+            action = "cleaned"
+    else:
+        action = "would remove" if content is None else "would clean"
+    print(f"{action}: {path}")
+PY
+}
+
 syntax_check_js() {
   bun build --no-bundle --target=node --outfile=/dev/null "$1" >/dev/null
+}
+
+semantic_check_core() {
+  UB_TEST_CORE="$1" UB_TEST_NATIVE="$NATIVE_LANGUAGE" bun -e '
+const core = require(process.env.UB_TEST_CORE);
+const native = process.env.UB_TEST_NATIVE;
+function expect(condition, message) { if (!condition) throw new Error(message); }
+const defaults = core.parseMlSpec(true, "content");
+expect(defaults.sourceLanguage === null && defaults.targetLanguage === native, "default content ML contract failed");
+const detected = core.parseMlSpec("es", "content");
+expect(detected.sourceLanguage === null && detected.targetLanguage === "es", "detected-source target contract failed");
+const explicit = core.parseMlSpec("en,es", "content");
+expect(explicit.sourceLanguage === "en" && explicit.targetLanguage === "es", "explicit source,target contract failed");
+const search = core.parseMlSpec("cn,rs", "search");
+expect(JSON.stringify(search.languages) === JSON.stringify(["zh", "ru"]), "search language-list contract changed");
+let rejected = false;
+try { core.parseMlSpec("en,es,fr", "content"); } catch { rejected = true; }
+expect(rejected, "content ML accepted more than source,target");
+'
 }
 
 component_changed() {
@@ -1188,6 +1336,122 @@ for key in ("firecrawl-cli", "anydoc", "firecrawl-v2"):
 PY
 }
 
+if [[ "$MODE" == uninstall ]]; then
+  export UB_WRITE=0
+  run_unpatcher
+  if ! any_component_changed; then
+    printf 'underbelly: integration is already absent\n'
+    exit 0
+  fi
+
+  mkdir -p "$STATE_ROOT"
+  readonly UNINSTALL_RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$$-uninstall"
+  readonly UNINSTALL_BACKUP_DIR="$STATE_ROOT/backups/$UNINSTALL_RUN_ID"
+  readonly UNINSTALL_MANIFEST="$UNINSTALL_BACKUP_DIR/manifest.tsv"
+  mkdir -p "$UNINSTALL_BACKUP_DIR/files"
+  : > "$UNINSTALL_MANIFEST"
+
+  uninstall_backup_path() {
+    local label=$1
+    local path=$2
+    printf '%s\t%s\n' "$label" "$path" >> "$UNINSTALL_MANIFEST"
+    if [[ -e "$path" ]]; then
+      cp -a -- "$path" "$UNINSTALL_BACKUP_DIR/files/$label"
+    else
+      : > "$UNINSTALL_BACKUP_DIR/files/$label.missing"
+    fi
+  }
+
+  uninstall_backup_path cli-index "$CLI_INDEX"
+  uninstall_backup_path cli-options "$CLI_OPTIONS"
+  uninstall_backup_path cli-search "$CLI_SEARCH"
+  uninstall_backup_path cli-scrape "$CLI_SCRAPE"
+  uninstall_backup_path cli-search-types "$CLI_SEARCH_TYPES"
+  uninstall_backup_path cli-scrape-types "$CLI_SCRAPE_TYPES"
+  uninstall_backup_path anydoc-cli "$ANYDOC_CLI"
+  uninstall_backup_path anydoc-core "$ANYDOC_CORE"
+  uninstall_backup_path firecrawl-routes "$FIRECRAWL_ROUTES"
+  uninstall_backup_path firecrawl-core "$FIRECRAWL_CORE"
+
+  UNINSTALL_FIRECRAWL_CHANGED=0
+  if component_changed firecrawl-v2; then
+    UNINSTALL_FIRECRAWL_CHANGED=1
+  fi
+  UNINSTALL_DOCKER_REPLACED=0
+
+  uninstall_rollback() {
+    local status=${1:-$?}
+    trap - ERR INT TERM
+    set +e
+    printf 'underbelly: unintegration failed; restoring touched files\n' >&2
+    while IFS=$'\t' read -r label path; do
+      if [[ -f "$UNINSTALL_BACKUP_DIR/files/$label.missing" ]]; then
+        rm -f -- "$path"
+      else
+        mkdir -p -- "$(dirname -- "$path")"
+        cp -a -- "$UNINSTALL_BACKUP_DIR/files/$label" "$path"
+      fi
+    done < "$UNINSTALL_MANIFEST"
+    if (( UNINSTALL_DOCKER_REPLACED )) && [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
+      (
+        cd "$FIRECRAWL_INSTALL_LOCATION" || exit
+        docker compose build api && docker compose up -d api
+      ) >&2
+    fi
+    exit "$status"
+  }
+  trap 'uninstall_rollback $?' ERR
+  trap 'uninstall_rollback 130' INT
+  trap 'uninstall_rollback 143' TERM
+
+  export UB_WRITE=1
+  run_unpatcher
+
+  for syntax_path in \
+    "$CLI_INDEX" "$CLI_OPTIONS" "$CLI_SEARCH" "$CLI_SCRAPE" "$ANYDOC_CLI"; do
+    [[ ! -f "$syntax_path" ]] || syntax_check_js "$syntax_path"
+  done
+
+  if (( UNINSTALL_FIRECRAWL_CHANGED )) && [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
+    if [[ ! -f "$FIRECRAWL_INSTALL_LOCATION/docker-compose.yaml" ]]; then
+      printf 'underbelly: cannot rebuild unintegrated Firecrawl; docker-compose.yaml is missing\n' >&2
+      false
+    fi
+    UNINSTALL_DOCKER_REPLACED=1
+    (
+      trap - ERR
+      cd "$FIRECRAWL_INSTALL_LOCATION"
+      docker compose build api
+      docker compose up -d api
+    )
+    for attempt in $(seq 1 60); do
+      if curl --fail --silent --max-time 3 http://127.0.0.1:3002/ >/dev/null 2>&1; then
+        break
+      fi
+      if (( attempt == 60 )); then
+        printf 'underbelly: unintegrated Firecrawl API did not become healthy\n' >&2
+        false
+      fi
+      sleep 1
+    done
+  fi
+
+  export UB_WRITE=0
+  run_unpatcher >/dev/null
+  if any_component_changed; then
+    printf 'underbelly: unintegration left owned files or markers behind\n' >&2
+    false
+  fi
+
+  ln -sfn "$UNINSTALL_BACKUP_DIR" "$STATE_ROOT/last-uninstall"
+  trap - ERR INT TERM
+  printf '%s\n' \
+    "underbelly: integration removed" \
+    "  backup: $UNINSTALL_BACKUP_DIR" \
+    "  only Underbelly-owned blocks and generated modules were changed"
+  exit 0
+fi
+
 if [[ "$MODE" == verify ]]; then
   export UB_WRITE=0
   run_patcher >/dev/null
@@ -1209,6 +1473,7 @@ if [[ "$MODE" == verify ]]; then
     exit 1
   }
   syntax_check_js "$ANYDOC_CORE"
+  semantic_check_core "$ANYDOC_CORE"
   syntax_check_js "$CLI_INDEX"
   syntax_check_js "$CLI_OPTIONS"
   syntax_check_js "$CLI_SEARCH"
@@ -1307,6 +1572,7 @@ export UB_WRITE=1
 run_patcher
 
 syntax_check_js "$ANYDOC_CORE"
+semantic_check_core "$ANYDOC_CORE"
 syntax_check_js "$CLI_INDEX"
 syntax_check_js "$CLI_OPTIONS"
 syntax_check_js "$CLI_SEARCH"
