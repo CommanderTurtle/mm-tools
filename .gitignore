@@ -153,6 +153,10 @@
 !/translate/setupwithuv.sh
 !/translate/starthttp.sh
 !/translate/startwithuv.sh
+!/translate/README.md
+!/translate/tests/
+/translate/tests/*
+!/translate/tests/test_server.py
 !/translate/underbelly/
 /translate/underbelly/*
 !/translate/underbelly/config.env
@@ -208,6 +212,7 @@
 # beneath models/.
 !/models/
 /models/**
+!/models/ARCHITECTURE.md
 !/models/download_models.py
 !/models/download_models_info.txt
 !/models/which-ones.txt

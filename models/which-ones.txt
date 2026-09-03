@@ -19,8 +19,9 @@ source .venv/bin/activate
 uv pip install -U huggingface_hub hf_xet
 ```
 
-Interactive selection is the default. Press Enter at its selection prompt to
-retain the original behavior and download everything:
+Interactive mode asks for the file/Xet worker count first, then presents the
+bundle selection. Press Enter at the selection prompt to retain the original
+behavior and download everything:
 
 ```bash
 uv run download_models.py
@@ -30,9 +31,9 @@ The same choices work non-interactively by number or name:
 
 ```bash
 uv run download_models.py --list
-uv run download_models.py 2,6,10
+uv run download_models.py 2,6,10 --workers 24
 uv run download_models.py minimax stableaudio
-uv run download_models.py all --yes
+uv run download_models.py all --yes --workers 24
 ```
 
 Bundle selection numbers are deliberately separate from the 40 inventory
@@ -203,15 +204,21 @@ Used by: whisper through CW2_MODEL_PATH for literal, intended, alignment, and
 language-candidate transcription routes.
 
 11. mradermacher/EraX-Translator-V1.0-GGUF
-Expected folder: models/text-only/anhbn--raX-Translator-V1.0-GGUF
+Expected folder: models/text-only/mradermacher--EraX-Translator-V1.0-GGUF
 
 ```text
-models/text-only/anhbn--raX-Translator-V1.0-GGUF/
-└── EraX-Translator-V1.0.Q6_K.gguf
+models/text-only/mradermacher--EraX-Translator-V1.0-GGUF/
+└── EraX-Translator-V1.0.Q8_0.gguf
 ```
 
 Used by: translate through TRANSLATE_MODEL_PATH for the primary multilingual
 translation route.
+
+When this bundle is selected, the downloader moves the former
+`models/text-only/anhbn--raX-Translator-V1.0-GGUF` directory to the canonical
+path above if the canonical directory does not already exist. The move occurs
+after any interactive confirmation (or directly with `--yes`) and retains its
+local resumable-download metadata.
 
 12. papluca/xlm-roberta-base-language-detection
 Expected folder: models/text-only/papluca--xlm-roberta-base-language-detection
@@ -245,7 +252,8 @@ models/text-only/anhbn--EraX-VL-7B-V1.5-Openvino-INT4/
 └── openvino_vision_embeddings_merger_model.xml
 ```
 
-Used by: translate through TRANSLATE_ARBITER_MODEL_PATH for fragment ranking,
+Used by: translate through TRANSLATE_ARBITER_MODEL_PATH for image explanation,
+visible-text translation, custom visual questions, fragment ranking,
 ambiguous-language arbitration, and translation fallback.
 
 14. T5B/Qwen-Image-Layered-FP8

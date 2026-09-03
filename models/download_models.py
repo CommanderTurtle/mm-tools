@@ -10,7 +10,19 @@ from typing import Sequence
 
 # Current huggingface_hub uses its Xet transport for high-speed snapshots.
 os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"
-os.environ.setdefault("TOKIO_WORKER_THREADS", "16")
+CPU_DEFAULT_WORKERS = min(16, max(1, os.cpu_count() or 4))
+try:
+    ENV_DEFAULT_WORKERS = int(
+        os.environ.get("TOKIO_WORKER_THREADS", str(CPU_DEFAULT_WORKERS))
+    )
+except ValueError:
+    ENV_DEFAULT_WORKERS = CPU_DEFAULT_WORKERS
+DEFAULT_WORKERS = (
+    ENV_DEFAULT_WORKERS
+    if 1 <= ENV_DEFAULT_WORKERS <= 256
+    else CPU_DEFAULT_WORKERS
+)
+os.environ["TOKIO_WORKER_THREADS"] = str(DEFAULT_WORKERS)
 
 from huggingface_hub import logging, snapshot_download
 
@@ -20,6 +32,8 @@ from huggingface_hub import logging, snapshot_download
 MODELS = Path(__file__).resolve().parent
 ROOT = MODELS.parent
 SNAPSHOT_SUPPORTS_SYMLINK_FLAG = "local_dir_use_symlinks" in inspect.signature(snapshot_download).parameters
+LEGACY_TRANSLATOR_DIR = MODELS / "text-only/anhbn--raX-Translator-V1.0-GGUF"
+TRANSLATOR_DIR = MODELS / "text-only/mradermacher--EraX-Translator-V1.0-GGUF"
 
 
 @dataclass(frozen=True)
@@ -110,12 +124,20 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A(
                 "mradermacher/EraX-Translator-V1.0-GGUF",
-                model_path("text-only/anhbn--raX-Translator-V1.0-GGUF"),
-                ("EraX-Translator-V1.0.Q6_K.gguf",),
+                TRANSLATOR_DIR,
+                ("EraX-Translator-V1.0.Q8_0.gguf",),
             ),
             A(
                 "papluca/xlm-roberta-base-language-detection",
                 model_path("text-only/papluca--xlm-roberta-base-language-detection"),
+                (
+                    "config.json",
+                    "model.safetensors",
+                    "sentencepiece.bpe.model",
+                    "special_tokens_map.json",
+                    "tokenizer.json",
+                    "tokenizer_config.json",
+                ),
             ),
             A(
                 "anhbn/EraX-VL-7B-V1.5-Openvino-INT4",
@@ -374,7 +396,54 @@ def interactive_selection() -> tuple[Bundle, ...]:
             print(f"Error: {exc}", file=sys.stderr)
 
 
-def download_artifact(artifact: Artifact, number: int, total: int) -> None:
+def worker_count(value: str) -> int:
+    try:
+        workers = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("workers must be an integer") from exc
+    if not 1 <= workers <= 256:
+        raise argparse.ArgumentTypeError("workers must be between 1 and 256")
+    return workers
+
+
+def interactive_worker_count(default: int) -> int:
+    while True:
+        raw = input(
+            f"Parallel download workers / CPU threads [{default}]: "
+        ).strip()
+        if not raw:
+            return default
+        try:
+            return worker_count(raw)
+        except argparse.ArgumentTypeError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+
+
+def migrate_legacy_layout(bundles: Sequence[Bundle]) -> None:
+    if not any(bundle.key == "translate" for bundle in bundles):
+        return
+    if LEGACY_TRANSLATOR_DIR.exists() and not TRANSLATOR_DIR.exists():
+        TRANSLATOR_DIR.parent.mkdir(parents=True, exist_ok=True)
+        LEGACY_TRANSLATOR_DIR.rename(TRANSLATOR_DIR)
+        print(
+            "Migrated historical translator folder:\n"
+            f"  {LEGACY_TRANSLATOR_DIR}\n"
+            f"  -> {TRANSLATOR_DIR}"
+        )
+    elif LEGACY_TRANSLATOR_DIR.exists() and TRANSLATOR_DIR.exists():
+        print(
+            "Warning: both historical and canonical translator folders exist; "
+            "neither was moved.",
+            file=sys.stderr,
+        )
+
+
+def download_artifact(
+    artifact: Artifact,
+    number: int,
+    total: int,
+    workers: int,
+) -> None:
     # snapshot_download normally creates local_dir/cache_dir, but doing it here
     # guarantees that fresh nested roots such as qwen/ and text-only/ exist.
     artifact.destination.mkdir(parents=True, exist_ok=True)
@@ -384,6 +453,7 @@ def download_artifact(artifact: Artifact, number: int, total: int) -> None:
     kwargs: dict[str, object] = {
         "repo_id": artifact.repo_id,
         mode: artifact.destination,
+        "max_workers": workers,
     }
     # Older Hub releases need this to materialize local files. Current Hub
     # removed the argument and already uses real files for local_dir snapshots.
@@ -406,6 +476,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--all", action="store_true", dest="download_all", help="download every bundle")
     parser.add_argument("--list", action="store_true", help="show bundles and exit")
     parser.add_argument("--yes", action="store_true", help="skip the interactive confirmation")
+    parser.add_argument(
+        "--workers",
+        type=worker_count,
+        help="parallel Hub file workers and Xet Tokio worker threads (1-256)",
+    )
     parser.add_argument("--debug", action="store_true", help="enable verbose huggingface_hub logging")
     return parser
 
@@ -417,6 +492,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     MODELS.mkdir(parents=True, exist_ok=True)
+    workers = args.workers or DEFAULT_WORKERS
+    if args.workers is None and not args.yes and sys.stdin.isatty():
+        workers = interactive_worker_count(DEFAULT_WORKERS)
+    os.environ["TOKIO_WORKER_THREADS"] = str(workers)
     if args.download_all:
         bundles = BUNDLES
     elif args.selection:
@@ -442,6 +521,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         suffix = "s" if count != 1 else ""
         print(f"  - {bundle.title} ({count} snapshot{suffix})")
     print(f"Total snapshots: {len(artifacts)}")
+    print(f"Parallel workers: {workers}")
 
     if not args.yes and sys.stdin.isatty():
         answer = input("Continue? [Y/n]: ").strip().lower()
@@ -449,12 +529,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("Cancelled.")
             return 0
 
+    # Do not mutate the model store until the user has accepted the download.
+    # Renaming the complete local_dir also preserves Hugging Face's resumable
+    # metadata and any interrupted chunks beneath that directory.
+    migrate_legacy_layout(bundles)
+
     if args.debug:
         logging.set_verbosity_debug()
     else:
         logging.set_verbosity_info()
     for number, artifact in enumerate(artifacts, start=1):
-        download_artifact(artifact, number, len(artifacts))
+        download_artifact(artifact, number, len(artifacts), workers)
 
     print(f"\nCompleted {len(artifacts)} snapshot downloads.")
     return 0

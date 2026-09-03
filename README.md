@@ -31,12 +31,11 @@ cd ~ && git clone https://github.com/CommanderTurtle/mm-tools multimedia && cd m
 cd models
 uv venv --python 3.12.10 --seed --managed-python
 source .venv/bin/activate
-uv pip install huggingface_hub hf_xet hf_transfer
+uv pip install huggingface_hub hf_xet
 
-# Optional: export TOKIO_WORKER_THREADS to override the 16-thread default.
 uv run download_models.py
-# Select project bundles by number, or press Enter for all models.
-# Non-interactive full install: uv run download_models.py all --yes
+# Choose workers first, then select project bundles or press Enter for all.
+# Non-interactive full install: uv run download_models.py all --yes --workers 24
 deactivate # when done
 ```
 
@@ -296,7 +295,9 @@ Review `.env` before launch. Native Diffusers is the primary image lane; an exis
 
 ### Translate
 
-Local EraX translation, language classification, and the optional INT4 arbitration lane.
+Local EraX text translation, language classification, and a shared INT4
+multimodal lane for image explanation, OCR translation, custom visual prompts,
+and spoken-language arbitration.
 
 ```bash
 cd ~/multimedia/translate
