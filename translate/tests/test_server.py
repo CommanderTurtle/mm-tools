@@ -4,6 +4,7 @@ import io
 import unittest
 from types import SimpleNamespace
 
+from local_app.server import RequestBodyLimitMiddleware
 from server import ApiHandler, _decode_image_array, _vision_prompt
 
 
@@ -87,6 +88,70 @@ class RequestBodyTests(unittest.TestCase):
             app=SimpleNamespace(max_body_bytes=1),
         )
         self.assertEqual(ApiHandler._body(request, max_bytes=2), {})
+
+
+class UiRequestBodyLimitTests(unittest.IsolatedAsyncioTestCase):
+    async def _request(
+        self,
+        *,
+        path: str,
+        chunks: list[bytes],
+        content_length: bytes | None = None,
+    ) -> tuple[bool, list[dict[str, object]]]:
+        called = False
+
+        async def downstream(scope, receive, send) -> None:
+            nonlocal called
+            called = True
+            while (await receive()).get("more_body", False):
+                pass
+
+        messages = [
+            {
+                "type": "http.request",
+                "body": chunk,
+                "more_body": index + 1 < len(chunks),
+            }
+            for index, chunk in enumerate(chunks)
+        ]
+
+        async def receive() -> dict[str, object]:
+            return messages.pop(0)
+
+        sent: list[dict[str, object]] = []
+
+        async def send(message: dict[str, object]) -> None:
+            sent.append(message)
+
+        headers = [] if content_length is None else [(b"content-length", content_length)]
+        middleware = RequestBodyLimitMiddleware(
+            downstream, max_body_bytes=4, max_vision_body_bytes=8
+        )
+        await middleware(
+            {"type": "http", "method": "POST", "path": path, "headers": headers},
+            receive,
+            send,
+        )
+        return called, sent
+
+    async def test_chunked_vision_body_is_rejected_before_fastapi(self) -> None:
+        called, sent = await self._request(path="/api/vision", chunks=[b"1234", b"56789"])
+        self.assertFalse(called)
+        self.assertEqual(sent[0]["status"], 413)
+
+    async def test_declared_oversize_is_rejected_without_reading(self) -> None:
+        called, sent = await self._request(
+            path="/api/translate", chunks=[b"{}"], content_length=b"5"
+        )
+        self.assertFalse(called)
+        self.assertEqual(sent[0]["status"], 413)
+
+    async def test_body_at_limit_replays_to_fastapi(self) -> None:
+        called, sent = await self._request(
+            path="/api/translate", chunks=[b"12", b"34"]
+        )
+        self.assertTrue(called)
+        self.assertEqual(sent, [])
 
 
 if __name__ == "__main__":

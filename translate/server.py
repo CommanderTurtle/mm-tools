@@ -334,10 +334,13 @@ class TranslationEngine:
         instruction = _vision_prompt(
             mode, prompt, source_language, target_language
         )
-        image = _decode_image_array(
-            image_data_url, self.max_image_bytes, self.max_image_pixels
-        )
         with self._lock:
+            # Decoding can transiently allocate a full RGB frame. Keep it in
+            # the same single-flight section as VLM generation so concurrent
+            # LAN requests cannot multiply that peak allocation.
+            image = _decode_image_array(
+                image_data_url, self.max_image_bytes, self.max_image_pixels
+            )
             self.load()
             assert self._arbiter is not None
             assert self._openvino is not None

@@ -6,10 +6,10 @@ import urllib.error
 import urllib.request
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Awaitable, Callable, Literal
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
@@ -33,6 +33,84 @@ EXTERNAL_TIMEOUT = float(os.getenv("TRANSLATE_EXTERNAL_TIMEOUT", "10"))
 VISION_EXTERNAL_TIMEOUT = float(
     os.getenv("TRANSLATE_VISION_EXTERNAL_TIMEOUT", "180")
 )
+MAX_BODY_BYTES = int(os.getenv("TRANSLATE_MAX_BODY_BYTES", "1048576"))
+MAX_VISION_BODY_BYTES = int(
+    os.getenv("TRANSLATE_MAX_VISION_BODY_BYTES", "33554432")
+)
+
+
+class RequestBodyLimitMiddleware:
+    """Bound UI API request bodies even when Content-Length is absent or false."""
+
+    def __init__(
+        self,
+        app: Callable[..., Awaitable[None]],
+        max_body_bytes: int,
+        max_vision_body_bytes: int,
+    ) -> None:
+        self.app = app
+        self.max_body_bytes = max_body_bytes
+        self.max_vision_body_bytes = max_vision_body_bytes
+
+    async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
+        if scope.get("type") != "http" or scope.get("method") != "POST":
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path", "")
+        if path == "/api/vision":
+            limit = self.max_vision_body_bytes
+        elif path == "/api/translate":
+            limit = self.max_body_bytes
+        else:
+            await self.app(scope, receive, send)
+            return
+
+        headers = {key.lower(): value for key, value in scope.get("headers", [])}
+        declared = headers.get(b"content-length")
+        if declared is not None:
+            try:
+                declared_size = int(declared)
+            except ValueError:
+                await JSONResponse(
+                    {"detail": "Content-Length must be an integer"}, status_code=400
+                )(scope, receive, send)
+                return
+            if declared_size < 0:
+                await JSONResponse(
+                    {"detail": "Content-Length must not be negative"}, status_code=400
+                )(scope, receive, send)
+                return
+            if declared_size > limit:
+                await JSONResponse(
+                    {"detail": f"request body exceeds the {limit}-byte limit"},
+                    status_code=413,
+                )(scope, receive, send)
+                return
+
+        messages: list[dict[str, Any]] = []
+        total = 0
+        while True:
+            message = await receive()
+            messages.append(message)
+            if message.get("type") != "http.request":
+                break
+            total += len(message.get("body", b""))
+            if total > limit:
+                await JSONResponse(
+                    {"detail": f"request body exceeds the {limit}-byte limit"},
+                    status_code=413,
+                )(scope, receive, send)
+                return
+            if not message.get("more_body", False):
+                break
+
+        async def replay() -> dict[str, Any]:
+            if messages:
+                return messages.pop(0)
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        await self.app(scope, replay, send)
 
 
 def _new_engine() -> TranslationEngine:
@@ -94,6 +172,11 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Translate Local Workbench", lifespan=lifespan)
+app.add_middleware(
+    RequestBodyLimitMiddleware,
+    max_body_bytes=MAX_BODY_BYTES,
+    max_vision_body_bytes=MAX_VISION_BODY_BYTES,
+)
 app.mount("/assets", StaticFiles(directory=WEB), name="assets")
 
 
