@@ -20,6 +20,7 @@ from server import (
     DETECTOR_ID,
     LANGUAGE_NAMES,
     MODEL_ID,
+    VISION_ID,
     TranslationEngine,
     _env_path,
 )
@@ -29,14 +30,17 @@ WEB = Path(__file__).resolve().parents[1] / "web"
 EXTERNAL_HOST = os.getenv("TRANSLATE_EXTERNAL_HOST", "127.0.0.1")
 EXTERNAL_PORT = int(os.getenv("TRANSLATE_PORT", "8176"))
 EXTERNAL_TIMEOUT = float(os.getenv("TRANSLATE_EXTERNAL_TIMEOUT", "10"))
+VISION_EXTERNAL_TIMEOUT = float(
+    os.getenv("TRANSLATE_VISION_EXTERNAL_TIMEOUT", "180")
+)
 
 
 def _new_engine() -> TranslationEngine:
     return TranslationEngine(
         model_path=_env_path(
             "TRANSLATE_MODEL_PATH",
-            "~/multimedia/models/text-only/anhbn--raX-Translator-V1.0-GGUF/"
-            "EraX-Translator-V1.0.Q6_K.gguf",
+            "~/multimedia/models/text-only/mradermacher--EraX-Translator-V1.0-GGUF/"
+            "EraX-Translator-V1.0.Q8_0.gguf",
         ),
         detector_path=_env_path(
             "TRANSLATE_DETECTOR_PATH",
@@ -54,6 +58,9 @@ def _new_engine() -> TranslationEngine:
         arbiter_device=os.getenv("TRANSLATE_ARBITER_DEVICE", "CPU"),
         arbiter_max_tokens=int(os.getenv("TRANSLATE_ARBITER_MAX_TOKENS", "16")),
         arbiter_finalists=int(os.getenv("TRANSLATE_ARBITER_FINALISTS", "4")),
+        vision_max_tokens=int(os.getenv("TRANSLATE_VISION_MAX_TOKENS", "512")),
+        max_image_bytes=int(os.getenv("TRANSLATE_MAX_IMAGE_BYTES", "20971520")),
+        max_image_pixels=int(os.getenv("TRANSLATE_MAX_IMAGE_PIXELS", "50000000")),
         max_tokens=int(os.getenv("TRANSLATE_MAX_TOKENS", "512")),
         n_ctx=int(os.getenv("TRANSLATE_CONTEXT", "2048")),
         n_gpu_layers=int(os.getenv("TRANSLATE_GPU_LAYERS", "-1")),
@@ -99,12 +106,24 @@ class TranslationRequest(BaseModel):
     backend: Literal["local", "external"] = "local"
 
 
+class VisionRequest(BaseModel):
+    image_data_url: str = Field(min_length=1)
+    mode: Literal["explain", "translate", "custom"] = "explain"
+    prompt: str = ""
+    source_language: str = "auto"
+    target_language: str = "English"
+    max_tokens: int | None = Field(default=None, ge=1, le=2048)
+    backend: Literal["local", "external"] = "local"
+
+
 def _external_url(path: str) -> str:
     return f"http://{EXTERNAL_HOST}:{EXTERNAL_PORT}{path}"
 
 
 def _external_request(
-    path: str, payload: dict[str, Any] | None = None
+    path: str,
+    payload: dict[str, Any] | None = None,
+    timeout: float = EXTERNAL_TIMEOUT,
 ) -> dict[str, Any]:
     headers = {"Accept": "application/json"}
     api_key = os.getenv("TRANSLATE_API_KEY", "").strip()
@@ -118,7 +137,7 @@ def _external_request(
         _external_url(path), data=data, headers=headers, method="POST" if data else "GET"
     )
     try:
-        with urllib.request.urlopen(request, timeout=EXTERNAL_TIMEOUT) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             value = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         message = exc.read().decode("utf-8", errors="replace").strip()
@@ -150,6 +169,7 @@ def health() -> dict[str, Any]:
         "arbiter": ARBITER_ID,
         "runtime": "UI-local · llama.cpp + OpenVINO INT4 + transformers-cpu",
         "model_present": engine.model_path.is_file(),
+        "vision": {"model": VISION_ID, "modes": ["explain", "translate", "custom"]},
         "cloud": False,
     }
 
@@ -216,4 +236,30 @@ def translate(request: TranslationRequest) -> dict[str, Any]:
         "source_language": source,
         "source_confidence": confidence,
         "model": MODEL_ID,
+    }
+
+
+@app.post("/api/vision")
+def vision(request: VisionRequest) -> dict[str, Any]:
+    payload = request.model_dump(exclude={"backend"})
+    if request.backend == "external":
+        try:
+            result = _external_request(
+                "/vision", payload, timeout=VISION_EXTERNAL_TIMEOUT
+            )
+        except RuntimeError as exc:
+            raise HTTPException(503, str(exc)) from exc
+        return {"backend": "external", **result}
+
+    try:
+        output, mode = engine.analyze_image(**payload)
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(500, f"Image inference failed: {exc}") from exc
+    return {
+        "backend": "local",
+        "output": output,
+        "mode": mode,
+        "model": VISION_ID,
     }

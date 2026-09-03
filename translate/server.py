@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import gc
+import io
 import json
 import os
 import re
@@ -16,9 +19,11 @@ from pathlib import Path
 from typing import Any
 
 
-MODEL_ID = "erax-translator-v1.0-q6-k"
+MODEL_ID = "erax-translator-v1.0-q8-0"
 DETECTOR_ID = "xlm-roberta-base-language-detection"
 ARBITER_ID = "erax-vl-7b-v1.5-openvino-int4"
+VISION_ID = ARBITER_ID
+VISION_MODES = ("explain", "translate", "custom")
 DEFAULT_SYSTEM_PROMPT = (
     "Bạn là hệ thống dịch thuật đa ngôn ngữ. Dịch đầy đủ và sát nghĩa sang "
     "ngôn ngữ được yêu cầu. Giữ nguyên tên, số, định dạng, lời tục và giọng "
@@ -89,6 +94,9 @@ class TranslationEngine:
         arbiter_device: str,
         arbiter_max_tokens: int,
         arbiter_finalists: int,
+        vision_max_tokens: int,
+        max_image_bytes: int,
+        max_image_pixels: int,
         max_tokens: int,
         n_ctx: int,
         n_gpu_layers: int,
@@ -101,6 +109,9 @@ class TranslationEngine:
         self.arbiter_device = arbiter_device
         self.arbiter_max_tokens = max(8, arbiter_max_tokens)
         self.arbiter_finalists = min(8, max(2, arbiter_finalists))
+        self.vision_max_tokens = max(16, vision_max_tokens)
+        self.max_image_bytes = max(1, max_image_bytes)
+        self.max_image_pixels = max(1, max_image_pixels)
         self.max_tokens = max(1, max_tokens)
         self.n_ctx = max(1024, n_ctx)
         self.n_gpu_layers = n_gpu_layers
@@ -109,6 +120,7 @@ class TranslationEngine:
         self._detector_tokenizer: Any | None = None
         self._detector: Any | None = None
         self._arbiter: Any | None = None
+        self._openvino: Any | None = None
         self._openvino_genai: Any | None = None
         self._torch: Any | None = None
         self._lock = threading.RLock()
@@ -133,6 +145,7 @@ class TranslationEngine:
                 raise RuntimeError(f"EraX-VL OpenVINO model not found: {self.arbiter_model_path}")
 
             from llama_cpp import Llama
+            import openvino
             import openvino_genai
             import torch
             from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -161,6 +174,7 @@ class TranslationEngine:
             self._arbiter = openvino_genai.VLMPipeline(
                 arbiter_runtime, self.arbiter_device
             )
+            self._openvino = openvino
             self._openvino_genai = openvino_genai
             torch.set_num_threads(self.n_threads)
             self._torch = torch
@@ -171,6 +185,7 @@ class TranslationEngine:
             self._detector = None
             self._detector_tokenizer = None
             self._arbiter = None
+            self._openvino = None
             self._openvino_genai = None
             self._torch = None
             gc.collect()
@@ -305,6 +320,43 @@ class TranslationEngine:
         if not translated:
             raise RuntimeError("EraX-VL returned an empty translation")
         return translated
+
+    def analyze_image(
+        self,
+        image_data_url: str,
+        mode: str = "explain",
+        prompt: str = "",
+        source_language: str = "auto",
+        target_language: str = "English",
+        max_tokens: int | None = None,
+    ) -> tuple[str, str]:
+        """Run one stateless image request through the resident EraX-VL lane."""
+        instruction = _vision_prompt(
+            mode, prompt, source_language, target_language
+        )
+        image = _decode_image_array(
+            image_data_url, self.max_image_bytes, self.max_image_pixels
+        )
+        with self._lock:
+            self.load()
+            assert self._arbiter is not None
+            assert self._openvino is not None
+            assert self._openvino_genai is not None
+            config = self._openvino_genai.GenerationConfig()
+            config.max_new_tokens = min(
+                max(1, max_tokens or self.vision_max_tokens),
+                self.vision_max_tokens,
+            )
+            config.do_sample = False
+            generated = self._arbiter.generate(
+                instruction,
+                images=[self._openvino.Tensor(image)],
+                generation_config=config,
+            )
+        output = _openvino_text(generated).strip()
+        if not output:
+            raise RuntimeError("EraX-VL returned an empty image response")
+        return output, mode.strip().lower()
 
     def arbitrate_candidates(self, candidates: object) -> dict[str, Any]:
         """Resolve one utterance without turning detection into sticky state.
@@ -474,9 +526,12 @@ class ApiHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _body(self) -> dict[str, Any]:
+    def _body(self, max_bytes: int | None = None) -> dict[str, Any]:
         size = int(self.headers.get("Content-Length", "0"))
-        if size > self.app.max_body_bytes:
+        if size < 0:
+            raise ValueError("Content-Length must not be negative")
+        limit = self.app.max_body_bytes if max_bytes is None else max_bytes
+        if size > limit:
             raise ValueError("request body is too large")
         value = json.loads(self.rfile.read(size) or b"{}")
         if not isinstance(value, dict):
@@ -492,11 +547,15 @@ class ApiHandler(BaseHTTPRequestHandler):
                 "status": "ok", "loaded": self.app.engine.loaded,
                 "model": MODEL_ID, "detector": DETECTOR_ID, "arbiter": ARBITER_ID,
                 "runtime": "llama.cpp + OpenVINO INT4 + transformers-cpu",
+                "vision": {"model": VISION_ID, "modes": list(VISION_MODES)},
                 "cloud": False,
             })
         elif self.path == "/v1/models":
             self._json(HTTPStatus.OK, {
-                "object": "list", "data": [{"id": MODEL_ID, "object": "model"}]
+                "object": "list", "data": [
+                    {"id": MODEL_ID, "object": "model", "capabilities": ["translation"]},
+                    {"id": VISION_ID, "object": "model", "capabilities": ["vision", "ocr", "vqa"]},
+                ]
             })
         else:
             self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
@@ -506,7 +565,11 @@ class ApiHandler(BaseHTTPRequestHandler):
             self._json(HTTPStatus.UNAUTHORIZED, {"error": "unauthorized"})
             return
         try:
-            body = self._body()
+            body = self._body(
+                self.app.max_vision_body_bytes
+                if self.path == "/vision"
+                else None
+            )
             if self.path == "/load":
                 self.app.engine.load()
                 result: dict[str, Any] = {"status": "loaded", "model": MODEL_ID}
@@ -530,6 +593,16 @@ class ApiHandler(BaseHTTPRequestHandler):
                     "translation": translation, "source_language": language,
                     "source_confidence": confidence, "model": MODEL_ID,
                 }
+            elif self.path == "/vision":
+                output, mode = self.app.engine.analyze_image(
+                    image_data_url=str(body.get("image_data_url", "")),
+                    mode=str(body.get("mode", "explain")),
+                    prompt=str(body.get("prompt", "")),
+                    source_language=str(body.get("source_language", "auto")),
+                    target_language=str(body.get("target_language", "English")),
+                    max_tokens=_optional_int(body.get("max_tokens")),
+                )
+                result = {"output": output, "mode": mode, "model": VISION_ID}
             elif self.path == "/v1/chat/completions":
                 text, source, target = _translation_request(body.get("messages", []))
                 content, _, _ = self.app.engine.translate(
@@ -553,15 +626,105 @@ class ApiHandler(BaseHTTPRequestHandler):
 class TranslationServer(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, address: tuple[str, int], engine: TranslationEngine, api_key: str, max_body_bytes: int) -> None:
+    def __init__(
+        self,
+        address: tuple[str, int],
+        engine: TranslationEngine,
+        api_key: str,
+        max_body_bytes: int,
+        max_vision_body_bytes: int,
+    ) -> None:
         super().__init__(address, ApiHandler)
         self.engine = engine
         self.api_key = api_key
         self.max_body_bytes = max_body_bytes
+        self.max_vision_body_bytes = max_vision_body_bytes
 
 
 def _optional_int(value: object) -> int | None:
     return None if value is None else int(value)
+
+
+def _vision_prompt(
+    mode: str,
+    prompt: str,
+    source_language: str,
+    target_language: str,
+) -> str:
+    normalized = mode.strip().lower()
+    if normalized not in VISION_MODES:
+        raise ValueError(
+            f"mode must be one of: {', '.join(VISION_MODES)}"
+        )
+    if normalized == "custom":
+        value = prompt.strip()
+        if not value:
+            raise ValueError("prompt is required when mode is custom")
+        return value
+    target_key = target_language.strip().lower()
+    target = LANGUAGE_NAMES.get(target_key, target_language.strip())
+    if not target:
+        raise ValueError("target_language is empty")
+    if normalized == "explain":
+        return (
+            "Describe and explain this image accurately and concisely. "
+            "Include important visible text, labels, relationships, and context. "
+            f"Respond in {target}. Do not invent details that are not visible."
+        )
+
+    source_key = source_language.strip().lower()
+    source = LANGUAGE_NAMES.get(source_key, source_language.strip())
+    source_hint = "Detect the source language." if source_key in {
+        "", "auto", "detect"
+    } else f"The visible text is in {source}."
+    return (
+        "Read every meaningful piece of visible text in the image. "
+        f"{source_hint} Translate it into {target}. "
+        "Preserve the document order, line breaks, names, numbers, URLs, code, "
+        "and formatting as closely as possible. Return only the translation."
+    )
+
+
+def _decode_image_array(
+    image_data_url: str,
+    max_image_bytes: int,
+    max_image_pixels: int,
+) -> Any:
+    value = image_data_url.strip()
+    header, separator, payload = value.partition(",")
+    if not separator or not header.lower().startswith("data:image/"):
+        raise ValueError("image_data_url must be a base64 image data URL")
+    if ";base64" not in header.lower():
+        raise ValueError("image_data_url must use base64 encoding")
+    try:
+        raw = base64.b64decode(payload, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise ValueError("image_data_url contains invalid base64") from exc
+    if not raw:
+        raise ValueError("image data is empty")
+    if len(raw) > max_image_bytes:
+        raise ValueError(
+            f"decoded image exceeds the {max_image_bytes}-byte limit"
+        )
+
+    import numpy as np
+    from PIL import Image, ImageOps, UnidentifiedImageError
+
+    try:
+        with Image.open(io.BytesIO(raw)) as opened:
+            width, height = opened.size
+            if width <= 0 or height <= 0:
+                raise ValueError("image dimensions are invalid")
+            if width * height > max_image_pixels:
+                raise ValueError(
+                    f"image exceeds the {max_image_pixels}-pixel limit"
+                )
+            image = ImageOps.exif_transpose(opened).convert("RGB")
+            return np.ascontiguousarray(np.array(image, dtype=np.uint8, copy=True))
+    except Image.DecompressionBombError as exc:
+        raise ValueError("image exceeds safe pixel limits") from exc
+    except (UnidentifiedImageError, OSError) as exc:
+        raise ValueError("image data could not be decoded") from exc
 
 
 def _normalize_candidates(value: object) -> list[dict[str, Any]]:
@@ -708,21 +871,27 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=int(os.environ.get("TRANSLATE_PORT", "8176")))
     args = parser.parse_args()
     engine = TranslationEngine(
-        model_path=_env_path("TRANSLATE_MODEL_PATH", "~/multimedia/models/text-only/anhbn--raX-Translator-V1.0-GGUF/EraX-Translator-V1.0.Q6_K.gguf"),
+        model_path=_env_path("TRANSLATE_MODEL_PATH", "~/multimedia/models/text-only/mradermacher--EraX-Translator-V1.0-GGUF/EraX-Translator-V1.0.Q8_0.gguf"),
         detector_path=_env_path("TRANSLATE_DETECTOR_PATH", "~/multimedia/models/text-only/papluca--xlm-roberta-base-language-detection"),
         arbiter_model_path=_env_path("TRANSLATE_ARBITER_MODEL_PATH", "~/multimedia/models/text-only/anhbn--EraX-VL-7B-V1.5-Openvino-INT4"),
         arbiter_runtime_path=_env_path("TRANSLATE_ARBITER_RUNTIME_PATH", "~/multimedia/translate/.runtime/erax-vl-openvino"),
         arbiter_device=os.environ.get("TRANSLATE_ARBITER_DEVICE", "CPU"),
         arbiter_max_tokens=int(os.environ.get("TRANSLATE_ARBITER_MAX_TOKENS", "16")),
         arbiter_finalists=int(os.environ.get("TRANSLATE_ARBITER_FINALISTS", "4")),
+        vision_max_tokens=int(os.environ.get("TRANSLATE_VISION_MAX_TOKENS", "512")),
+        max_image_bytes=int(os.environ.get("TRANSLATE_MAX_IMAGE_BYTES", "20971520")),
+        max_image_pixels=int(os.environ.get("TRANSLATE_MAX_IMAGE_PIXELS", "50000000")),
         max_tokens=int(os.environ.get("TRANSLATE_MAX_TOKENS", "512")),
         n_ctx=int(os.environ.get("TRANSLATE_CONTEXT", "2048")),
         n_gpu_layers=int(os.environ.get("TRANSLATE_GPU_LAYERS", "-1")),
         n_threads=int(os.environ.get("TRANSLATE_THREADS", str(max(1, (os.cpu_count() or 4) // 2)))),
     )
     server = TranslationServer(
-        (args.host, args.port), engine, os.environ.get("TRANSLATE_API_KEY", ""),
+        (args.host, args.port),
+        engine,
+        os.environ.get("TRANSLATE_API_KEY", ""),
         int(os.environ.get("TRANSLATE_MAX_BODY_BYTES", "1048576")),
+        int(os.environ.get("TRANSLATE_MAX_VISION_BODY_BYTES", "33554432")),
     )
     if os.environ.get("TRANSLATE_AUTOLOAD", "1").strip().lower() not in {"0", "false", "no"}:
         engine.load()

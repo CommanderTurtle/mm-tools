@@ -3,6 +3,7 @@ let useExternal = false;
 let localLoaded = false;
 let languages = {};
 let showMarkdownPreview = false;
+let visionDataUrl = "";
 
 async function request(path, options = {}) {
   const response = await fetch(path, {
@@ -140,6 +141,25 @@ function syncOutputView() {
   else preview.replaceChildren();
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => resolve(String(reader.result || '')));
+    reader.addEventListener('error', () => reject(reader.error || new Error('Could not read image')));
+    reader.readAsDataURL(file);
+  });
+}
+
+function syncVisionMode() {
+  const mode = $('#vision-mode').value;
+  $('#vision-prompt-label').hidden = mode !== 'custom';
+  $('#vision-hint').textContent = mode === 'translate'
+    ? 'Uses From and To above; Detect is supported.'
+    : mode === 'custom'
+      ? 'The custom instruction is sent verbatim with the image.'
+      : 'Uses the resident CPU INT4 vision model.';
+}
+
 function renderRuntime(state, label) {
   $('#runtime').textContent = `${label} · ${state.runtime} · ${state.loaded ? 'loaded' : 'unloaded'} · cloud ${state.cloud ? 'on' : 'off'}`;
 }
@@ -199,6 +219,65 @@ $('#preview-toggle').addEventListener('click', () => {
   if (!$('#output').value) return;
   showMarkdownPreview = !showMarkdownPreview;
   syncOutputView();
+});
+
+$('#vision-mode').addEventListener('change', syncVisionMode);
+$('#vision-file').addEventListener('change', async () => {
+  const file = $('#vision-file').files?.[0];
+  visionDataUrl = '';
+  $('#vision-preview').hidden = true;
+  $('#vision-output').value = '';
+  $('#vision-copy').disabled = true;
+  if (!file) {
+    $('#vision-file-meta').textContent = 'Nothing leaves this machine.';
+    return;
+  }
+  if (!file.type.startsWith('image/')) {
+    $('#vision-file-meta').textContent = 'Choose a browser-readable image.';
+    return;
+  }
+  try {
+    visionDataUrl = await readFileAsDataUrl(file);
+    $('#vision-preview').src = visionDataUrl;
+    $('#vision-preview').hidden = false;
+    $('#vision-file-meta').textContent = `${file.name} · ${(file.size / 1048576).toFixed(2)} MiB`;
+  } catch (error) {
+    setStatus(`Image unavailable: ${error.message}`);
+  }
+});
+
+$('#vision-copy').addEventListener('click', async () => {
+  await navigator.clipboard.writeText($('#vision-output').value);
+  setStatus('Image response copied');
+});
+
+$('#vision-run').addEventListener('click', async () => {
+  if (!visionDataUrl) { setStatus('Select an image first.'); return; }
+  const mode = $('#vision-mode').value;
+  const prompt = $('#vision-prompt').value.trim();
+  if (mode === 'custom' && !prompt) { setStatus('Enter a custom image prompt.'); return; }
+  const button = $('#vision-run');
+  button.disabled = true;
+  $('#vision-copy').disabled = true;
+  setStatus(useExternal ? 'Reading image with the attached service…' : 'Reading image with the UI-local vision model…');
+  try {
+    const payload = await (await request('/api/vision', {
+      method: 'POST',
+      body: JSON.stringify({
+        image_data_url: visionDataUrl,
+        mode,
+        prompt,
+        source_language: $('#source-language').value,
+        target_language: $('#target-language').value,
+        max_tokens: Number($('#vision-max-tokens').value),
+        backend: useExternal ? 'external' : 'local',
+      }),
+    })).json();
+    $('#vision-output').value = payload.output;
+    $('#vision-copy').disabled = !payload.output;
+    setStatus(`Image ${payload.mode} complete · ${payload.backend === 'external' ? 'External' : 'UI-local'}`);
+  } catch (error) { setStatus(error.message); }
+  finally { button.disabled = false; await health(); }
 });
 
 $('#swap').addEventListener('click', () => {
@@ -273,3 +352,4 @@ document.addEventListener('keydown', event => {
 });
 
 initialize();
+syncVisionMode();

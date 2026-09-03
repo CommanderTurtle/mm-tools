@@ -12,7 +12,7 @@
       <div>
         <p class="eyebrow">PRIVATE MULTILINGUAL WORKBENCH</p>
         <h1>Translate<span>Local</span></h1>
-        <p class="lede">Language detection, multilingual translation, and deterministic local model control in one quiet workspace.</p>
+        <p class="lede">Language detection, multilingual translation, image understanding, and deterministic local model control in one quiet workspace.</p>
       </div>
       <div id="runtime" class="runtime">Checking runtime…</div>
     </header>
@@ -55,6 +55,47 @@
     <section class="runbar">
       <label>Maximum output tokens <input id="max-tokens" type="number" min="16" max="2048" value="512"></label>
       <button id="translate" class="primary">Translate locally <kbd>Ctrl ↵</kbd></button>
+    </section>
+
+    <section class="vision-panel" aria-labelledby="vision-title">
+      <div class="vision-heading">
+        <div>
+          <p class="eyebrow">ERAX-VL · LOCAL IMAGE LANE</p>
+          <h2 id="vision-title">Read the image.</h2>
+        </div>
+        <p>Explain a scene, translate visible text with the language selectors above, or supply an exact prompt.</p>
+      </div>
+      <div class="vision-grid">
+        <label class="vision-drop" for="vision-file">
+          <input id="vision-file" type="file" accept="image/*,.avif,.bmp,.gif,.jpeg,.jpg,.png,.tif,.tiff,.webp">
+          <span>Select an image</span>
+          <small id="vision-file-meta">Nothing leaves this machine.</small>
+          <img id="vision-preview" alt="Selected image preview" hidden>
+        </label>
+        <div class="vision-workbench">
+          <div class="vision-controls">
+            <label>Task
+              <select id="vision-mode">
+                <option value="explain">Explain image</option>
+                <option value="translate">Translate visible text</option>
+                <option value="custom">Custom prompt</option>
+              </select>
+            </label>
+            <label>Maximum output tokens
+              <input id="vision-max-tokens" type="number" min="16" max="2048" value="512">
+            </label>
+          </div>
+          <label id="vision-prompt-label" hidden>Prompt
+            <textarea id="vision-prompt" rows="4" placeholder="Ask EraX-VL something specific about this image…"></textarea>
+          </label>
+          <div class="vision-output-head">
+            <span id="vision-hint">Uses the resident CPU INT4 vision model.</span>
+            <button id="vision-copy" class="icon" type="button" disabled>Copy</button>
+          </div>
+          <textarea id="vision-output" readonly placeholder="Image response appears here…"></textarea>
+          <button id="vision-run" class="primary" type="button">Run image locally</button>
+        </div>
+      </div>
     </section>
   </main>
   <script src="/assets/app.js" defer></script>
