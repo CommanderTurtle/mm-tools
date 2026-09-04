@@ -2,18 +2,23 @@
 from __future__ import annotations
 
 
-def caption_graph(image: str, model: str, instruction: str, schema: str) -> dict:
+def caption_graph(image: str, model: str, instruction: str, schema: str, seed: int | None = None) -> dict:
     prompt = (schema + "\nDescribe the supplied image AFTER the requested edit. Preserve its camera, "
               "lighting and all unedited objects. Omit objects requested for removal; describe the "
               "background that should fill their location. Return only caption JSON, no explanation.\n"
               "Requested edit: " + instruction)
-    return {
+    graph = {
         "1": {"class_type": "LoadImage", "inputs": {"image": image}},
         "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": model, "type": "krea2", "device": "default"}},
         "3": {"class_type": "TextGenerate", "inputs": {"clip": ["2", 0], "image": ["1", 0], "prompt": prompt,
                 "max_length": 2048, "sampling_mode": "off", "thinking": False, "use_default_template": True}},
         "4": {"class_type": "PreviewAny", "inputs": {"source": ["3", 0]}},
     }
+    if seed is not None:
+        graph["3"]["inputs"].update({"sampling_mode": "on", "sampling_mode.seed": seed,
+            "sampling_mode.temperature": .25, "sampling_mode.top_k": 40, "sampling_mode.top_p": .9,
+            "sampling_mode.min_p": .05, "sampling_mode.repetition_penalty": 1.05})
+    return graph
 
 
 def inpaint_graph(image: str, mask: str, caption: str, width: int, height: int,

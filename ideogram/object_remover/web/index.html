@@ -36,6 +36,7 @@
       <label>Fuzzy tolerance <input id="tolerance" type="range" min="0" max="100" value="24"><output id="tolerance-value">24</output></label>
       <div class="row"><button id="undo" class="quiet">Undo</button><button id="clear" class="quiet">Clear mask</button></div>
       <button id="cutout" class="quiet" disabled title="Keep painted foreground, make everything else transparent. No model or resizing.">Cut out selected foreground</button>
+      <button id="alpha-prepare" class="quiet" disabled title="Draft a local foreground alpha mask with full-resolution edge refinement, then inspect/refine it before making a cutout.">Auto-select foreground</button>
       <div class="row export-row">
         <button id="download-mask" class="quiet" disabled title="White selection on black, at the source image resolution">Mask PNG</button>
         <button id="download-comfy" class="quiet" disabled title="Original image with the selection encoded for ComfyUI's Load Image mask output">Comfy PNG</button>
@@ -47,7 +48,7 @@
       <div id="ai-controls" class="control-group">
         <label>Inference steps <input id="steps" type="number" min="4" max="60" value="20"></label>
         <label>Removal strength <input id="guidance" type="number" min="0" max="10" step=".1" value="2.5"></label>
-        <label>Seed <input id="seed" type="number" value="42"></label>
+        <label>Edit seed <input id="seed" type="text" inputmode="numeric" value="42"></label>
       </div>
       <div id="ideogram-controls" class="control-group hidden">
         <label>What should change?<textarea id="instruction" rows="4">Remove the selected object and reconstruct the background naturally. Preserve the lighting and unselected objects.</textarea></label>
@@ -60,9 +61,10 @@
           <label>Guidance <input id="ideogram-guidance" type="number" min="1" max="10" step=".1" value="4"></label>
           <label>Denoising <input id="strength" type="number" min=".1" max="1" step=".05" value="1"></label>
         </details>
+        <label>Caption seed <input id="caption-seed" type="text" inputmode="numeric" value="42"></label>
         <button id="caption-generate" class="quiet">Draft edit caption locally</button>
-        <details><summary>Review / edit caption JSON</summary><textarea id="caption" rows="10" spellcheck="false" placeholder="Leave empty to draft automatically before editing."></textarea></details>
-        <p class="export-help">The local vision model sees the selected crop. Re-draft after changing the image, mask, or crop context. Drafting and editing release their private engine afterward; other workbench models are unloaded first.</p>
+        <details><summary>Review / edit caption JSON</summary><textarea id="caption" rows="10" spellcheck="false" placeholder="Draft here, or draft and approve in the review screen."></textarea></details>
+        <p class="export-help">Review shows the actual crop and mask before running. Caption seed rerolls the wording; edit seed changes image sampling. Drafts are editable, and no diffusion runs until you approve.</p>
       </div>
       <div id="opencv-controls" class="control-group hidden">
         <label>Algorithm<select id="method"><option value="telea">Fast marching (Telea)</option><option value="navier-stokes">Navier–Stokes</option></select></label>
@@ -81,6 +83,17 @@
       </div>
     </section>
   </main>
+  <dialog id="edit-review" aria-labelledby="review-title">
+    <div class="review-heading"><h2 id="review-title">Review Ideogram removal</h2><button id="review-cancel" class="quiet">Back to mask</button></div>
+    <p id="review-geometry"></p>
+    <div class="review-previews"><figure><img id="review-source" alt="Prepared source crop"><figcaption>Source sent to the model</figcaption></figure><figure><img id="review-mask" alt="Prepared feathered edit mask"><figcaption>Editable pixels · red overlay is review-only</figcaption></figure></div>
+    <p id="review-warning" class="note"></p>
+    <label>Desired edit<textarea id="review-instruction" rows="3"></textarea></label>
+    <div class="review-seeds"><label>Caption seed<input id="review-caption-seed" type="text" inputmode="numeric" value="42"></label><button id="review-reroll" class="quiet">New caption seed</button><button id="review-draft" class="quiet">Draft / redraft caption</button></div>
+    <label>Approved caption JSON<textarea id="review-caption" rows="9" spellcheck="false" placeholder="Draft or paste a caption, inspect it, then run."></textarea></label>
+    <div class="review-seeds"><label>Edit seed<input id="review-seed" type="text" inputmode="numeric" value="42"></label><button id="review-new-seed" class="quiet">New edit seed</button><button id="review-run">Run approved edit</button></div>
+    <p id="review-status" role="status">Review only. No image generation has started.</p>
+  </dialog>
   <script src="/assets/app.js" defer></script>
 </body>
 </html>

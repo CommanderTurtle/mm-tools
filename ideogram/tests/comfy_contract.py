@@ -102,7 +102,8 @@ class ContractTests(unittest.TestCase):
                     caption_model = PrivateComfy().caption_model
                     folder_paths.add_model_folder_path("text_encoders", str(caption_model.parent))
                     graphs = [inpaint_graph("i.png", "m.png", "{}", 512, 512, 20, 42, 4, 1),
-                              caption_graph("i.png", caption_model.name, "Remove chair", "Schema")]
+                              caption_graph("i.png", caption_model.name, "Remove chair", "Schema"),
+                              caption_graph("i.png", caption_model.name, "Remove chair", "Schema", seed=42)]
                     for graph in graphs:
                         result = await execution.validate_prompt("validation-only", graph, None)
                         self.assertTrue(result[0], result)

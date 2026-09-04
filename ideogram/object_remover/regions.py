@@ -4,6 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 import io
 import os
+import base64
+import numpy as np
 from PIL import Image, ImageFilter, ImageOps
 
 
@@ -25,10 +27,14 @@ class Region:
     blend: Image.Image
     image: Image.Image
     mask: Image.Image
+    content_box: tuple[int, int, int, int]
+    selection_box: tuple[int, int, int, int]
 
     def composite(self, generated: bytes) -> bytes:
         with Image.open(io.BytesIO(generated)) as output:
-            crop = output.convert("RGB").resize(self.blend.size, Image.Resampling.LANCZOS)
+            if output.size != self.image.size:
+                raise ValueError("Generated crop dimensions do not match the prepared edit.")
+            crop = output.convert("RGB").crop(self.content_box).resize(self.blend.size, Image.Resampling.LANCZOS)
         original = self.original.crop(self.box)
         merged = Image.composite(crop, original.convert("RGB"), self.blend)
         if self.original.mode == "RGBA":
@@ -36,6 +42,22 @@ class Region:
         result = self.original.copy()
         result.paste(merged, self.box[:2])
         return png(result)
+
+    def review(self) -> dict:
+        """Small inspection previews and exact geometry; never starts model inference."""
+        preview = self.image.copy()
+        preview.thumbnail((768, 768), Image.Resampling.LANCZOS)
+        selected = self.mask.resize(preview.size, Image.Resampling.BILINEAR)
+        overlay = Image.composite(Image.new("RGB", preview.size, "#ff3b30"), preview,
+                                  selected.point(lambda a: round(a * .45)))
+        data_url = lambda image: "data:image/png;base64," + base64.b64encode(png(image)).decode("ascii")
+        content_size = (self.content_box[2] - self.content_box[0], self.content_box[3] - self.content_box[1])
+        return {"source_size": self.original.size, "crop_box": self.box,
+                "selection_box": self.selection_box, "processing_size": self.image.size,
+                "content_box": self.content_box, "downscaled": content_size != self.blend.size,
+                "processing_megapixels": round(self.image.width * self.image.height / 1e6, 3),
+                "source_preview": data_url(preview), "mask_preview": data_url(overlay),
+                "native_alpha_generation": False}
 
 
 def prepare_region(image_bytes: bytes, mask_bytes: bytes, *, resolution: int = 1024,
@@ -65,9 +87,22 @@ def prepare_region(image_bytes: bytes, mask_bytes: bytes, *, resolution: int = 1
     blend = selected.filter(ImageFilter.GaussianBlur(feather)) if feather else selected
     crop = original.crop(box).convert("RGB")
     scale = min(1.0, resolution / max(crop.size))
-    size = tuple(max(256, round(n * scale / 16) * 16) for n in crop.size)
-    return Region(original, box, blend,
-                  crop.resize(size, Image.Resampling.LANCZOS), blend.resize(size, Image.Resampling.BILINEAR))
+    # Fit pixels uniformly, then pad to the model grid. Independently clamping
+    # width/height to 256 used to stretch narrow selections and extreme ratios.
+    content_size = tuple(max(1, round(n * scale)) for n in crop.size)
+    size = tuple(max(256, ((n + 15) // 16) * 16) for n in content_size)
+    left, top = ((size[i] - content_size[i]) // 2 for i in range(2))
+    right, bottom = size[0] - content_size[0] - left, size[1] - content_size[1] - top
+    fitted = crop.resize(content_size, Image.Resampling.LANCZOS)
+    pixels = np.pad(np.asarray(fitted), ((top, bottom), (left, right), (0, 0)), mode="edge")
+    fitted_mask = Image.new("L", size)
+    fitted_mask.paste(blend.resize(content_size, Image.Resampling.BILINEAR), (left, top))
+    content_box = (left, top, left + content_size[0], top + content_size[1])
+    return Region(original, box, blend, Image.fromarray(pixels), fitted_mask, content_box, bounds)
+
+
+def prepare_review(image_bytes: bytes, mask_bytes: bytes, **options) -> dict:
+    return prepare_region(image_bytes, mask_bytes, **options).review()
 
 
 def cutout(image_bytes: bytes, mask_bytes: bytes, invert: bool = False) -> bytes:

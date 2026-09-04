@@ -14,7 +14,8 @@ from PIL import Image, ImageDraw, ImageChops
 from object_remover.regions import prepare_region, png, cutout
 from object_remover.ideogram_graph import inpaint_graph, caption_graph
 from object_remover.private_comfy import PrivateComfy, caption_json
-from object_remover.ideogram_edit import IdeogramEditing
+from object_remover.ideogram_edit import IdeogramEditing, CaptionDraftError
+from object_remover.matte import refine_alpha
 
 CAPTION = '{"high_level_description":"A clean wall.","compositional_deconstruction":{"background":"A white wall.","elements":[]}}'
 
@@ -65,6 +66,42 @@ class MaskTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             prepare_region(image, mask, resolution=123)
 
+    def test_narrow_and_tall_crops_are_padded_not_stretched(self):
+        for size in [(2048, 37), (37, 2048), (1237, 873)]:
+            source = Image.new("RGB", size, "blue")
+            mask = Image.new("L", size, 255)
+            region = prepare_region(png(source), png(mask), padding=0, feather=0, resolution=2048)
+            x1, y1, x2, y2 = region.content_box
+            self.assertEqual((x2-x1, y2-y1), size)
+            self.assertEqual(region.mask.getbbox(), region.content_box)
+            self.assertEqual(region.image.crop(region.content_box).tobytes(), source.tobytes())
+            self.assertEqual(Image.open(io.BytesIO(region.composite(png(region.image)))).tobytes(), source.tobytes())
+            self.assertEqual(region.image.width % 16, 0)
+            self.assertEqual(region.image.height % 16, 0)
+
+    def test_large_rectangular_review_does_not_run_models(self):
+        image = png(Image.new("RGB", (4096, 2400), "gray"))
+        mask = png(Image.new("L", (4096, 2400), 255))
+        region = prepare_region(image, mask, resolution=2048, padding=0, feather=0)
+        info = region.review()
+        self.assertEqual(info["processing_size"], (2048, 1200))
+        self.assertEqual(info["source_size"], (4096, 2400))
+        self.assertTrue(info["downscaled"])
+        with self.assertRaisesRegex(ValueError, "dimensions"):
+            region.composite(png(Image.new("RGB", (256, 256))))
+
+    def test_alpha_refinement_is_tile_consistent_and_preserves_dark_foreground(self):
+        source = Image.new("RGB", (301, 179), "white")
+        ImageDraw.Draw(source).rectangle((65, 30, 180, 160), fill="black")
+        alpha = Image.new("L", source.size)
+        ImageDraw.Draw(alpha).rectangle((65, 30, 180, 160), fill=255)
+        full = refine_alpha(source, alpha, tile_size=1024)
+        tiled = refine_alpha(source, alpha, tile_size=64)
+        self.assertIsNone(ImageChops.difference(full, tiled).getbbox())
+        result = Image.open(io.BytesIO(cutout(png(source), png(tiled))))
+        self.assertEqual(result.getpixel((100, 100)), (0, 0, 0, 255))
+        self.assertEqual(result.getpixel((0, 0)), (255, 255, 255, 0))
+
 
 class GraphTests(unittest.TestCase):
     def test_graph_contract(self):
@@ -84,6 +121,10 @@ class GraphTests(unittest.TestCase):
         self.assertEqual(graph["3"]["inputs"]["image"], ["1", 0])
         self.assertFalse(graph["3"]["inputs"]["thinking"])
         self.assertIn("Remove chair", graph["3"]["inputs"]["prompt"])
+        seeded = caption_graph("i.png", "local.safetensors", "Remove chair", "Schema", seed=2**64-1)
+        self.assertEqual(seeded["3"]["inputs"]["sampling_mode"], "on")
+        self.assertEqual(seeded["3"]["inputs"]["sampling_mode.seed"], 2**64-1)
+        self.assertEqual(graph["3"]["inputs"]["sampling_mode"], "off")
 
     def test_caption_validation(self):
         self.assertEqual(json.loads(caption_json("```json\n" + CAPTION + "\n```")), json.loads(CAPTION))
@@ -110,8 +151,9 @@ class LifecycleTests(unittest.TestCase):
         edit.engine.stop.assert_called_once()
         edit.engine.reset_mock()
         edit.engine.run.side_effect = [{"4": {"text": ["bad"]}}, {"4": {"text": ["bad"]}}]
-        with self.assertRaisesRegex(ValueError, "after one retry"):
+        with self.assertRaisesRegex(CaptionDraftError, "after one retry") as error:
             edit.caption(region, "Remove the object")
+        self.assertEqual(error.exception.draft, "bad")
         self.assertEqual(edit.engine.run.call_count, 2)
         edit.engine.stop.assert_called_once()
 
@@ -167,6 +209,24 @@ class APITests(unittest.TestCase):
             models.edit_ideogram.return_value = image
             models.remove_object.return_value = image
             models.remove_background.return_value = image
+            models.foreground_mask.return_value = mask
+            models.caption_ideogram.return_value = CAPTION
+            plan = client.post("/api/ideogram/prepare", files=files)
+            self.assertEqual(plan.status_code, 200, plan.text)
+            self.assertEqual(plan.json()["source_size"], [320, 256])
+            models.edit_ideogram.assert_not_called()
+            models.caption_ideogram.assert_not_called()
+            self.assertEqual(client.post("/api/ideogram/caption", files=files, data={
+                "instruction": "Remove chair", "caption_seed": str(2**64-1)}).status_code, 200)
+            self.assertEqual(models.caption_ideogram.call_args.kwargs["caption_seed"], 2**64-1)
+            models.caption_ideogram.side_effect = CaptionDraftError("bad JSON", "unfinished draft")
+            rejected = client.post("/api/ideogram/caption", files=files, data={"instruction": "Remove chair"})
+            self.assertEqual(rejected.status_code, 422)
+            self.assertEqual(rejected.json()["draft"], "unfinished draft")
+            models.caption_ideogram.side_effect = None
+            self.assertEqual(client.post("/api/foreground-mask", files={"image": files["image"]}).status_code, 200)
+            self.assertEqual(client.post("/api/remove", files=files, data={"engine": "ideogram", "reviewed": "true"}).status_code, 400)
+            models.edit_ideogram.assert_not_called()
             response = client.post("/api/remove", files=files, data={"engine": "ideogram", "caption": CAPTION,
                 "resolution": "1536", "padding": "90", "mask_feather": "12", "invert": "false", "strength": ".8"})
             self.assertEqual(response.status_code, 200, response.text)

@@ -28,6 +28,8 @@ function harness() {
       width: 1024, height: 512, value: '20', disabled: false,
       dataset: {}, events: {}, pointers: new Set(), context,
       classList: { toggle() {} },
+      showModal() { this.open = true; }, close() { this.open = false; },
+      removeAttribute(name) { delete this[name]; },
       getContext() { return context; },
       getBoundingClientRect() { return { left: 10, top: 20, width: 512, height: 256 }; },
       addEventListener(name, callback) { (this.events[name] ??= []).push(callback); },
@@ -42,6 +44,7 @@ function harness() {
     document: { querySelector: element, querySelectorAll: () => [] },
     // Initial model-status request deliberately never settles; no live networking.
     fetch: () => new Promise(() => {}),
+    FormData, Blob, URL, crypto,
     console,
   });
   vm.runInContext(app, scope);
@@ -56,7 +59,8 @@ function harness() {
     await dispatch('pointermove', 50, 30);
     await dispatch('pointermove', 50, 60);
   }
-  return { element, run, dispatch, outline, mask: element('#mask').context, overlay: element('#selection').context };
+  return { element, run, dispatch, outline, setFetch: callback => scope.fetch = callback,
+           mask: element('#mask').context, overlay: element('#selection').context };
 }
 
 const tests = {
@@ -142,6 +146,93 @@ const tests = {
     assert.match(css, /#mask, #selection\s*\{[^}]*position:\s*absolute/);
     assert.match(css, /#selection\s*\{\s*pointer-events:\s*none/);
     assert.match(css, /#mask\s*\{[^}]*touch-action:\s*none/);
+  },
+  async 'review freezes inputs, requires caption approval, and keeps seeds exact'() {
+    const h = harness();
+    h.run("file = new Blob(['original']); maskBlob = async () => new Blob(['mask']);");
+    h.element('#engine').value = 'ideogram';
+    h.element('#caption').value = '';
+    const calls = [];
+    const caption = '{"high_level_description":"Empty room","compositional_deconstruction":{"background":"White wall","elements":[]}}';
+    h.setFetch(async (url, options) => {
+      if (url === '/api/models') return new Promise(() => {});
+      calls.push({url, body: options.body});
+      if (url === '/api/ideogram/prepare') return {ok: true, json: async () => ({source_preview:'preview', mask_preview:'mask',
+        source_size:[4096,2048], crop_box:[0,0,600,400], processing_size:[608,400], content_box:[4,0,604,400], processing_megapixels:.243})};
+      if (url === '/api/ideogram/caption') return {ok: true, json: async () => ({caption})};
+      return {ok: true, blob: async () => new Blob(['result'])};
+    });
+    await h.element('#remove').events.click[0]();
+    assert.equal(h.element('#edit-review').open, true);
+    assert.equal(h.run('operationBusy'), true);
+    assert.deepEqual(calls.map(c => c.url), ['/api/ideogram/prepare']);
+    await h.element('#review-run').events.click[0]();
+    assert.equal(calls.length, 1); // no caption = no edit, even if Run is clicked
+    for (const invalid of ['null', '[]', '"caption"']) {
+      h.element('#review-caption').value = invalid;
+      await h.element('#review-run').events.click[0]();
+      assert.equal(calls.length, 1);
+    }
+    h.element('#review-caption-seed').value = '18446744073709551615';
+    await h.element('#review-draft').events.click[0]();
+    assert.equal(calls[1].body.get('caption_seed'), '18446744073709551615');
+    assert.equal(h.element('#edit-review').open, true);
+    h.run("file = new Blob(['different']);"); // prepared body remains independent
+    h.element('#review-seed').value = '18446744073709551614';
+    await h.element('#review-run').events.click[0]();
+    assert.equal(calls[2].url, '/api/remove');
+    assert.equal(await calls[2].body.get('image').text(), 'original');
+    assert.equal(calls[2].body.get('seed'), '18446744073709551614');
+    assert.equal(calls[2].body.get('reviewed'), 'true');
+    assert.equal(JSON.parse(calls[2].body.get('caption')).high_level_description, 'Empty room');
+    assert.equal(h.element('#edit-review').open, false);
+    assert.equal(h.run('operationBusy'), false);
+  },
+  async 'review cancellation never runs a model and rejects invalid seeds'() {
+    const h = harness();
+    h.run("reviewBody = new FormData(); operationBusy = true;");
+    h.element('#edit-review').open = true;
+    await h.element('#review-cancel').events.click[0]();
+    assert.equal(h.element('#edit-review').open, false);
+    assert.equal(h.run('reviewBody'), null);
+    assert.equal(h.run('operationBusy'), false);
+    for (const seed of ['-1', '1.5', '18446744073709551616', '', '1e10']) {
+      assert.throws(() => h.run(`seedText('${seed}')`), /unsigned 64-bit/);
+    }
+    assert.match(h.run('newSeed()'), /^\d+$/);
+  },
+  async 'a failed caption stays editable and never triggers image generation'() {
+    const h = harness();
+    h.run('reviewBody = new FormData();');
+    h.element('#review-caption-seed').value = '42';
+    const calls = [];
+    h.setFetch(async url => {
+      calls.push(url);
+      return {ok: false, json: async () => ({draft: '{unfinished', detail: 'Correct this draft.'})};
+    });
+    await h.element('#review-draft').events.click[0]();
+    assert.equal(h.element('#review-caption').value, '{unfinished');
+    assert.equal(h.element('#review-status').textContent, 'Correct this draft.');
+    assert.equal(h.run('reviewBusy'), false);
+    assert.deepEqual(calls, ['/api/ideogram/caption']);
+  },
+  async 'sidebar drafting also retains a failed caption for correction'() {
+    const h = harness();
+    h.run("file = new Blob(['image']); maskBlob = async () => new Blob(['mask']); refreshModels = async () => {};");
+    h.element('#caption-seed').value = '43';
+    const details = {};
+    h.element('#caption').closest = () => details;
+    const calls = [];
+    h.setFetch(async url => {
+      calls.push(url);
+      return {ok: false, json: async () => ({draft: '{unfinished', detail: 'Review this draft.'})};
+    });
+    await h.element('#caption-generate').events.click[0]();
+    assert.equal(h.element('#caption').value, '{unfinished');
+    assert.equal(details.open, true);
+    assert.equal(h.element('#status').textContent, 'Review this draft.');
+    assert.equal(h.run('operationBusy'), false);
+    assert.deepEqual(calls, ['/api/ideogram/caption']);
   },
 };
 

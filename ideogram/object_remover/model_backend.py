@@ -198,12 +198,12 @@ class EditingModels:
             self.unload("all")
             return self.ideogram().edit(image_bytes, mask_bytes, **options)
 
-    def caption_ideogram(self, image_bytes, mask_bytes, *, instruction, **region_options):
+    def caption_ideogram(self, image_bytes, mask_bytes, *, instruction, caption_seed=None, **region_options):
         from .regions import prepare_region
         with self._lock:
             region = prepare_region(image_bytes, mask_bytes, **region_options)
             self.unload("all")
-            return self.ideogram().caption(region, instruction)
+            return self.ideogram().caption(region, instruction, seed=caption_seed)
 
     def remove_object(
         self,
@@ -270,6 +270,23 @@ class EditingModels:
             output = io.BytesIO()
             result.save(output, format="PNG", optimize=True)
             return output.getvalue()
+
+    def foreground_mask(self, image_bytes: bytes) -> bytes:
+        """Optional alpha producer for the removal workbench; preserve the old route."""
+        from .matte import refine_matte
+        from .regions import check_size, png
+        from PIL import ImageOps
+        # Normalize EXIF once before the existing matting implementation sees it.
+        with Image.open(io.BytesIO(image_bytes)) as image:
+            check_size(image)
+            normalized = png(ImageOps.exif_transpose(image).convert("RGB"))
+        with self._lock:
+            self.unload("all")
+            try:
+                alpha = self.remove_background(normalized)
+                return refine_matte(normalized, alpha)
+            finally:
+                self.unload("birefnet")
 
 
 models = EditingModels()

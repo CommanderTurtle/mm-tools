@@ -7,11 +7,12 @@ from pathlib import Path
 
 import cv2
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .core import decode_image, encode_png, fuzzy_mask, remove_object
 from .model_backend import ModelUnavailable, models
+from .ideogram_edit import CaptionDraftError
 
 
 WEB = Path(__file__).resolve().parent / "web"
@@ -89,11 +90,14 @@ async def remove(
     mask_feather: int = Form(8),
     invert: bool = Form(False),
     strength: float = Form(1),
+    reviewed: bool = Form(False),
 ) -> Response:
     try:
         image_bytes = await read_upload(image)
         mask_bytes = await read_upload(mask)
         if engine == "ideogram":
+            if reviewed and not caption.strip():
+                raise ValueError("Approve a caption before running the reviewed edit.")
             if len(caption) > 64000:
                 raise ValueError("Caption JSON exceeds 64,000 characters.")
             result = await asyncio.to_thread(
@@ -175,16 +179,34 @@ async def fuzzy(
 @app.post("/api/ideogram/caption")
 async def ideogram_caption(image: UploadFile = File(...), mask: UploadFile = File(...),
                            instruction: str = Form(...), resolution: int = Form(1024),
-                           padding: int = Form(128), mask_feather: int = Form(8), invert: bool = Form(False)):
+                           padding: int = Form(128), mask_feather: int = Form(8), invert: bool = Form(False),
+                           caption_seed: int | None = Form(None)):
     try:
         caption = await asyncio.to_thread(models.caption_ideogram, await read_upload(image), await read_upload(mask),
                                          instruction=instruction, resolution=resolution, padding=padding,
-                                         feather=mask_feather, invert=invert)
+                                         feather=mask_feather, invert=invert, caption_seed=caption_seed)
         return {"caption": caption}
+    except CaptionDraftError as exc:
+        return JSONResponse({"detail": str(exc), "draft": exc.draft}, status_code=422)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     except Exception as exc:
         raise HTTPException(500, f"Local caption failed: {exc}") from exc
+    finally:
+        await image.close()
+        await mask.close()
+
+
+@app.post("/api/ideogram/prepare")
+async def ideogram_prepare(image: UploadFile = File(...), mask: UploadFile = File(...),
+                           resolution: int = Form(1024), padding: int = Form(128),
+                           mask_feather: int = Form(8), invert: bool = Form(False)):
+    from .regions import prepare_review
+    try:
+        return await asyncio.to_thread(prepare_review, await read_upload(image), await read_upload(mask),
+                                       resolution=resolution, padding=padding, feather=mask_feather, invert=invert)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     finally:
         await image.close()
         await mask.close()
@@ -201,3 +223,16 @@ async def mask_cutout(image: UploadFile = File(...), mask: UploadFile = File(...
     finally:
         await image.close()
         await mask.close()
+
+
+@app.post("/api/foreground-mask")
+async def foreground_mask(image: UploadFile = File(...)):
+    try:
+        result = await asyncio.to_thread(models.foreground_mask, await read_upload(image))
+        return Response(result, media_type="image/png")
+    except (ValueError, ModelUnavailable) as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(500, f"Local alpha preparation failed: {exc}") from exc
+    finally:
+        await image.close()

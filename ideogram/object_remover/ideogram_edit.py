@@ -18,18 +18,28 @@ For visible text use {"type":"text","bbox":[y1,x1,y2,x2],"text":"Exact text","de
 Coordinates are integers 0–1000 relative to the supplied crop; bbox is optional when unclear.
 elements is always an array of JSON objects, NEVER strings. If no objects remain, use [].
 Do not add a "none" element. Do not mention an object that was removed, even as "no object".
-Keep captions concise. Use literal Unicode. No commentary, markdown fences or extra keys.'''
+Keep captions concise: at most eight important remaining foreground elements. Summarize
+stationary scenery/equipment in the background field. Use literal Unicode. No commentary,
+markdown fences or extra keys.'''
+
+
+class CaptionDraftError(ValueError):
+    def __init__(self, message, draft):
+        super().__init__(message)
+        self.draft = draft[:64000]
 
 
 class IdeogramEditing:
     def __init__(self):
         self.engine = PrivateComfy()
 
-    def caption(self, region, instruction):
+    def caption(self, region, instruction, seed=None):
         if not self.engine.caption_model.is_file():
             raise ValueError("Local caption model is missing. Supply caption JSON or configure IDEOGRAM_CAPTION_MODEL.")
         if not instruction.strip() or len(instruction) > 8000:
             raise ValueError("Describe the edit in 1–8000 characters.")
+        if seed is not None and (isinstance(seed, bool) or not isinstance(seed, int) or not 0 <= seed <= 2**64 - 1):
+            raise ValueError("Caption seed must be an unsigned 64-bit integer.")
         # Describe the selection separately: a painted overlay can leak into the model's
         # requested output as an actual red object, even when told to ignore it.
         x1, y1, x2, y2 = region.mask.getbbox()
@@ -43,7 +53,7 @@ class IdeogramEditing:
                    "Do not describe the mask, selection, edit operation, or a removed object. " + instruction)
         try:
             for attempt in range(2):
-                outputs = self.engine.run(caption_graph(name, self.engine.caption_model.name, request, EDIT_CAPTION_SCHEMA),
+                outputs = self.engine.run(caption_graph(name, self.engine.caption_model.name, request, EDIT_CAPTION_SCHEMA, seed),
                                           {name: png(region.image)})
                 text = outputs.get("4", {}).get("text", [])
                 if isinstance(text, list):
@@ -54,8 +64,8 @@ class IdeogramEditing:
                     return caption_json(text)
                 except ValueError as exc:
                     if attempt:
-                        raise ValueError(f"Local caption failed validation after one retry: {exc}. "
-                                         "Use Review / edit caption JSON to provide a caption manually.") from exc
+                        raise CaptionDraftError(f"Local caption failed validation after one retry: {exc}. "
+                                                "Review or correct the returned draft before editing.", text) from exc
                     request += ("\nCorrect the JSON format of this draft without changing the intended edit. "
                                 f"Validation error: {exc}\nDraft: {text[:16000]}\nReturn the corrected JSON only.")
         finally:

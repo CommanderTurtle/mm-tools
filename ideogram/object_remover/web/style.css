@@ -206,3 +206,15 @@ canvas { max-width: 100%; max-height: calc(100vh - 150px); width: auto; height: 
 .control-group summary { cursor: pointer; }
 .check { display: flex; gap: 8px; align-items: center; }
 .check input { width: auto; }
+dialog { width: min(1050px, 94vw); max-height: 92vh; overflow: auto; color: var(--text); background: var(--panel); border: 1px solid var(--edge); border-radius: 12px; padding: 20px; }
+dialog::backdrop { background: #000b; }
+.review-heading, .review-seeds { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.review-heading { justify-content: space-between; }
+.review-heading h2 { margin: 0; }
+.review-previews { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.review-previews figure { margin: 0; }
+.review-previews img { width: 100%; height: 260px; object-fit: contain; background: #0c0d10; }
+.review-previews figcaption, #review-geometry, #review-status { color: var(--muted); font-size: 12px; }
+dialog label textarea { grid-column: 1 / -1; }
+input[inputmode="numeric"] { min-width: 0; background: #0d0f13; color: var(--text); padding: 8px; border: 1px solid var(--edge); border-radius: 6px; }
+@media (max-width: 600px) { .review-previews { grid-template-columns: 1fr; } }

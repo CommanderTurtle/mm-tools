@@ -18,6 +18,9 @@ let downloadSuffix = 'clean';
 let undo = [];
 let modelState = null;
 let operationBusy = false;
+let reviewBody = null;
+let reviewBusy = false;
+let imageLoadVersion = 0;
 
 function lockEditing(value) {
   operationBusy = value;
@@ -50,11 +53,13 @@ function showResult(blob, suffix) {
 
 function setImage(selected) {
   if (operationBusy) return;
-  file = selected;
+  const version = ++imageLoadVersion;
   resultBlob = null;
   const image = new Image();
   const sourceUrl = URL.createObjectURL(selected);
   image.onload = () => {
+    if (version !== imageLoadVersion || operationBusy) { URL.revokeObjectURL(sourceUrl); return; }
+    file = selected;
     endStroke();
     source.width = mask.width = selection.width = image.naturalWidth;
     source.height = mask.height = selection.height = image.naturalHeight;
@@ -65,6 +70,7 @@ function setImage(selected) {
     $('#remove').disabled = false;
     $('#background').disabled = false;
     $('#cutout').disabled = false;
+    $('#alpha-prepare').disabled = false;
     $('#caption').value = '';
     $('#download-mask').disabled = false;
     $('#download-comfy').disabled = false;
@@ -198,6 +204,7 @@ for (const name of ['pointercancel', 'lostpointercapture']) mask.addEventListene
 });
 
 async function fuzzy(p) {
+  lockEditing(true);
   setBusy('Selecting connected color…');
   try {
     const body = new FormData();
@@ -209,30 +216,36 @@ async function fuzzy(p) {
     if (!response.ok) throw new Error(await errorMessage(response));
     const image = new Image();
     const url = URL.createObjectURL(await response.blob());
-    image.onload = () => {
-      const temp = document.createElement('canvas');
-      temp.width = mask.width;
-      temp.height = mask.height;
-      const context = temp.getContext('2d', { willReadFrequently: true });
-      context.drawImage(image, 0, 0);
-      const data = context.getImageData(0, 0, temp.width, temp.height).data;
-      const current = mx.getImageData(0, 0, mask.width, mask.height);
-      for (let i = 0; i < data.length; i += 4) {
-        if (data[i] > 0) {
-          current.data[i] = 255;
-          current.data[i + 1] = 59;
-          current.data[i + 2] = 48;
-          current.data[i + 3] = 255;
-        }
-      }
-      mx.putImageData(current, 0, 0);
-      URL.revokeObjectURL(url);
-      setBusy('Fuzzy selection added');
-    };
-    image.src = url;
+    await new Promise((resolve, reject) => {
+      image.onload = () => {
+        try {
+          const temp = document.createElement('canvas');
+          temp.width = mask.width;
+          temp.height = mask.height;
+          const context = temp.getContext('2d', { willReadFrequently: true });
+          context.drawImage(image, 0, 0);
+          const data = context.getImageData(0, 0, temp.width, temp.height).data;
+          const current = mx.getImageData(0, 0, mask.width, mask.height);
+          for (let i = 0; i < data.length; i += 4) {
+            if (data[i] > 0) {
+              current.data[i] = 255;
+              current.data[i + 1] = 59;
+              current.data[i + 2] = 48;
+              current.data[i + 3] = 255;
+            }
+          }
+          mx.putImageData(current, 0, 0);
+          setBusy('Fuzzy selection added');
+          resolve();
+        } catch (error) { reject(error); }
+        finally { URL.revokeObjectURL(url); }
+      };
+      image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not decode the selection.')); };
+      image.src = url;
+    });
   } catch (error) {
     setBusy(error.message);
-  }
+  } finally { lockEditing(false); }
 }
 
 $('#undo').addEventListener('click', () => {
@@ -383,6 +396,7 @@ async function ensureLoaded(engine) {
 
 $('#remove').addEventListener('click', async () => {
   if (operationBusy || !file) return;
+  if ($('#engine').value === 'ideogram') { await openEditReview(); return; }
   lockEditing(true);
   try {
     const engine = $('#engine').value;
@@ -393,16 +407,9 @@ $('#remove').addEventListener('click', async () => {
     body.set('mask', await maskBlob(), 'mask.png');
     body.set('engine', engine);
     for (const id of ['method', 'radius', 'grow', 'feather', 'steps', 'guidance', 'seed']) body.set(id, $(`#${id}`).value);
-    if (engine === 'ideogram') {
-      ideogramFields(body);
-      body.set('caption', $('#caption').value);
-      body.set('strength', $('#strength').value);
-      body.set('guidance', $('#ideogram-guidance').value);
-      setBusy($('#caption').value.trim() ? 'Editing selected crop with local Ideogram…' : 'Drafting caption, then editing with local Ideogram…');
-    }
     const response = await fetch('/api/remove', { method: 'POST', body });
     if (!response.ok) throw new Error(await errorMessage(response));
-    showResult(await response.blob(), engine === 'ideogram' ? 'ideogram-edit' : engine === 'objectclear' ? 'object-cleared' : 'clean');
+    showResult(await response.blob(), engine === 'objectclear' ? 'object-cleared' : 'clean');
     setBusy('Removal complete');
     await refreshModels();
   } catch (error) {
@@ -453,7 +460,7 @@ $('#engine').addEventListener('change', event => {
   $('#opencv-controls').classList.toggle('hidden', ai);
   $('#ideogram-controls').classList.toggle('hidden', event.target.value !== 'ideogram');
   $('#guidance').closest('label').classList.toggle('hidden', event.target.value === 'ideogram');
-  $('#remove').textContent = event.target.value === 'ideogram' ? 'Apply masked edit' : 'Remove selection';
+  $('#remove').textContent = event.target.value === 'ideogram' ? 'Review masked edit' : 'Remove selection';
 });
 
 function ideogramFields(body) {
@@ -467,14 +474,128 @@ $('#caption-generate').addEventListener('click', async () => {
   try {
     const body = new FormData();
     body.set('image', file); body.set('mask', await maskBlob(), 'mask.png'); ideogramFields(body);
+    body.set('caption_seed', seedText($('#caption-seed').value));
     setBusy('Drafting an edit caption with the local vision model…');
     const response = await fetch('/api/ideogram/caption', {method: 'POST', body});
-    if (!response.ok) throw new Error(await errorMessage(response));
-    $('#caption').value = JSON.stringify(JSON.parse((await response.json()).caption), null, 2);
+    const data = await response.json();
+    if (!response.ok) {
+      if (data.draft) { $('#caption').value = data.draft; $('#caption').closest('details').open = true; }
+      throw new Error(data.detail || 'Caption drafting failed.');
+    }
+    $('#caption').value = JSON.stringify(JSON.parse(data.caption), null, 2);
     $('#caption').closest('details').open = true;
     setBusy('Caption ready to review. No image was generated.');
   } catch (error) { setBusy(error.message); }
   finally { lockEditing(false); await refreshModels(); }
+});
+
+function seedText(value) {
+  if (!/^\d+$/.test(value) || BigInt(value) > 18446744073709551615n) throw new Error('Seed must be an unsigned 64-bit integer.');
+  return BigInt(value).toString();
+}
+
+function newSeed() {
+  const words = crypto.getRandomValues(new Uint32Array(2));
+  return ((BigInt(words[0]) << 32n) | BigInt(words[1])).toString();
+}
+
+function reviewLock(value) {
+  reviewBusy = value;
+  document.querySelectorAll('#edit-review input, #edit-review textarea, #edit-review button').forEach(el => el.disabled = value);
+}
+
+function closeEditReview() {
+  if (reviewBusy) return;
+  reviewBody = null;
+  $('#edit-review').close();
+  $('#review-source').removeAttribute('src');
+  $('#review-mask').removeAttribute('src');
+  lockEditing(false);
+  refreshModels();
+}
+
+async function openEditReview() {
+  lockEditing(true);
+  try {
+    const body = new FormData();
+    body.set('image', file); body.set('mask', await maskBlob(), 'mask.png'); ideogramFields(body);
+    body.set('engine', 'ideogram'); body.set('reviewed', 'true');
+    for (const id of ['steps', 'strength']) body.set(id, $(`#${id}`).value);
+    body.set('guidance', $('#ideogram-guidance').value);
+    setBusy('Preparing crop and selection for review…');
+    const response = await fetch('/api/ideogram/prepare', {method: 'POST', body});
+    if (!response.ok) throw new Error(await errorMessage(response));
+    const plan = await response.json();
+    reviewBody = body; // Frozen source/mask/settings until this dialog is closed.
+    $('#review-source').src = plan.source_preview;
+    $('#review-mask').src = plan.mask_preview;
+    $('#review-geometry').textContent = `Original ${plan.source_size.join(' × ')} · crop [${plan.crop_box.join(', ')}] · model ${plan.processing_size.join(' × ')} (${plan.processing_megapixels} MP) · content [${plan.content_box.join(', ')}]`;
+    $('#review-warning').textContent = `${plan.downscaled ? 'The selected crop is downscaled for processing; the output keeps the original dimensions.' : 'Crop pixels fit without downscaling.'} Grid padding does not stretch the image. Include any shadow/reflection you want removed in the mask.${plan.processing_megapixels > 4 ? ' Large processing area: substantial VRAM/time may be required.' : ''}`;
+    $('#review-instruction').value = $('#instruction').value;
+    $('#review-caption').value = $('#caption').value;
+    $('#review-caption-seed').value = $('#caption-seed').value;
+    $('#review-seed').value = $('#seed').value;
+    $('#review-status').textContent = 'Inspect the selection and draft/review the caption. Image generation waits for Run approved edit.';
+    $('#edit-review').showModal();
+    setBusy('Waiting for edit review');
+  } catch (error) {
+    reviewBody = null;
+    setBusy(error.message);
+    lockEditing(false);
+  }
+}
+
+$('#review-cancel').addEventListener('click', closeEditReview);
+$('#edit-review').addEventListener('cancel', event => { event.preventDefault(); closeEditReview(); });
+$('#review-reroll').addEventListener('click', () => {
+  $('#review-caption-seed').value = newSeed();
+  $('#review-status').textContent = 'New caption seed selected. Click Draft / redraft caption to generate new wording.';
+});
+$('#review-new-seed').addEventListener('click', () => { $('#review-seed').value = newSeed(); });
+$('#review-draft').addEventListener('click', async () => {
+  if (!reviewBody || reviewBusy) return;
+  reviewLock(true);
+  try {
+    reviewBody.set('instruction', $('#review-instruction').value);
+    reviewBody.set('caption_seed', seedText($('#review-caption-seed').value));
+    $('#review-status').textContent = 'Drafting caption only. Diffusion is not running…';
+    const response = await fetch('/api/ideogram/caption', {method: 'POST', body: reviewBody});
+    const data = await response.json();
+    if (!response.ok) {
+      if (data.draft) $('#review-caption').value = data.draft;
+      throw new Error(data.detail || 'Caption drafting failed.');
+    }
+    $('#review-caption').value = JSON.stringify(JSON.parse(data.caption), null, 2);
+    $('#review-status').textContent = 'Inspect or edit this draft. Change the caption seed and redraft if it missed your instruction.';
+  } catch (error) { $('#review-status').textContent = error.message; }
+  finally { reviewLock(false); }
+});
+$('#review-run').addEventListener('click', async () => {
+  if (!reviewBody || reviewBusy) return;
+  reviewLock(true);
+  let complete = false;
+  try {
+    const caption = $('#review-caption').value.trim();
+    const parsed = caption ? JSON.parse(caption) : null;
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error('Draft or paste and approve a caption first.');
+    reviewBody.set('caption', caption);
+    reviewBody.set('instruction', $('#review-instruction').value);
+    reviewBody.set('seed', seedText($('#review-seed').value));
+    $('#review-status').textContent = 'Running the approved crop and caption…';
+    const response = await fetch('/api/remove', {method: 'POST', body: reviewBody});
+    if (!response.ok) throw new Error(await errorMessage(response));
+    showResult(await response.blob(), 'ideogram-edit');
+    $('#caption').value = caption;
+    $('#instruction').value = $('#review-instruction').value;
+    $('#seed').value = $('#review-seed').value;
+    $('#caption-seed').value = $('#review-caption-seed').value;
+    complete = true;
+    setBusy('Approved edit complete');
+  } catch (error) { $('#review-status').textContent = error.message; }
+  finally {
+    reviewLock(false);
+    if (complete) { closeEditReview(); $('#download').disabled = false; }
+  }
 });
 
 $('#cutout').addEventListener('click', async () => {
@@ -490,6 +611,38 @@ $('#cutout').addEventListener('click', async () => {
     setBusy('Transparent cutout ready');
   } catch (error) { setBusy(error.message); }
   finally { lockEditing(false); $('#download').disabled = !resultBlob; }
+});
+
+$('#alpha-prepare').addEventListener('click', async () => {
+  if (operationBusy || !file) return;
+  lockEditing(true);
+  try {
+    const body = new FormData(); body.set('image', file);
+    setBusy('Drafting foreground alpha locally and refining original-resolution edges…');
+    const response = await fetch('/api/foreground-mask', {method: 'POST', body});
+    if (!response.ok) throw new Error(await errorMessage(response));
+    const url = URL.createObjectURL(await response.blob());
+    try {
+      const image = new Image();
+      await new Promise((resolve, reject) => {
+        image.onload = resolve; image.onerror = () => reject(new Error('Could not decode the alpha mask.')); image.src = url;
+      });
+      if (image.naturalWidth !== mask.width || image.naturalHeight !== mask.height) throw new Error('Alpha mask dimensions do not match the image.');
+      const canvas = document.createElement('canvas'); canvas.width = mask.width; canvas.height = mask.height;
+      const context = canvas.getContext('2d', {willReadFrequently: true});
+      context.drawImage(image, 0, 0);
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < pixels.data.length; i += 4) {
+        pixels.data[i + 3] = pixels.data[i];
+        pixels.data[i] = 255; pixels.data[i + 1] = 59; pixels.data[i + 2] = 48;
+      }
+      snapshot(); mx.putImageData(pixels, 0, 0);
+      $('#caption').value = '';
+      setView('edit');
+      setBusy('Foreground selected. Review/refine the mask, then Cut out selected foreground.');
+    } finally { URL.revokeObjectURL(url); }
+  } catch (error) { setBusy(error.message); }
+  finally { lockEditing(false); await refreshModels(); }
 });
 
 refreshModels();
