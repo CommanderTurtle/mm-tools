@@ -1,18 +1,32 @@
 const $ = selector => document.querySelector(selector);
 const source = $('#source');
 const mask = $('#mask');
+const selection = $('#selection');
+const lx = selection.getContext('2d');
 const sx = source.getContext('2d');
 const mx = mask.getContext('2d', { willReadFrequently: true });
 
 let file = null;
 let tool = 'brush';
 let drawing = false;
+let strokePointer = null;
 let lastPoint = null;
+let lassoPoints = [];
 let resultBlob = null;
 let resultUrl = null;
 let downloadSuffix = 'clean';
 let undo = [];
 let modelState = null;
+let operationBusy = false;
+
+function lockEditing(value) {
+  operationBusy = value;
+  endStroke();
+  document.querySelectorAll('aside input, aside select, aside textarea, aside button, header button').forEach(el => {
+    if (value) { el.dataset.wasDisabled = String(el.disabled); el.disabled = true; }
+    else { el.disabled = el.dataset.wasDisabled === 'true'; delete el.dataset.wasDisabled; }
+  });
+}
 
 async function errorMessage(response) {
   const text = await response.text();
@@ -35,19 +49,23 @@ function showResult(blob, suffix) {
 }
 
 function setImage(selected) {
+  if (operationBusy) return;
   file = selected;
   resultBlob = null;
   const image = new Image();
   const sourceUrl = URL.createObjectURL(selected);
   image.onload = () => {
-    source.width = mask.width = image.naturalWidth;
-    source.height = mask.height = image.naturalHeight;
+    endStroke();
+    source.width = mask.width = selection.width = image.naturalWidth;
+    source.height = mask.height = selection.height = image.naturalHeight;
     sx.drawImage(image, 0, 0);
     mx.clearRect(0, 0, mask.width, mask.height);
     undo = [];
     $('#viewport').className = 'viewport';
     $('#remove').disabled = false;
     $('#background').disabled = false;
+    $('#cutout').disabled = false;
+    $('#caption').value = '';
     $('#download-mask').disabled = false;
     $('#download-comfy').disabled = false;
     $('#copy-comfy').disabled = false;
@@ -56,7 +74,7 @@ function setImage(selected) {
     setBusy(`${image.naturalWidth} × ${image.naturalHeight}`);
     URL.revokeObjectURL(sourceUrl);
   };
-  image.onerror = () => setBusy('Could not decode that image in the browser.');
+  image.onerror = () => { URL.revokeObjectURL(sourceUrl); setBusy('Could not decode that image in the browser.'); };
   image.src = sourceUrl;
 }
 
@@ -85,8 +103,10 @@ function point(event) {
 }
 
 function snapshot() {
+  // Full 8K masks are large: cap undo by bytes, not only by stroke count.
+  const limit = Math.max(1, Math.min(20, Math.floor(256 * 1024 * 1024 / (mask.width * mask.height * 4))));
+  while (undo.length >= limit) undo.shift();
   undo.push(mx.getImageData(0, 0, mask.width, mask.height));
-  if (undo.length > 20) undo.shift();
 }
 
 function paint(p, previous = null) {
@@ -109,8 +129,27 @@ function paint(p, previous = null) {
   mx.fill();
 }
 
+function lassoPath(context, points) {
+  if (!points.length) return;
+  context.beginPath();
+  context.moveTo(points[0].x, points[0].y);
+  for (const p of points.slice(1)) context.lineTo(p.x, p.y);
+  context.closePath();
+}
+
+function previewLasso() {
+  lx.clearRect(0, 0, selection.width, selection.height);
+  const scale = mask.width / mask.getBoundingClientRect().width;
+  lx.lineWidth = 2 * scale;
+  lx.setLineDash([5 * scale, 4 * scale]);
+  lx.strokeStyle = '#ffe9b7';
+  lx.fillStyle = 'rgba(255, 59, 48, .14)';
+  lassoPath(lx, lassoPoints);
+  lx.fill(); lx.stroke();
+}
+
 mask.addEventListener('pointerdown', async event => {
-  if (!file) return;
+  if (!file || operationBusy || drawing || event.button !== 0 || event.isPrimary === false) return;
   if (tool === 'fuzzy') {
     snapshot();
     await fuzzy(point(event));
@@ -118,22 +157,45 @@ mask.addEventListener('pointerdown', async event => {
   }
   snapshot();
   drawing = true;
+  strokePointer = event.pointerId;
   mask.setPointerCapture(event.pointerId);
   lastPoint = point(event);
-  paint(lastPoint);
+  if (tool === 'lasso') { lassoPoints = [lastPoint]; previewLasso(); }
+  else paint(lastPoint);
 });
 mask.addEventListener('pointermove', event => {
-  if (!drawing) return;
+  if (!drawing || event.pointerId !== strokePointer) return;
   const next = point(event);
-  paint(next, lastPoint);
+  if (tool === 'lasso') { lassoPoints.push(next); previewLasso(); }
+  else paint(next, lastPoint);
   lastPoint = next;
 });
-function endStroke() {
+function endStroke(commit = false) {
+  if (lassoPoints.length) {
+    if (commit && lassoPoints.length >= 3) {
+      mx.globalCompositeOperation = 'source-over';
+      mx.fillStyle = '#ff3b30';
+      lassoPath(mx, lassoPoints);
+      mx.fill();
+    } else {
+      // Cancelled lasso did not modify the mask; discard its unused undo snapshot.
+      undo.pop();
+    }
+    lassoPoints = [];
+    lx.clearRect(0, 0, selection.width, selection.height);
+  }
   drawing = false;
   lastPoint = null;
+  const pointer = strokePointer;
+  strokePointer = null;
+  if (pointer !== null && mask.hasPointerCapture(pointer)) mask.releasePointerCapture(pointer);
 }
-mask.addEventListener('pointerup', endStroke);
-mask.addEventListener('pointercancel', endStroke);
+mask.addEventListener('pointerup', event => {
+  if (event.pointerId === strokePointer) endStroke(true);
+});
+for (const name of ['pointercancel', 'lostpointercapture']) mask.addEventListener(name, event => {
+  if (event.pointerId === strokePointer) endStroke(false);
+});
 
 async function fuzzy(p) {
   setBusy('Selecting connected color…');
@@ -264,13 +326,14 @@ $('#copy-comfy').addEventListener('click', async () => {
 function renderModelState(state) {
   modelState = state;
   const engines = state.engines;
-  for (const engine of ['objectclear', 'birefnet']) {
+  for (const engine of ['objectclear', 'birefnet', 'ideogram']) {
     const info = engines[engine];
     const label = $(`#${engine}-state`);
-    label.textContent = info.loaded ? 'Loaded' : info.available ? 'Ready on disk' : 'Files missing';
+    label.textContent = info.loaded ? (engine === 'ideogram' ? 'Private engine ready' : 'Loaded') : info.available ? 'Ready on disk' : 'Files missing';
+    label.title = info.missing?.join('\n') || info.model_path;
     label.className = info.loaded ? 'loaded' : info.available ? 'ready' : 'missing';
-    document.querySelector(`.model-load[data-engine="${engine}"]`).disabled = info.loaded || !info.available;
-    document.querySelector(`.model-unload[data-engine="${engine}"]`).disabled = !info.loaded;
+    document.querySelector(`.model-load[data-engine="${engine}"]`).disabled = operationBusy || info.loaded || !info.available;
+    document.querySelector(`.model-unload[data-engine="${engine}"]`).disabled = operationBusy || !info.loaded;
   }
   const vram = state.vram_free_gib == null ? '' : ` · ${state.vram_free_gib}/${state.vram_total_gib} GiB free`;
   $('#device-state').textContent = `Device: ${state.device}${vram}`;
@@ -291,17 +354,24 @@ async function changeModel(engine, action) {
   const response = await fetch(`/api/models/${engine}/${action}`, { method: 'POST' });
   if (!response.ok) throw new Error(await errorMessage(response));
   renderModelState(await response.json());
-  setBusy(`${engine} ${action === 'load' ? 'loaded' : 'unloaded'}`);
+  setBusy(`${engine} ${action === 'load' ? (engine === 'ideogram' ? 'engine ready; weights load when editing' : 'loaded') : 'unloaded'}`);
+}
+
+async function manualModelChange(engine, action) {
+  if (operationBusy) return;
+  lockEditing(true);
+  try { await changeModel(engine, action); } catch (error) { setBusy(error.message); }
+  finally { lockEditing(false); await refreshModels(); }
 }
 
 document.querySelectorAll('.model-load').forEach(button => button.addEventListener('click', async () => {
-  try { await changeModel(button.dataset.engine, 'load'); } catch (error) { setBusy(error.message); await refreshModels(); }
+  await manualModelChange(button.dataset.engine, 'load');
 }));
 document.querySelectorAll('.model-unload').forEach(button => button.addEventListener('click', async () => {
-  try { await changeModel(button.dataset.engine, 'unload'); } catch (error) { setBusy(error.message); await refreshModels(); }
+  await manualModelChange(button.dataset.engine, 'unload');
 }));
 $('#unload-all').addEventListener('click', async () => {
-  try { await changeModel('all', 'unload'); } catch (error) { setBusy(error.message); await refreshModels(); }
+  await manualModelChange('all', 'unload');
 });
 
 async function ensureLoaded(engine) {
@@ -312,8 +382,8 @@ async function ensureLoaded(engine) {
 }
 
 $('#remove').addEventListener('click', async () => {
-  const button = $('#remove');
-  button.disabled = true;
+  if (operationBusy || !file) return;
+  lockEditing(true);
   try {
     const engine = $('#engine').value;
     if (engine === 'objectclear') await ensureLoaded('objectclear');
@@ -323,21 +393,30 @@ $('#remove').addEventListener('click', async () => {
     body.set('mask', await maskBlob(), 'mask.png');
     body.set('engine', engine);
     for (const id of ['method', 'radius', 'grow', 'feather', 'steps', 'guidance', 'seed']) body.set(id, $(`#${id}`).value);
+    if (engine === 'ideogram') {
+      ideogramFields(body);
+      body.set('caption', $('#caption').value);
+      body.set('strength', $('#strength').value);
+      body.set('guidance', $('#ideogram-guidance').value);
+      setBusy($('#caption').value.trim() ? 'Editing selected crop with local Ideogram…' : 'Drafting caption, then editing with local Ideogram…');
+    }
     const response = await fetch('/api/remove', { method: 'POST', body });
     if (!response.ok) throw new Error(await errorMessage(response));
-    showResult(await response.blob(), engine === 'objectclear' ? 'object-cleared' : 'clean');
+    showResult(await response.blob(), engine === 'ideogram' ? 'ideogram-edit' : engine === 'objectclear' ? 'object-cleared' : 'clean');
     setBusy('Removal complete');
     await refreshModels();
   } catch (error) {
     setBusy(error.message);
   } finally {
-    button.disabled = false;
+    lockEditing(false);
+    $('#download').disabled = !resultBlob;
+    await refreshModels();
   }
 });
 
 $('#background').addEventListener('click', async () => {
-  const button = $('#background');
-  button.disabled = true;
+  if (operationBusy || !file) return;
+  lockEditing(true);
   try {
     await ensureLoaded('birefnet');
     setBusy('Separating foreground and reconstructing alpha…');
@@ -351,7 +430,9 @@ $('#background').addEventListener('click', async () => {
   } catch (error) {
     setBusy(error.message);
   } finally {
-    button.disabled = false;
+    lockEditing(false);
+    $('#download').disabled = !resultBlob;
+    await refreshModels();
   }
 });
 
@@ -367,9 +448,48 @@ function setView(view) {
 
 document.querySelectorAll('.tab').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
 $('#engine').addEventListener('change', event => {
-  const ai = event.target.value === 'objectclear';
+  const ai = event.target.value !== 'opencv';
   $('#ai-controls').classList.toggle('hidden', !ai);
   $('#opencv-controls').classList.toggle('hidden', ai);
+  $('#ideogram-controls').classList.toggle('hidden', event.target.value !== 'ideogram');
+  $('#guidance').closest('label').classList.toggle('hidden', event.target.value === 'ideogram');
+  $('#remove').textContent = event.target.value === 'ideogram' ? 'Apply masked edit' : 'Remove selection';
+});
+
+function ideogramFields(body) {
+  for (const id of ['instruction', 'resolution', 'padding', 'mask_feather']) body.set(id, $(`#${id}`).value);
+  body.set('invert', $('#invert').checked);
+}
+
+$('#caption-generate').addEventListener('click', async () => {
+  if (operationBusy || !file) return;
+  lockEditing(true);
+  try {
+    const body = new FormData();
+    body.set('image', file); body.set('mask', await maskBlob(), 'mask.png'); ideogramFields(body);
+    setBusy('Drafting an edit caption with the local vision model…');
+    const response = await fetch('/api/ideogram/caption', {method: 'POST', body});
+    if (!response.ok) throw new Error(await errorMessage(response));
+    $('#caption').value = JSON.stringify(JSON.parse((await response.json()).caption), null, 2);
+    $('#caption').closest('details').open = true;
+    setBusy('Caption ready to review. No image was generated.');
+  } catch (error) { setBusy(error.message); }
+  finally { lockEditing(false); await refreshModels(); }
+});
+
+$('#cutout').addEventListener('click', async () => {
+  if (operationBusy || !file) return;
+  lockEditing(true);
+  try {
+    const body = new FormData();
+    body.set('image', file); body.set('mask', await maskBlob(), 'mask.png');
+    setBusy('Keeping the selected foreground at original resolution…');
+    const response = await fetch('/api/cutout', {method: 'POST', body});
+    if (!response.ok) throw new Error(await errorMessage(response));
+    showResult(await response.blob(), 'selected-cutout');
+    setBusy('Transparent cutout ready');
+  } catch (error) { setBusy(error.message); }
+  finally { lockEditing(false); $('#download').disabled = !resultBlob; }
 });
 
 refreshModels();

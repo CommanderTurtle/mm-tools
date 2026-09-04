@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import cv2
@@ -15,7 +16,16 @@ from .model_backend import ModelUnavailable, models
 
 WEB = Path(__file__).resolve().parent / "web"
 MAX_UPLOAD = int(os.getenv("OBJECT_REMOVER_MAX_UPLOAD_MB", "128")) * 1024 * 1024
-app = FastAPI(title="Local Object Remover")
+@asynccontextmanager
+async def lifespan(app):
+    try:
+        yield
+    finally:
+        if models._ideogram is not None:
+            await asyncio.to_thread(models._ideogram.engine.stop)
+
+
+app = FastAPI(title="Local Object Remover", lifespan=lifespan)
 app.mount("/assets", StaticFiles(directory=WEB), name="assets")
 
 
@@ -72,10 +82,27 @@ async def remove(
     steps: int = Form(20),
     guidance: float = Form(2.5),
     seed: int = Form(42),
+    instruction: str = Form("Remove the selected object and reconstruct the background naturally."),
+    caption: str = Form(""),
+    resolution: int = Form(1024),
+    padding: int = Form(128),
+    mask_feather: int = Form(8),
+    invert: bool = Form(False),
+    strength: float = Form(1),
 ) -> Response:
     try:
         image_bytes = await read_upload(image)
         mask_bytes = await read_upload(mask)
+        if engine == "ideogram":
+            if len(caption) > 64000:
+                raise ValueError("Caption JSON exceeds 64,000 characters.")
+            result = await asyncio.to_thread(
+                models.edit_ideogram, image_bytes, mask_bytes,
+                instruction=instruction, caption=caption, resolution=resolution, padding=padding,
+                feather=mask_feather, invert=invert, strength=strength,
+                steps=steps, guidance=guidance, seed=seed,
+            )
+            return Response(result, media_type="image/png")
         if engine == "objectclear":
             result = await asyncio.to_thread(
                 models.remove_object,
@@ -87,7 +114,7 @@ async def remove(
             )
             return Response(result, media_type="image/png")
         if engine != "opencv":
-            raise ValueError("engine must be objectclear or opencv")
+            raise ValueError("engine must be objectclear, ideogram, or opencv")
         if method not in {"telea", "navier-stokes"}:
             raise ValueError("method must be telea or navier-stokes")
         source = decode_image(image_bytes)
@@ -143,3 +170,34 @@ async def fuzzy(
         raise HTTPException(400, str(exc)) from exc
     finally:
         await image.close()
+
+
+@app.post("/api/ideogram/caption")
+async def ideogram_caption(image: UploadFile = File(...), mask: UploadFile = File(...),
+                           instruction: str = Form(...), resolution: int = Form(1024),
+                           padding: int = Form(128), mask_feather: int = Form(8), invert: bool = Form(False)):
+    try:
+        caption = await asyncio.to_thread(models.caption_ideogram, await read_upload(image), await read_upload(mask),
+                                         instruction=instruction, resolution=resolution, padding=padding,
+                                         feather=mask_feather, invert=invert)
+        return {"caption": caption}
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(500, f"Local caption failed: {exc}") from exc
+    finally:
+        await image.close()
+        await mask.close()
+
+
+@app.post("/api/cutout")
+async def mask_cutout(image: UploadFile = File(...), mask: UploadFile = File(...)):
+    from .regions import cutout
+    try:
+        result = await asyncio.to_thread(cutout, await read_upload(image), await read_upload(mask))
+        return Response(result, media_type="image/png")
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    finally:
+        await image.close()
+        await mask.close()

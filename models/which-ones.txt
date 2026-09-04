@@ -40,7 +40,7 @@ Bundle selection numbers are deliberately separate from the 40 inventory
 numbers below. Each bundle includes every artifact needed by that runtime.
 
 ```text
- 1  ideogram     inventory 1-3
+ 1  ideogram     inventory 1-3, 40
  2  longcat      inventory 4-5
  3  muscriptor   inventory 6-7
  4  musvit       inventory 8-9
@@ -75,7 +75,8 @@ models/ideogram-ai--ideogram-4-fp8/
 ```
 
 Used by: ideogram/local_generate.py through IDEOGRAM4_FP8_MODEL for native
-Ideogram generation.
+Ideogram generation, and the optional private-Comfy masked editing engine in
+ideogram/object_remover. The same weights serve both lanes.
 
 2. jixin0101/ObjectClear
 Expected folder: models/jixin0101--ObjectClear
@@ -618,6 +619,8 @@ models/qwen/text-encoder-vl-nvfp4/
 └── qwen3_vl_4b_nvfp4_full.safetensors
 ```
 
-Used by: minimax as the default optional Prompt Guide checkpoint. It is loaded
-through the bundled Comfy runtime with `CLIPLoader(type=krea2)` and remains
-fully unloaded until the user enables the isolated guide tab.
+Used by: minimax's optional Prompt Guide and ideogram's local edit-caption
+helper, through the bundled Comfy runtime with `CLIPLoader(type=krea2)`.
+Both project selections include this same artifact; selecting both downloads
+it only once. Neither application loads it until the corresponding helper is
+requested. Ideogram can also skip caption inference when given valid JSON.

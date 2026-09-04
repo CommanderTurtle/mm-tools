@@ -279,3 +279,22 @@
 !/whisper/README.md
 
 **/*.py[cod]
+
+# Private Ideogram editor source only; never its subprocess state or artifacts.
+!/ideogram/object_remover/
+/ideogram/object_remover/*
+!/ideogram/object_remover/*.py
+!/ideogram/object_remover/web/
+/ideogram/object_remover/web/*
+!/ideogram/object_remover/web/*.html
+!/ideogram/object_remover/web/*.css
+!/ideogram/object_remover/web/*.js
+!/ideogram/object_remover/comfy_nodes/
+/ideogram/object_remover/comfy_nodes/*
+!/ideogram/object_remover/comfy_nodes/__init__.py
+!/ideogram/tests/
+/ideogram/tests/*
+!/ideogram/tests/test_masked_edit.py
+!/ideogram/tests/comfy_contract.py
+!/ideogram/tests/selection_contract.js
+/ideogram/.runtime/

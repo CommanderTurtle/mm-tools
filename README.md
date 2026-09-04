@@ -165,7 +165,7 @@ For Python projects, choose the setup entrypoint in that project only. No root s
 
 ### Ideogram / ObjectClear
 
-Local Ideogram 4 generation source plus the fuzzy-mask ObjectClear/BiRefNet object-removal browser.
+Local Ideogram 4 generation source plus the fuzzy-mask editing browser: ObjectClear, BiRefNet, OpenCV, and optional private-Comfy Ideogram masked editing.
 
 ```bash
 cd ~/multimedia/ideogram
@@ -173,7 +173,7 @@ cd ~/multimedia/ideogram
 ./startwithuv                             # http://127.0.0.1:8174
 ```
 
-The full Ideogram generator is `local_generate.py`; add `src` to `PYTHONPATH` or install the local package when using that lane. The object-removal lane does not load the large Ideogram generator.
+The standalone Ideogram generator is `local_generate.py`; add `src` to `PYTHONPATH` or install the local package when using that lane. The editor loads Ideogram only when explicitly selected. Its private engine reuses bundled Comfy code (not the Minimax service), supports local caption drafting and configurable crop processing, and preserves the original image outside the feathered mask. See [Ideogram architecture and setup](ideogram/ARCHITECTURE.md).
 
 ### img2svg
 

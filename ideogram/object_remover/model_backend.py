@@ -51,6 +51,13 @@ class EditingModels:
         self._objectclear: Any | None = None
         self._birefnet: Any | None = None
         self._device: str | None = None
+        self._ideogram = None
+
+    def ideogram(self):
+        if self._ideogram is None:
+            from .ideogram_edit import IdeogramEditing
+            self._ideogram = IdeogramEditing()
+        return self._ideogram
 
     def _torch(self):
         import torch
@@ -82,6 +89,7 @@ class EditingModels:
                 "vram_free_gib": free_vram,
                 "vram_total_gib": total_vram,
                 "engines": {
+                    "ideogram": self.ideogram().engine.status(),
                     "objectclear": {
                         "loaded": self._objectclear is not None,
                         "available": _has_objectclear_model() and OBJECTCLEAR_SOURCE.is_dir(),
@@ -98,9 +106,16 @@ class EditingModels:
 
     def load(self, engine: str) -> dict[str, Any]:
         with self._lock:
-            if engine == "objectclear":
+            if engine == "ideogram":
+                self.unload("all")
+                self.ideogram().engine.start()
+            elif engine == "objectclear":
+                if self._ideogram:
+                    self._ideogram.engine.stop()
                 self._load_objectclear()
             elif engine == "birefnet":
+                if self._ideogram:
+                    self._ideogram.engine.stop()
                 self._load_birefnet()
             else:
                 raise ValueError(f"Unknown editing engine: {engine}")
@@ -160,11 +175,13 @@ class EditingModels:
 
     def unload(self, engine: str = "all") -> dict[str, Any]:
         with self._lock:
+            if engine in {"ideogram", "all"} and self._ideogram:
+                self._ideogram.engine.stop()
             if engine in {"objectclear", "all"}:
                 self._objectclear = None
             if engine in {"birefnet", "all"}:
                 self._birefnet = None
-            if engine not in {"objectclear", "birefnet", "all"}:
+            if engine not in {"objectclear", "birefnet", "ideogram", "all"}:
                 raise ValueError(f"Unknown editing engine: {engine}")
             gc.collect()
             try:
@@ -175,6 +192,18 @@ class EditingModels:
             except Exception:
                 pass
             return self.status()
+
+    def edit_ideogram(self, image_bytes, mask_bytes, **options):
+        with self._lock:
+            self.unload("all")
+            return self.ideogram().edit(image_bytes, mask_bytes, **options)
+
+    def caption_ideogram(self, image_bytes, mask_bytes, *, instruction, **region_options):
+        from .regions import prepare_region
+        with self._lock:
+            region = prepare_region(image_bytes, mask_bytes, **region_options)
+            self.unload("all")
+            return self.ideogram().caption(region, instruction)
 
     def remove_object(
         self,

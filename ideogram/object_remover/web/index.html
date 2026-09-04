@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Local Editing Workbench</title><link rel="stylesheet" href="/assets/style.css"></head>
 <body>
   <header>
-    <div><strong>Editing Workbench</strong><small>PRIVATE · LOCAL MODELS · NO UPLOADS</small></div>
+    <div><strong>Editing Workbench</strong><small>PRIVATE · LOCAL MODELS · NO CLOUD</small></div>
     <div class="actions">
       <button id="download" class="quiet" disabled>Download</button>
       <button id="background" class="quiet" disabled>Remove background</button>
@@ -23,13 +23,19 @@
           <div><strong>BiRefNet</strong><small id="birefnet-state">Checking…</small></div>
           <div class="model-actions"><button class="model-load quiet" data-engine="birefnet">Load</button><button class="model-unload quiet" data-engine="birefnet">Unload</button></div>
         </article>
+        <article class="model-card" data-engine="ideogram">
+          <div><strong>Ideogram 4 · masked edit</strong><small id="ideogram-state">Checking…</small></div>
+          <div class="model-actions"><button class="model-load quiet" data-engine="ideogram">Start engine</button><button class="model-unload quiet" data-engine="ideogram">Stop</button></div>
+        </article>
         <div class="model-meta"><span id="device-state">Device: checking…</span><button id="unload-all" class="link-button">Unload all</button></div>
       </div>
       <h2>Selection</h2>
-      <div class="tools"><button class="tool active" data-tool="brush">Brush</button><button class="tool" data-tool="erase">Erase</button><button class="tool" data-tool="fuzzy">Fuzzy click</button></div>
+      <div class="tools"><button class="tool active" data-tool="brush">Brush</button><button class="tool" data-tool="erase">Erase</button><button class="tool" data-tool="lasso">Lasso</button><button class="tool" data-tool="fuzzy">Fuzzy click</button></div>
+      <p class="export-help">Lasso: draw around a shape and release to fill it. Add more selections for its shadow or reflection; erase to refine. Only the feathered mask is changed.</p>
       <label>Brush size <input id="brush-size" type="range" min="2" max="180" value="42"><output id="brush-value">42 px</output></label>
       <label>Fuzzy tolerance <input id="tolerance" type="range" min="0" max="100" value="24"><output id="tolerance-value">24</output></label>
       <div class="row"><button id="undo" class="quiet">Undo</button><button id="clear" class="quiet">Clear mask</button></div>
+      <button id="cutout" class="quiet" disabled title="Keep painted foreground, make everything else transparent. No model or resizing.">Cut out selected foreground</button>
       <div class="row export-row">
         <button id="download-mask" class="quiet" disabled title="White selection on black, at the source image resolution">Mask PNG</button>
         <button id="download-comfy" class="quiet" disabled title="Original image with the selection encoded for ComfyUI's Load Image mask output">Comfy PNG</button>
@@ -37,11 +43,26 @@
       </div>
       <p class="export-help"><strong>Comfy PNG</strong> carries the original image and selection in one file. Load it with ComfyUI’s <strong>Load Image</strong> node and use its IMAGE and MASK outputs.</p>
       <h2>Fill</h2>
-      <label>Engine<select id="engine"><option value="objectclear">AI · ObjectClear</option><option value="opencv">Fast · OpenCV</option></select></label>
+      <label>Engine<select id="engine"><option value="objectclear">AI · ObjectClear</option><option value="ideogram">AI · Ideogram 4 masked edit</option><option value="opencv">Fast · OpenCV</option></select></label>
       <div id="ai-controls" class="control-group">
         <label>Inference steps <input id="steps" type="number" min="4" max="60" value="20"></label>
         <label>Removal strength <input id="guidance" type="number" min="0" max="10" step=".1" value="2.5"></label>
         <label>Seed <input id="seed" type="number" value="42"></label>
+      </div>
+      <div id="ideogram-controls" class="control-group hidden">
+        <label>What should change?<textarea id="instruction" rows="4">Remove the selected object and reconstruct the background naturally. Preserve the lighting and unselected objects.</textarea></label>
+        <label class="check"><input id="invert" type="checkbox">Edit outside the selection (replace background)</label>
+        <label>Crop processing size<select id="resolution"><option>512</option><option>768</option><option selected>1024</option><option>1536</option><option>2048</option><option>4096</option><option>8192</option></select></label>
+        <p class="export-help">Maximum crop edge, not export size. Original dimensions are preserved. 4096/8192 are experimental and need substantially more VRAM.</p>
+        <details><summary>Mask context &amp; sampling</summary>
+          <label>Context pixels <input id="padding" type="number" min="0" max="2048" value="128"></label>
+          <label>Mask feather <input id="mask_feather" type="number" min="0" max="128" value="8"></label>
+          <label>Guidance <input id="ideogram-guidance" type="number" min="1" max="10" step=".1" value="4"></label>
+          <label>Denoising <input id="strength" type="number" min=".1" max="1" step=".05" value="1"></label>
+        </details>
+        <button id="caption-generate" class="quiet">Draft edit caption locally</button>
+        <details><summary>Review / edit caption JSON</summary><textarea id="caption" rows="10" spellcheck="false" placeholder="Leave empty to draft automatically before editing."></textarea></details>
+        <p class="export-help">The local vision model sees the selected crop. Re-draft after changing the image, mask, or crop context. Drafting and editing release their private engine afterward; other workbench models are unloaded first.</p>
       </div>
       <div id="opencv-controls" class="control-group hidden">
         <label>Algorithm<select id="method"><option value="telea">Fast marching (Telea)</option><option value="navier-stokes">Navier–Stokes</option></select></label>
@@ -49,13 +70,13 @@
         <label>Mask growth <input id="grow" type="number" min="0" max="64" value="5"></label>
         <label>Edge feather <input id="feather" type="number" min="0" max="64" value="4"></label>
       </div>
-      <p class="note"><strong>ObjectClear</strong> reconstructs the scene and removes associated shadows or reflections. <strong>BiRefNet</strong> creates a transparent foreground cutout. OpenCV remains available for instant blemish and wire cleanup.</p>
+      <p class="note"><strong>ObjectClear</strong> uses its original 512-pixel short-side processing. <strong>Ideogram</strong> reconstructs a selected crop with soft-mask differential diffusion; pixels outside the feathered selection stay unchanged. <strong>Remove background</strong> uses BiRefNet; <strong>Cut out selected foreground</strong> uses your mask only. Ideogram background replacement does not generate alpha.</p>
     </aside>
     <section class="stage">
       <nav><button class="tab active" data-view="edit">Mask</button><button class="tab" data-view="result">Result</button><span id="status">Choose an image</span></nav>
       <div id="viewport" class="viewport empty">
         <div id="empty"><span>◌</span><h1>Paint what should disappear</h1><p>Brush a mask or use fuzzy click, then reconstruct the selected region with a private local model.</p></div>
-        <div id="stack"><canvas id="source"></canvas><canvas id="mask"></canvas></div>
+        <div id="stack"><canvas id="source"></canvas><canvas id="mask"></canvas><canvas id="selection" aria-hidden="true"></canvas></div>
         <img id="result" alt="Object removal result">
       </div>
     </section>

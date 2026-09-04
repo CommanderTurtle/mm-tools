@@ -61,15 +61,21 @@ def repo_path(relative: str) -> Path:
 
 
 A = Artifact
+QWEN_GUIDE = A(
+    "SergiusFlavius/Qwen3-VL-4B-Instruct-heretic-NVFP4",
+    model_path("qwen/text-encoder-vl-nvfp4"),
+    ("qwen3_vl_4b_nvfp4_full.safetensors",),
+)
 BUNDLES: tuple[Bundle, ...] = (
     Bundle(
         "ideogram",
         "Ideogram generation and editing",
-        "1-3",
+        "1-3, 40",
         (
             A("ideogram-ai/ideogram-4-fp8", model_path("ideogram-ai--ideogram-4-fp8")),
             A("jixin0101/ObjectClear", model_path("jixin0101--ObjectClear")),
             A("ZhengPeng7/BiRefNet", model_path("ZhengPeng7--BiRefNet")),
+            QWEN_GUIDE,
         ),
     ),
     Bundle(
@@ -292,11 +298,7 @@ BUNDLES: tuple[Bundle, ...] = (
                     "vae/minimax_music3_dav.safetensors",
                 ),
             ),
-            A(
-                "SergiusFlavius/Qwen3-VL-4B-Instruct-heretic-NVFP4",
-                model_path("qwen/text-encoder-vl-nvfp4"),
-                ("qwen3_vl_4b_nvfp4_full.safetensors",),
-            ),
+            QWEN_GUIDE,
         ),
     ),
     Bundle(
@@ -514,7 +516,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("No downloads selected.")
         return 0
 
-    artifacts = tuple(artifact for bundle in bundles for artifact in bundle.artifacts)
+    artifacts = tuple(dict.fromkeys(artifact for bundle in bundles for artifact in bundle.artifacts))
     print("\nSelected bundles:")
     for bundle in bundles:
         count = len(bundle.artifacts)
