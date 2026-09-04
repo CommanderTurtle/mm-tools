@@ -7,6 +7,8 @@
 !/.gitignore
 !/LICENSE
 !/README.md
+!/RUNTIME-EXPORT.md
+!/audit-export.py
 
 # Runtime projects are already tracked by the root index. Keeping their root
 # directories ignored makes every additional production/vendor file opt-in;
@@ -227,4 +229,53 @@
 # Runtime bytecode is always disposable, including beneath explicitly opened
 # vendor-runtime directories.
 **/__pycache__/
+# MiniMax Music embeds its own tokenizer; the Qwen/Krea2 writing lane uses
+# qwen25_tokenizer. Keep shared Python imports, not unrelated vocabularies.
+/minimax/runtime/comfy/text_encoders/ace_lyrics_tokenizer/
+/minimax/runtime/comfy/text_encoders/byt5_tokenizer/
+/minimax/runtime/comfy/text_encoders/hydit_clip_tokenizer/
+/minimax/runtime/comfy/text_encoders/llama_tokenizer/
+/minimax/runtime/comfy/text_encoders/qwen35_tokenizer/
+/minimax/runtime/comfy/text_encoders/t5_pile_tokenizer/
+/minimax/runtime/comfy/text_encoders/t5_tokenizer/
+
+# Build metadata and upstream notices must survive the runtime-only export.
+!/acestep/LICENSE
+!/ideogram/LICENSE.md
+!/ideogram/ComfyUI-Ideogram4/
+/ideogram/ComfyUI-Ideogram4/*
+!/ideogram/ComfyUI-Ideogram4/LICENSE.md
+!/ideogram/vendor/
+/ideogram/vendor/*
+!/ideogram/vendor/ObjectClear/
+/ideogram/vendor/ObjectClear/*
+!/ideogram/vendor/ObjectClear/LICENSE
+!/ideogram/model_licenses/
+/ideogram/model_licenses/*
+!/ideogram/model_licenses/LICENSE-IDEOGRAM-4-NON-COMMERCIAL
+!/longcat/LICENSE
+!/muscriptor/LICENSE
+!/muscriptor/README.md
+!/musvit/vendor/
+/musvit/vendor/*
+!/musvit/vendor/SMT/
+/musvit/vendor/SMT/*
+!/musvit/vendor/SMT/LICENSE
+!/redesign/LICENSE
+!/redesign/modules/
+/redesign/modules/*
+!/redesign/modules/grounding_dino/
+/redesign/modules/grounding_dino/*
+!/redesign/modules/grounding_dino/LICENSE
+!/redesign/modules/ObjectClear/
+/redesign/modules/ObjectClear/*
+!/redesign/modules/ObjectClear/LICENSE
+!/stableaudio/LICENSE
+!/stableaudio/LICENSES/
+/stableaudio/LICENSES/*
+!/stableaudio/LICENSES/LICENSE_*.txt
+!/vocalrender/LICENSE
+!/whisper/LICENSE
+!/whisper/README.md
+
 **/*.py[cod]
