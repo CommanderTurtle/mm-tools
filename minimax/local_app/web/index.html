@@ -26,10 +26,19 @@
 
     <nav class="workspace-tabs" aria-label="Studio workspace">
       <button class="workspace-tab active" type="button" data-tab="songStudio">Song Studio <small>MiniMax Music 3</small></button>
-      <button class="workspace-tab" type="button" data-tab="promptGuide">Prompt Guide <small>Qwen · isolated</small></button>
+      <button class="workspace-tab" type="button" data-tab="promptGuide">Prompt Enhance <small>Local writing room</small></button>
     </nav>
 
     <main>
+      <section class="session-tools" aria-label="Studio state">
+        <div class="session-buttons">
+          <button id="exportState" class="quiet-button" type="button">Export JSON</button>
+          <button id="importState" class="quiet-button" type="button">Import JSON</button>
+          <button id="resetState" class="quiet-button" type="button">Reset state</button>
+          <input id="stateFile" type="file" accept=".json,application/json" hidden>
+        </div>
+        <small id="stateStatus" role="status">Drafts &amp; take history. Audio stays on disk; a server restart starts fresh.</small>
+      </section>
       <section id="songStudio" class="workspace-panel active">
       <section class="intro">
         <p class="eyebrow">Five-minute local song generation</p>
@@ -159,26 +168,59 @@ Where the blue turns into gold
 
       <section id="promptGuide" class="workspace-panel" hidden>
         <section class="intro guide-intro">
-          <p class="eyebrow">Optional local writing room</p>
-          <h1>Shape the brief.<br><em>Keep the controls.</em></h1>
-          <p class="intro-copy">The exact Comfy text path you already trust—Qwen loaded as Krea2, then Generate Text—tuned to MiniMax Music 3's official structured-caption contract. It never writes into Song Studio. Copy only the pieces you want.</p>
+          <p class="eyebrow">Your local writing room</p>
+          <h1>Find the words.<br><em>Keep your voice.</em></h1>
+          <p class="intro-copy">Shape a song, keep your lyrics, or ask a music question. Copy what you like into Song Studio; nothing is applied for you.</p>
         </section>
 
         <section class="guide-runtime-card">
           <div>
-            <p class="eyebrow">Private inference lane</p>
-            <h2>Prompt Guide is off</h2>
-            <p id="guideStatus">No secondary process and no Qwen weights are resident.</p>
+            <h2>Writing assistant is off</h2>
+            <p id="guideStatus">Switch on when you're ready to write.</p>
           </div>
           <label class="switch guide-power">
-            <input id="guideEnabled" type="checkbox">
-            <i></i>
-            <span>Load isolated guide</span>
+            <input id="guideEnabled" type="checkbox"><i></i><span>Writing assistant</span>
           </label>
         </section>
 
-        <section class="guide-model-card">
-          <div class="section-label"><span>01</span> Local Krea2 text encoder</div>
+        <form id="promptGuideForm" class="prompt-guide-form">
+          <fieldset id="guideFields">
+            <label class="field guide-mode">
+              <span>I'd like to…</span>
+              <select id="guideMode">
+                <option value="brief">Refine a brief</option>
+                <option value="keep_lyrics">Keep my lyrics · shape the music</option>
+                <option value="song">Draft a song &amp; lyrics</option>
+                <option value="ask">Ask about music</option>
+              </select>
+              <small id="guideModeHint">Turn an idea into Global Metadata, Vocal Details and Arrangement.</small>
+            </label>
+            <div class="guide-writing-grid">
+              <div>
+                <label class="field">
+                  <span id="guideDirectionLabel">Your idea</span>
+                  <textarea id="guideDirection" rows="7" maxlength="12000" required placeholder="An intimate alternative R&amp;B verse that opens into a confident chorus…"></textarea>
+                </label>
+                <label class="field">
+                  <span>Anything to keep or avoid? <i>optional</i></span>
+                  <textarea id="guideConstraints" rows="3" maxlength="8000" placeholder="Required instruments, no backing vocals, a gentle ending…"></textarea>
+                </label>
+              </div>
+              <label id="guideLyricsField" class="field">
+                <span id="guideLyricsLabel">Lyrics as context <i>optional</i></span>
+                <textarea id="guideLyrics" rows="12" maxlength="30000" spellcheck="true" placeholder="[Verse]&#10;Your words here…"></textarea>
+                <small id="guideLyricsHint">Used for context only. Your original lyrics stay yours.</small>
+              </label>
+            </div>
+            <section id="guideResearch" hidden>
+              <label class="switch"><input id="guideWebSearch" type="checkbox"><i></i><span>Look it up with Firecrawl</span></label>
+              <p class="control-explainer">Sends only the search query to your configured Firecrawl service. The answer is written locally, with source links. It doesn't listen to the recording.</p>
+              <label class="field"><span>Search query <i>optional · defaults to your question</i></span><input id="guideSearchQuery" type="text" maxlength="500" placeholder='BLACKPINK Pink Venom vocal arrangement production'></label>
+            </section>
+
+            <details class="qwen-controls">
+              <summary>Advanced · model &amp; text settings</summary>
+              <p>Optional. These settings affect only the writing assistant, never your song render.</p>
           <div class="model-picker">
             <label class="field">
               <span>Selected .safetensors</span>
@@ -186,138 +228,8 @@ Where the blue turns into gold
             </label>
             <button id="browseGuideModels" class="quiet-button" type="button">Browse local models</button>
           </div>
-          <p class="model-note"><b>Backend:</b> CLIPLoader <code>type=krea2</code> → TextGenerate. Selection is stateless; changing the file never persists a hidden preference.</p>
-        </section>
-
-        <form id="promptGuideForm" class="prompt-guide-form">
-          <fieldset id="guideFields" disabled>
-            <section class="theory-lab">
-              <div class="theory-lab-head">
-                <div>
-                  <div class="section-label"><span>02</span> Guided brief lab</div>
-                  <h2>Choose like a producer.<br><em>Write like a music director.</em></h2>
-                  <p>Start with a one-click recipe or assemble only the details you actually mean. Every choice becomes plain English for Qwen; nothing is sent to MiniMax until you copy it into the brief.</p>
-                </div>
-                <span class="semantic-badge">Generative guidance · not MIDI</span>
-              </div>
-
-              <div id="theoryPresets" class="theory-presets" aria-label="Guided music brief recipes"></div>
-
-              <div class="theory-lab-grid">
-                <div class="theory-control-stack">
-                  <details open>
-                    <summary>Identity &amp; palette <small>genre · blend · instruments</small></summary>
-                    <div class="theory-selector-grid">
-                      <label><span>Primary family</span><select id="theoryGenre"></select></label>
-                      <label><span>Secondary color</span><select id="theoryFusion"></select></label>
-                      <label class="wide"><span>Core instrument palette</span><select id="theoryPalette"></select></label>
-                    </div>
-                  </details>
-
-                  <details open>
-                    <summary>Harmony &amp; pulse <small>tonal center · meter · groove</small></summary>
-                    <div class="theory-selector-grid">
-                      <label><span>Key center</span><select id="theoryKey"></select></label>
-                      <label><span>Scale / mode</span><select id="theoryMode"></select></label>
-                      <label><span>Exact BPM <i>optional</i></span><input id="theoryBpm" type="number" min="30" max="260" step="1" placeholder="leave open"></label>
-                      <label><span>Tempo character</span><select id="theoryTempo"></select></label>
-                      <label><span>Meter</span><select id="theoryMeter"></select></label>
-                      <label><span>Groove</span><select id="theoryGroove"></select></label>
-                      <label class="wide"><span>Harmonic language</span><select id="theoryHarmony"></select></label>
-                    </div>
-                    <p id="theoryHint" class="theory-hint">Leave a field open when it is not a real requirement; the prompt rewriter will not fabricate it.</p>
-                  </details>
-
-                  <details>
-                    <summary>Performance &amp; trajectory <small>voice · energy · form · mix</small></summary>
-                    <div class="theory-selector-grid">
-                      <label><span>Lead performance</span><select id="theoryVocal"></select></label>
-                      <label><span>Emotional arc</span><select id="theoryArc"></select></label>
-                      <label><span>Form</span><select id="theoryForm"></select></label>
-                      <label><span>Production profile</span><select id="theoryProduction"></select></label>
-                      <label class="wide"><span>Listening scene / use</span><select id="theoryScene"></select></label>
-                      <label class="wide"><span>One detail only you know</span><textarea id="theoryCustom" rows="3" placeholder="A required instrument, section-local change, hard exclusion, or unusual performance cue…"></textarea></label>
-                    </div>
-                  </details>
-                </div>
-
-                <aside class="theory-draft">
-                  <div class="theory-draft-label"><span>Live copypasta</span><small>updates locally</small></div>
-                  <textarea id="theoryPromptPreview" rows="18" readonly aria-label="Generated guided music brief"></textarea>
-                  <p>The guide treats exact BPM, key, meter, instrumentation, and form as strong semantic requests—not guaranteed symbolic output.</p>
-                  <div class="theory-actions">
-                    <button id="appendTheoryBrief" class="primary-button" type="button"><span>Append to music brief</span><b>↓</b></button>
-                    <button id="replaceTheoryBrief" class="quiet-button" type="button">Replace brief</button>
-                    <button id="copyTheoryBrief" class="quiet-button" type="button">Copy</button>
-                    <button id="clearTheoryBrief" class="text-button" type="button">Clear choices</button>
-                  </div>
-                </aside>
-              </div>
-
-              <details class="prompt-anatomy">
-                <summary>What MiniMax can hear in a structured caption</summary>
-                <div class="anatomy-grid">
-                  <article><b>Global Metadata</b><p>Genre and fusion, tempo, key or mode when intentional, emotional progression, listening scene, and the overall sonic profile.</p></article>
-                  <article><b>Vocal Details</b><p>Lead configuration, register, timbre, delivery, section changes, harmonies, doubles, diction, and restrained vocal effects.</p></article>
-                  <article><b>Arrangement</b><p>A chronological instrument lifecycle: what enters, exits, intensifies, strips back, transitions, and carries the ending.</p></article>
-                  <article><b>Best practice</b><p>Use vivid sentences, specify two or three defining elements, preserve hard exclusions, and leave everything else room to breathe.</p></article>
-                </div>
-              </details>
-            </section>
-
-            <section class="guide-writing-grid">
-              <div>
-                <div class="section-label"><span>03</span> Music brief</div>
-                <label class="field">
-                  <span>What should MiniMax make?</span>
-                  <textarea id="guideDirection" rows="11" required>A nocturnal alternative R&amp;B song with an intimate verse and a wider, confident chorus. Warm analog color, patient groove, expressive lead vocal, and an ending that feels unresolved rather than faded.</textarea>
-                  <small>State hard requirements and exclusions plainly. Unsupported precision will not be invented.</small>
-                </label>
-                <label class="field">
-                  <span>Additional constraints</span>
-                  <textarea id="guideConstraints" rows="6" placeholder="Required instruments, prohibited elements, vocal identity, tempo limit, production or spatial constraints…"></textarea>
-                </label>
-              </div>
-              <div>
-                <div class="section-label"><span>04</span> Optional song sheet</div>
-                <label class="field guide-lyrics-field">
-                  <span>Lyrics and section tags</span>
-                  <textarea id="guideLyrics" rows="20" spellcheck="true" placeholder="[Intro]\n\n[Verse]\n…\n\n[Chorus]\n…"></textarea>
-                  <div class="section-tag-shelf" aria-label="Insert a MiniMax section tag">
-                    <button type="button" data-section-tag="[Intro]">Intro</button>
-                    <button type="button" data-section-tag="[Verse]">Verse</button>
-                    <button type="button" data-section-tag="[Pre-Chorus]">Pre-Chorus</button>
-                    <button type="button" data-section-tag="[Chorus]">Chorus</button>
-                    <button type="button" data-section-tag="[Post-Chorus]">Post-Chorus</button>
-                    <button type="button" data-section-tag="[Bridge]">Bridge</button>
-                    <button type="button" data-section-tag="[Instrumental]">Instrumental</button>
-                    <button type="button" data-section-tag="[Solo]">Solo</button>
-                    <button type="button" data-section-tag="[Outro]">Outro</button>
-                  </div>
-                  <small>Qwen uses prose only for broad emotional context and preserves bracketed tags as structural directives. It will not rewrite or echo lyric lines.</small>
-                </label>
-              </div>
-            </section>
-
-            <section class="guide-controls">
-              <div class="section-label"><span>05</span> MiniMax context</div>
-              <p class="control-explainer">These values give the guide real tuning context. They remain independent from Song Studio and are never applied automatically.</p>
               <div class="control-grid guide-control-grid">
-                <label><span>Duration (s)</span><input id="guideDuration" type="number" min="0.04" max="300" step="1" value="120"></label>
-                <label><span>Steps</span><input id="guideSteps" type="number" min="1" max="100" value="30"></label>
-                <label><span>CFG</span><input id="guideCfg" type="number" min="0" max="100" step="0.1" value="1.7"></label>
-                <label><span>Acoustic top-k</span><input id="guideAcousticTopK" type="number" min="1" max="1024" value="50"></label>
-                <label><span>Sampler</span><select id="guideSampler"><option value="euler">Euler</option><option value="euler_cfg_pp">Euler CFG++</option><option value="euler_ancestral">Euler ancestral</option><option value="heun">Heun</option><option value="dpm_2">DPM 2</option><option value="dpmpp_2m">DPM++ 2M</option><option value="dpmpp_2m_sde">DPM++ 2M SDE</option><option value="uni_pc">UniPC</option></select></label>
-                <label><span>Scheduler</span><select id="guideScheduler"><option value="simple">Simple</option><option value="normal">Normal</option><option value="karras">Karras</option><option value="exponential">Exponential</option><option value="sgm_uniform">SGM uniform</option><option value="ddim_uniform">DDIM uniform</option><option value="beta">Beta</option></select></label>
-              </div>
-              <label class="switch inline-switch"><input id="guideTiled" type="checkbox"><i></i><span>Tiled VAE decode</span></label>
-            </section>
-
-            <details class="qwen-controls">
-              <summary><span>06</span> Exact Generate Text controls</summary>
-              <p>The defaults mirror your proven Comfy node: sampling on, 0.7 temperature, top-k 64, top-p 0.95, min-p 0.05, repetition penalty 1.05, seed 0, no thinking, default template on. If one rewrite derails, reroll the seed before changing an otherwise good brief.</p>
-              <div class="control-grid guide-control-grid">
-                <label><span>Max tokens</span><input id="guideMaxLength" type="number" min="1" max="32768" value="512"></label>
+                <label><span>Max tokens</span><input id="guideMaxLength" type="number" min="1" max="32768" value="1024"></label>
                 <label><span>Temperature</span><input id="guideTemperature" type="number" min="0.01" max="2" step="0.01" value="0.7"></label>
                 <label><span>Top-k</span><input id="guideTopK" type="number" min="0" max="1000" value="64"></label>
                 <label><span>Top-p</span><input id="guideTopP" type="number" min="0" max="1" step="0.01" value="0.95"></label>
@@ -334,28 +246,40 @@ Where the blue turns into gold
             </details>
 
             <section class="guide-run-row">
-              <button id="runPromptGuide" class="primary-button" type="submit"><span>Rewrite for MiniMax</span><b>↗</b></button>
-              <p id="guideRunStatus" role="status">Guide output stays detached from every generation field.</p>
+              <button id="runPromptGuide" class="primary-button" type="submit" disabled><span>Generate text</span><b>↗</b></button>
+              <p id="guideRunStatus" role="status">Switch on the writing assistant, then generate text.</p>
             </section>
           </fieldset>
         </form>
 
         <section id="guideResults" class="guide-results" hidden>
-          <div class="section-label"><span>07</span> Manual copy desk</div>
           <div class="guide-result-head">
-            <p>Nothing below is auto-applied. Copy a single section or the complete response, then paste where it belongs.</p>
-            <button class="quiet-button copy-guide" type="button" data-copy="guideRawOutput">Copy complete response</button>
+            <p id="guideResultNote">Copy what you like. Song Studio is unchanged.</p>
+            <button class="quiet-button copy-guide" type="button" data-copy="guideRawOutput">Copy response</button>
           </div>
-          <div class="guide-output-grid">
+          <pre id="guideAnswerOutput" hidden></pre>
+          <div id="guideCaptionOutputs" class="guide-output-grid">
             <article><header><span>Global Metadata</span><button class="copy-guide" type="button" data-copy="guideGlobalOutput">Copy</button></header><pre id="guideGlobalOutput"></pre></article>
             <article><header><span>Vocal Details</span><button class="copy-guide" type="button" data-copy="guideVocalOutput">Copy</button></header><pre id="guideVocalOutput"></pre></article>
             <article><header><span>Arrangement</span><button class="copy-guide" type="button" data-copy="guideArrangementOutput">Copy</button></header><pre id="guideArrangementOutput"></pre></article>
-            <article><header><span>Tuning Notes</span><button class="copy-guide" type="button" data-copy="guideTuningOutput">Copy</button></header><pre id="guideTuningOutput"></pre></article>
+            <article id="guideLyricResult" hidden><header><span>Lyrics</span><button class="copy-guide" type="button" data-copy="guideLyricsOutput">Copy</button></header><pre id="guideLyricsOutput"></pre></article>
           </div>
-          <details class="raw-output"><summary>Raw model response</summary><pre id="guideRawOutput"></pre></details>
+          <ol id="guideSources" aria-label="Research sources" hidden></ol>
+          <details id="guideRawDetails" class="raw-output"><summary>Full response</summary><pre id="guideRawOutput"></pre></details>
         </section>
       </section>
     </main>
+
+    <dialog id="stateDialog" class="model-dialog state-dialog" aria-labelledby="stateDialogTitle">
+      <form method="dialog">
+        <h2 id="stateDialogTitle">Replace studio state?</h2>
+        <p>This replaces drafts here and the shared take list. Audio files are not deleted. Active takes must finish or be cancelled first.</p>
+        <div class="session-buttons">
+          <button class="quiet-button" value="cancel" autofocus>Cancel</button>
+          <button id="stateDialogConfirm" class="primary-button" value="confirm">Continue</button>
+        </div>
+      </form>
+    </dialog>
 
     <dialog id="guideModelDialog" class="model-dialog">
       <form method="dialog">
@@ -365,6 +289,6 @@ Where the blue turns into gold
       </form>
     </dialog>
 
-    <script src="/assets/app.js" defer></script>
+    <script src="/assets/app.js" type="module"></script>
   </body>
 </html>

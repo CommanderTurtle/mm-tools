@@ -190,7 +190,7 @@ button:disabled { opacity: .45; cursor: wait; }
 .guide-writing-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: clamp(30px, 6vw, 100px); }
 .guide-lyrics-field textarea { min-height: 480px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; line-height: 1.7; }
 .guide-controls { margin-top: 52px; border: 1px solid var(--line); padding: 28px; background: var(--panel); }
-.guide-control-grid { grid-template-columns: repeat(6, minmax(115px, 1fr)); }
+.guide-control-grid { grid-template-columns: repeat(4, minmax(115px, 1fr)); }
 .inline-switch { margin-top: 22px; width: max-content; }
 .qwen-controls { margin-top: 18px; border: 1px solid var(--line); background: #111110; }
 .qwen-controls summary { padding: 20px 24px; color: var(--ink); cursor: pointer; font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: .13em; }
@@ -225,6 +225,23 @@ button:disabled { opacity: .45; cursor: wait; }
 .model-option b, .model-option small { display: block; overflow-wrap: anywhere; }
 .model-option b { font-size: 12px; }.model-option small { color: var(--dim); margin-top: 4px; }.model-option em { color: var(--muted); white-space: nowrap; font-size: 11px; font-style: normal; }
 .empty-model-list { color: var(--dim); padding: 25px; border: 1px dashed var(--line); text-align: center; }
+
+.session-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 22px; margin-top: 22px; }
+.session-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.state-dialog { max-width: 540px; }
+.state-dialog p { color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+.session-tools small { color: var(--muted); max-width: 560px; line-height: 1.5; }
+.guide-mode { max-width: 600px; }
+.guide-mode select, #guideSearchQuery { width: 100%; padding: 12px; }
+.guide-writing-grid textarea { width: 100%; min-height: 90px; }
+.qwen-controls .model-picker { margin: 0 24px 24px; }
+.qwen-controls .model-picker .field { min-width: 0; }
+#guideResearch { margin: 20px 0; padding: 22px; border: 1px solid var(--line); }
+#guideResearch .field { margin-bottom: 0; max-width: 720px; }
+#guideAnswerOutput { white-space: pre-wrap; overflow-wrap: anywhere; padding: 24px; background: var(--panel); border: 1px solid var(--line); font: 14px/1.8 ui-monospace, monospace; }
+#guideSources { color: var(--muted); line-height: 1.8; overflow-wrap: anywhere; }
+#guideSources a { color: var(--accent); }
+[hidden] { display: none !important; }
 
 @media (max-width: 1000px) {
   .writing-grid, .performance-copy, .guide-writing-grid { grid-template-columns: 1fr; }

@@ -56,6 +56,11 @@
 !/minimax/local_app/web/app.js
 !/minimax/local_app/web/index.html
 !/minimax/local_app/web/style.css
+!/minimax/local_app/web/studio-state.js
+!/minimax/tests/
+/minimax/tests/*
+!/minimax/tests/test_studio_qol.py
+!/minimax/tests/studio-state.test.js
 !/minimax/runtime/
 /minimax/runtime/*
 !/minimax/runtime/alembic.ini
