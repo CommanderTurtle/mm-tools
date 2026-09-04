@@ -7,8 +7,7 @@
 !/.gitignore
 !/LICENSE
 !/README.md
-!/RUNTIME-EXPORT.md
-!/audit-export.py
+/tests/*
 
 # Runtime projects are already tracked by the root index. Keeping their root
 # directories ignored makes every additional production/vendor file opt-in;
