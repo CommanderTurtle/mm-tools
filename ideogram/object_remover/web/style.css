@@ -138,7 +138,7 @@ label select, label input[type=number] {
 .link-button { padding: 0; background: none; color: var(--muted); font-size: 9px; }
 .link-button:hover { color: var(--text); }
 
-.stage { min-width: 0; display: grid; grid-template-rows: 46px 1fr; }
+.stage { min-width: 0; min-height: 0; display: grid; grid-template-rows: 46px minmax(0, 1fr); }
 .stage nav {
   display: flex;
   align-items: center;
@@ -186,6 +186,25 @@ canvas { max-width: 100%; max-height: calc(100vh - 150px); width: auto; height: 
 }
 .viewport.result-view #stack { display: none; }
 .viewport.result-view #result { display: block; }
+
+/* One scrollable viewport; original PNGs are only fitted for display. */
+#try-results { display: none; }
+.viewport.tries-view { display: block; padding: 14px; }
+.viewport.tries-view #stack, .viewport.tries-view #result, .viewport.tries-view #empty { display: none; }
+.viewport.tries-view #try-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.try-result { margin: 0; min-width: 0; border: 1px solid var(--edge); border-radius: 8px; }
+.try-result figcaption { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: var(--panel); border-radius: 8px 8px 0 0; }
+.try-result figcaption span { overflow-wrap: anywhere; }
+.try-result button { padding: 4px 9px; font-size: 11px; flex-shrink: 0; }
+.try-result img { display: block; width: 100%; height: auto; }
+.try-result img[hidden] { display: none; }
+.try-result p { padding: 0 10px; color: var(--muted); overflow-wrap: anywhere; }
+.try-empty { grid-column: 1 / -1; color: var(--muted); text-align: center; }
 
 @media (max-width: 900px) {
   header { align-items: flex-start; }

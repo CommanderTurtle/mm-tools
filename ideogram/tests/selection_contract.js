@@ -25,11 +25,12 @@ function harness() {
       putImageData(data) { this.fills = structuredClone(data); },
     };
     const el = {
-      width: 1024, height: 512, value: '20', disabled: false,
+      width: 1024, height: 512, value: selector === '#try-count' ? '1' : '20', disabled: false,
       dataset: {}, events: {}, pointers: new Set(), context,
       classList: { toggle() {} },
       showModal() { this.open = true; }, close() { this.open = false; },
       removeAttribute(name) { delete this[name]; },
+      replaceChildren() {},
       getContext() { return context; },
       getBoundingClientRect() { return { left: 10, top: 20, width: 512, height: 256 }; },
       addEventListener(name, callback) { (this.events[name] ??= []).push(callback); },

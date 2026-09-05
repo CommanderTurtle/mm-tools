@@ -141,9 +141,9 @@ async def remove(
 
 
 @app.post("/api/background")
-async def background(image: UploadFile = File(...)) -> Response:
+async def background(image: UploadFile = File(...), seed: int = Form(42, ge=0, le=2**64 - 1)) -> Response:
     try:
-        result = await asyncio.to_thread(models.remove_background, await read_upload(image))
+        result = await asyncio.to_thread(models.remove_background, await read_upload(image), seed=seed)
         return Response(result, media_type="image/png")
     except ModelUnavailable as exc:
         raise HTTPException(409, str(exc)) from exc
@@ -222,9 +222,9 @@ async def mask_cutout(image: UploadFile = File(...), mask: UploadFile = File(...
 
 
 @app.post("/api/foreground-mask")
-async def foreground_mask(image: UploadFile = File(...)):
+async def foreground_mask(image: UploadFile = File(...), seed: int = Form(42, ge=0, le=2**64 - 1)):
     try:
-        result = await asyncio.to_thread(models.foreground_mask, await read_upload(image))
+        result = await asyncio.to_thread(models.foreground_mask, await read_upload(image), seed=seed)
         return Response(result, media_type="image/png")
     except (ValueError, ModelUnavailable) as exc:
         raise HTTPException(400, str(exc)) from exc

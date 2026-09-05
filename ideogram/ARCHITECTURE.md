@@ -39,6 +39,14 @@ For **background replacement**, paint the foreground to preserve, select **Edit 
 
 Coordinate boxes are selection/caption hints, not rectangular edit masks. Ideogram receives the full aligned source for context. Include a related shadow or mirror reflection with another brush/lasso selection when it should disappear too. Ideogram's strict final compositing cannot remove something outside the mask; automatic semantic discovery of related regions is not implemented or claimed. ObjectClear retains its own upstream attention-guided fusion behavior.
 
+### Seed tries
+
+**Try** (1–16, default 1) runs ObjectClear/Ideogram removal sequentially with the visible edit seed, then each following seed. For example, seed 42 with Try 6 runs 42–47 against the same frozen source, mask and settings. Ideogram reuses the approved caption; its caption seed is separate. A range past the unsigned 64-bit seed limit is rejected.
+
+Above 1, the **Tries** tab becomes available: one scrollable grid of original-resolution PNGs, fitted for display, with `seed=number` labels. Native image right-click/open-in-new-tab works. **Use** selects an image and its seed in Result for downloading or further background removal. Errors stop the sequence and retain completed tries. New batches/uploads replace the gallery and release its blob URLs.
+
+**Remove background** also passes the visible seed and Try sequence through the BiRefNet API. With a completed Tries grid active it processes the corresponding images; in Result it uses the selected image, and in Mask it uses the original source. **Auto-select foreground** passes the visible seed too. Each BiRefNet call restores its prior random-generator state afterward. BiRefNet's evaluation path does not sample diffusion noise: identical inputs can give identical outputs across seeds. No artificial noise, training-mode dropout, resizing or alternate model is introduced. OpenCV remains a single deterministic repair.
+
 ### Resolution and preservation
 
 The inference wrappers never downscale, upscale, pad, select a smaller processing region or retry at a lower resolution. Input dimensions determine output dimensions. If necessary, only the right/bottom remainder is cropped to the nearest lower grid multiple: 16 for ObjectClear (VAE stride 8 plus AGF half-latent map) and Ideogram; 32 for BiRefNet’s patch layout. Already aligned images keep every input pixel. Masks use identical coordinates and trims; mismatched masks and model outputs are rejected, not resized. Inputs smaller than the required grid fail explicitly. An out-of-memory error remains an error.

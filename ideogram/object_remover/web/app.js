@@ -15,6 +15,7 @@ let lassoPoints = [];
 let resultBlob = null;
 let resultUrl = null;
 let currentView = 'edit';
+let tryResults = [];
 let downloadSuffix = 'clean';
 let undo = [];
 let modelState = null;
@@ -30,6 +31,7 @@ function lockEditing(value) {
     if (value) { el.dataset.wasDisabled = String(el.disabled); el.disabled = true; }
     else { el.disabled = el.dataset.wasDisabled === 'true'; delete el.dataset.wasDisabled; }
   });
+  for (const entry of tryResults) entry.use.disabled = value || !entry.blob;
 }
 
 async function errorMessage(response) {
@@ -42,14 +44,108 @@ function setBusy(message) {
   $('#status').textContent = message;
 }
 
-function showResult(blob, suffix) {
+function showResult(blob, suffix, view = 'result') {
   resultBlob = blob;
   downloadSuffix = suffix;
   if (resultUrl) URL.revokeObjectURL(resultUrl);
   resultUrl = URL.createObjectURL(blob);
   $('#result').src = resultUrl;
   $('#download').disabled = false;
-  setView('result');
+  setView(view);
+}
+
+function tryCount() {
+  const count = Number($('#try-count').value);
+  if (!Number.isInteger(count) || count < 1 || count > 16) throw new Error('Try must be between 1 and 16.');
+  return count;
+}
+
+function syncTriesTab() {
+  $('#tries-tab').disabled = !(Number($('#try-count').value) > 1);
+  if ($('#tries-tab').disabled && currentView === 'tries') setView(resultBlob ? 'result' : 'edit');
+}
+
+$('#try-count').addEventListener('input', syncTriesTab);
+
+function clearTries() {
+  for (const entry of tryResults) if (entry.url) URL.revokeObjectURL(entry.url);
+  tryResults = [];
+  $('#try-results').replaceChildren();
+}
+
+function prepareTries(seeds) {
+  syncTriesTab();
+  clearTries();
+  for (const seed of seeds) {
+    const pane = document.createElement('figure');
+    pane.className = 'try-result';
+    const caption = document.createElement('figcaption');
+    const label = document.createElement('span');
+    label.textContent = `seed=${seed}`;
+    const use = document.createElement('button');
+    use.className = 'quiet'; use.textContent = 'Use'; use.disabled = true;
+    const status = document.createElement('p');
+    status.textContent = 'Queued';
+    const img = document.createElement('img');
+    img.alt = `Removal — seed ${seed}`; img.hidden = true;
+    const entry = {seed, use, status, img, blob: null, url: null, suffix: ''};
+    use.addEventListener('click', () => {
+      if (operationBusy || !entry.blob) return;
+      $('#seed').value = entry.seed;
+      showResult(entry.blob, entry.suffix);
+      setBusy(`Selected seed ${entry.seed}`);
+    });
+    caption.append(label, use); pane.append(caption, status, img);
+    $('#try-results').append(pane);
+    tryResults.push(entry);
+  }
+  setView('tries');
+}
+
+function showTry(entry, blob, suffix) {
+  if (entry.url) URL.revokeObjectURL(entry.url);
+  entry.blob = blob; entry.suffix = `${suffix}-seed-${entry.seed}`;
+  entry.url = URL.createObjectURL(blob);
+  entry.img.src = entry.url; entry.img.hidden = false;
+  entry.status.textContent = ''; entry.status.hidden = true;
+  showResult(blob, entry.suffix, 'tries');
+}
+
+async function postImage(url, body) {
+  const response = await fetch(url, {method: 'POST', body});
+  if (!response.ok) throw new Error(await errorMessage(response));
+  return response.blob();
+}
+
+async function runImageTries(url, body, suffix, inputs = null) {
+  const count = body.get('engine') === 'opencv' ? 1 : tryCount();
+  const start = BigInt(seedText(body.get('seed')));
+  if (start + BigInt(count - 1) > 18446744073709551615n) throw new Error('The last try exceeds the maximum seed. Lower the seed or try count.');
+  if (count === 1) {
+    showResult(await postImage(url, body), suffix);
+    clearTries();
+    return;
+  }
+  prepareTries(Array.from({length: count}, (_, i) => String(start + BigInt(i))));
+  // Sequential requests share frozen source/mask/caption, changing only seed.
+  // Background removal can instead follow the corresponding completed tries.
+  for (let i = 0; i < count; i++) {
+    const entry = tryResults[i];
+    const message = `Try ${i + 1}/${count} · seed ${entry.seed}`;
+    setBusy(message);
+    if (reviewBusy) $('#review-status').textContent = message;
+    entry.status.textContent = 'Running…';
+    body.set('seed', entry.seed);
+    if (inputs) body.set('image', inputs[i]);
+    try {
+      const blob = await postImage(url, body);
+      showTry(entry, blob, suffix);
+    } catch (error) {
+      entry.status.textContent = `Failed: ${error.message}`;
+      for (const pending of tryResults.slice(i + 1)) pending.status.textContent = 'Not run';
+      throw new Error(`${message} failed: ${error.message}. Completed tries are retained.`);
+    }
+  }
 }
 
 function setImage(selected) {
@@ -61,6 +157,9 @@ function setImage(selected) {
   image.onload = () => {
     if (version !== imageLoadVersion || operationBusy) { URL.revokeObjectURL(sourceUrl); return; }
     file = selected;
+    clearTries();
+    if (resultUrl) { URL.revokeObjectURL(resultUrl); resultUrl = null; }
+    $('#result').removeAttribute('src');
     endStroke();
     source.width = mask.width = selection.width = image.naturalWidth;
     source.height = mask.height = selection.height = image.naturalHeight;
@@ -408,9 +507,7 @@ $('#remove').addEventListener('click', async () => {
     body.set('mask', await maskBlob(), 'mask.png');
     body.set('engine', engine);
     for (const id of ['method', 'radius', 'grow', 'feather', 'steps', 'guidance', 'seed']) body.set(id, $(`#${id}`).value);
-    const response = await fetch('/api/remove', { method: 'POST', body });
-    if (!response.ok) throw new Error(await errorMessage(response));
-    showResult(await response.blob(), engine === 'objectclear' ? 'object-cleared' : 'clean');
+    await runImageTries('/api/remove', body, engine === 'objectclear' ? 'object-cleared' : 'clean');
     setBusy('Removal complete');
     await refreshModels();
   } catch (error) {
@@ -426,13 +523,21 @@ $('#background').addEventListener('click', async () => {
   if (operationBusy || !file) return;
   lockEditing(true);
   try {
+    // Snapshot the blobs before replacing the gallery. No chained seed edits.
+    const input = currentView === 'result' && resultBlob ? resultBlob : file;
+    let inputs = null;
+    if (currentView === 'tries' && tryResults.length) {
+      if (tryResults.length !== tryCount() || tryResults.some(entry => !entry.blob)) {
+        throw new Error('Use a completed image in Result, or keep Try equal to the number of completed panes.');
+      }
+      inputs = tryResults.map(entry => entry.blob);
+    }
     await ensureLoaded('birefnet');
     setBusy('Separating foreground and reconstructing alpha…');
     const body = new FormData();
-    body.set('image', currentView === 'result' && resultBlob ? resultBlob : file);
-    const response = await fetch('/api/background', { method: 'POST', body });
-    if (!response.ok) throw new Error(await errorMessage(response));
-    showResult(await response.blob(), 'background-removed');
+    body.set('image', input);
+    body.set('seed', seedText($('#seed').value));
+    await runImageTries('/api/background', body, 'background-removed', inputs);
     setBusy('Transparent background ready');
     await refreshModels();
   } catch (error) {
@@ -450,8 +555,10 @@ $('#download').addEventListener('click', () => {
 });
 
 function setView(view) {
+  if (view === 'tries' && $('#tries-tab').disabled) return;
   currentView = view;
   $('#viewport').classList.toggle('result-view', view === 'result');
+  $('#viewport').classList.toggle('tries-view', view === 'tries');
   document.querySelectorAll('.tab').forEach(button => button.classList.toggle('active', button.dataset.view === view));
 }
 
@@ -585,9 +692,7 @@ $('#review-run').addEventListener('click', async () => {
     reviewBody.set('instruction', $('#review-instruction').value);
     reviewBody.set('seed', seedText($('#review-seed').value));
     $('#review-status').textContent = 'Running the approved source and caption…';
-    const response = await fetch('/api/remove', {method: 'POST', body: reviewBody});
-    if (!response.ok) throw new Error(await errorMessage(response));
-    showResult(await response.blob(), 'ideogram-edit');
+    await runImageTries('/api/remove', reviewBody, 'ideogram-edit');
     $('#caption').value = caption;
     $('#instruction').value = $('#review-instruction').value;
     $('#seed').value = $('#review-seed').value;
@@ -621,6 +726,7 @@ $('#alpha-prepare').addEventListener('click', async () => {
   lockEditing(true);
   try {
     const body = new FormData(); body.set('image', file);
+    body.set('seed', seedText($('#seed').value));
     setBusy('Drafting foreground alpha locally and refining original-resolution edges…');
     const response = await fetch('/api/foreground-mask', {method: 'POST', body});
     if (!response.ok) throw new Error(await errorMessage(response));

@@ -242,9 +242,11 @@ class EditingModels:
                 result.putalpha(source.getchannel("A").crop((0, 0, image.width, image.height)))
             return png(result)
 
-    def remove_background(self, image_bytes: bytes) -> bytes:
+    def remove_background(self, image_bytes: bytes, *, seed: int = 42) -> bytes:
         from .native import read_source, align_source
         from .regions import png
+        if isinstance(seed, bool) or not isinstance(seed, int) or not 0 <= seed <= 2**64 - 1:
+            raise ValueError("Seed must be an unsigned 64-bit integer.")
         source = align_source(read_source(image_bytes), 32)
         with self._lock:
             self._load_birefnet()
@@ -264,8 +266,21 @@ class EditingModels:
                 device=self._device,
                 dtype=model_dtype,
             )
-            with torch.inference_mode():
-                prediction = self._birefnet(input_tensor)[-1].sigmoid().cpu()[0].squeeze()
+            # Respect the request seed without leaking RNG state between requests.
+            # BiRefNet in eval mode does not sample noise: seeds need not differ.
+            devices = list(range(torch.cuda.device_count())) if self._device == "cuda" else []
+            mps_state = torch.mps.get_rng_state() if self._device == "mps" else None
+            try:
+                with torch.random.fork_rng(devices=devices), torch.inference_mode():
+                    torch.random.default_generator.manual_seed(seed)
+                    if devices:
+                        torch.cuda.manual_seed_all(seed)
+                    if mps_state is not None:
+                        torch.mps.manual_seed(seed)
+                    prediction = self._birefnet(input_tensor)[-1].sigmoid().cpu()[0].squeeze()
+            finally:
+                if mps_state is not None:
+                    torch.mps.set_rng_state(mps_state)
             if tuple(prediction.shape) != (image.height, image.width):
                 raise ValueError("BiRefNet returned different dimensions; refusing to upscale alpha.")
             alpha = to_pil_image(prediction)
@@ -274,7 +289,7 @@ class EditingModels:
             result.putalpha(ImageChops.multiply(result.getchannel("A"), alpha))
             return png(result)
 
-    def foreground_mask(self, image_bytes: bytes) -> bytes:
+    def foreground_mask(self, image_bytes: bytes, *, seed: int = 42) -> bytes:
         """Optional alpha producer for the removal workbench; preserve the old route."""
         from .matte import refine_matte
         from .regions import png
@@ -284,7 +299,7 @@ class EditingModels:
         with self._lock:
             self.unload("all")
             try:
-                alpha = self.remove_background(normalized)
+                alpha = self.remove_background(normalized, seed=seed)
                 return refine_matte(normalized, alpha)
             finally:
                 self.unload("birefnet")

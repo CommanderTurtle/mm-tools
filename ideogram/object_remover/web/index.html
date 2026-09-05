@@ -6,7 +6,7 @@
     <div><strong>Editing Workbench</strong><small>PRIVATE · LOCAL MODELS · NO CLOUD</small></div>
     <div class="actions">
       <button id="download" class="quiet" disabled>Download</button>
-      <button id="background" class="quiet" disabled title="Uses the displayed result when Result is selected; otherwise uses the source image.">Remove background</button>
+      <button id="background" class="quiet" disabled title="Uses the current seed and Try count. BiRefNet may return identical results across seeds. Uses completed Tries, the displayed Result, or the source in Mask.">Remove background</button>
       <button id="remove" disabled>Remove selection</button>
     </div>
   </header>
@@ -49,6 +49,7 @@
         <label>Inference steps <input id="steps" type="number" min="4" max="60" value="20"></label>
         <label>Removal strength <input id="guidance" type="number" min="0" max="10" step=".1" value="2.5"></label>
         <label>Edit seed <input id="seed" type="text" inputmode="numeric" value="42"></label>
+        <label>Try <input id="try-count" type="number" min="1" max="16" step="1" value="1" title="Sequential tries: this seed, then each next seed. Same source, mask and settings."></label>
       </div>
       <div id="ideogram-controls" class="control-group hidden">
         <label>What should change?<textarea id="instruction" rows="4">Remove the selected object and reconstruct the background naturally. Preserve the lighting and unselected objects.</textarea></label>
@@ -72,11 +73,12 @@
       <p class="note">Full source resolution. No resizing. Only the right/bottom alignment remainder is cropped: up to 15 pixels per edge for ObjectClear/Ideogram, 31 for BiRefNet. Large inputs need more VRAM. <strong>Ideogram</strong> preserves pixels outside the feathered mask. <strong>Remove background</strong> uses BiRefNet; <strong>Cut out selected foreground</strong> uses your mask only. Ideogram background replacement does not generate alpha.</p>
     </aside>
     <section class="stage">
-      <nav><button class="tab active" data-view="edit">Mask</button><button class="tab" data-view="result">Result</button><span id="status">Choose an image</span></nav>
+      <nav><button class="tab active" data-view="edit">Mask</button><button class="tab" data-view="result">Result</button><button id="tries-tab" class="tab" data-view="tries" disabled title="Set Try above 1 to compare results">Tries</button><span id="status">Choose an image</span></nav>
       <div id="viewport" class="viewport empty">
         <div id="empty"><span>◌</span><h1>Paint what should disappear</h1><p>Brush a mask or use fuzzy click, then reconstruct the selected region with a private local model.</p></div>
         <div id="stack"><canvas id="source"></canvas><canvas id="mask"></canvas><canvas id="selection" aria-hidden="true"></canvas></div>
         <img id="result" alt="Object removal result">
+        <div id="try-results" aria-label="Seed tries"><p class="try-empty">Run a removal with Try above 1 to compare results.</p></div>
       </div>
     </section>
   </main>
