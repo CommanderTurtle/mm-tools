@@ -31,7 +31,7 @@ cd ~ && git clone https://github.com/CommanderTurtle/mm-tools multimedia && cd m
 cd models
 uv venv --python 3.12.10 --seed --managed-python
 source .venv/bin/activate
-uv pip install huggingface_hub hf_xet
+uv pip install huggingface_hub hf_transfer
 
 uv run download_models.py
 # Choose workers first, then select project bundles or press Enter for all.
