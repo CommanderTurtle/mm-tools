@@ -72,7 +72,7 @@ class IdeogramEditing:
             # Drop the caption process/models before loading both large DiTs.
             self.engine.stop()
 
-    def edit(self, image, mask, *, instruction, caption, resolution, padding, feather, invert,
+    def edit(self, image, mask, *, instruction, caption, feather, invert,
              steps, seed, guidance, strength):
         if not 4 <= steps <= 60 or not 0 <= seed <= 2**64 - 1:
             raise ValueError("Steps must be 4–60 and seed an unsigned 64-bit integer.")
@@ -80,7 +80,7 @@ class IdeogramEditing:
             raise ValueError("Ideogram guidance must be 1–10.")
         if not math.isfinite(strength) or not .1 <= strength <= 1 or int(steps * strength) < 1:
             raise ValueError("Denoising strength must be .1–1 with at least one sampling step.")
-        region = prepare_region(image, mask, resolution=resolution, padding=padding, feather=feather, invert=invert)
+        region = prepare_region(image, mask, feather=feather, invert=invert)
         caption = caption_json(caption) if caption.strip() else self.caption(region, instruction)
         token = uuid.uuid4().hex
         source_name, mask_name = token + "-image.png", token + "-mask.png"

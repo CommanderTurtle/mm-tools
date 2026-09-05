@@ -14,6 +14,7 @@ let lastPoint = null;
 let lassoPoints = [];
 let resultBlob = null;
 let resultUrl = null;
+let currentView = 'edit';
 let downloadSuffix = 'clean';
 let undo = [];
 let modelState = null;
@@ -428,7 +429,7 @@ $('#background').addEventListener('click', async () => {
     await ensureLoaded('birefnet');
     setBusy('Separating foreground and reconstructing alpha…');
     const body = new FormData();
-    body.set('image', file);
+    body.set('image', currentView === 'result' && resultBlob ? resultBlob : file);
     const response = await fetch('/api/background', { method: 'POST', body });
     if (!response.ok) throw new Error(await errorMessage(response));
     showResult(await response.blob(), 'background-removed');
@@ -449,6 +450,7 @@ $('#download').addEventListener('click', () => {
 });
 
 function setView(view) {
+  currentView = view;
   $('#viewport').classList.toggle('result-view', view === 'result');
   document.querySelectorAll('.tab').forEach(button => button.classList.toggle('active', button.dataset.view === view));
 }
@@ -464,7 +466,7 @@ $('#engine').addEventListener('change', event => {
 });
 
 function ideogramFields(body) {
-  for (const id of ['instruction', 'resolution', 'padding', 'mask_feather']) body.set(id, $(`#${id}`).value);
+  for (const id of ['instruction', 'mask_feather']) body.set(id, $(`#${id}`).value);
   body.set('invert', $('#invert').checked);
 }
 
@@ -522,15 +524,16 @@ async function openEditReview() {
     body.set('engine', 'ideogram'); body.set('reviewed', 'true');
     for (const id of ['steps', 'strength']) body.set(id, $(`#${id}`).value);
     body.set('guidance', $('#ideogram-guidance').value);
-    setBusy('Preparing crop and selection for review…');
+    setBusy('Preparing source and selection for review…');
     const response = await fetch('/api/ideogram/prepare', {method: 'POST', body});
     if (!response.ok) throw new Error(await errorMessage(response));
     const plan = await response.json();
     reviewBody = body; // Frozen source/mask/settings until this dialog is closed.
     $('#review-source').src = plan.source_preview;
     $('#review-mask').src = plan.mask_preview;
-    $('#review-geometry').textContent = `Original ${plan.source_size.join(' × ')} · crop [${plan.crop_box.join(', ')}] · model ${plan.processing_size.join(' × ')} (${plan.processing_megapixels} MP) · content [${plan.content_box.join(', ')}]`;
-    $('#review-warning').textContent = `${plan.downscaled ? 'The selected crop is downscaled for processing; the output keeps the original dimensions.' : 'Crop pixels fit without downscaling.'} Grid padding does not stretch the image. Include any shadow/reflection you want removed in the mask.${plan.processing_megapixels > 4 ? ' Large processing area: substantial VRAM/time may be required.' : ''}`;
+    $('#review-geometry').textContent = `Source ${plan.source_size.join(' × ')} · model/output ${plan.processing_size.join(' × ')} (${plan.processing_megapixels} MP)`;
+    const trim = plan.trimmed_pixels || [0, 0];
+    $('#review-warning').textContent = `Source pixels are processed without resizing.${trim.some(Boolean) ? ` Alignment trim: ${trim[0]} right / ${trim[1]} bottom pixels.` : ''} Include any shadow/reflection you want removed in the mask.${plan.processing_megapixels > 4 ? ' Large image: substantial VRAM/time may be required.' : ''}`;
     $('#review-instruction').value = $('#instruction').value;
     $('#review-caption').value = $('#caption').value;
     $('#review-caption-seed').value = $('#caption-seed').value;
@@ -581,7 +584,7 @@ $('#review-run').addEventListener('click', async () => {
     reviewBody.set('caption', caption);
     reviewBody.set('instruction', $('#review-instruction').value);
     reviewBody.set('seed', seedText($('#review-seed').value));
-    $('#review-status').textContent = 'Running the approved crop and caption…';
+    $('#review-status').textContent = 'Running the approved source and caption…';
     const response = await fetch('/api/remove', {method: 'POST', body: reviewBody});
     if (!response.ok) throw new Error(await errorMessage(response));
     showResult(await response.blob(), 'ideogram-edit');
@@ -627,7 +630,8 @@ $('#alpha-prepare').addEventListener('click', async () => {
       await new Promise((resolve, reject) => {
         image.onload = resolve; image.onerror = () => reject(new Error('Could not decode the alpha mask.')); image.src = url;
       });
-      if (image.naturalWidth !== mask.width || image.naturalHeight !== mask.height) throw new Error('Alpha mask dimensions do not match the image.');
+      if (image.naturalWidth !== Math.floor(mask.width / 32) * 32 ||
+          image.naturalHeight !== Math.floor(mask.height / 32) * 32) throw new Error('Alpha mask dimensions do not match the native model grid.');
       const canvas = document.createElement('canvas'); canvas.width = mask.width; canvas.height = mask.height;
       const context = canvas.getContext('2d', {willReadFrequently: true});
       context.drawImage(image, 0, 0);
@@ -639,7 +643,8 @@ $('#alpha-prepare').addEventListener('click', async () => {
       snapshot(); mx.putImageData(pixels, 0, 0);
       $('#caption').value = '';
       setView('edit');
-      setBusy('Foreground selected. Review/refine the mask, then Cut out selected foreground.');
+      const trim = mask.width !== image.naturalWidth || mask.height !== image.naturalHeight;
+      setBusy(`Foreground selected. Review/refine the mask, then Cut out selected foreground.${trim ? ' The alignment border is left unselected.' : ''}`);
     } finally { URL.revokeObjectURL(url); }
   } catch (error) { setBusy(error.message); }
   finally { lockEditing(false); await refreshModels(); }

@@ -1,11 +1,10 @@
-"""High-resolution editing: transform a crop, preserve every pixel outside its mask."""
+"""Source-sized masked editing; trim only the model's alignment remainder."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 import io
 import os
 import base64
-import numpy as np
 from PIL import Image, ImageFilter, ImageOps
 
 
@@ -29,12 +28,15 @@ class Region:
     mask: Image.Image
     content_box: tuple[int, int, int, int]
     selection_box: tuple[int, int, int, int]
+    input_size: tuple[int, int]
 
     def composite(self, generated: bytes) -> bytes:
         with Image.open(io.BytesIO(generated)) as output:
             if output.size != self.image.size:
-                raise ValueError("Generated crop dimensions do not match the prepared edit.")
-            crop = output.convert("RGB").crop(self.content_box).resize(self.blend.size, Image.Resampling.LANCZOS)
+                raise ValueError("Generated image dimensions do not match the prepared edit.")
+            crop = output.convert("RGB").crop(self.content_box)
+        if crop.size != self.blend.size:
+            raise ValueError("Native edit geometry changed; output resizing is disabled.")
         original = self.original.crop(self.box)
         merged = Image.composite(crop, original.convert("RGB"), self.blend)
         if self.original.mode == "RGBA":
@@ -52,53 +54,32 @@ class Region:
                                   selected.point(lambda a: round(a * .45)))
         data_url = lambda image: "data:image/png;base64," + base64.b64encode(png(image)).decode("ascii")
         content_size = (self.content_box[2] - self.content_box[0], self.content_box[3] - self.content_box[1])
-        return {"source_size": self.original.size, "crop_box": self.box,
+        return {"source_size": self.input_size, "crop_box": self.box,
                 "selection_box": self.selection_box, "processing_size": self.image.size,
                 "content_box": self.content_box, "downscaled": content_size != self.blend.size,
+                "trimmed_pixels": [self.input_size[i] - self.original.size[i] for i in range(2)],
                 "processing_megapixels": round(self.image.width * self.image.height / 1e6, 3),
                 "source_preview": data_url(preview), "mask_preview": data_url(overlay),
                 "native_alpha_generation": False}
 
 
-def prepare_region(image_bytes: bytes, mask_bytes: bytes, *, resolution: int = 1024,
-                   padding: int = 128, feather: int = 8, invert: bool = False) -> Region:
-    if resolution not in {512, 768, 1024, 1536, 2048, 4096, 8192}:
-        raise ValueError("Choose a listed processing resolution.")
-    if not 0 <= padding <= 2048 or not 0 <= feather <= 128:
-        raise ValueError("Invalid context padding or mask feather.")
-    with Image.open(io.BytesIO(image_bytes)) as img:
-        check_size(img)
-        original = ImageOps.exif_transpose(img).convert("RGBA" if "A" in img.getbands() or "transparency" in img.info else "RGB")
-    with Image.open(io.BytesIO(mask_bytes)) as img:
-        check_size(img)
-        mask = img.convert("L")
-    if mask.size != original.size:
-        raise ValueError("The selection mask must match the original image dimensions.")
+def prepare_region(image_bytes: bytes, mask_bytes: bytes, *,
+                   feather: int = 8, invert: bool = False) -> Region:
+    from .native import read_source, read_mask, align_source
+    if not 0 <= feather <= 128:
+        raise ValueError("Invalid mask feather.")
+    source = read_source(image_bytes)
+    mask = read_mask(mask_bytes, source.size)
+    original = align_source(source, 16)
+    box = (0, 0, original.width, original.height)
+    mask = mask.crop(box)
     if invert:
         mask = ImageOps.invert(mask)
     bounds = mask.getbbox()
     if bounds is None:
         raise ValueError("Paint a selection first.")
-    # Include feather support in the crop; there is no implicit whole-image resize.
-    margin = padding + feather * 4
-    box = (max(0, bounds[0]-margin), max(0, bounds[1]-margin),
-           min(original.width, bounds[2]+margin), min(original.height, bounds[3]+margin))
-    selected = mask.crop(box)
-    blend = selected.filter(ImageFilter.GaussianBlur(feather)) if feather else selected
-    crop = original.crop(box).convert("RGB")
-    scale = min(1.0, resolution / max(crop.size))
-    # Fit pixels uniformly, then pad to the model grid. Independently clamping
-    # width/height to 256 used to stretch narrow selections and extreme ratios.
-    content_size = tuple(max(1, round(n * scale)) for n in crop.size)
-    size = tuple(max(256, ((n + 15) // 16) * 16) for n in content_size)
-    left, top = ((size[i] - content_size[i]) // 2 for i in range(2))
-    right, bottom = size[0] - content_size[0] - left, size[1] - content_size[1] - top
-    fitted = crop.resize(content_size, Image.Resampling.LANCZOS)
-    pixels = np.pad(np.asarray(fitted), ((top, bottom), (left, right), (0, 0)), mode="edge")
-    fitted_mask = Image.new("L", size)
-    fitted_mask.paste(blend.resize(content_size, Image.Resampling.BILINEAR), (left, top))
-    content_box = (left, top, left + content_size[0], top + content_size[1])
-    return Region(original, box, blend, Image.fromarray(pixels), fitted_mask, content_box, bounds)
+    blend = mask.filter(ImageFilter.GaussianBlur(feather)) if feather else mask
+    return Region(original, box, blend, original.convert("RGB"), blend.copy(), box, bounds, source.size)
 
 
 def prepare_review(image_bytes: bytes, mask_bytes: bytes, **options) -> dict:

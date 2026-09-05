@@ -6,7 +6,7 @@
     <div><strong>Editing Workbench</strong><small>PRIVATE · LOCAL MODELS · NO CLOUD</small></div>
     <div class="actions">
       <button id="download" class="quiet" disabled>Download</button>
-      <button id="background" class="quiet" disabled>Remove background</button>
+      <button id="background" class="quiet" disabled title="Uses the displayed result when Result is selected; otherwise uses the source image.">Remove background</button>
       <button id="remove" disabled>Remove selection</button>
     </div>
   </header>
@@ -53,10 +53,7 @@
       <div id="ideogram-controls" class="control-group hidden">
         <label>What should change?<textarea id="instruction" rows="4">Remove the selected object and reconstruct the background naturally. Preserve the lighting and unselected objects.</textarea></label>
         <label class="check"><input id="invert" type="checkbox">Edit outside the selection (replace background)</label>
-        <label>Crop processing size<select id="resolution"><option>512</option><option>768</option><option selected>1024</option><option>1536</option><option>2048</option><option>4096</option><option>8192</option></select></label>
-        <p class="export-help">Maximum crop edge, not export size. Original dimensions are preserved. 4096/8192 are experimental and need substantially more VRAM.</p>
-        <details><summary>Mask context &amp; sampling</summary>
-          <label>Context pixels <input id="padding" type="number" min="0" max="2048" value="128"></label>
+        <details><summary>Mask &amp; sampling</summary>
           <label>Mask feather <input id="mask_feather" type="number" min="0" max="128" value="8"></label>
           <label>Guidance <input id="ideogram-guidance" type="number" min="1" max="10" step=".1" value="4"></label>
           <label>Denoising <input id="strength" type="number" min=".1" max="1" step=".05" value="1"></label>
@@ -64,7 +61,7 @@
         <label>Caption seed <input id="caption-seed" type="text" inputmode="numeric" value="42"></label>
         <button id="caption-generate" class="quiet">Draft edit caption locally</button>
         <details><summary>Review / edit caption JSON</summary><textarea id="caption" rows="10" spellcheck="false" placeholder="Draft here, or draft and approve in the review screen."></textarea></details>
-        <p class="export-help">Review shows the actual crop and mask before running. Caption seed rerolls the wording; edit seed changes image sampling. Drafts are editable, and no diffusion runs until you approve.</p>
+        <p class="export-help">Review shows the source and mask before running. Caption seed rerolls the wording; edit seed changes image sampling. Drafts are editable, and no diffusion runs until you approve.</p>
       </div>
       <div id="opencv-controls" class="control-group hidden">
         <label>Algorithm<select id="method"><option value="telea">Fast marching (Telea)</option><option value="navier-stokes">Navier–Stokes</option></select></label>
@@ -72,7 +69,7 @@
         <label>Mask growth <input id="grow" type="number" min="0" max="64" value="5"></label>
         <label>Edge feather <input id="feather" type="number" min="0" max="64" value="4"></label>
       </div>
-      <p class="note"><strong>ObjectClear</strong> uses its original 512-pixel short-side processing. <strong>Ideogram</strong> reconstructs a selected crop with soft-mask differential diffusion; pixels outside the feathered selection stay unchanged. <strong>Remove background</strong> uses BiRefNet; <strong>Cut out selected foreground</strong> uses your mask only. Ideogram background replacement does not generate alpha.</p>
+      <p class="note">Full source resolution. No resizing. Only the right/bottom alignment remainder is cropped: up to 15 pixels per edge for ObjectClear/Ideogram, 31 for BiRefNet. Large inputs need more VRAM. <strong>Ideogram</strong> preserves pixels outside the feathered mask. <strong>Remove background</strong> uses BiRefNet; <strong>Cut out selected foreground</strong> uses your mask only. Ideogram background replacement does not generate alpha.</p>
     </aside>
     <section class="stage">
       <nav><button class="tab active" data-view="edit">Mask</button><button class="tab" data-view="result">Result</button><span id="status">Choose an image</span></nav>
@@ -86,7 +83,7 @@
   <dialog id="edit-review" aria-labelledby="review-title">
     <div class="review-heading"><h2 id="review-title">Review Ideogram removal</h2><button id="review-cancel" class="quiet">Back to mask</button></div>
     <p id="review-geometry"></p>
-    <div class="review-previews"><figure><img id="review-source" alt="Prepared source crop"><figcaption>Source sent to the model</figcaption></figure><figure><img id="review-mask" alt="Prepared feathered edit mask"><figcaption>Editable pixels · red overlay is review-only</figcaption></figure></div>
+    <div class="review-previews"><figure><img id="review-source" alt="Prepared source image"><figcaption>Source sent to the model</figcaption></figure><figure><img id="review-mask" alt="Prepared feathered edit mask"><figcaption>Editable pixels · red overlay is review-only</figcaption></figure></div>
     <p id="review-warning" class="note"></p>
     <label>Desired edit<textarea id="review-instruction" rows="3"></textarea></label>
     <div class="review-seeds"><label>Caption seed<input id="review-caption-seed" type="text" inputmode="numeric" value="42"></label><button id="review-reroll" class="quiet">New caption seed</button><button id="review-draft" class="quiet">Draft / redraft caption</button></div>

@@ -28,7 +28,7 @@ def prepare_mask(mask: np.ndarray, shape: tuple[int, int], grow: int) -> np.ndar
     if mask.ndim == 3:
         mask = mask[:, :, 3] if mask.shape[2] == 4 else cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
     if mask.shape[:2] != shape:
-        mask = cv2.resize(mask, (shape[1], shape[0]), interpolation=cv2.INTER_NEAREST)
+        raise ValueError("The selection mask must match the source image dimensions; masks are not resized.")
     mask = np.where(mask > 24, 255, 0).astype(np.uint8)
     if grow > 0:
         size = 2 * grow + 1

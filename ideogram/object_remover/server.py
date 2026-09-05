@@ -85,8 +85,6 @@ async def remove(
     seed: int = Form(42),
     instruction: str = Form("Remove the selected object and reconstruct the background naturally."),
     caption: str = Form(""),
-    resolution: int = Form(1024),
-    padding: int = Form(128),
     mask_feather: int = Form(8),
     invert: bool = Form(False),
     strength: float = Form(1),
@@ -102,7 +100,7 @@ async def remove(
                 raise ValueError("Caption JSON exceeds 64,000 characters.")
             result = await asyncio.to_thread(
                 models.edit_ideogram, image_bytes, mask_bytes,
-                instruction=instruction, caption=caption, resolution=resolution, padding=padding,
+                instruction=instruction, caption=caption,
                 feather=mask_feather, invert=invert, strength=strength,
                 steps=steps, guidance=guidance, seed=seed,
             )
@@ -178,12 +176,11 @@ async def fuzzy(
 
 @app.post("/api/ideogram/caption")
 async def ideogram_caption(image: UploadFile = File(...), mask: UploadFile = File(...),
-                           instruction: str = Form(...), resolution: int = Form(1024),
-                           padding: int = Form(128), mask_feather: int = Form(8), invert: bool = Form(False),
+                           instruction: str = Form(...), mask_feather: int = Form(8), invert: bool = Form(False),
                            caption_seed: int | None = Form(None)):
     try:
         caption = await asyncio.to_thread(models.caption_ideogram, await read_upload(image), await read_upload(mask),
-                                         instruction=instruction, resolution=resolution, padding=padding,
+                                         instruction=instruction,
                                          feather=mask_feather, invert=invert, caption_seed=caption_seed)
         return {"caption": caption}
     except CaptionDraftError as exc:
@@ -199,12 +196,11 @@ async def ideogram_caption(image: UploadFile = File(...), mask: UploadFile = Fil
 
 @app.post("/api/ideogram/prepare")
 async def ideogram_prepare(image: UploadFile = File(...), mask: UploadFile = File(...),
-                           resolution: int = Form(1024), padding: int = Form(128),
                            mask_feather: int = Form(8), invert: bool = Form(False)):
     from .regions import prepare_review
     try:
         return await asyncio.to_thread(prepare_review, await read_upload(image), await read_upload(mask),
-                                       resolution=resolution, padding=padding, feather=mask_feather, invert=invert)
+                                       feather=mask_feather, invert=invert)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     finally:

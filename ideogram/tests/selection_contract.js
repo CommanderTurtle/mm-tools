@@ -158,7 +158,7 @@ const tests = {
       if (url === '/api/models') return new Promise(() => {});
       calls.push({url, body: options.body});
       if (url === '/api/ideogram/prepare') return {ok: true, json: async () => ({source_preview:'preview', mask_preview:'mask',
-        source_size:[4096,2048], crop_box:[0,0,600,400], processing_size:[608,400], content_box:[4,0,604,400], processing_megapixels:.243})};
+        source_size:[2413,1619], crop_box:[0,0,2400,1616], processing_size:[2400,1616], content_box:[0,0,2400,1616], trimmed_pixels:[13,3], processing_megapixels:3.878})};
       if (url === '/api/ideogram/caption') return {ok: true, json: async () => ({caption})};
       return {ok: true, blob: async () => new Blob(['result'])};
     });
@@ -166,6 +166,10 @@ const tests = {
     assert.equal(h.element('#edit-review').open, true);
     assert.equal(h.run('operationBusy'), true);
     assert.deepEqual(calls.map(c => c.url), ['/api/ideogram/prepare']);
+    assert.equal(calls[0].body.has('resolution'), false);
+    assert.equal(calls[0].body.has('padding'), false);
+    assert.match(h.element('#review-warning').textContent, /13 right \/ 3 bottom/);
+    assert.doesNotMatch(h.element('#review-warning').textContent, /downscaled|padding/);
     await h.element('#review-run').events.click[0]();
     assert.equal(calls.length, 1); // no caption = no edit, even if Run is clicked
     for (const invalid of ['null', '[]', '"caption"']) {
@@ -233,6 +237,23 @@ const tests = {
     assert.equal(h.element('#status').textContent, 'Review this draft.');
     assert.equal(h.run('operationBusy'), false);
     assert.deepEqual(calls, ['/api/ideogram/caption']);
+  },
+  async 'background removal uses the displayed result or the untouched source'() {
+    for (const view of ['edit', 'result']) {
+      const h = harness();
+      h.run("file = new Blob(['source']); resultBlob = new Blob(['removed']); ensureLoaded = async () => {}; refreshModels = async () => {};");
+      h.run(`setView('${view}')`);
+      let received;
+      h.setFetch(async (url, {body}) => {
+        assert.equal(url, '/api/background');
+        received = await body.get('image').text();
+        return {ok: true, blob: async () => new Blob(['cutout'])};
+      });
+      await h.element('#background').events.click[0]();
+      assert.equal(received, view === 'result' ? 'removed' : 'source');
+      assert.equal(h.run('operationBusy'), false);
+      assert.equal(h.run('currentView'), 'result');
+    }
   },
 };
 

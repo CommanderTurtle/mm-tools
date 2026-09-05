@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import gc
-import io
 import os
 import sys
 import threading
 from pathlib import Path
 from typing import Any
 
-from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -214,16 +212,18 @@ class EditingModels:
         guidance: float,
         seed: int,
     ) -> bytes:
+        from .native import read_source, read_mask, align_source
+        from .regions import png
+        source = read_source(image_bytes)
+        mask = read_mask(mask_bytes, source.size)
+        # VAE stride 8 plus AGF's half-latent attention map require a 16px grid.
+        image = align_source(source, 16).convert("RGB")
+        mask = mask.crop((0, 0, image.width, image.height))
+        if not mask.getbbox():
+            raise ValueError("The selection lies entirely in the alignment trim.")
         with self._lock:
             self._load_objectclear()
             torch = self._torch()
-            from objectclear.utils import resize_by_short_side
-
-            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-            mask = Image.open(io.BytesIO(mask_bytes)).convert("L")
-            original_size = image.size
-            image = resize_by_short_side(image, 512, resample=Image.Resampling.BICUBIC)
-            mask = resize_by_short_side(mask, 512, resample=Image.Resampling.NEAREST)
             generator = torch.Generator(device=self._device).manual_seed(seed)
             result = self._objectclear(
                 prompt="remove the instance of object",
@@ -236,23 +236,25 @@ class EditingModels:
                 width=image.width,
                 return_attn_map=False,
             ).images[0]
-            result = result.resize(original_size, Image.Resampling.LANCZOS)
-            output = io.BytesIO()
-            result.save(output, format="PNG", optimize=True)
-            return output.getvalue()
+            if result.size != image.size:
+                raise ValueError("ObjectClear returned different dimensions; refusing to resize its output.")
+            if source.mode == "RGBA":
+                result.putalpha(source.getchannel("A").crop((0, 0, image.width, image.height)))
+            return png(result)
 
     def remove_background(self, image_bytes: bytes) -> bytes:
+        from .native import read_source, align_source
+        from .regions import png
+        source = align_source(read_source(image_bytes), 32)
         with self._lock:
             self._load_birefnet()
             torch = self._torch()
             from torchvision import transforms
             from torchvision.transforms.functional import to_pil_image
 
-            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-            original_size = image.size
+            image = source.convert("RGB")
             transform = transforms.Compose(
                 [
-                    transforms.Resize((1024, 1024)),
                     transforms.ToTensor(),
                     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
                 ]
@@ -264,22 +266,21 @@ class EditingModels:
             )
             with torch.inference_mode():
                 prediction = self._birefnet(input_tensor)[-1].sigmoid().cpu()[0].squeeze()
-            alpha = to_pil_image(prediction).resize(original_size, Image.Resampling.LANCZOS)
-            result = image.convert("RGBA")
-            result.putalpha(alpha)
-            output = io.BytesIO()
-            result.save(output, format="PNG", optimize=True)
-            return output.getvalue()
+            if tuple(prediction.shape) != (image.height, image.width):
+                raise ValueError("BiRefNet returned different dimensions; refusing to upscale alpha.")
+            alpha = to_pil_image(prediction)
+            result = source.convert("RGBA")
+            from PIL import ImageChops
+            result.putalpha(ImageChops.multiply(result.getchannel("A"), alpha))
+            return png(result)
 
     def foreground_mask(self, image_bytes: bytes) -> bytes:
         """Optional alpha producer for the removal workbench; preserve the old route."""
         from .matte import refine_matte
-        from .regions import check_size, png
-        from PIL import ImageOps
+        from .regions import png
+        from .native import read_source, align_source
         # Normalize EXIF once before the existing matting implementation sees it.
-        with Image.open(io.BytesIO(image_bytes)) as image:
-            check_size(image)
-            normalized = png(ImageOps.exif_transpose(image).convert("RGB"))
+        normalized = png(align_source(read_source(image_bytes), 32).convert("RGB"))
         with self._lock:
             self.unload("all")
             try:

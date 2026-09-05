@@ -29,7 +29,7 @@ class MaskTests(unittest.TestCase):
 
     def test_composite_pixels_and_alpha(self):
         image, mask = self.image_mask()
-        region = prepare_region(image, mask, padding=16, feather=0)
+        region = prepare_region(image, mask, feather=0)
         result = Image.open(io.BytesIO(region.composite(png(Image.new("RGB", region.image.size, "red")))))
         self.assertEqual(result.size, (320, 256))
         self.assertEqual(result.getpixel((0, 0)), (18, 35, 52, 200))
@@ -37,11 +37,12 @@ class MaskTests(unittest.TestCase):
         delta = ImageChops.difference(result.convert("RGB"), Image.open(io.BytesIO(image)).convert("RGB"))
         self.assertEqual(delta.getbbox(), (120, 100, 161, 151))
 
-    def test_large_canvas_crop_not_whole_image_resize(self):
+    def test_large_canvas_is_the_whole_model_input(self):
         image, mask = self.image_mask((4096, 4096))
-        region = prepare_region(image, mask, resolution=1024, padding=128, feather=8)
+        region = prepare_region(image, mask, feather=8)
         self.assertEqual(region.original.size, (4096, 4096))
-        self.assertLess(region.image.width, 1024)
+        self.assertEqual(region.image.size, (4096, 4096))
+        self.assertEqual(region.image.tobytes(), Image.open(io.BytesIO(image)).convert("RGB").tobytes())
         self.assertEqual(region.image.width % 16, 0)
 
     def test_invert_keeps_foreground(self):
@@ -64,29 +65,31 @@ class MaskTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 prepare_region(image, bad)
         with self.assertRaises(ValueError):
-            prepare_region(image, mask, resolution=123)
+            prepare_region(image, mask, feather=-1)
 
-    def test_narrow_and_tall_crops_are_padded_not_stretched(self):
+    def test_narrow_and_tall_sources_are_only_alignment_trimmed(self):
         for size in [(2048, 37), (37, 2048), (1237, 873)]:
             source = Image.new("RGB", size, "blue")
             mask = Image.new("L", size, 255)
-            region = prepare_region(png(source), png(mask), padding=0, feather=0, resolution=2048)
+            region = prepare_region(png(source), png(mask), feather=0)
+            expected = source.crop((0, 0, size[0] // 16 * 16, size[1] // 16 * 16))
             x1, y1, x2, y2 = region.content_box
-            self.assertEqual((x2-x1, y2-y1), size)
+            self.assertEqual((x2-x1, y2-y1), expected.size)
             self.assertEqual(region.mask.getbbox(), region.content_box)
-            self.assertEqual(region.image.crop(region.content_box).tobytes(), source.tobytes())
-            self.assertEqual(Image.open(io.BytesIO(region.composite(png(region.image)))).tobytes(), source.tobytes())
+            self.assertEqual(region.image.tobytes(), expected.tobytes())
+            self.assertEqual(Image.open(io.BytesIO(region.composite(png(region.image)))).tobytes(), expected.tobytes())
+            self.assertEqual(region.review()["trimmed_pixels"], [size[0] % 16, size[1] % 16])
             self.assertEqual(region.image.width % 16, 0)
             self.assertEqual(region.image.height % 16, 0)
 
     def test_large_rectangular_review_does_not_run_models(self):
         image = png(Image.new("RGB", (4096, 2400), "gray"))
         mask = png(Image.new("L", (4096, 2400), 255))
-        region = prepare_region(image, mask, resolution=2048, padding=0, feather=0)
+        region = prepare_region(image, mask, feather=0)
         info = region.review()
-        self.assertEqual(info["processing_size"], (2048, 1200))
+        self.assertEqual(info["processing_size"], (4096, 2400))
         self.assertEqual(info["source_size"], (4096, 2400))
-        self.assertTrue(info["downscaled"])
+        self.assertFalse(info["downscaled"])
         with self.assertRaisesRegex(ValueError, "dimensions"):
             region.composite(png(Image.new("RGB", (256, 256))))
 
@@ -181,17 +184,17 @@ class LifecycleTests(unittest.TestCase):
     def test_manual_caption_skips_magic_and_always_stops(self):
         edit = IdeogramEditing()
         edit.engine = Mock()
-        edit.engine.image_output.return_value = png(Image.new("RGB", (256, 256), "red"))
+        edit.engine.image_output.return_value = png(Image.new("RGB", (320, 256), "red"))
         edit.caption = Mock(side_effect=AssertionError("Must not generate a supplied caption"))
         image, mask = MaskTests().image_mask()
-        result = edit.edit(image, mask, instruction="", caption=CAPTION, resolution=512, padding=16,
+        result = edit.edit(image, mask, instruction="", caption=CAPTION,
                            feather=0, invert=False, steps=4, seed=1, guidance=4, strength=1)
         self.assertEqual(Image.open(io.BytesIO(result)).size, (320, 256))
         edit.engine.stop.assert_called_once()
         edit.engine.reset_mock()
         edit.engine.run.side_effect = RuntimeError("GPU OOM")
         with self.assertRaisesRegex(RuntimeError, "GPU OOM"):
-            edit.edit(image, mask, instruction="", caption=CAPTION, resolution=512, padding=16,
+            edit.edit(image, mask, instruction="", caption=CAPTION,
                       feather=0, invert=False, steps=4, seed=1, guidance=4, strength=1)
         edit.engine.stop.assert_called_once()
 
@@ -232,7 +235,8 @@ class APITests(unittest.TestCase):
             self.assertEqual(response.status_code, 200, response.text)
             options = models.edit_ideogram.call_args.kwargs
             self.assertFalse(options["invert"])
-            self.assertEqual(options["resolution"], 1536)
+            self.assertNotIn("resolution", options)
+            self.assertNotIn("padding", options)
             self.assertEqual(options["feather"], 12)
             self.assertEqual(client.post("/api/remove", files=files, data={"engine": "objectclear"}).status_code, 200)
             models.remove_object.assert_called_once()

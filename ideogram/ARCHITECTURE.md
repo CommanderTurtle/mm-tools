@@ -9,11 +9,11 @@ flowchart LR
     Image["Input image"] --> Painter["Browser painter and fuzzy mask"]
     Painter --> ObjectClear["ObjectClear reconstruction"]
     Painter --> OpenCV["OpenCV deterministic repair"]
-    Painter --> Crop["Mask bounds + context, explicit processing size"]
+    Painter --> Crop["Full source + minimal alignment trim"]
     Crop --> Caption["Optional local Qwen3-VL edit caption"]
     Caption --> Private["Private Comfy: Ideogram + differential diffusion"]
     Crop --> Private
-    Private --> Composite["Composite masked pixels into original-size image"]
+    Private --> Composite["Composite masked pixels at native grid-aligned size"]
     Composite --> Edited
     Image --> BiRefNet["BiRefNet background cutout"]
     ObjectClear --> Edited["Local PNG"]
@@ -24,26 +24,26 @@ flowchart LR
     Generator --> Generated["Generated image"]
 ```
 
-ObjectClear, BiRefNet and OpenCV keep their existing implementations and defaults. The optional **Ideogram 4 masked edit** engine uses the same local base checkpoint for image-conditioned masked sampling, not a hosted edit API or the generation-only CLI. The painter still exports a standard mask or one PNG that Comfy reads as both IMAGE and MASK.
+Model implementations and sampling defaults are unchanged. The wrappers now pass source-sized images instead of reduced-resolution images. The optional **Ideogram 4 masked edit** engine uses the same local base checkpoint for image-conditioned masked sampling, not a hosted edit API or the generation-only CLI. The painter still exports a standard mask or one PNG that Comfy reads as both IMAGE and MASK.
 
 ## Masked editing in the WebUI
 
 1. Open an image and paint the object/region to change, or use **Lasso** to draw a freehand outline (release to fill it); choose **Ideogram 4 masked edit**. Multiple lasso/brush selections accumulate in the same mask, and Erase refines it.
-2. Describe the desired result and choose the crop processing size, context padding and mask feather.
-3. **Review masked edit** freezes the current source/mask/settings and displays the exact crop, padded processing dimensions and feathered mask. Draft/paste/edit the caption JSON there. **Caption seed** controls low-temperature text sampling; change it and redraft if the instruction was missed. **Edit seed** separately controls diffusion. Nothing generates an image until **Run approved edit**. Back to mask cancels this review. Valid supplied JSON bypasses caption inference. Existing API callers can still use the old one-call auto-caption route; `reviewed=true` requires a nonempty valid caption.
-4. Download the full-size lossless PNG. The source canvas is not replaced by the result.
+2. Describe the desired result and choose the mask feather. There is no processing-size or selection-crop setting.
+3. **Review masked edit** freezes the current source/mask/settings and displays native processing dimensions, any right/bottom alignment trim and feathered mask. Draft/paste/edit the caption JSON there. **Caption seed** controls low-temperature text sampling; change it and redraft if the instruction was missed. **Edit seed** separately controls diffusion. Nothing generates an image until **Run approved edit**. Back to mask cancels this review. Valid supplied JSON bypasses caption inference. Existing API callers can still use the old one-call auto-caption route; `reviewed=true` requires a nonempty valid caption.
+4. Download the native-size lossless PNG. The source canvas is not replaced by the result. **Remove background** operates on the displayed result when the Result tab is selected; switching to Mask uses the original source.
 
 For **background replacement**, paint the foreground to preserve, select **Edit outside the selection**, and describe the new background. For a **transparent background**, either use the unchanged automatic BiRefNet button or paint the foreground and choose **Cut out selected foreground** (mask-only, no model, no resizing). Ideogram inpainting does not return a segmentation alpha mask; these are deliberately different operations.
 
-**Auto-select foreground** adds a complete local alpha-preparation path: the installed BiRefNet model proposes alpha, then tiled guided filtering uses original-resolution image edges to refine it. The full-resolution result becomes the editable mask, with Undo. Inspect/correct it with the existing brush/eraser before **Cut out selected foreground**. This returns actual RGBA PNG at the original size, retaining original RGB and multiplying any existing alpha. It does not delete pixels based on their color; black clothing and black objects are not automatically erased. Model inference remains 1024×1024, followed by full-resolution refinement; this is not a claim of native 8K segmentation inference or guaranteed perfect hair/glass matting. Workbench-owned models are unloaded for this stage and the matting model is released afterward.
+**Auto-select foreground** uses the installed BiRefNet model at source resolution (32-pixel grid), then the existing guided edge refinement. Its native mask becomes editable with Undo; only an alignment remainder is left unselected, never stretched to fit. Inspect/correct it with the brush/eraser before **Cut out selected foreground**. Cutout retains source RGB and multiplies any existing alpha. It does not delete pixels based on their color. Workbench-owned models are unloaded for this stage and the matting model is released afterward. Native dimensions do not guarantee perfect hair/glass segmentation.
 
-Coordinate boxes are only crop/caption hints, not rectangular edit masks. Include a related shadow or mirror reflection with another brush/lasso selection when it should disappear too. Strict final compositing cannot remove something outside the mask; automatic semantic discovery of related regions is not implemented or claimed. A crop must contain enough context, and the caption must describe the desired remaining scene.
+Coordinate boxes are selection/caption hints, not rectangular edit masks. Ideogram receives the full aligned source for context. Include a related shadow or mirror reflection with another brush/lasso selection when it should disappear too. Ideogram's strict final compositing cannot remove something outside the mask; automatic semantic discovery of related regions is not implemented or claimed. ObjectClear retains its own upstream attention-guided fusion behavior.
 
 ### Resolution and preservation
 
-The server bounds the selected region, adds context and feather support, and scales only that crop uniformly to the selected maximum edge (integer-pixel rounding only). It then edge-pads to a model grid with dimensions divisible by 16 and at least 256, rather than stretching narrow crops. Padding has a zero edit mask. The exact content box is stripped from the generated image before resizing back and compositing. Preview and inference share this geometry, including normalized caption coordinates. Wrong-sized generated output is rejected, not silently warped. A 4K/8K source is not silently reduced to 512 and upscaled as a whole. The returned crop is blended into the original: all pixels outside the feathered selection and existing alpha are preserved. A feather may intentionally modify pixels just outside the hard brush edge. Metadata/profile preservation is not promised.
+The inference wrappers never downscale, upscale, pad, select a smaller processing region or retry at a lower resolution. Input dimensions determine output dimensions. If necessary, only the right/bottom remainder is cropped to the nearest lower grid multiple: 16 for ObjectClear (VAE stride 8 plus AGF half-latent map) and Ideogram; 32 for BiRefNet’s patch layout. Already aligned images keep every input pixel. Masks use identical coordinates and trims; mismatched masks and model outputs are rejected, not resized. Inputs smaller than the required grid fail explicitly. An out-of-memory error remains an error.
 
-512–2048 are practical processing choices; 4096/8192 are explicit experimental options, not a quality or VRAM guarantee. A large or inverted selection can cover the entire image, in which case that entire selected region is processed at the chosen cap. The unchanged ObjectClear lane still uses its original 512-pixel short-side implementation. Undo retains at most 256 MiB worth of masks (one full mask minimum), rather than twenty unbounded 8K snapshots.
+The mask, sampler, model loaders, model-internal feature pyramids and Ideogram's pre-existing VAE graph are unchanged. This is a wrapper geometry fix, not a change to the models. Ideogram composites only feathered-mask pixels; BiRefNet retains source RGB and supplies alpha. Review thumbnails are display-only and never inference inputs. Legacy API form fields `resolution` and `padding` are ignored. Quality and VRAM requirements depend on the checkpoint and source size; native dimensions are not a quality guarantee. Metadata/profile preservation is not promised. Undo retains at most 256 MiB worth of masks (one full mask minimum).
 
 ### Private engine, local weights
 
@@ -99,17 +99,31 @@ cd ~/multimedia/ideogram
 bun tests/selection_contract.js
 ```
 
-The first suite tests crop/alpha preservation, aspect-preserving padding, tiled alpha consistency, masks, caption validation, bounded repair and lifecycle guardrails. API-client checks additionally use the optional `httpx` test dependency, and skip if it is absent. The second uses CPU mode, tiny tensors and checkpoint **headers**, then starts/stops a private CPU Comfy instance to validate node contracts; it does not run large-model inference. The JavaScript contract checks the real painter's event handlers with mock canvas contexts (lasso commit/cancel, additive regions, pointer isolation, brush/erase and undo), frozen review inputs, exact 64-bit seeds, explicit approval and retained failed drafts; it does not launch a browser. Temporary test directories are separate from production state.
+The first suite tests native source/alpha preservation, grid-only trimming, tiled alpha consistency, masks, caption validation, bounded repair and lifecycle guardrails. API-client checks additionally use the optional `httpx` test dependency, and skip if it is absent. The second uses CPU mode, tiny tensors and checkpoint **headers**, then starts/stops a private CPU Comfy instance to validate node contracts; it does not run large-model inference. The JavaScript contract checks the real painter's event handlers with mock canvas contexts (lasso commit/cancel, additive regions, pointer isolation, brush/erase and undo), frozen review inputs, exact 64-bit seeds, explicit approval and retained failed drafts; it does not launch a browser. Temporary test directories are separate from production state.
 
 During integration a real local Qwen caption + 20-step Ideogram smoke test removed a brown square from a synthetic 512×512 image. A separate 4-step test exercised the graph but was insufficient to remove the square. These are integration checks, not comparisons against ObjectClear or evidence of photographic/4K/8K quality. No model weights were downloaded, no production virtualenv was reinstalled, and no other service was restarted.
 
-### Photographic check (2026-09-04)
+### Historical photographic check (2026-09-04, before native-resolution correction)
+
+The reduced-resolution processing described below is historical and is no longer used.
 
 A supplied 2160×1440 gym scene was tested with explicit masks for the central woman, her far-left mirror reflection, and nearby floor shadow. Whole-image context fit into 2048×1365 content with a 2048×1376 padded processing canvas. A **manually reviewed caption**, seed 42, CFG 4 and 20 steps produced an edit in 81.11 seconds on the workstation. Visual inspection confirmed removal of both selected figures and reconstructed equipment/floor; the generated equipment is an inferred fill, not known ground truth. The result stayed 2160×1440, and a byte comparison confirmed no changes outside the feathered mask. This was not an automatic reflection-discovery test.
 
 The local 4B Qwen caption helper failed JSON validation on this scene, including seeded trials at 42 and 43 with bounded retries. One returned draft also incorrectly retained the woman in its object list. No failed draft was sent to diffusion. This is why the review step retains the draft and requires explicit approval; successful removal is not evidence that automatic captioning understood this scene. A different seed is an option, not a promised repair.
 
 The optional local foreground-alpha stage took 11.27 seconds, returned a full-size RGBA cutout, and preserved original RGB bytes. Its automatic mask selected the two foreground people, omitted the rear person, and retained some edge/equipment residue; brush/eraser refinement is still necessary for that scene. A checkerboard preview was inspected as well as the alpha channel. High-resolution geometry is covered by CPU tests; photographic 4K/8K inference quality is not benchmarked. Test images, generated files, model state and logs remain outside Git.
+
+### Native-resolution check (2026-09-05)
+
+CPU contracts verify complete 2400×1600 and odd-sized image inputs, pixel-for-pixel coordinate preservation after alignment trims, native BiRefNet tensors, output-size rejection and the Result → background-removal handoff. No hidden resizing or low-resolution retry is used.
+
+An offline real-model check on the supplied gym image ran ObjectClear at **2160×1440** (20 steps, CFG 2.5, seed 42; 31.24 seconds), then passed that exact result to BiRefNet at **2144×1440** (16 right-edge pixels trimmed; 2.08 seconds). RGB bytes were preserved through background removal. This validates execution and geometry, **not photographic quality**: the removal introduced body/equipment artifacts in the selected region. A checkerboard alpha inspection confirmed the two remaining people were retained, but also unwanted equipment and rough equipment boundaries (85.89% of alpha pixels below 16/255, 13.28% at least 240/255). Do not interpret a successful PNG or a nonconstant alpha as a quality pass. No checkpoint/model internals were changed to conceal these results.
+
+Opt-in GPU check using existing local weights, no server:
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python tests/native_smoke.py image.png mask.png /path/to/test-output
+```
+The script unloads only its own models. Artifacts stay outside Git.
 
 ## Runtime lanes
 
