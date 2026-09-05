@@ -291,9 +291,5 @@
 !/ideogram/object_remover/comfy_nodes/
 /ideogram/object_remover/comfy_nodes/*
 !/ideogram/object_remover/comfy_nodes/__init__.py
-!/ideogram/tests/
 /ideogram/tests/*
-!/ideogram/tests/test_masked_edit.py
-!/ideogram/tests/comfy_contract.py
-!/ideogram/tests/selection_contract.js
 /ideogram/.runtime/
