@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-readonly UNDERBELLY_VERSION="2"
+readonly UNDERBELLY_VERSION="3"
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly CONFIG_FILE="${UNDERBELLY_CONFIG:-$SCRIPT_DIR/config.env}"
 readonly STATE_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/mm-tools-underbelly"
@@ -11,7 +11,8 @@ usage() {
     "Usage: ./integrate.sh [--dry-run|--verify|--uninstall]" \
     "" \
     "With no arguments, validates every target, installs --ml support into" \
-    "Firecrawl CLI, Firecrawl /v2/search and /v2/scrape, and AnyDoc, then" \
+    "Firecrawl CLI, Firecrawl /v2/search and /v2/scrape, and AnyDoc, adds" \
+    "self-hosted YouTube transcript enrichment to Firecrawl, then" \
     "rebuilds/restarts the configured Firecrawl Docker API." \
     "" \
     "  --dry-run  Validate paths, source anchors, and the translator; write nothing" \
@@ -48,6 +49,7 @@ source "$CONFIG_FILE"
 : "${FIRECRAWL_INSTALL_LOCATION:?missing FIRECRAWL_INSTALL_LOCATION in config}"
 : "${NATIVE_LANGUAGE:?missing NATIVE_LANGUAGE in config}"
 : "${TRANSLATE_HTTP_SERVICE_PORT:?missing TRANSLATE_HTTP_SERVICE_PORT in config}"
+CAMOFOX_HTTP_SERVICE_PORT="${CAMOFOX_HTTP_SERVICE_PORT:-9377}"
 
 case "$FIRECRAWL_SERVICE_IS_DOCKER" in
   true|false) ;;
@@ -58,12 +60,19 @@ if [[ ! "$TRANSLATE_HTTP_SERVICE_PORT" =~ ^[0-9]+$ ]] ||
   printf 'underbelly: TRANSLATE_HTTP_SERVICE_PORT must be between 1 and 65535\n' >&2
   exit 1
 fi
+if [[ ! "$CAMOFOX_HTTP_SERVICE_PORT" =~ ^[0-9]+$ ]] ||
+   (( CAMOFOX_HTTP_SERVICE_PORT < 1 || CAMOFOX_HTTP_SERVICE_PORT > 65535 )); then
+  printf 'underbelly: CAMOFOX_HTTP_SERVICE_PORT must be between 1 and 65535\n' >&2
+  exit 1
+fi
 
 readonly HOST_TRANSLATE_URL="http://127.0.0.1:${TRANSLATE_HTTP_SERVICE_PORT}"
 if [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
   readonly SERVICE_TRANSLATE_URL="http://host.docker.internal:${TRANSLATE_HTTP_SERVICE_PORT}"
+  readonly SERVICE_CAMOFOX_URL="http://host.docker.internal:${CAMOFOX_HTTP_SERVICE_PORT}"
 else
   readonly SERVICE_TRANSLATE_URL="$HOST_TRANSLATE_URL"
+  readonly SERVICE_CAMOFOX_URL="http://127.0.0.1:${CAMOFOX_HTTP_SERVICE_PORT}"
 fi
 
 for command_name in python3 bun curl; do
@@ -83,12 +92,16 @@ readonly ANYDOC_CLI="$ANYDOC_INSTALL_LOCATION/cli.js"
 readonly ANYDOC_CORE="$ANYDOC_INSTALL_LOCATION/underbelly.cjs"
 readonly FIRECRAWL_ROUTES="$FIRECRAWL_INSTALL_LOCATION/apps/api/src/routes/v2.ts"
 readonly FIRECRAWL_CORE="$FIRECRAWL_INSTALL_LOCATION/apps/api/src/lib/underbelly.ts"
+readonly FIRECRAWL_COMPOSE="$FIRECRAWL_INSTALL_LOCATION/docker-compose.yaml"
+readonly FIRECRAWL_YOUTUBE="$FIRECRAWL_INSTALL_LOCATION/apps/api/src/scraper/scrapeURL/postprocessors/youtube.ts"
+readonly FIRECRAWL_YOUTUBE_SERVICE="$FIRECRAWL_INSTALL_LOCATION/apps/underbelly-youtube/service.py"
+readonly FIRECRAWL_YOUTUBE_DOCKERFILE="$FIRECRAWL_INSTALL_LOCATION/apps/underbelly-youtube/Dockerfile"
 
 if [[ "$MODE" != uninstall ]]; then
   for required_path in \
     "$CLI_INDEX" "$CLI_OPTIONS" "$CLI_SEARCH" "$CLI_SCRAPE" \
     "$CLI_SEARCH_TYPES" "$CLI_SCRAPE_TYPES" "$ANYDOC_CLI" \
-    "$FIRECRAWL_ROUTES" "$FIRECRAWL_INSTALL_LOCATION/docker-compose.yaml"; do
+    "$FIRECRAWL_ROUTES" "$FIRECRAWL_COMPOSE" "$FIRECRAWL_YOUTUBE"; do
     if [[ ! -f "$required_path" ]]; then
       printf 'underbelly: required target not found: %s\n' "$required_path" >&2
       exit 1
@@ -118,8 +131,13 @@ export UB_ANYDOC_CLI="$ANYDOC_CLI"
 export UB_ANYDOC_CORE="$ANYDOC_CORE"
 export UB_FIRECRAWL_ROUTES="$FIRECRAWL_ROUTES"
 export UB_FIRECRAWL_CORE="$FIRECRAWL_CORE"
+export UB_FIRECRAWL_COMPOSE="$FIRECRAWL_COMPOSE"
+export UB_FIRECRAWL_YOUTUBE="$FIRECRAWL_YOUTUBE"
+export UB_FIRECRAWL_YOUTUBE_SERVICE="$FIRECRAWL_YOUTUBE_SERVICE"
+export UB_FIRECRAWL_YOUTUBE_DOCKERFILE="$FIRECRAWL_YOUTUBE_DOCKERFILE"
 export UB_HOST_TRANSLATE_URL="$HOST_TRANSLATE_URL"
 export UB_SERVICE_TRANSLATE_URL="$SERVICE_TRANSLATE_URL"
+export UB_SERVICE_CAMOFOX_URL="$SERVICE_CAMOFOX_URL"
 export UB_NATIVE_LANGUAGE="$NATIVE_LANGUAGE"
 export UB_WRITE=$([[ "$MODE" == install ]] && printf 1 || printf 0)
 readonly STATUS_FILE="$(mktemp "${TMPDIR:-/tmp}/underbelly-status.XXXXXX")"
@@ -135,11 +153,12 @@ import os
 import re
 from pathlib import Path
 
-VERSION = "2"
+VERSION = "3"
 WRITE = os.environ["UB_WRITE"] == "1"
 NATIVE = os.environ["UB_NATIVE_LANGUAGE"].strip().lower()
 HOST_URL = os.environ["UB_HOST_TRANSLATE_URL"].rstrip("/")
 SERVICE_URL = os.environ["UB_SERVICE_TRANSLATE_URL"].rstrip("/")
+CAMOFOX_URL = os.environ["UB_SERVICE_CAMOFOX_URL"].rstrip("/")
 
 LANGUAGE_ALIASES = {
     "en": "en", "english": "en",
@@ -206,7 +225,7 @@ def upsert_marked(text: str, identifier: str, body: str, *, anchor: str,
 
 
 CORE = r'''
-const UNDERBELLY_VERSION = "2";
+const UNDERBELLY_VERSION = "3";
 const TRANSLATE_BASE_URL = __TRANSLATE_BASE_URL__;
 const NATIVE_LANGUAGE = __NATIVE_LANGUAGE__;
 const SEARCH_EXTRA_RESULTS = 9;
@@ -953,6 +972,283 @@ export {
 };
 '''
 
+YOUTUBE_SERVICE = r'''#!/usr/bin/env python3
+# Generated by ~/multimedia/translate/underbelly/integrate.sh.
+"""Local avgrab-compatible YouTube metadata/transcript subset for Firecrawl."""
+
+from __future__ import annotations
+
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlparse
+import json
+import os
+import re
+
+PORT = int(os.environ.get("PORT", "3000"))
+CAMOFOX_URL = os.environ.get(
+    "CAMOFOX_URL", "http://host.docker.internal:9377"
+).rstrip("/")
+REQUEST_TIMEOUT = 20
+CAMOFOX_TIMEOUT = 65
+VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
+USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "Chrome/130.0.0.0 Safari/537.36"
+)
+
+
+def video_id_from(value: str) -> str | None:
+    raw = str(value or "").strip()
+    if VIDEO_ID.fullmatch(raw):
+        return raw
+    try:
+        parsed = urlparse(raw)
+    except ValueError:
+        return None
+    host = (parsed.hostname or "").lower().removeprefix("www.")
+    candidate = ""
+    if host == "youtu.be":
+        candidate = parsed.path.strip("/").split("/")[0]
+    elif host == "youtube.com" or host.endswith(".youtube.com") or \
+            host == "youtube-nocookie.com" or host.endswith(".youtube-nocookie.com"):
+        if parsed.path == "/watch":
+            candidate = parse_qs(parsed.query).get("v", [""])[0]
+        else:
+            parts = [part for part in parsed.path.split("/") if part]
+            if len(parts) >= 2 and parts[0] in {"shorts", "embed", "live"}:
+                candidate = parts[1]
+    return candidate if VIDEO_ID.fullmatch(candidate) else None
+
+
+def languages_from(value: object) -> list[str]:
+    raw = value if isinstance(value, list) else str(value or "en").split(",")
+    result: list[str] = []
+    for item in raw:
+        language = str(item).strip().replace("_", "-").lower()
+        if re.fullmatch(r"[a-z]{2,3}(?:-[a-z0-9]{2,8})?", language):
+            for candidate in (language, language.split("-")[0]):
+                if candidate not in result:
+                    result.append(candidate)
+    return result or ["en"]
+
+
+def timestamp(seconds: float) -> str:
+    total = max(0, int(seconds))
+    hours, remainder = divmod(total, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours}:{minutes:02d}:{seconds:02d}" if hours else f"{minutes}:{seconds:02d}"
+
+
+def player_response(session, video_id: str) -> dict:
+    page = session.get(
+        f"https://www.youtube.com/watch?v={video_id}&hl=en",
+        timeout=REQUEST_TIMEOUT,
+    )
+    page.raise_for_status()
+    for marker in ("var ytInitialPlayerResponse = ", "ytInitialPlayerResponse = "):
+        offset = page.text.find(marker)
+        if offset >= 0:
+            try:
+                return json.JSONDecoder().raw_decode(page.text[offset + len(marker):])[0]
+            except (json.JSONDecodeError, TypeError):
+                pass
+    return {}
+
+
+def render_transcript(segments: list[dict], transcript, available: list) -> str:
+    cleaned = []
+    for segment in segments:
+        text = re.sub(r"\s+", " ", str(segment.get("text", ""))).strip()
+        if text:
+            cleaned.append({
+                "text": text,
+                "start": float(segment.get("start", 0) or 0),
+                "duration": float(segment.get("duration", 0) or 0),
+            })
+    duration = max(
+        (item["start"] + item["duration"] for item in cleaned),
+        default=0,
+    )
+    caption_kind = "automatic" if transcript.is_generated else "manual"
+    tracks = "; ".join(
+        f"{item.language} ({item.language_code}, "
+        f"{'automatic' if item.is_generated else 'manual'})"
+        for item in available
+    )
+    words = sum(len(item["text"].split()) for item in cleaned)
+    lines = [
+        f"**Language**: {transcript.language} ({transcript.language_code}, {caption_kind})",
+        f"**Available captions**: {tracks}",
+        f"**Segments**: {len(cleaned)}",
+        f"**Words**: {words}",
+        f"**Duration**: {timestamp(duration)}",
+        "**Extraction**: YouTube captions",
+        "",
+    ]
+    lines.extend(f"[{timestamp(item['start'])}] {item['text']}" for item in cleaned)
+    return "\n".join(lines)
+
+
+def camofox_transcript(url: str, languages: list[str]) -> tuple[str, dict]:
+    import requests
+
+    response = requests.post(
+        f"{CAMOFOX_URL}/youtube/transcript",
+        json={"url": url, "languages": languages},
+        timeout=CAMOFOX_TIMEOUT,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if payload.get("status") != "ok" or not str(payload.get("transcript", "")).strip():
+        raise RuntimeError(payload.get("message") or "Camofox returned no transcript")
+    language = str(payload.get("language") or languages[0])
+    text = str(payload["transcript"]).strip()
+    count = sum(1 for line in text.splitlines() if line.strip())
+    words = len(re.sub(r"^\[[^]]+\]\s*", "", text, flags=re.MULTILINE).split())
+    header = [
+        f"**Language**: {language}",
+        f"**Segments**: {count}",
+        f"**Words**: {words}",
+        "**Extraction**: Camofox",
+        "",
+    ]
+    return "\n".join(header) + text, payload
+
+
+def metadata(player: dict, video_id: str, transcript: str, fallback: dict) -> dict:
+    details = player.get("videoDetails") or {}
+    micro = ((player.get("microformat") or {}).get("playerMicroformatRenderer") or {})
+    thumbnails = ((details.get("thumbnail") or {}).get("thumbnails") or [])
+    thumbnail = thumbnails[-1] if thumbnails else {}
+    channel_id = str(details.get("channelId") or "")
+    length = float(details.get("lengthSeconds") or 0)
+    try:
+        views = int(details.get("viewCount"))
+    except (TypeError, ValueError):
+        views = None
+    return {
+        "thumbnail_image": {
+            "url": thumbnail.get("url") or f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
+            "width": thumbnail.get("width"),
+            "height": thumbnail.get("height"),
+        },
+        "title": details.get("title") or fallback.get("video_title") or
+                 fallback.get("title") or f"YouTube video {video_id}",
+        "visibility": "Private" if details.get("isPrivate") else
+                      "Unlisted" if micro.get("isUnlisted") else "Public",
+        "uploaded_by": {
+            "name": details.get("author"),
+            "url": f"https://www.youtube.com/channel/{channel_id}" if channel_id else None,
+        },
+        "uploaded_at": micro.get("uploadDate"),
+        "published_at": micro.get("publishDate"),
+        "length": timestamp(length) if length else None,
+        "views": views,
+        "likes": None,
+        "category": micro.get("category"),
+        "description": details.get("shortDescription") or
+                       ((micro.get("description") or {}).get("simpleText")),
+        "transcript": transcript,
+    }
+
+
+def fetch_metadata(payload: dict) -> dict:
+    import requests
+    from youtube_transcript_api import YouTubeTranscriptApi
+
+    url = str(payload.get("url") or "").strip()
+    video_id = video_id_from(url)
+    if not video_id:
+        raise ValueError("Could not extract a YouTube video ID")
+    languages = languages_from(payload.get("transcript_language"))
+    session = requests.Session()
+    session.headers.update({"User-Agent": USER_AGENT, "Accept-Language": "en-US,en;q=0.9"})
+    for cookie in payload.get("cookies") or []:
+        if isinstance(cookie, dict) and cookie.get("name") and cookie.get("value") is not None:
+            session.cookies.set(
+                str(cookie["name"]),
+                str(cookie["value"]),
+                domain=str(cookie.get("domain") or ".youtube.com"),
+                path=str(cookie.get("path") or "/"),
+            )
+    try:
+        player = player_response(session, video_id)
+    except Exception:
+        player = {}
+
+    direct_error: Exception | None = None
+    try:
+        transcript_list = YouTubeTranscriptApi(http_client=session).list(video_id)
+        available = list(transcript_list)
+        try:
+            selected = transcript_list.find_transcript(languages)
+        except Exception:
+            selected = available[0] if available else None
+        if selected is None:
+            raise RuntimeError("No captions are available for this video")
+        fetched = selected.fetch()
+        transcript = render_transcript(fetched.to_raw_data(), fetched, available)
+        return metadata(player, video_id, transcript, {})
+    except Exception as error:
+        direct_error = error
+
+    try:
+        transcript, fallback = camofox_transcript(url, languages)
+        return metadata(player, video_id, transcript, fallback)
+    except Exception as camofox_error:
+        raise RuntimeError(
+            f"direct transcript failed: {direct_error}; "
+            f"Camofox fallback failed: {camofox_error}"
+        ) from camofox_error
+
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = "UnderbellyYouTube/3"
+
+    def write_json(self, status: int, payload: dict) -> None:
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self) -> None:
+        if self.path == "/health":
+            self.write_json(200, {"status": "ok", "version": 3})
+        else:
+            self.write_json(404, {"detail": "Not found"})
+
+    def do_POST(self) -> None:
+        if self.path != "/metadata":
+            self.write_json(404, {"detail": "Not found"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if length < 1 or length > 1_048_576:
+                raise ValueError("Invalid request size")
+            payload = json.loads(self.rfile.read(length))
+            self.write_json(200, fetch_metadata(payload))
+        except ValueError as error:
+            self.write_json(400, {"detail": str(error)})
+        except Exception as error:
+            self.write_json(502, {"detail": str(error)})
+
+
+if __name__ == "__main__":
+    ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
+'''
+
+YOUTUBE_DOCKERFILE = r'''# Generated by ~/multimedia/translate/underbelly/integrate.sh.
+# Re-run that installer after updating the owning Firecrawl checkout.
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+RUN uv pip install --system --no-cache youtube-transcript-api==1.2.4
+WORKDIR /app
+COPY service.py /app/service.py
+EXPOSE 3000
+CMD ["python", "/app/service.py"]
+'''
+
 
 def render_core(base_url: str, module_kind: str) -> str:
     rendered = CORE.replace("__TRANSLATE_BASE_URL__", json.dumps(base_url))
@@ -978,6 +1274,8 @@ paths = {key: Path(os.environ[key]) for key in [
     "UB_CLI_INDEX", "UB_CLI_OPTIONS", "UB_CLI_SEARCH", "UB_CLI_SCRAPE",
     "UB_CLI_SEARCH_TYPES", "UB_CLI_SCRAPE_TYPES", "UB_ANYDOC_CLI",
     "UB_ANYDOC_CORE", "UB_FIRECRAWL_ROUTES", "UB_FIRECRAWL_CORE",
+    "UB_FIRECRAWL_COMPOSE", "UB_FIRECRAWL_YOUTUBE",
+    "UB_FIRECRAWL_YOUTUBE_SERVICE", "UB_FIRECRAWL_YOUTUBE_DOCKERFILE",
 ]}
 
 updates: dict[Path, str] = {}
@@ -1114,6 +1412,75 @@ text = upsert_marked(
 updates[paths["UB_FIRECRAWL_ROUTES"]] = text
 updates[paths["UB_FIRECRAWL_CORE"]] = render_core(SERVICE_URL, "ts")
 
+text = paths["UB_FIRECRAWL_COMPOSE"].read_text()
+text = upsert_marked(
+    text,
+    "firecrawl-youtube-url",
+    "  AVGRAB_SERVICE_URL: ${AVGRAB_SERVICE_URL:-http://underbelly-youtube:3000}",
+    anchor="  PLAYWRIGHT_MICROSERVICE_URL: ${PLAYWRIGHT_MICROSERVICE_URL:-http://playwright-service:3000/scrape}",
+    comment="#",
+)
+text = upsert_marked(
+    text,
+    "firecrawl-youtube-service",
+    f'''  underbelly-youtube:
+    build: apps/underbelly-youtube
+    environment:
+      PORT: 3000
+      CAMOFOX_URL: {json.dumps(CAMOFOX_URL)}
+    networks:
+      - backend
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3000/health', timeout=3).read()"]
+      interval: 5s
+      timeout: 5s
+      retries: 12''',
+    anchor="  api:\n",
+    where="before",
+    comment="#",
+)
+text = upsert_marked(
+    text,
+    "firecrawl-youtube-dependency",
+    '''      underbelly-youtube:
+        condition: service_healthy''',
+    anchor="      redis:\n        condition: service_started\n      playwright-service:\n",
+    where="before",
+    comment="#",
+)
+updates[paths["UB_FIRECRAWL_COMPOSE"]] = text
+
+text = paths["UB_FIRECRAWL_YOUTUBE"].read_text()
+text = upsert_marked(
+    text,
+    "firecrawl-youtube-paths",
+    '''  if (
+    pathParts.length === 2 &&
+    (pathParts[0] === "shorts" || pathParts[0] === "embed")
+  ) {
+    return true;
+  }''',
+    anchor='  return pathParts.length === 2 && pathParts[0] === "live";',
+    where="before",
+)
+text = upsert_marked(
+    text,
+    "firecrawl-youtube-nocookie",
+    '''    if (
+      url.hostname.endsWith(".youtube-nocookie.com") ||
+      url.hostname === "youtube-nocookie.com"
+    ) {
+      return isYouTubeVideoPath(url);
+    }''',
+    anchor='    if (\n      url.hostname.endsWith(".youtube.com") ||',
+    where="before",
+)
+updates[paths["UB_FIRECRAWL_YOUTUBE"]] = text
+updates[paths["UB_FIRECRAWL_YOUTUBE_SERVICE"]] = YOUTUBE_SERVICE
+updates[paths["UB_FIRECRAWL_YOUTUBE_DOCKERFILE"]] = YOUTUBE_DOCKERFILE
+
 component_paths = {
     "firecrawl-cli": (
         paths["UB_CLI_INDEX"], paths["UB_CLI_OPTIONS"],
@@ -1123,6 +1490,9 @@ component_paths = {
     "anydoc": (paths["UB_ANYDOC_CLI"], paths["UB_ANYDOC_CORE"]),
     "firecrawl-v2": (
         paths["UB_FIRECRAWL_ROUTES"], paths["UB_FIRECRAWL_CORE"],
+        paths["UB_FIRECRAWL_COMPOSE"], paths["UB_FIRECRAWL_YOUTUBE"],
+        paths["UB_FIRECRAWL_YOUTUBE_SERVICE"],
+        paths["UB_FIRECRAWL_YOUTUBE_DOCKERFILE"],
     ),
 }
 normalized: dict[Path, str] = {}
@@ -1171,6 +1541,8 @@ paths = {key: Path(os.environ[key]) for key in [
     "UB_CLI_INDEX", "UB_CLI_OPTIONS", "UB_CLI_SEARCH", "UB_CLI_SCRAPE",
     "UB_CLI_SEARCH_TYPES", "UB_CLI_SCRAPE_TYPES", "UB_ANYDOC_CLI",
     "UB_ANYDOC_CORE", "UB_FIRECRAWL_ROUTES", "UB_FIRECRAWL_CORE",
+    "UB_FIRECRAWL_COMPOSE", "UB_FIRECRAWL_YOUTUBE",
+    "UB_FIRECRAWL_YOUTUBE_SERVICE", "UB_FIRECRAWL_YOUTUBE_DOCKERFILE",
 ]}
 
 source_paths = (
@@ -1178,16 +1550,25 @@ source_paths = (
     paths["UB_CLI_SEARCH"], paths["UB_CLI_SCRAPE"],
     paths["UB_CLI_SEARCH_TYPES"], paths["UB_CLI_SCRAPE_TYPES"],
     paths["UB_ANYDOC_CLI"], paths["UB_FIRECRAWL_ROUTES"],
+    paths["UB_FIRECRAWL_COMPOSE"], paths["UB_FIRECRAWL_YOUTUBE"],
 )
-generated_paths = (paths["UB_ANYDOC_CORE"], paths["UB_FIRECRAWL_CORE"])
+generated_paths = (
+    paths["UB_ANYDOC_CORE"], paths["UB_FIRECRAWL_CORE"],
+    paths["UB_FIRECRAWL_YOUTUBE_SERVICE"],
+    paths["UB_FIRECRAWL_YOUTUBE_DOCKERFILE"],
+)
 
 
 def strip_marked(path: Path, text: str) -> str:
+    comment = "#" if path == paths["UB_FIRECRAWL_COMPOSE"] else "//"
+    escaped_comment = re.escape(comment)
     begin_pattern = re.compile(
-        r"^// UNDERBELLY-BEGIN:([A-Za-z0-9_-]+):v\d+[ \t]*$", re.MULTILINE
+        rf"^{escaped_comment} UNDERBELLY-BEGIN:([A-Za-z0-9_-]+):v\d+[ \t]*$",
+        re.MULTILINE,
     )
     end_pattern = re.compile(
-        r"^// UNDERBELLY-END:([A-Za-z0-9_-]+)[ \t]*$", re.MULTILINE
+        rf"^{escaped_comment} UNDERBELLY-END:([A-Za-z0-9_-]+)[ \t]*$",
+        re.MULTILINE,
     )
     begins = begin_pattern.findall(text)
     ends = end_pattern.findall(text)
@@ -1199,8 +1580,8 @@ def strip_marked(path: Path, text: str) -> str:
     result = text
     for identifier in begins:
         block = re.compile(
-            rf"^// UNDERBELLY-BEGIN:{re.escape(identifier)}:v\d+[ \t]*\n"
-            rf".*?^// UNDERBELLY-END:{re.escape(identifier)}[ \t]*\n?",
+            rf"^{escaped_comment} UNDERBELLY-BEGIN:{re.escape(identifier)}:v\d+[ \t]*\n"
+            rf".*?^{escaped_comment} UNDERBELLY-END:{re.escape(identifier)}[ \t]*\n?",
             re.MULTILINE | re.DOTALL,
         )
         result, count = block.subn("", result, count=1)
@@ -1208,7 +1589,7 @@ def strip_marked(path: Path, text: str) -> str:
             raise RuntimeError(
                 f"could not safely remove Underbelly block {identifier} from {path}"
             )
-    if "UNDERBELLY-BEGIN:" in result or "UNDERBELLY-END:" in result:
+    if f"{comment} UNDERBELLY-BEGIN:" in result or f"{comment} UNDERBELLY-END:" in result:
         raise RuntimeError(f"unrecognized Underbelly marker remains in {path}")
     return result
 
@@ -1239,7 +1620,12 @@ component_paths = {
         paths["UB_CLI_SEARCH_TYPES"], paths["UB_CLI_SCRAPE_TYPES"],
     ),
     "anydoc": (paths["UB_ANYDOC_CLI"], paths["UB_ANYDOC_CORE"]),
-    "firecrawl-v2": (paths["UB_FIRECRAWL_ROUTES"], paths["UB_FIRECRAWL_CORE"]),
+    "firecrawl-v2": (
+        paths["UB_FIRECRAWL_ROUTES"], paths["UB_FIRECRAWL_CORE"],
+        paths["UB_FIRECRAWL_COMPOSE"], paths["UB_FIRECRAWL_YOUTUBE"],
+        paths["UB_FIRECRAWL_YOUTUBE_SERVICE"],
+        paths["UB_FIRECRAWL_YOUTUBE_DOCKERFILE"],
+    ),
 }
 status = {
     component: {
@@ -1270,6 +1656,40 @@ PY
 
 syntax_check_js() {
   bun build --no-bundle --target=node --outfile=/dev/null "$1" >/dev/null
+}
+
+syntax_check_python() {
+  python3 - "$1" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+compile(path.read_text(), str(path), "exec")
+PY
+}
+
+semantic_check_youtube_service() {
+  PYTHONDONTWRITEBYTECODE=1 python3 - "$1" <<'PY'
+import importlib.util
+import sys
+
+path = sys.argv[1]
+spec = importlib.util.spec_from_file_location("underbelly_youtube_check", path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+video_id = "BG_ESa_8-zQ"
+urls = (
+    f"https://www.youtube.com/watch?v={video_id}",
+    f"https://youtu.be/{video_id}",
+    f"https://www.youtube.com/shorts/{video_id}",
+    f"https://www.youtube.com/embed/{video_id}",
+    f"https://www.youtube.com/live/{video_id}",
+    f"https://www.youtube-nocookie.com/embed/{video_id}",
+)
+assert all(module.video_id_from(url) == video_id for url in urls)
+assert module.timestamp(973) == "16:13"
+assert module.languages_from("EN-us,es") == ["en-us", "en", "es"]
+PY
 }
 
 semantic_check_core() {
@@ -1372,6 +1792,10 @@ if [[ "$MODE" == uninstall ]]; then
   uninstall_backup_path anydoc-core "$ANYDOC_CORE"
   uninstall_backup_path firecrawl-routes "$FIRECRAWL_ROUTES"
   uninstall_backup_path firecrawl-core "$FIRECRAWL_CORE"
+  uninstall_backup_path firecrawl-compose "$FIRECRAWL_COMPOSE"
+  uninstall_backup_path firecrawl-youtube "$FIRECRAWL_YOUTUBE"
+  uninstall_backup_path firecrawl-youtube-service "$FIRECRAWL_YOUTUBE_SERVICE"
+  uninstall_backup_path firecrawl-youtube-dockerfile "$FIRECRAWL_YOUTUBE_DOCKERFILE"
 
   UNINSTALL_FIRECRAWL_CHANGED=0
   if component_changed firecrawl-v2; then
@@ -1395,7 +1819,7 @@ if [[ "$MODE" == uninstall ]]; then
     if (( UNINSTALL_DOCKER_REPLACED )) && [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
       (
         cd "$FIRECRAWL_INSTALL_LOCATION" || exit
-        docker compose build api && docker compose up -d api
+        docker compose build underbelly-youtube api && docker compose up -d api
       ) >&2
     fi
     exit "$status"
@@ -1404,11 +1828,21 @@ if [[ "$MODE" == uninstall ]]; then
   trap 'uninstall_rollback 130' INT
   trap 'uninstall_rollback 143' TERM
 
+  if (( UNINSTALL_FIRECRAWL_CHANGED )) && [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
+    UNINSTALL_DOCKER_REPLACED=1
+    (
+      trap - ERR
+      cd "$FIRECRAWL_INSTALL_LOCATION"
+      docker compose rm --stop --force underbelly-youtube >/dev/null 2>&1 || true
+    )
+  fi
+
   export UB_WRITE=1
   run_unpatcher
 
   for syntax_path in \
-    "$CLI_INDEX" "$CLI_OPTIONS" "$CLI_SEARCH" "$CLI_SCRAPE" "$ANYDOC_CLI"; do
+    "$CLI_INDEX" "$CLI_OPTIONS" "$CLI_SEARCH" "$CLI_SCRAPE" "$ANYDOC_CLI" \
+    "$FIRECRAWL_YOUTUBE"; do
     [[ ! -f "$syntax_path" ]] || syntax_check_js "$syntax_path"
   done
 
@@ -1417,7 +1851,6 @@ if [[ "$MODE" == uninstall ]]; then
       printf 'underbelly: cannot rebuild unintegrated Firecrawl; docker-compose.yaml is missing\n' >&2
       false
     fi
-    UNINSTALL_DOCKER_REPLACED=1
     (
       trap - ERR
       cd "$FIRECRAWL_INSTALL_LOCATION"
@@ -1462,18 +1895,23 @@ if [[ "$MODE" == verify ]]; then
   fi
   for marker_file in \
     "$CLI_INDEX" "$CLI_OPTIONS" "$CLI_SEARCH" "$CLI_SCRAPE" \
-    "$ANYDOC_CLI" "$FIRECRAWL_ROUTES"; do
+    "$ANYDOC_CLI" "$FIRECRAWL_ROUTES" "$FIRECRAWL_COMPOSE" \
+    "$FIRECRAWL_YOUTUBE"; do
     grep -q 'UNDERBELLY-BEGIN:' "$marker_file" || {
       printf 'underbelly: integration marker missing from %s\n' "$marker_file" >&2
       exit 1
     }
   done
-  [[ -s "$ANYDOC_CORE" && -s "$FIRECRAWL_CORE" ]] || {
+  [[ -s "$ANYDOC_CORE" && -s "$FIRECRAWL_CORE" && \
+     -s "$FIRECRAWL_YOUTUBE_SERVICE" && -s "$FIRECRAWL_YOUTUBE_DOCKERFILE" ]] || {
     printf 'underbelly: generated runtime module is missing\n' >&2
     exit 1
   }
   syntax_check_js "$ANYDOC_CORE"
   semantic_check_core "$ANYDOC_CORE"
+  syntax_check_python "$FIRECRAWL_YOUTUBE_SERVICE"
+  semantic_check_youtube_service "$FIRECRAWL_YOUTUBE_SERVICE"
+  syntax_check_js "$FIRECRAWL_YOUTUBE"
   syntax_check_js "$CLI_INDEX"
   syntax_check_js "$CLI_OPTIONS"
   syntax_check_js "$CLI_SEARCH"
@@ -1481,8 +1919,11 @@ if [[ "$MODE" == verify ]]; then
   if [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
     (
       cd "$FIRECRAWL_INSTALL_LOCATION"
+      docker compose config --quiet
       docker compose exec -T api curl --fail --silent --show-error \
         --max-time 10 "$SERVICE_TRANSLATE_URL/health" >/dev/null
+      docker compose exec -T api curl --fail --silent --show-error \
+        --max-time 10 http://underbelly-youtube:3000/health >/dev/null
     )
   fi
   printf 'underbelly: integration verified (native language: %s)\n' "$NATIVE_LANGUAGE"
@@ -1540,6 +1981,10 @@ backup_path anydoc-cli "$ANYDOC_CLI"
 backup_path anydoc-core "$ANYDOC_CORE"
 backup_path firecrawl-routes "$FIRECRAWL_ROUTES"
 backup_path firecrawl-core "$FIRECRAWL_CORE"
+backup_path firecrawl-compose "$FIRECRAWL_COMPOSE"
+backup_path firecrawl-youtube "$FIRECRAWL_YOUTUBE"
+backup_path firecrawl-youtube-service "$FIRECRAWL_YOUTUBE_SERVICE"
+backup_path firecrawl-youtube-dockerfile "$FIRECRAWL_YOUTUBE_DOCKERFILE"
 
 DOCKER_REPLACED=0
 rollback() {
@@ -1558,7 +2003,7 @@ rollback() {
     if (( DOCKER_REPLACED )) && [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
       (
         cd "$FIRECRAWL_INSTALL_LOCATION" || exit
-        docker compose build api && docker compose up -d api
+        docker compose build underbelly-youtube api && docker compose up -d api
       ) >&2
     fi
   fi
@@ -1573,6 +2018,9 @@ run_patcher
 
 syntax_check_js "$ANYDOC_CORE"
 semantic_check_core "$ANYDOC_CORE"
+syntax_check_python "$FIRECRAWL_YOUTUBE_SERVICE"
+semantic_check_youtube_service "$FIRECRAWL_YOUTUBE_SERVICE"
+syntax_check_js "$FIRECRAWL_YOUTUBE"
 syntax_check_js "$CLI_INDEX"
 syntax_check_js "$CLI_OPTIONS"
 syntax_check_js "$CLI_SEARCH"
@@ -1580,12 +2028,13 @@ syntax_check_js "$CLI_SCRAPE"
 
 
 if [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
+  (cd "$FIRECRAWL_INSTALL_LOCATION" && docker compose config --quiet)
   if (( FIRECRAWL_CHANGED )); then
     DOCKER_REPLACED=1
     (
       trap - ERR
       cd "$FIRECRAWL_INSTALL_LOCATION"
-      docker compose build api
+      docker compose build underbelly-youtube api
       docker compose up -d api
     )
     for attempt in $(seq 1 60); do
@@ -1603,6 +2052,8 @@ if [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
     cd "$FIRECRAWL_INSTALL_LOCATION"
     docker compose exec -T api curl --fail --silent --show-error \
       --max-time 10 "$SERVICE_TRANSLATE_URL/health" >/dev/null
+    docker compose exec -T api curl --fail --silent --show-error \
+      --max-time 10 http://underbelly-youtube:3000/health >/dev/null
   )
 fi
 

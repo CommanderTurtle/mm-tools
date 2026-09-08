@@ -1,6 +1,6 @@
 # Underbelly
 
-Underbelly is a local overlay for Firecrawl CLI, Firecrawl `/v2`, and AnyDoc. It adds multilingual search and structure-preserving translation without maintaining a Firecrawl fork or adding another HTTP endpoint. The authoritative implementation lives in `integrate.sh`; installed files are generated or marked so the overlay can be verified, replaced, and removed mechanically.
+Underbelly is a local overlay for Firecrawl CLI, Firecrawl `/v2`, and AnyDoc. It adds multilingual search, structure-preserving translation, and self-hosted YouTube transcript extraction without maintaining a Firecrawl fork. The authoritative implementation lives in `integrate.sh`; installed files are generated or marked so the overlay can be verified, replaced, and removed mechanically.
 
 ## What it changes
 
@@ -8,9 +8,9 @@ Underbelly is a local overlay for Firecrawl CLI, Firecrawl `/v2`, and AnyDoc. It
 | --- | --- | --- |
 | `firecrawl-cli` | compiled scrape/search command files and their types | accepts `--ml` and forwards it to `/v2` |
 | `@firecrawl/anydoc` | `cli.js` plus generated `underbelly.cjs` | translates the converted Markdown buffer before output |
-| Firecrawl checkout | `apps/api/src/routes/v2.ts` plus generated `apps/api/src/lib/underbelly.ts` | intercepts only `/v2/search` and `/v2/scrape` requests containing `ml` |
+| Firecrawl checkout | route middleware, YouTube postprocessor, Compose, and generated runtime files | adds `ml` handling and supplies Firecrawl's existing YouTube metadata-service contract |
 
-Requests without `ml` follow the ordinary Firecrawl path. Underbelly does not add `/v2` routes, replace the scraper, or alter normal result limits. Search waits for Firecrawl's native result, runs additional translated queries, deduplicates their URLs, translates the selected results back to the configured native language, and appends at most nine results. Scrape waits for the native document response and translates its supported in-memory fields while preserving Markdown, HTML, links, code, math, and opaque data.
+Requests without `ml` follow the ordinary Firecrawl path, with one addition: supported YouTube video URLs use Firecrawl's existing YouTube postprocessor. Underbelly does not add `/v2` routes, replace the scraper, or alter normal result limits. Search waits for Firecrawl's native result, runs additional translated queries, deduplicates their URLs, translates the selected results back to the configured native language, and appends at most nine results. Scrape waits for the native document response and translates its supported in-memory fields while preserving Markdown, HTML, links, code, math, and opaque data.
 
 The translator is the existing local service in `../`:
 
@@ -18,9 +18,19 @@ The translator is the existing local service in `../`:
 host CLI and AnyDoc  -> http://127.0.0.1:8176
 Firecrawl container  -> http://host.docker.internal:8176
                          /health, /detect, /translate
+Firecrawl container  -> http://underbelly-youtube:3000
+                         /health, /metadata
 ```
 
 Installation refuses a translator that is unloaded or reports cloud mode.
+
+## YouTube transcripts
+
+Firecrawl already contains a rich YouTube Markdown formatter, but self-hosted installations only use it when an `AVGRAB_SERVICE_URL` is configured. Underbelly generates a small compatible service, wires that URL into Compose, and keeps the upstream formatter intact.
+
+The service tries [`youtube-transcript-api`](https://github.com/jdepoix/youtube-transcript-api) first and uses the already-running Camofox transcript endpoint as a fallback. It prefers the requested caption language, falls back to an available track, and distinguishes manual from generated captions. The resulting `POST /v2/scrape` Markdown contains the thumbnail, title, channel, dates, duration, views, category, description, caption inventory, segment and word counts, and timestamped transcript. Watch, short, live, embed, `youtu.be`, and `youtube-nocookie` video URLs are recognized.
+
+For example, an ordinary scrape of `https://www.youtube.com/watch?v=BG_ESa_8-zQ` now returns a `## Transcript` section instead of the generic YouTube application shell. No `ml` option is required.
 
 ## Language contract
 
@@ -58,6 +68,7 @@ Edit `config.env` when an installation path, native language, or port differs:
 | `FIRECRAWL_SERVICE_IS_DOCKER` | rebuild/restart and verify the Compose `api` service when `true` |
 | `NATIVE_LANGUAGE` | default translation destination and the language used to query other search languages |
 | `TRANSLATE_HTTP_SERVICE_PORT` | host port of the loaded local translation service |
+| `CAMOFOX_HTTP_SERVICE_PORT` | optional Camofox fallback port for YouTube transcript extraction; defaults to `9377` |
 
 Paths are sourced by Bash and may use `$HOME`. Run the installer as the same unprivileged user that owns the checkout and Bun global installation.
 
@@ -70,7 +81,7 @@ Every command evaluates the three integrations independently. There is no reason
 | Firecrawl CLI only | six compiled CLI files | no |
 | AnyDoc only | `cli.js` and `underbelly.cjs` | no |
 | Firecrawl CLI + AnyDoc | both Bun global packages | no |
-| Firecrawl checkout only | route block and generated server module | yes, when Docker mode is `true` |
+| Firecrawl checkout only | route blocks, Compose service, and generated server modules | yes, when Docker mode is `true` |
 | all three | all owned targets | yes, when Docker mode is `true` |
 | nothing | nothing | no |
 
@@ -95,11 +106,11 @@ cd ~/multimedia/translate/underbelly
 An installation then:
 
 1. Computes every target file in memory and records which component differs.
-2. Backs up all ten owned target paths under `~/.local/state/mm-tools-underbelly/backups/`.
+2. Backs up all fourteen owned target paths under `~/.local/state/mm-tools-underbelly/backups/`.
 3. Replaces existing versioned blocks or inserts new blocks at exact anchors.
-4. Syntax-checks the generated and modified JavaScript and runs content/search contract assertions.
-5. Rebuilds and restarts only the Firecrawl `api` service when its two files changed.
-6. Verifies host-to-translator and container-to-translator connectivity and runs an AnyDoc translation smoke test.
+4. Syntax-checks the generated JavaScript, TypeScript, and Python and runs content/search and YouTube URL contract assertions.
+5. Rebuilds the generated transcript service and Firecrawl `api` image only when one of the six Firecrawl-owned paths changed.
+6. Verifies host-to-translator, container-to-translator, and API-to-transcript-service connectivity and runs an AnyDoc translation smoke test.
 
 Any write, syntax, build, startup, connectivity, or smoke-test failure restores the pre-run files. If the API image was replaced, rollback rebuilds and starts it from the restored source. A successful install updates the `last-successful` backup symlink.
 
@@ -121,7 +132,7 @@ git -C ~/Hermes/firecrawl/firecrawl pull --ff-only
 ./integrate.sh --verify
 ```
 
-While integrated, the Firecrawl checkout is intentionally dirty only at Underbelly's route injection and generated module. `--uninstall` cleans those owned changes; it does not discard unrelated Compose, package, environment, or application edits. Resolve any other dirty paths through their owning workflow before pulling.
+While integrated, the Firecrawl checkout is intentionally dirty at Underbelly's route and YouTube postprocessor blocks, Compose blocks, and generated runtime files. `--uninstall` cleans those owned changes; it does not discard unrelated Compose, package, environment, or application edits. Resolve any other dirty paths through their owning workflow before pulling.
 
 A Bun global upgrade normally replaces the patched compiled files. After upgrading either package, simply rerun the three `--dry-run`, install, and `--verify` commands. The installer evaluates Firecrawl CLI, AnyDoc, and Firecrawl independently, so one updated component does not force rewrites or rebuilds of the other two.
 
