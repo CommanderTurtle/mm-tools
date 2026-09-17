@@ -1,0 +1,210 @@
+{
+  "id": "yue2",
+  "title": "YuE2 Composition Studio",
+  "short_name": "YuE2",
+  "kind": "WHITE-BOX MUSIC STUDIO",
+  "kicker": "COMPOSE · COVER · TRANSCRIBE · EDIT",
+  "hero": "Write the score. Hear the record. Keep every layer.",
+  "description": "A private full-song studio for YuE2's native symbolic plan, semantic music, flow-matched acoustics, 48 kHz stereo decoder, and SheetSage2 cover pipeline.",
+  "guide": "Every native stage is visible: write or reuse a score, retain exact plans, render multiple seeded candidates, inspect ABC invariants, transcribe recordings, and reopen complete project artifacts.",
+  "port": 8270,
+  "vram": "11–15 GiB measured native path · 24 GiB supported floor",
+  "runtime_contract": "RTX 5090 · CUDA-only model compute · no CPU model offload · FIFO",
+  "engine": "YuE2 0.1.6 native Python",
+  "residency": "AR/NAR persistent CUDA · transient CUDA VAE",
+  "max_upload_bytes": 17179869184,
+  "default_mode": "compose_full",
+  "theme": {"accent": "#e6b86f", "secondary": "#8eb8ff"},
+  "badges": ["48 kHz stereo", "Editable ABC", "Zero-shot covers", "SheetSage2", "Exact plans", "No telemetry"],
+  "models": [
+    {"label": "YuE2-3B", "path": "models/YuE2-3B", "note": "Native BF16 AR–NAR mixture-of-transformers"},
+    {"label": "YuE2-Vae", "path": "models/YuE2-Vae", "note": "Default 48 kHz stereo listening decoder"},
+    {"label": "SheetSage2", "path": "models/SheetSage2", "note": "Audio-to-ABC/MIDI/event transcription"},
+    {"label": "MERT-v2-FullSong", "path": "models/MERT-v2-FullSong", "note": "Pinned local SheetSage2 encoder"},
+    {"label": "Comfy YuE2 INT8", "path": "../../models/imports/Comfy-Org--YuE2/checkpoints/yue2_3b_int8_convrot.safetensors", "optional": true, "note": "Preserved for the pinned Comfy workflow; native BF16 remains this studio's quality path"}
+  ],
+  "setup_steps": [
+    "Run `cd ~/multimedia/music/yue2 && ./setupwithuv.sh` once.",
+    "Start the private studio with `./startwithuv.sh`; it binds to `127.0.0.1:8270` unless explicitly changed in `.env.local`.",
+    "Use Create for a new full composition. Keep `full` planning when you want melody and chord editing; use `melody` for a cover that may change accompaniment.",
+    "Every render retains audio, ABC, exact plan arrays, semantic tokens, acoustic latents, effective config, weight identities, hashes, and a reusable `plan-bundle.zip`.",
+    "Use Compare for synchronized A/B playback and the animated lyric/spectrum room. Nothing is uploaded and no browser assets are fetched."
+  ],
+  "groups": [
+    {"id": "compose", "title": "Compose"},
+    {"id": "cover", "title": "Cover & realize"},
+    {"id": "score", "title": "Score lab"},
+    {"id": "transcribe", "title": "Transcribe"},
+    {"id": "utility", "title": "Artifacts"}
+  ],
+  "field_sets": {
+    "song_identity": [
+      {"id": "project_name", "type": "text", "label": "Project name", "default": "city-lights", "required": true, "span": "half", "hint": "Filename-safe identity stored with every artifact."},
+      {"id": "language", "type": "select", "label": "Lyric language", "default": "English", "span": "half", "options": [
+        {"value": "auto", "label": "Infer from lyrics"}, {"value": "English", "label": "English"}, {"value": "Mandarin", "label": "Mandarin Chinese"}, {"value": "Cantonese", "label": "Cantonese"}, {"value": "Japanese", "label": "Japanese"}, {"value": "Korean", "label": "Korean"}, {"value": "Spanish", "label": "Spanish"}, {"value": "French", "label": "French"}, {"value": "German", "label": "German"}, {"value": "Portuguese", "label": "Portuguese"}, {"value": "Multilingual", "label": "Multilingual"}
+      ]},
+      {"id": "style", "type": "textarea", "label": "Musical direction", "default": "Warm piano pop, expressive female lead, acoustic piano, rounded bass and light drums, lyrical memorable melody, unhurried phrasing", "required": true, "span": "full", "rows": 4, "hint": "Genre, arrangement, vocal character, production, era, energy, and performance direction. This is YuE2's native style condition."},
+      {"id": "genres", "type": "tags", "label": "Genre palette", "default": ["piano pop"], "span": "half", "placeholder": "Add genre or era", "hint": "Appended to the exact visible style request."},
+      {"id": "instruments", "type": "tags", "label": "Instrumentation", "default": ["acoustic piano", "rounded bass", "light drums"], "span": "half", "placeholder": "Add instrument"},
+      {"id": "moods", "type": "tags", "label": "Mood & energy", "default": ["warm", "hopeful"], "span": "half", "placeholder": "Add mood"},
+      {"id": "vocal_direction", "type": "text", "label": "Vocal direction", "default": "expressive female lead, natural phrasing", "span": "half", "hint": "Voice character and delivery—not a cloned identity."},
+      {"id": "bpm", "type": "number", "label": "Tempo hint", "unit": "BPM", "default": 88, "min": 30, "max": 260, "step": 1, "span": "quarter"},
+      {"id": "key_hint", "type": "text", "label": "Key hint", "default": "", "placeholder": "e.g. D major", "span": "quarter"},
+      {"id": "meter_hint", "type": "text", "label": "Meter hint", "default": "4/4", "span": "quarter"},
+      {"id": "avoid", "type": "text", "label": "Avoid", "default": "", "placeholder": "e.g. no guitar, no spoken intro", "span": "quarter"},
+      {"id": "production_notes", "type": "textarea", "label": "Production & arrangement notes", "default": "", "rows": 3, "span": "full", "hint": "Optional mix, section, solo, dynamics, and arrangement details."},
+      {"id": "lyrics", "type": "code", "label": "Lyrics & section map", "default": "[Verse]\nNeon fades along the lane\nFootsteps keep the time of rain\nFold the night and leave it here\nMorning has a sky to clear\n\n[Chorus]\nLet the day come into view\nEvery road begins with you\nHold a little room for light\nWe will sing beyond the night", "required": true, "span": "full", "rows": 17, "hint": "Put only singable words here. Use [Verse], [Pre-Chorus], [Chorus], [Bridge], [Outro], and blank lines to make the form legible."}
+    ],
+    "candidate_controls": [
+      {"id": "takes", "type": "range", "label": "Candidates", "default": 1, "min": 1, "max": 8, "step": 1, "span": "half", "hint": "Sequential, reproducible candidates. Compare them in the listening room; there is no hidden automatic winner."},
+      {"id": "seed", "type": "number", "label": "Starting seed", "default": 831001, "min": 0, "max": 2147483647, "step": 1, "span": "quarter"},
+      {"id": "seed_step", "type": "number", "label": "Seed step", "default": 1, "min": 1, "max": 1000000, "step": 1, "span": "quarter"},
+      {"id": "cfg_scale", "type": "number", "label": "Text guidance", "default": "", "min": 0, "max": 20, "step": 0.01, "span": "half", "hint": "Blank keeps the native mode default: 1.0 for planned songs, 1.01 for direct generation."}
+    ],
+    "score_source": [
+      {"id": "abc_text", "type": "code", "label": "Editable ABC score", "default": "", "span": "full", "rows": 16, "hint": "Paste YuE2/SheetSage2 native two-voice ABC. Inline text wins when both sources are supplied."},
+      {"id": "abc_asset", "type": "asset", "label": "Or upload an ABC score", "default": "", "span": "full", "accept": ".abc,text/plain", "drop_label": "Drop score.abc", "hint": "Stored locally and copied into the durable job."},
+      {"id": "score_mode", "type": "choice", "label": "Score contract", "default": "full", "span": "full", "options": [
+        {"value": "full", "label": "Full score", "icon": "♬", "description": "Preserve melody and chord symbols."},
+        {"value": "melody", "label": "Melody only", "icon": "𝄞", "description": "Use melody while allowing a new accompaniment."}
+      ]}
+    ],
+    "runtime": [
+      {"id": "runtime_section", "type": "section", "label": "GPU runtime"},
+      {"id": "precision", "type": "choice", "label": "Autoregressive precision", "default": "native_bf16", "span": "full", "options": [
+        {"value": "native_bf16", "label": "Native BF16", "icon": "◆", "description": "Canonical quality path; easily fits the 5090."},
+        {"value": "fp8_ar", "label": "FP8 AR", "icon": "◇", "description": "Native YuE2 FP8 optimization for autoregressive stages; NAR is restored for synthesis."}
+      ]},
+      {"id": "backend", "type": "choice", "label": "Token backend", "default": "cuda_graph", "span": "full", "options": [
+        {"value": "cuda_graph", "label": "CUDA graphs", "icon": "⚡", "description": "Fast native single-song path."},
+        {"value": "eager", "label": "Torch eager", "icon": "⌁", "description": "Debug-compatible path without CUDA graph capture."}
+      ]},
+      {"id": "vae_core_frames", "type": "select", "label": "VAE tile core", "default": 1024, "span": "half", "options": [
+        {"value": 512, "label": "512 frames · conservative"}, {"value": 1024, "label": "1024 frames · native default"}, {"value": 2048, "label": "2048 frames · faster / larger tile"}
+      ], "hint": "16-frame halo is retained. Decoder and AR/NAR weights stay on CUDA; no model is offloaded for CPU inference."}
+    ],
+    "sampling": [
+      {"id": "abc_sampling_section", "type": "section", "label": "Symbolic planner sampling"},
+      {"id": "abc_temperature", "type": "range", "label": "ABC temperature", "default": 0.7, "min": 0, "max": 2, "step": 0.01, "span": "half"},
+      {"id": "abc_top_p", "type": "range", "label": "ABC top-p", "default": 0.9, "min": 0.01, "max": 1, "step": 0.01, "span": "half"},
+      {"id": "abc_top_k", "type": "number", "label": "ABC top-k", "default": 30, "min": 1, "max": 1000, "step": 1, "span": "quarter"},
+      {"id": "abc_repetition_penalty", "type": "number", "label": "ABC repetition", "default": 1.005, "min": 0.1, "max": 3, "step": 0.001, "span": "quarter"},
+      {"id": "abc_penalty_window", "type": "number", "label": "ABC penalty window", "default": 100, "min": 1, "max": 100, "step": 1, "span": "quarter"},
+      {"id": "abc_min_tokens", "type": "number", "label": "ABC min tokens", "default": 32, "min": 0, "max": 4096, "step": 1, "span": "quarter"},
+      {"id": "abc_max_tokens", "type": "number", "label": "ABC max tokens", "default": 4096, "min": 1, "max": 8192, "step": 1, "span": "half"},
+      {"id": "semantic_sampling_section", "type": "section", "label": "Semantic song sampling"},
+      {"id": "semantic_temperature", "type": "range", "label": "Semantic temperature", "default": 1, "min": 0, "max": 2.5, "step": 0.01, "span": "half"},
+      {"id": "semantic_top_p", "type": "range", "label": "Semantic top-p", "default": 0.95, "min": 0.01, "max": 1, "step": 0.01, "span": "half"},
+      {"id": "semantic_top_k", "type": "number", "label": "Semantic top-k", "default": 100, "min": 1, "max": 1000, "step": 1, "span": "quarter"},
+      {"id": "semantic_repetition_penalty", "type": "number", "label": "Semantic repetition", "default": 1.2, "min": 0.1, "max": 3, "step": 0.01, "span": "quarter"},
+      {"id": "semantic_penalty_window", "type": "number", "label": "Semantic penalty window", "default": 50, "min": 1, "max": 100, "step": 1, "span": "quarter"},
+      {"id": "semantic_min_tokens", "type": "number", "label": "Semantic min tokens", "default": 200, "min": 0, "max": 9000, "step": 1, "span": "quarter"},
+      {"id": "semantic_max_tokens", "type": "number", "label": "Semantic max tokens", "default": 9000, "min": 1, "max": 16000, "step": 1, "span": "half"},
+      {"id": "ode_steps", "type": "range", "label": "NAR ODE steps", "default": 32, "min": 8, "max": 64, "step": 1, "span": "half", "hint": "Native default is 32 midpoint steps."}
+    ],
+    "transcription": [
+      {"id": "source_audio_asset", "type": "asset", "label": "Source recording", "default": "", "required": true, "span": "full", "accept": "audio/*,.wav,.flac,.mp3,.m4a,.ogg", "drop_label": "Drop a song to transcribe", "hint": "Decoded, mixed to mono, and resampled by the pinned local SheetSage2 runtime."},
+      {"id": "melody_only", "type": "toggle", "label": "Melody-only cover score", "default": false, "span": "half", "toggle_label": "Keep Vocal + Ins melodies and omit chord symbols"},
+      {"id": "transcribe_preset", "type": "select", "label": "Transcription preset", "default": "default", "span": "quarter", "options": [{"value": "default", "label": "Default"}, {"value": "paper", "label": "Paper evaluation"}]},
+      {"id": "transcribe_dtype", "type": "select", "label": "SheetSage dtype", "default": "bf16", "span": "quarter", "options": [{"value": "bf16", "label": "BF16 · recommended"}, {"value": "fp32", "label": "FP32"}]},
+      {"id": "transcription_prompts", "type": "tags", "label": "Decoder prompts", "default": [], "span": "full", "placeholder": "Add a known title, section, or musical hint", "hint": "Optional native SheetSage2 prompt strings."},
+      {"id": "max_seconds", "type": "number", "label": "Window length override", "unit": "seconds", "default": "", "min": 10, "max": 360, "step": 1, "span": "third", "hint": "Blank uses the checkpoint default."},
+      {"id": "overlap_seconds", "type": "number", "label": "Window overlap", "unit": "seconds", "default": "", "min": 0, "max": 120, "step": 0.5, "span": "third"},
+      {"id": "lookahead_seconds", "type": "number", "label": "Decoder lookahead", "unit": "seconds", "default": "", "min": 0, "max": 120, "step": 0.5, "span": "third"},
+      {"id": "feature_exports", "type": "section", "label": "Research exports"},
+      {"id": "export_logits", "type": "toggle", "label": "Raw logits", "default": false, "span": "quarter", "toggle_label": "Export per-window logits"},
+      {"id": "export_scores", "type": "toggle", "label": "Prediction scores", "default": false, "span": "quarter", "toggle_label": "Export decoded scores"},
+      {"id": "export_embeddings", "type": "toggle", "label": "MERT embeddings", "default": false, "span": "quarter", "toggle_label": "Export representation tensors"},
+      {"id": "all_layers", "type": "toggle", "label": "All MERT layers", "default": false, "span": "quarter", "toggle_label": "Retain all 24 hidden layers"}
+    ]
+  },
+  "modes": [
+    {
+      "id": "compose_full", "group": "compose", "title": "Full white-box composition", "icon": "♬", "badge": "RECOMMENDED", "engine": "YuE2 full CoT", "input_label": "Style + lyrics", "output_label": "Song + melody + chords + all stages", "short": "Compose a complete song and keep its editable melody-and-chord score.",
+      "description": "YuE2 writes a native two-voice ABC composition, generates semantic music, flow-matches acoustics, and decodes a 48 kHz stereo recording. Every intermediate survives.",
+      "fields_refs": ["song_identity", "candidate_controls"], "advanced_refs": ["runtime", "sampling"],
+      "preview_template": "Full symbolic composition · {{project_name}}\nDirection: {{style}}\nLanguage: {{language}} · Tempo: {{bpm}} BPM · Candidates: {{takes}} · Seed: {{seed}}"
+    },
+    {
+      "id": "compose_melody", "group": "compose", "title": "Melody-first composition", "icon": "𝄞", "badge": "FREE HARMONY", "engine": "YuE2 melody CoT", "input_label": "Style + lyrics", "output_label": "Song + melody plan", "short": "Plan the vocal/instrumental melody while leaving accompaniment freer.",
+      "description": "Creates a chord-free native plan before rendering. Useful when the melody should be inspectable but the arrangement should retain latitude.",
+      "fields_refs": ["song_identity", "candidate_controls"], "advanced_refs": ["runtime", "sampling"],
+      "preview_template": "Melody-only symbolic composition · {{project_name}}\nDirection: {{style}}\nCandidates: {{takes}} · Seed: {{seed}}"
+    },
+    {
+      "id": "compose_direct", "group": "compose", "title": "Direct song generation", "icon": "⚡", "badge": "NO SCORE", "engine": "YuE2 direct", "input_label": "Style + lyrics", "output_label": "Song + tokens + latents", "short": "Generate directly when an editable symbolic plan is not required.",
+      "description": "Uses YuE2's native `cot=off` instruction. The complete semantic, latent, config, identity, and audio record is still retained.",
+      "fields_refs": ["song_identity", "candidate_controls"], "advanced_refs": ["runtime", "sampling"],
+      "preview_template": "Direct generation · {{project_name}}\nDirection: {{style}}\nCandidates: {{takes}} · Seed: {{seed}}"
+    },
+    {
+      "id": "plan_only", "group": "compose", "title": "Plan before rendering", "icon": "▤", "badge": "ABC LAB", "engine": "YuE2 planner", "input_label": "Style + lyrics", "output_label": "Exact symbolic plan bundle", "short": "Write and inspect the score without committing GPU time to the final recording.",
+      "description": "Exports ABC, exact token IDs, prefix, integrity manifest, and a resumable plan bundle. Edit a copy or resume the untouched plan later.",
+      "fields_refs": ["song_identity"], "fields": [
+        {"id": "planning", "type": "choice", "label": "Planning mode", "default": "full", "span": "full", "options": [
+          {"value": "full", "label": "Melody + chords", "icon": "♬"}, {"value": "melody", "label": "Melody only", "icon": "𝄞"}
+        ]},
+        {"id": "seed", "type": "number", "label": "Seed", "default": 831001, "min": 0, "max": 2147483647, "step": 1, "span": "half"}
+      ], "advanced_refs": ["runtime", "sampling"],
+      "preview_template": "Export {{planning}} plan · {{project_name}} · seed {{seed}}"
+    },
+    {
+      "id": "cover_audio", "group": "cover", "title": "Recording → zero-shot cover", "icon": "◉", "badge": "SHEETSAGE2 + YUE2", "engine": "SheetSage2 → YuE2", "input_label": "Recording + target lyrics/style", "output_label": "Transcription + cover project", "short": "Transcribe a source recording and reimagine it in one queued local workflow.",
+      "description": "SheetSage2 extracts an editable score with the pinned local MERT encoder; YuE2 realizes it with new lyrics and target production. Melody-only is recommended for a new arrangement.",
+      "fields_refs": ["transcription", "song_identity", "candidate_controls"], "fields": [
+        {"id": "keep_source_harmony", "type": "toggle", "label": "Harmony contract", "default": false, "span": "full", "toggle_label": "Keep source chord symbols and use full-score mode (off = melody-only/free accompaniment)"}
+      ], "advanced_refs": ["runtime", "sampling"],
+      "preview_template": "Zero-shot cover · {{project_name}}\nSource harmony fixed: {{keep_source_harmony}}\nTarget: {{style}} · Candidates: {{takes}}"
+    },
+    {
+      "id": "realize_score", "group": "cover", "title": "Realize an ABC score", "icon": "▦", "badge": "SCORE-CONDITIONED", "engine": "YuE2 external plan", "input_label": "ABC + style + lyrics", "output_label": "Complete song project", "short": "Render a reviewed SheetSage2, YuE2, or hand-edited native score.",
+      "description": "Uses the supplied ABC as the exact symbolic prefix. Select full to retain harmony, or melody to let YuE2 create a new accompaniment.",
+      "fields_refs": ["score_source", "song_identity", "candidate_controls"], "advanced_refs": ["runtime", "sampling"],
+      "requires_any": ["abc_text", "abc_asset"], "requires_any_message": "Paste or upload an ABC score.",
+      "preview_template": "Realize {{score_mode}} score · {{project_name}}\nDirection: {{style}} · Candidates: {{takes}}"
+    },
+    {
+      "id": "edit_score", "group": "score", "title": "Render an edited composition", "icon": "✎", "badge": "AGENTIC EDIT", "engine": "YuE2 external plan", "input_label": "Revised ABC + bounded brief", "output_label": "Revision + full provenance", "short": "Reharmonize, change tempo/form, or adapt lyrics while preserving the source revision.",
+      "description": "Paste the reviewed edited ABC and render it as a new immutable project. Use Score Lab first when exact melody/meter invariants matter.",
+      "fields_refs": ["score_source", "song_identity", "candidate_controls"], "advanced_refs": ["runtime", "sampling"],
+      "requires_any": ["abc_text", "abc_asset"], "requires_any_message": "Paste or upload the edited ABC score.",
+      "preview_template": "Render edited {{score_mode}} composition · {{project_name}}\nDirection: {{style}}"
+    },
+    {
+      "id": "score_lab", "group": "score", "title": "Inspect, compare & strip score", "icon": "⌘", "badge": "NO MODEL LOAD", "engine": "Pinned ABC checker", "input_label": "Native ABC", "output_label": "Checked score + structural report", "short": "Validate YuE2's exact dialect and prove melody/meter invariants before rendering.",
+      "description": "Inspects notes, ties, bar grids, keys, chords, and nominal duration. Optionally compare against an original or remove chords while preserving selected melodies.",
+      "fields_refs": ["score_source"], "fields": [
+        {"id": "original_abc_asset", "type": "asset", "label": "Original score for comparison", "default": "", "span": "full", "accept": ".abc,text/plain", "drop_label": "Optional original score.abc"},
+        {"id": "compare_voices", "type": "select", "label": "Compare voices", "default": "both", "span": "third", "options": [{"value": "both", "label": "Vocal + instrumental"}, {"value": "Vocal", "label": "Vocal only"}, {"value": "Ins", "label": "Instrumental only"}]},
+        {"id": "allow_tempo_change", "type": "toggle", "label": "Tempo change", "default": false, "span": "third", "toggle_label": "Allow Q: tempo to differ"},
+        {"id": "strip_chords", "type": "toggle", "label": "Cover preparation", "default": false, "span": "third", "toggle_label": "Remove chord symbols"},
+        {"id": "keep_voice", "type": "select", "label": "Melodies retained", "default": "both", "span": "half", "show_if": {"field": "strip_chords", "truthy": true}, "options": [{"value": "both", "label": "Vocal + instrumental"}, {"value": "Vocal", "label": "Vocal only"}, {"value": "Ins", "label": "Instrumental only"}]}
+      ],
+      "requires_any": ["abc_text", "abc_asset"], "requires_any_message": "Paste or upload the ABC score to inspect.",
+      "preview_template": "ABC structural check · strip chords: {{strip_chords}} · compare: {{compare_voices}}"
+    },
+    {
+      "id": "transcribe", "group": "transcribe", "title": "Recording → editable score", "icon": "♩", "badge": "SHEETSAGE2", "engine": "SheetSage2 + MERT-v2", "input_label": "Music recording", "output_label": "ABC + MIDI + timed annotations", "short": "Extract melody, chords, beats, key, structure, and optional representation tensors.",
+      "description": "Long songs use overlapping windows. Outputs include editable ABC, combined and separated MIDI, event JSON, and lab annotations; research tensors are opt-in.",
+      "fields_refs": ["transcription"],
+      "preview_template": "SheetSage2 transcription · melody-only: {{melody_only}} · preset: {{transcribe_preset}}"
+    },
+    {
+      "id": "resume_plan", "group": "utility", "title": "Resume an exact saved plan", "icon": "↻", "badge": "BIT-EXACT PREFIX", "engine": "YuE2 SymbolicPlan.load", "input_label": "Untouched plan bundle", "output_label": "Song + full artifacts", "short": "Continue from exact planner token IDs with integrity verification.",
+      "description": "Upload `plan-bundle.zip` from a prior Plan or Song output. YuE2 verifies every included file before semantic generation; edited scores belong in Realize or Edit instead.",
+      "fields": [
+        {"id": "plan_bundle_asset", "type": "asset", "label": "Exact plan bundle", "default": "", "required": true, "span": "full", "accept": ".zip,application/zip", "drop_label": "Drop plan-bundle.zip"}
+      ], "advanced_refs": ["runtime", "sampling"],
+      "preview_template": "Resume an integrity-checked exact symbolic plan"
+    },
+    {
+      "id": "decode_latent", "group": "utility", "title": "Decode saved acoustic latents", "icon": "≈", "badge": "VAE ONLY", "engine": "YuE2-Vae", "input_label": "latent.npy", "output_label": "48 kHz stereo FLAC", "short": "Re-decode a retained acoustic state without regenerating the composition.",
+      "description": "Loads only the local listening VAE on CUDA and preserves the natural output length. Useful for decoder checks and artifact recovery.",
+      "fields": [
+        {"id": "latent_asset", "type": "asset", "label": "Acoustic latent array", "default": "", "required": true, "span": "full", "accept": ".npy,application/octet-stream", "drop_label": "Drop latent.npy"},
+        {"id": "vae_core_frames", "type": "select", "label": "VAE tile core", "default": 1024, "span": "half", "options": [{"value": 512, "label": "512 frames"}, {"value": 1024, "label": "1024 frames · native"}, {"value": 2048, "label": "2048 frames"}]}
+      ],
+      "preview_template": "Decode retained YuE2 acoustic latents with {{vae_core_frames}}-frame CUDA tiles"
+    }
+  ]
+}
