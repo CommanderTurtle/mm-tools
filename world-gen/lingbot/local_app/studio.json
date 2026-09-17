@@ -1,0 +1,126 @@
+{
+  "id": "lingbot-world",
+  "title": "LingBot Infinite World Studio",
+  "short_name": "WORLD",
+  "kind": "INTERACTIVE WORLD MODEL",
+  "port": 8267,
+  "kicker": "IMAGE · INTENT · CAMERA · UNBOUNDED CAUSAL TIMELINE",
+  "hero": "Direct a world, then keep moving through it.",
+  "description": "Build native LingBot camera actions visually, bind them to an image and interaction prompt, and render a causal world timeline on one RTX 5090. Camera bundles, reproducible requests, videos, and previews stay local and reusable.",
+  "guide": "Start in Camera designer. A subtle dolly or orbit is the safest proof; then use the same action bundle with a detailed world prompt. Frame counts must be 4n+1.",
+  "engine": "Official LingBot-World-V2 1.3B causal-fast",
+  "vram": "RTX 5090 32 GB profile",
+  "runtime_contract": "CUDA-only model residency · one GPU · no telemetry",
+  "residency": "Per-job native process",
+  "default_mode": "generate_world",
+  "max_upload_bytes": 8589934592,
+  "theme": {"accent": "#65f0be", "secondary": "#d6a678"},
+  "badges": ["Official 1.3B causal-fast", "4n+1 timelines", "Eight camera path families", "Custom keyframes", "Import/export actions", "No CPU model offload"],
+  "groups": [
+    {"id": "world", "title": "World generation"},
+    {"id": "camera", "title": "Camera laboratory"}
+  ],
+  "models": [
+    {"label": "Single-GPU causal DiT", "path": "lingbot-world-v2-1.3b-causal-fast/"},
+    {"label": "Official shared UMT5 + VAE", "path": "lingbot-world-v2-14b-causal-fast/"}
+  ],
+  "setup_steps": [
+    "Run `cd ~/multimedia && uv run models/download_models.py lingbot-5090` if the 1.3B DiT is not present.",
+    "Run `cd ~/multimedia/world-gen/lingbot && ./setupwithuv.sh` once.",
+    "Start with `./startwithuv.sh`; no remote service, account, or public listener is required."
+  ],
+  "presets": [
+    {"title": "Quiet forward explore", "mode": "generate_world", "controls": {"camera_motion": "dolly_forward", "travel": 0.8, "frame_num": 81, "size": "480*832", "local_attn_size": 18, "sink_size": 6}},
+    {"title": "Reveal orbit", "mode": "generate_world", "controls": {"camera_motion": "orbit", "travel": 1.2, "yaw": 45, "frame_num": 121, "size": "480*832"}},
+    {"title": "Handheld adventure", "mode": "generate_world", "controls": {"camera_motion": "handheld", "travel": 1.1, "yaw": 18, "frame_num": 121, "ease": 0.5}},
+    {"title": "Reusable camera proof", "mode": "camera_designer", "controls": {"camera_motion": "truck_right", "travel": 0.6, "frame_num": 81}}
+  ],
+  "modes": [
+    {
+      "id": "generate_world", "group": "world", "title": "Image → causal world", "short": "Design a camera action and extend one frame into an interactive world.",
+      "description": "The official 1.3B distilled pipeline runs chunk-by-chunk with a bounded KV window. Every camera and causal control exposed by the native release is available without its multi-GPU wrapper.",
+      "icon": "◎", "badge": "SINGLE 5090", "engine": "LingBot 1.3B causal-fast", "input_label": "World keyframe + direction", "output_label": "MP4 + camera bundle + receipt",
+      "recipe": "Action poses use the project's exact OpenCV c2w contract; the model, UMT5 and VAE remain on CUDA for the entire job.",
+      "fields": [
+        {"type": "section", "label": "World seed"},
+        {"id": "source_image_asset", "type": "asset", "label": "First frame", "required": true, "span": "half", "accept": "image/png,image/jpeg,image/webp", "icon": "◉", "drop_label": "Drop the first view of the world", "hint": "The output keeps this aspect ratio."},
+        {"id": "prompt", "type": "textarea", "label": "World and interaction direction", "required": true, "span": "half", "rows": 7, "placeholder": "Describe the environment, motion, character intent, events, and what should remain stable."},
+        {"type": "section", "label": "Camera direction"},
+        {"id": "camera_motion", "type": "choice", "label": "Path family", "default": "dolly_forward", "span": "full", "options": [
+          {"value": "locked", "label": "Locked", "description": "Hold the source camera"}, {"value": "dolly_forward", "label": "Dolly in", "description": "Move through the world"},
+          {"value": "dolly_back", "label": "Dolly out", "description": "Reveal wider context"}, {"value": "truck_left", "label": "Truck left", "description": "Lateral discovery"},
+          {"value": "truck_right", "label": "Truck right", "description": "Lateral discovery"}, {"value": "crane_up", "label": "Crane up", "description": "Rise vertically"},
+          {"value": "crane_down", "label": "Crane down", "description": "Lower vertically"}, {"value": "pan", "label": "Pan", "description": "Rotate in place"},
+          {"value": "orbit", "label": "Orbit", "description": "Arc around the subject"}, {"value": "handheld", "label": "Handheld", "description": "Organic forward travel"},
+          {"value": "custom", "label": "Keyframes", "description": "Interpolate your own poses"}
+        ]},
+        {"id": "travel", "type": "range", "label": "Travel / orbit radius", "min": 0, "max": 4, "step": 0.05, "default": 1, "span": "half", "suffix": " m"},
+        {"id": "yaw", "type": "range", "label": "Yaw sweep", "min": -180, "max": 180, "step": 1, "default": 45, "span": "half", "suffix": "°"},
+        {"id": "pitch", "type": "range", "label": "Pitch sweep", "min": -60, "max": 60, "step": 1, "default": 0, "span": "third", "suffix": "°"},
+        {"id": "roll", "type": "range", "label": "Roll sweep", "min": -30, "max": 30, "step": 1, "default": 0, "span": "third", "suffix": "°"},
+        {"id": "ease", "type": "range", "label": "Ease in/out", "min": 0, "max": 1, "step": 0.05, "default": 0.55, "span": "third"},
+        {"id": "keyframes", "type": "collection", "label": "Custom camera keyframes", "span": "full", "hint": "Used only by the Keyframes path. Values are meters and degrees in OpenCV camera-to-world coordinates.", "add_label": "＋ Add camera keyframe", "fields": [
+          {"id": "frame", "type": "number", "label": "Frame", "default": 0, "min": 0}, {"id": "x", "type": "number", "label": "X", "default": 0, "step": 0.05},
+          {"id": "y", "type": "number", "label": "Y", "default": 0, "step": 0.05}, {"id": "z", "type": "number", "label": "Z", "default": 0, "step": 0.05},
+          {"id": "yaw", "type": "number", "label": "Yaw", "default": 0, "step": 1}, {"id": "pitch", "type": "number", "label": "Pitch", "default": 0, "step": 1}, {"id": "roll", "type": "number", "label": "Roll", "default": 0, "step": 1}
+        ]},
+        {"type": "section", "label": "Causal timeline"},
+        {"id": "frame_num", "type": "number", "label": "Frames (4n+1)", "min": 5, "max": 1441, "step": 4, "default": 81, "span": "third"},
+        {"id": "size", "type": "select", "label": "Canvas budget", "default": "480*832", "span": "third", "options": [{"value": "480*832", "label": "480 × 832 native"}, {"value": "832*480", "label": "832 × 480 native"}, {"value": "720*1280", "label": "720 × 1280 high"}, {"value": "1280*720", "label": "1280 × 720 high"}]},
+        {"id": "chunk_size", "type": "select", "label": "Causal chunk", "default": 4, "span": "third", "options": [{"value": 4, "label": "4 frames · native"}]},
+        {"id": "seed", "type": "number", "label": "Seed", "min": 0, "max": 4294967295, "step": 1, "default": 42, "span": "third"},
+        {"id": "sample_shift", "type": "range", "label": "Flow shift", "min": 1, "max": 10, "step": 0.1, "default": 5, "span": "third"},
+        {"id": "local_attn_size", "type": "number", "label": "KV local window", "min": -1, "max": 256, "step": 1, "default": 18, "span": "third"},
+        {"id": "sink_size", "type": "number", "label": "KV sink", "min": 0, "max": 64, "step": 1, "default": 6, "span": "third"},
+        {"id": "max_attention_size", "type": "number", "label": "Maximum attention tokens", "min": 0, "max": 1048576, "step": 1, "default": 0, "span": "third", "hint": "0 keeps the native automatic limit."},
+        {"id": "convert_model_dtype", "type": "toggle", "label": "Normalize model dtype", "default": false, "span": "third", "toggle_label": "Convert parameters to task dtype after loading"},
+        {"type": "section", "label": "832×480 camera calibration"},
+        {"id": "focal_length", "type": "number", "label": "Focal length", "min": 1, "max": 5000, "step": 1, "default": 700, "span": "third"},
+        {"id": "principal_x", "type": "number", "label": "Principal X", "min": 0, "max": 832, "step": 0.5, "default": 416, "span": "third"},
+        {"id": "principal_y", "type": "number", "label": "Principal Y", "min": 0, "max": 480, "step": 0.5, "default": 240, "span": "third"}
+      ],
+      "advanced": [], "preview_template": "{{frame_num}} frames of {{camera_motion}} through: {{prompt}}"
+    },
+    {
+      "id": "generate_from_bundle", "group": "world", "title": "Render an imported action", "short": "Reuse an exact LingBot camera path from another job or tool.",
+      "description": "Import poses.npy + intrinsics.npy as one ZIP or NPZ, validate their shape, preview the path, and run the same CUDA-only causal engine.",
+      "icon": "⇥", "badge": "ACTION BUNDLE", "engine": "LingBot native action conditioning", "input_label": "Image + prompt + camera bundle", "output_label": "MP4 + validated bundle",
+      "fields": [
+        {"id": "source_image_asset", "type": "asset", "label": "First frame", "required": true, "span": "half", "accept": "image/*", "icon": "◉", "drop_label": "Drop the first world view"},
+        {"id": "action_bundle_asset", "type": "asset", "label": "Camera action", "required": true, "span": "half", "accept": ".zip,.npz", "icon": "⇥", "drop_label": "Drop a LingBot action ZIP or NPZ", "hint": "Must contain poses[frames,4,4] and intrinsics[frames,4]."},
+        {"id": "prompt", "type": "textarea", "label": "World and interaction direction", "required": true, "span": "full", "rows": 6},
+        {"id": "frame_num", "type": "number", "label": "Maximum frames (4n+1)", "min": 5, "max": 1441, "step": 4, "default": 81, "span": "third"},
+        {"id": "size", "type": "select", "label": "Canvas budget", "default": "480*832", "span": "third", "options": [{"value": "480*832", "label": "480 × 832"}, {"value": "832*480", "label": "832 × 480"}, {"value": "720*1280", "label": "720 × 1280"}, {"value": "1280*720", "label": "1280 × 720"}]},
+        {"id": "seed", "type": "number", "label": "Seed", "min": 0, "max": 4294967295, "step": 1, "default": 42, "span": "third"},
+        {"id": "chunk_size", "type": "select", "label": "Causal chunk", "default": 4, "span": "third", "options": [{"value": 4, "label": "4 frames · native"}]},
+        {"id": "sample_shift", "type": "range", "label": "Flow shift", "min": 1, "max": 10, "step": 0.1, "default": 5, "span": "third"},
+        {"id": "local_attn_size", "type": "number", "label": "KV local window", "min": -1, "max": 256, "default": 18, "span": "third"},
+        {"id": "sink_size", "type": "number", "label": "KV sink", "min": 0, "max": 64, "default": 6, "span": "third"},
+        {"id": "max_attention_size", "type": "number", "label": "Maximum attention tokens", "min": 0, "max": 1048576, "default": 0, "span": "third"},
+        {"id": "convert_model_dtype", "type": "toggle", "label": "Normalize model dtype", "default": false, "span": "third", "toggle_label": "Convert parameters to task dtype"}
+      ], "advanced": []
+    },
+    {
+      "id": "camera_designer", "group": "camera", "title": "Camera path designer", "short": "Author, inspect, and export native LingBot actions without loading a model.",
+      "description": "Create exact poses.npy and intrinsics.npy files, a reusable bundle, metadata, and a top-down SVG path proof. This mode is instant and does not touch CUDA.",
+      "icon": "⌁", "badge": "NO GENERATION", "engine": "Native action contract", "input_label": "Path controls", "output_label": "ZIP + arrays + path preview",
+      "fields": [
+        {"id": "camera_motion", "type": "choice", "label": "Path family", "default": "dolly_forward", "span": "full", "options": [
+          {"value": "locked", "label": "Locked"}, {"value": "dolly_forward", "label": "Dolly in"}, {"value": "dolly_back", "label": "Dolly out"}, {"value": "truck_left", "label": "Truck left"}, {"value": "truck_right", "label": "Truck right"}, {"value": "crane_up", "label": "Crane up"}, {"value": "crane_down", "label": "Crane down"}, {"value": "pan", "label": "Pan"}, {"value": "orbit", "label": "Orbit"}, {"value": "handheld", "label": "Handheld"}, {"value": "custom", "label": "Keyframes"}
+        ]},
+        {"id": "frame_num", "type": "number", "label": "Frames (4n+1)", "min": 5, "max": 1441, "step": 4, "default": 81, "span": "third"},
+        {"id": "travel", "type": "range", "label": "Travel / radius", "min": 0, "max": 4, "step": 0.05, "default": 1, "span": "third", "suffix": " m"},
+        {"id": "ease", "type": "range", "label": "Ease", "min": 0, "max": 1, "step": 0.05, "default": 0.55, "span": "third"},
+        {"id": "yaw", "type": "range", "label": "Yaw sweep", "min": -180, "max": 180, "step": 1, "default": 45, "span": "third", "suffix": "°"},
+        {"id": "pitch", "type": "range", "label": "Pitch sweep", "min": -60, "max": 60, "step": 1, "default": 0, "span": "third", "suffix": "°"},
+        {"id": "roll", "type": "range", "label": "Roll sweep", "min": -30, "max": 30, "step": 1, "default": 0, "span": "third", "suffix": "°"},
+        {"id": "keyframes", "type": "collection", "label": "Custom keyframes", "span": "full", "hint": "Used only by the Keyframes path.", "add_label": "＋ Add keyframe", "fields": [
+          {"id": "frame", "type": "number", "label": "Frame", "default": 0}, {"id": "x", "type": "number", "label": "X", "default": 0}, {"id": "y", "type": "number", "label": "Y", "default": 0}, {"id": "z", "type": "number", "label": "Z", "default": 0}, {"id": "yaw", "type": "number", "label": "Yaw", "default": 0}, {"id": "pitch", "type": "number", "label": "Pitch", "default": 0}, {"id": "roll", "type": "number", "label": "Roll", "default": 0}
+        ]},
+        {"id": "focal_length", "type": "number", "label": "Focal length", "min": 1, "max": 5000, "default": 700, "span": "third"},
+        {"id": "principal_x", "type": "number", "label": "Principal X", "min": 0, "max": 832, "default": 416, "span": "third"},
+        {"id": "principal_y", "type": "number", "label": "Principal Y", "min": 0, "max": 480, "default": 240, "span": "third"}
+      ], "advanced": []
+    }
+  ]
+}
