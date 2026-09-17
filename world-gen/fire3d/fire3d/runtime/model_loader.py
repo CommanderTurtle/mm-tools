@@ -11,6 +11,7 @@ import copy
 import gc
 import inspect
 import json
+import os
 import random
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,34 @@ import yaml
 DEFAULT_SHAPE_DECODER = (
     "microsoft/TRELLIS.2-4B/ckpts/shape_dec_next_dc_f16c32_fp16"
 )
+
+
+def inference_model_dtype() -> torch.dtype | None:
+    """Resolve the optional local-studio residency dtype.
+
+    The public release checkpoints are stored in a large training-oriented
+    container.  Fire3D inference already runs its flow forwards under BF16
+    autocast, so the private 5090 profile may keep those flow parameters in
+    BF16 as well.  This is model residency, not CPU offload: parameters move to
+    CUDA once and remain there for the stage.
+    """
+
+    value = os.environ.get("FF_FIRE3D_MODEL_DTYPE", "native").strip().lower()
+    if value in {"", "native", "checkpoint"}:
+        return None
+    if value in {"bf16", "bfloat16"}:
+        return torch.bfloat16
+    if value in {"fp16", "float16", "half"}:
+        return torch.float16
+    raise ValueError(
+        "FF_FIRE3D_MODEL_DTYPE must be native, bfloat16, or float16; "
+        f"got {value!r}"
+    )
+
+
+def move_inference_model(model: torch.nn.Module, device: torch.device) -> torch.nn.Module:
+    dtype = inference_model_dtype()
+    return model.to(device=device, dtype=dtype).eval() if dtype else model.to(device).eval()
 
 
 def resolve_checkpoint(run_dir: Path, checkpoint: str) -> Path:
@@ -100,7 +129,7 @@ def load_flow_models(
     ss_state_key, ss_state = checkpoint_state(ss_checkpoint, args.ss_use_ema)
     ss_model = SSObjectGen(ss_config["model"])
     ss_model.load_state_dict(ss_state, strict=True)
-    ss_model.to(device).eval()
+    move_inference_model(ss_model, device)
 
     shape_checkpoint = torch.load(
         shape_checkpoint_path, map_location="cpu", weights_only=False
@@ -110,7 +139,7 @@ def load_flow_models(
     )
     shape_model = ShapeObjectGen(shape_config["model"])
     shape_model.load_state_dict(shape_state, strict=True)
-    shape_model.to(device).eval()
+    move_inference_model(shape_model, device)
 
     if getattr(ss_model, "dino_model", None) is None:
         raise ValueError("The SS model did not initialize its DINO encoder")
@@ -138,6 +167,7 @@ def load_flow_models(
         "dino_downsample": int(ss_config["model"]["dino"].get("downsample", 16)),
         "dino_upsample": int(ss_config["model"]["dino"].get("upsample", 1)),
         "max_cond_len": int(ss_config["model"].get("max_cond_len", 512)),
+        "parameter_dtype": str(next(ss_model.parameters()).dtype),
     }
     if metadata["dino_downsample"] % metadata["dino_upsample"] != 0:
         raise ValueError("DINO downsample must be divisible by the AnyUp factor")

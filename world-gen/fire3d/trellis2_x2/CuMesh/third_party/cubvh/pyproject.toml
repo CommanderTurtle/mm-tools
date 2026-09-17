@@ -13,8 +13,6 @@ version = "0.1.2"
 description = "CUDA BVH implementation"
 readme = "readme.md"
 requires-python = ">=3.8"
-authors = [{ name = "kiui", email = "ashawkey1999@gmail.com" }]
-license = { file = "LICENSE" }
 dependencies = [
   "ninja",
   "pybind11",

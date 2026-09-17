@@ -11,6 +11,7 @@ from __future__ import annotations
 import copy
 import gc
 import json
+import os
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -130,7 +131,18 @@ def load_pbr_flow_model(
     model.dino_model = None
     model.__dict__["_anyup_upsampler"] = None
     gc.collect()
-    model.to(device).eval()
+    residency_dtype = os.environ.get("FF_FIRE3D_MODEL_DTYPE", "native").strip().lower()
+    if residency_dtype in {"bf16", "bfloat16"}:
+        model.to(device=device, dtype=torch.bfloat16).eval()
+    elif residency_dtype in {"fp16", "float16", "half"}:
+        model.to(device=device, dtype=torch.float16).eval()
+    elif residency_dtype in {"", "native", "checkpoint"}:
+        model.to(device).eval()
+    else:
+        raise ValueError(
+            "FF_FIRE3D_MODEL_DTYPE must be native, bfloat16, or float16; "
+            f"got {residency_dtype!r}"
+        )
     for parameter in model.parameters():
         parameter.requires_grad_(False)
     metadata = {
@@ -143,6 +155,7 @@ def load_pbr_flow_model(
         "max_cond_len": int(max_cond_len),
         "dino_upsample": int(dino_upsample),
         "shared_dino_features": True,
+        "parameter_dtype": str(next(model.parameters()).dtype),
     }
     return model, metadata
 
