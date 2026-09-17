@@ -1,0 +1,91 @@
+{
+  "id": "4danyone",
+  "title": "4DAnyone Capture Studio",
+  "short_name": "4D",
+  "kind": "HUMAN CAPTURE",
+  "port": 8261,
+  "kicker": "MONOCULAR VIDEO · SYNCHRONIZED FREE VIEWPOINTS",
+  "hero": "Turn one ordinary clip into a camera array.",
+  "description": "Recover the performer once, design a multi-ring virtual camera rig, and generate synchronized dense views for 4D reconstruction or creative replay. Every native output—motion, cameras, skeleton passes, proposal views, dense views, and timing metadata—stays available.",
+  "guide": "Use a clear portrait clip with one visible performer and at least 121 usable frames. Start with six Turbo views, then expand to denser rings after validating the crop and motion solve.",
+  "engine": "4DAnyone Turbo / Base + GVHMR",
+  "vram": "22 GiB peak",
+  "runtime_contract": "RTX 5090 · CUDA-only · no model CPU offload",
+  "residency": "Per-job native pipeline",
+  "default_mode": "generate_4d",
+  "max_upload_bytes": 17179869184,
+  "theme": {"accent": "#73e6c1", "secondary": "#ba8c62"},
+  "badges": ["121-frame capture", "Flexible camera rings", "Turbo 4-step path", "Synchronized output wall", "No telemetry"],
+  "groups": [
+    {"id": "capture", "title": "Capture"},
+    {"id": "setup", "title": "Licensed setup"}
+  ],
+  "models": [
+    {"label": "4DAnyone Base + Turbo", "path": "models/4danyone/"},
+    {"label": "GVHMR motion recovery", "path": "models/gvhmr/"},
+    {"label": "BiRefNet matte", "path": "models/birefnet/"},
+    {"label": "SMPL-X neutral body", "path": "models/smplx/SMPLX_NEUTRAL.npz", "note": "Separately licensed; install from this studio", "optional": true}
+  ],
+  "setup_steps": [
+    "Run `cd ~/multimedia/4d-ify && ./setupwithuv.sh` once.",
+    "Open Licensed setup and provide the official SMPL-X ZIP or neutral NPZ; the original upload remains private and the runtime installs only the required neutral model.",
+    "Run `./startwithuv.sh`, begin with the six-view Turbo preset, and inspect the synchronized output wall before increasing view density."
+  ],
+  "presets": [
+    {"title": "Six-view proof", "mode": "generate_4d", "controls": {"views_per_layer": 6, "layer_pitches": [15], "start_yaw": 0, "yaw_span": 360, "model_variant": "turbo"}},
+    {"title": "Dense orbit", "mode": "generate_4d", "controls": {"views_per_layer": 24, "layer_pitches": [15], "start_yaw": 0, "yaw_span": 360, "model_variant": "turbo"}},
+    {"title": "Three-ring 48", "mode": "generate_4d", "controls": {"views_per_layer": 16, "layer_pitches": [-10, 15, 35], "start_yaw": 0, "yaw_span": 360, "model_variant": "turbo"}},
+    {"title": "Frontal production arc", "mode": "generate_4d", "controls": {"views_per_layer": 12, "layer_pitches": [0, 30], "start_yaw": -90, "yaw_span": 180, "model_variant": "turbo"}}
+  ],
+  "modes": [
+    {
+      "id": "generate_4d",
+      "group": "capture",
+      "title": "Monocular → synchronized views",
+      "short": "Build a configurable virtual camera array around one performance.",
+      "description": "The complete native 4DAnyone path: canonicalize a 121-frame clip, recover GVHMR motion, make per-camera pose conditioning, generate proposal views when requested, and synthesize every dense view on one GPU.",
+      "icon": "◫",
+      "badge": "VIDEO → 4D",
+      "engine": "4DAnyone",
+      "input_label": "Casual monocular performance",
+      "output_label": "Synchronized camera suite + metadata",
+      "recipe": "The rig diagram is represented explicitly by pitch rings, yaw origin, coverage, and views per ring. Total views must divide into six-view denoising groups.",
+      "fields": [
+        {"type": "section", "label": "Source performance"},
+        {"id": "source_video_asset", "type": "asset", "label": "Monocular source video", "required": true, "span": "full", "accept": "video/*", "icon": "▶", "drop_label": "Drop a portrait performance clip", "hint": "One performer, clear body, modest camera motion, 1080p+ preferred, at least 121 usable frames."},
+        {"id": "start_time", "type": "number", "label": "Clip start", "min": 0, "max": 86400, "step": 0.1, "default": 0, "suffix": " s", "span": "third"},
+        {"id": "target_fps", "type": "select", "label": "Timeline FPS", "default": "auto", "span": "third", "options": [{"value": "auto", "label": "Auto · preserve clock"}, {"value": 24, "label": "24 FPS"}, {"value": 25, "label": "25 FPS"}, {"value": 30, "label": "30 FPS"}]},
+        {"id": "seed", "type": "number", "label": "Seed", "min": 0, "max": 4294967295, "step": 1, "default": 42, "span": "third"},
+        {"type": "section", "label": "Virtual camera rig"},
+        {"id": "layer_pitches", "type": "tags", "label": "Pitch rings", "required": true, "default": [15], "span": "full", "placeholder": "-10, 15, 35", "hint": "Degrees from -15 to 45. Add as many rings as needed."},
+        {"id": "views_per_layer", "type": "range", "label": "Views per ring", "min": 1, "max": 48, "step": 1, "default": 6, "span": "half", "hint": "Ring count × this value must be divisible by six."},
+        {"id": "start_yaw", "type": "range", "label": "First yaw", "min": -180, "max": 180, "step": 1, "default": 0, "suffix": "°", "span": "half"},
+        {"id": "yaw_span", "type": "range", "label": "Yaw coverage", "min": 1, "max": 360, "step": 1, "default": 360, "suffix": "°", "span": "half"},
+        {"type": "section", "label": "Denoising strategy"},
+        {"id": "model_variant", "type": "select", "label": "Model schedule", "default": "turbo", "span": "half", "options": [{"value": "turbo", "label": "Turbo · distilled 4-step"}, {"value": "base", "label": "Base · maximum fidelity"}]},
+        {"id": "attention_backend", "type": "select", "label": "Attention backend", "default": "auto", "span": "half", "options": [{"value": "auto", "label": "Auto · safest available"}, {"value": "sdpa", "label": "PyTorch SDPA"}, {"value": "flash_attn_3", "label": "FlashAttention 3"}, {"value": "sageattention", "label": "SageAttention"}]},
+        {"id": "enable_rcp", "type": "toggle", "label": "Reference camera proposals", "default": true, "span": "half", "toggle_label": "Generate six proposal views before dense targets", "hint": "Recommended when the rig contains more than six targets."},
+        {"id": "enable_tcr", "type": "toggle", "label": "Temporal cyclic regrouping", "default": true, "span": "half", "toggle_label": "Shift camera groups between denoising steps", "hint": "Improves cross-view consistency for dense arrays."}
+      ],
+      "advanced": [],
+      "preview_template": "{{views_per_layer}} views per pitch ring across {{yaw_span}}° from {{start_yaw}}°, using {{model_variant}}."
+    },
+    {
+      "id": "install_smplx",
+      "group": "setup",
+      "title": "Install licensed SMPL-X",
+      "short": "Privately install the neutral body model required by GVHMR conditioning.",
+      "description": "SMPL-X is not redistributable with the downloader. Download models_smplx_v1_1.zip after accepting its license, then install it locally here without exposing credentials or modifying the archive.",
+      "icon": "◇",
+      "badge": "ONE TIME",
+      "engine": "Local verified installer",
+      "input_label": "Official SMPL-X ZIP or neutral NPZ",
+      "output_label": "Installation receipt",
+      "recipe": "The installer extracts exactly models/smplx/SMPLX_NEUTRAL.npz and links it into the pinned GVHMR runtime.",
+      "fields": [
+        {"id": "smplx_asset", "type": "asset", "label": "Official SMPL-X package", "required": true, "span": "full", "accept": ".zip,.npz", "icon": "◇", "drop_label": "Drop models_smplx_v1_1.zip or SMPLX_NEUTRAL.npz", "hint": "Obtain it from smpl-x.is.tue.mpg.de after accepting the model license."}
+      ],
+      "advanced": []
+    }
+  ]
+}

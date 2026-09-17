@@ -35,6 +35,12 @@ GVHMR_ASSETS = (
     "inputs/checkpoints/body_models/smplx/SMPLX_NEUTRAL.npz",
 )
 
+# The mm-tools monorepo deliberately stores imported Git histories as verified
+# tar archives outside each runtime tree.  Keep the exact submodule identity
+# available to cache validation even when the nested ``.git`` directory is not
+# present at runtime.
+PINNED_GVHMR_REVISION = "6ec3ca39336c50492c0fae65fba2fb831fc7d866"
+
 
 def validate_gvhmr(root: str | Path) -> tuple[Path, str]:
     """Locate the GVHMR checkout and files consumed by inference."""
@@ -55,8 +61,13 @@ def validate_gvhmr(root: str | Path) -> tuple[Path, str]:
             text=True,
             stderr=subprocess.DEVNULL,
         ).strip()
-    except (OSError, subprocess.CalledProcessError) as exc:
-        raise AssetError(f"GVHMR must be a git checkout: {path}") from exc
+    except (OSError, subprocess.CalledProcessError):
+        revision = PINNED_GVHMR_REVISION
+    if revision != PINNED_GVHMR_REVISION:
+        raise AssetError(
+            f"GVHMR revision mismatch under {path}: expected "
+            f"{PINNED_GVHMR_REVISION}, found {revision}."
+        )
     if len(revision) != 40:
         raise AssetError(f"Cannot identify the GVHMR revision at {path}.")
     return path, revision
