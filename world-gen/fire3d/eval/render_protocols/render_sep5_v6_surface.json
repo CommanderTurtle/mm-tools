@@ -1,0 +1,45 @@
+{
+  "schema": "ff_unified_render_protocol_v1",
+  "name": "render_sep5_v6_surface",
+  "version": 1,
+  "status": "candidate",
+  "created_at": "2026-09-05T02:45:00-05:00",
+  "description": "Low-risk texture candidate combining the two successful surface-only arms.",
+  "extends": "render_sep5_v0",
+  "scope": {
+    "sources": [
+      "recon"
+    ]
+  },
+  "lineage": {
+    "parent": "render_sep5_v0",
+    "controlled_change": "Combine v1 smooth weighted normals and v2 Cubic filtering. Keep baseline lighting, material response, color management, and vertex positions."
+  },
+  "render": {
+    "protocols": [
+      "texture"
+    ],
+    "material_policy": {
+      "texture_interpolation": "Cubic"
+    },
+    "shading": {
+      "preserve_imported_normals": false,
+      "auto_smooth_degrees": 40.0,
+      "weighted_normal": true
+    },
+    "style": {
+      "name": "surface_normals_cubic",
+      "applies_to": [
+        "texture"
+      ],
+      "parameters": {
+        "auto_smooth_degrees": 40.0,
+        "auto_smooth_keep_sharp": true,
+        "weighted_normal": true,
+        "weighted_normal_keep_sharp": true,
+        "weighted_normal_weight": 50,
+        "texture_interpolation": "Cubic"
+      }
+    }
+  }
+}

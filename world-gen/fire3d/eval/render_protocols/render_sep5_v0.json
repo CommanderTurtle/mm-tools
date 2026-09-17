@@ -1,0 +1,148 @@
+{
+  "schema": "ff_unified_render_protocol_v1",
+  "name": "render_sep5_v0",
+  "version": 1,
+  "status": "frozen",
+  "created_at": "2026-09-05T02:05:00-05:00",
+  "description": "Measurement-faithful rendering baseline before presentation-only shading and lighting variants.",
+  "scope": {
+    "datasets": [
+      "ithor",
+      "imaginarium",
+      "single_image",
+      "scannetpp"
+    ],
+    "sources": [
+      "recon",
+      "gt",
+      "comparison"
+    ],
+    "coordinate_contract": "dataset_world_without_posthoc_alignment",
+    "presentation_only": true
+  },
+  "lineage": {
+    "behavior_source": "Fire3D release renderer defaults",
+    "semantic_contract": "No presentation style, mesh modifier, texture repair, material response override, compositor grade, or geometry mutation is applied."
+  },
+  "render": {
+    "protocols": [
+      "geometry",
+      "texture"
+    ],
+    "engine": "BLENDER_EEVEE_NEXT",
+    "recipe": "canonical_pbr",
+    "render_profile": "inference-rgb",
+    "samples": 32,
+    "camera": {
+      "type": "PERSP",
+      "intrinsics": "task_exact",
+      "clip_start": 0.01,
+      "clip_end": 1000.0
+    },
+    "output": {
+      "file_format": "PNG",
+      "color_mode": "RGB",
+      "color_depth": "8",
+      "film_transparent": false,
+      "empty_background_rgb": [
+        255,
+        255,
+        255
+      ],
+      "use_file_extension": true
+    },
+    "background": {
+      "gt_geometry": true,
+      "gt_texture": true,
+      "reconstruction_geometry": false,
+      "reconstruction_texture": true,
+      "reconstruction_instance_strategy": "room_box_prior",
+      "external_baselines": false
+    },
+    "geometry_material": {
+      "palette": "legacy",
+      "background_rgba": [
+        0.5,
+        0.5,
+        0.5,
+        1.0
+      ],
+      "shader": "Principled BSDF",
+      "metallic": 0.0,
+      "roughness": 0.72
+    },
+    "material_policy": {
+      "mode": "imported_full_pbr",
+      "two_sided_camera": true,
+      "two_sided_shadow": true,
+      "verified_opaque_promotion": true,
+      "global_alpha_override": false,
+      "texture_interpolation": "imported_default_linear",
+      "metallic_scale": 1.0,
+      "roughness_floor": null,
+      "specular_level_override": null,
+      "sheen_weight_override": null
+    },
+    "shading": {
+      "preserve_imported_normals": true,
+      "auto_smooth_degrees": null,
+      "weighted_normal": false,
+      "smooth_modifier": false,
+      "geometry_mutation": false
+    },
+    "color_management": {
+      "view_transform": "Standard",
+      "look": "None",
+      "exposure": 0.0,
+      "gamma": 1.0,
+      "curve_mapping": false,
+      "compositor_grade": false
+    },
+    "resolved_lighting_recipe": {
+      "canonical_name": "object_max_psnr",
+      "world_color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "world_strength": 0.4,
+      "sun_color": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "sun_energy": 2.75,
+      "sun_angle": 0.0,
+      "sun_shadows": false,
+      "sun_camera_aligned": true,
+      "other_lights_disabled": true,
+      "material_mode": "full_pbr",
+      "emission_strength": 0.0
+    },
+    "style": {
+      "name": "normal",
+      "applies_to": [
+        "texture"
+      ],
+      "parameters": {}
+    },
+    "mask_pass": {
+      "world_rgb": [
+        0,
+        0,
+        0
+      ],
+      "method_rgb": [
+        255,
+        255,
+        255
+      ],
+      "context_rgb": [
+        0,
+        0,
+        0
+      ]
+    }
+  }
+}

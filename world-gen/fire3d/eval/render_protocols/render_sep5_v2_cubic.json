@@ -1,0 +1,35 @@
+{
+  "schema": "ff_unified_render_protocol_v1",
+  "name": "render_sep5_v2_cubic",
+  "version": 1,
+  "status": "candidate",
+  "created_at": "2026-09-05T02:25:00-05:00",
+  "description": "Texture-only candidate isolating Cubic filtering for imported PBR maps.",
+  "extends": "render_sep5_v0",
+  "scope": {
+    "sources": [
+      "recon"
+    ]
+  },
+  "lineage": {
+    "parent": "render_sep5_v0",
+    "controlled_change": "Switch every imported image texture from Linear to Cubic interpolation. No normal, material-response, light, color, or geometry changes."
+  },
+  "render": {
+    "protocols": [
+      "texture"
+    ],
+    "material_policy": {
+      "texture_interpolation": "Cubic"
+    },
+    "style": {
+      "name": "cubic_filtering",
+      "applies_to": [
+        "texture"
+      ],
+      "parameters": {
+        "texture_interpolation": "Cubic"
+      }
+    }
+  }
+}

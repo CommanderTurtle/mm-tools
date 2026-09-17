@@ -1,0 +1,25 @@
+{
+  "schema": "fire3d_release_examples_v1",
+  "examples": {
+    "ithor": {
+      "scene_id": "iTHOR_FloorPlan312_physics",
+      "protocol": "configs/inference/fire3d_video_v1.json",
+      "data_subdir": "ithor"
+    },
+    "imaginarium": {
+      "scene_id": "bedroom_01",
+      "protocol": "configs/inference/fire3d_video_v1.json",
+      "data_subdir": "Imaginarium"
+    },
+    "scannetpp": {
+      "scene_id": "09bced689e",
+      "protocol": "configs/inference/fire3d_scannetpp_v1.json",
+      "data_subdir": "scannetpp"
+    },
+    "single_image": {
+      "scene_id": "003025",
+      "protocol": "configs/inference/fire3d_single_image_v1.json",
+      "data_subdir": "single_image"
+    }
+  }
+}

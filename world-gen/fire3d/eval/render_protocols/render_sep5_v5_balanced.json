@@ -1,0 +1,89 @@
+{
+  "schema": "ff_unified_render_protocol_v1",
+  "name": "render_sep5_v5_balanced",
+  "version": 1,
+  "status": "candidate",
+  "created_at": "2026-09-05T02:25:00-05:00",
+  "description": "Conservative combined texture candidate using normals, filtering, stable PBR response, and soft scene lighting.",
+  "extends": "render_sep5_v0",
+  "scope": {
+    "sources": [
+      "recon"
+    ]
+  },
+  "lineage": {
+    "parent": "render_sep5_v0",
+    "controlled_change": "Combine v1 normals, v2 filtering, v3 material response, and v4 lighting without geometry smoothing, texture repair, dark lifting, or color grading."
+  },
+  "render": {
+    "protocols": [
+      "texture"
+    ],
+    "samples": 64,
+    "material_policy": {
+      "texture_interpolation": "Cubic",
+      "metallic_scale": 0.2,
+      "roughness_floor": 0.35,
+      "specular_level_override": 0.2
+    },
+    "shading": {
+      "preserve_imported_normals": false,
+      "auto_smooth_degrees": 40.0,
+      "weighted_normal": true
+    },
+    "resolved_lighting_recipe": {
+      "world_color": [
+        0.92,
+        0.9,
+        0.87,
+        1.0
+      ],
+      "world_strength": 0.4,
+      "sun_energy": 0.6875,
+      "presentation_area_lights": {
+        "key_energy_per_xy_span": 200.0,
+        "key_color": [
+          1.0,
+          0.93,
+          0.82
+        ],
+        "rim_energy_per_xy_span": 80.0,
+        "raytracing": true
+      }
+    },
+    "style": {
+      "name": "balanced_v1",
+      "applies_to": [
+        "texture"
+      ],
+      "parameters": {
+        "auto_smooth_degrees": 40.0,
+        "auto_smooth_keep_sharp": true,
+        "weighted_normal": true,
+        "weighted_normal_keep_sharp": true,
+        "weighted_normal_weight": 50,
+        "texture_interpolation": "Cubic",
+        "metallic_scale": 0.2,
+        "roughness_floor": 0.35,
+        "specular_level": 0.2,
+        "soft_key": true,
+        "sun_scale": 0.25,
+        "key_energy": 200.0,
+        "key_color": [
+          1.0,
+          0.93,
+          0.82
+        ],
+        "rim_energy": 80.0,
+        "world_color": [
+          0.92,
+          0.9,
+          0.87
+        ],
+        "world_strength": 0.4,
+        "raytracing": true,
+        "samples": 64
+      }
+    }
+  }
+}

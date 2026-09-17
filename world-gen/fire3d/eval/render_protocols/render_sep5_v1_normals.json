@@ -1,0 +1,41 @@
+{
+  "schema": "ff_unified_render_protocol_v1",
+  "name": "render_sep5_v1_normals",
+  "version": 1,
+  "status": "candidate",
+  "created_at": "2026-09-05T02:25:00-05:00",
+  "description": "Texture-only candidate isolating smooth corner normals without moving vertices.",
+  "extends": "render_sep5_v0",
+  "scope": {
+    "sources": [
+      "recon"
+    ]
+  },
+  "lineage": {
+    "parent": "render_sep5_v0",
+    "controlled_change": "Auto smooth at 40 degrees plus area-and-angle weighted normals. No material, light, texture, color, or geometry-position changes."
+  },
+  "render": {
+    "protocols": [
+      "texture"
+    ],
+    "shading": {
+      "preserve_imported_normals": false,
+      "auto_smooth_degrees": 40.0,
+      "weighted_normal": true
+    },
+    "style": {
+      "name": "normals40_weighted",
+      "applies_to": [
+        "texture"
+      ],
+      "parameters": {
+        "auto_smooth_degrees": 40.0,
+        "auto_smooth_keep_sharp": true,
+        "weighted_normal": true,
+        "weighted_normal_keep_sharp": true,
+        "weighted_normal_weight": 50
+      }
+    }
+  }
+}

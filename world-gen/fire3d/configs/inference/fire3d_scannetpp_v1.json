@@ -1,0 +1,243 @@
+{
+  "schema": "ff_unified_pipeline_protocol_v1",
+  "name": "fire3d_scannetpp_v1",
+  "version": 1,
+  "status": "release",
+  "created_at": "2026-09-06T13:47:03-05:00",
+  "updated_at": "2026-09-07T14:00:00-05:00",
+  "description": "Fire3D v1 release protocol for ScanNet++ inference with Pi3 confidence filtering and room fitting.",
+  "scope": {
+    "datasets": ["scannetpp"],
+    "coordinate_contract": "wall_aligned_world_without_posthoc_alignment"
+  },
+  "lineage": {
+    "behavior_source": "inference_sep6_v2_pi3_conf06_drop_scannetpp",
+    "behavior_source_version": 1,
+    "behavior_source_sha256": "86beca4b1a2125c820a8acef85721912a23a2f7b91d8d11c3f7047aa14bcfe5d",
+    "validated_git_commit": "a171b3ed6ef6b03dee356ef166dcffadf516fbb8",
+    "validation_record": "design/20260906_scannetpp_pi3_confidence_bg_roomfit_full_rerun.md",
+    "semantic_contract": "The parent confidence-filtered no-fill protocol is preserved exactly and promoted as the ScanNet++ evaluation setting. Background handling explicitly retains the validated room-box prior: fit room center and yaw to retained wall-shell points, isotropically enclose those points with margin, and use that fitted transform only for the predicted background instance."
+  },
+  "reference": {
+    "dataset": "scannetpp",
+    "validation_scene": "09bced689e",
+    "note": "The release protocol uses up to 300 frames, Pi3 depth confidence filtering, and a fitted background canonical box."
+  },
+  "input_rgb": {
+    "mode": "dataset_native",
+    "dataset": "scannetpp",
+    "root_env": "FF_SCANNETPP_ROOT",
+    "default_root": "data/scannetpp",
+    "required_relative_paths": ["scenes"],
+    "environment": {
+      "FF_SCANNETPP_WHITELIST": "1"
+    },
+    "loader_options": {
+      "depth_confidence_threshold": 0.6,
+      "depth_invalid_policy": "drop",
+      "depth_subdir": "depth_pi3x_conf_chunk16",
+      "max_frames": 300,
+      "wall_alignment": true
+    },
+    "rgb_contract": "scenes/<scene_id>/rgb/*.png",
+    "depth_contract": "scenes/<scene_id>/depth_pi3x_conf_chunk16/*.npz with historical Pi3 depth/valid arrays plus freshly preserved sigmoid Pi3X confidence; valid AND confidence>=0.6 samples are retained without filling",
+    "camera_contract": "scenes/<scene_id>/camera.json with per-frame intrinsics_K and poses_c2w",
+    "frame_selection": "up to loader_options.max_frames (default 300) uniformly spaced frames after lexicographic file ordering"
+  },
+  "perception": {
+    "bundle": "checkpoints/Fire3D/perception",
+    "checkpoint": "model.pt",
+    "dino_repo": "third_party/dinov3",
+    "dino_model": "checkpoints/Fire3D/external/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth",
+    "valid_score_threshold": 0.2,
+    "nms_iou_threshold": 0.4,
+    "clean_instance_labels_by_obbs": false,
+    "feature_extraction": {
+      "dino_patch_stride": 16,
+      "dino_upsample": 1,
+      "dino_frame_batch_size": 1,
+      "anyup_frame_batch_size": 1,
+      "rgb_upsample": 1,
+      "rgb_upsampler": "swin2sr",
+      "feature_subsample": 1,
+      "effective_point_stride": 16
+    },
+    "model_contract": {
+      "scene_normalization": "with loader_options.wall_alignment=true: wall-region pruning, wall-line continuous yaw alignment, then point_normalize; false skips wall estimation, pruning, and rotation and applies point_normalize directly",
+      "position_token_range": [0.0, 24.0],
+      "position_bins": 1024,
+      "detector_queries": 384,
+      "voxel_resolution": 256,
+      "background_is_predicted_instance": true,
+      "rotation_equivalence": "local_up_quarter_turn_yaw"
+    },
+    "required_outputs": [
+      "oriented_bboxes.json",
+      "raw_oriented_bboxes.json",
+      "point_instance_masks.pkl"
+    ]
+  },
+  "reconstruction": {
+    "bundle": "checkpoints/Fire3D/reconstruction",
+    "decoders": {
+      "shape": "checkpoints/Fire3D/external/trellis2/shape_dec_next_dc_f16c32_fp16",
+      "pbr": "checkpoints/Fire3D/external/trellis2/tex_dec_next_dc_f16c32_fp16"
+    },
+    "flow": {
+      "ss": {
+        "model_family": "ss_x2_offline",
+        "checkpoint": "flows/ss/model.pt",
+        "use_ema": false
+      },
+      "shape": {
+        "model_family": "shape_x2_offline",
+        "checkpoint": "flows/shape/model.pt",
+        "use_ema": false
+      },
+      "pbr": {
+        "model_family": "pbr_x2_offline",
+        "checkpoint": "flows/pbr/model.pt",
+        "use_ema": false
+      },
+      "inference_num_steps": 12,
+      "pbr_guidance_strength": 3.0,
+      "seed": 20260717,
+      "max_cond_len": 1024,
+      "pbr_max_cond_len": 512,
+      "sample_method": "hybrid",
+      "pbr_sample_method": "random",
+      "object_batch_size": 16,
+      "ss_shape_object_batch_size": 16,
+      "pbr_object_batch_size": 16
+    },
+    "vae": {
+      "ss": {
+        "root": "vae/ss",
+        "checkpoint": "decoder.pt",
+        "use_ema": true
+      },
+      "shape": {
+        "root": "vae/shape",
+        "checkpoint": "decoder.pt",
+        "use_ema": true
+      },
+      "pbr": {
+        "root": "vae/pbr",
+        "checkpoint": "decoder.pt",
+        "use_ema": false
+      }
+    },
+    "conditioning": {
+      "dino_upsample": 4,
+      "anyup_frame_batch_size": 16,
+      "perception_label_transfer": "voxel_transfer",
+      "perception_voxel_resolution": 256,
+      "perception_scene_scale": 24.0,
+      "pbr_condition_snap": false
+    },
+    "occupancy": {
+      "threshold": 0.5,
+      "empty_policy": "argmax"
+    },
+    "background": {
+      "room_box_prior": true,
+      "unit_box_prune": true,
+      "canonical_transform": "room_box_isotropic_enclose",
+      "canonical_margin": 0.01,
+      "distance": 0.12,
+      "adaptive_max_distance": 0.25,
+      "trim_quantile": 0.01,
+      "yaw_samples": 180,
+      "min_points": 512,
+      "prune_oversized_instances": true,
+      "oversized_instance_volume_ratio": 1.0
+    },
+    "geometry_stage": {
+      "mesh_decode": false,
+      "mesh_decode_batch_size": 16,
+      "shape_decode_resolution": 512,
+      "shape_mesh_decimation_target": 100000,
+      "shape_mesh_remesh": true,
+      "shape_mesh_remesh_band": 1.0,
+      "shape_mesh_remesh_project": 0.0,
+      "export_world_object_meshes": true,
+      "historical_inconsistency": "Resolved in this protocol: geometry-stage decoding is skipped, and geometry evaluation consumes the final appearance-stage topology backfilled into the evaluator PLY contract."
+    },
+    "appearance_decode": {
+      "object_chunk_size": 16,
+      "persist_raw_decoded": false
+    },
+    "mesh_postprocess": {
+      "backend": "batch",
+      "object_batch_size": 8,
+      "uv_cpu_workers": 32,
+      "texture_size": 512,
+      "decimation_target": 100000,
+      "background_decimation_multiplier": 1.0,
+      "topology_remesh": true,
+      "topology_remesh_band": 2.0,
+      "topology_remesh_project": 0.0,
+      "topology_initial_target_multiplier": 3,
+      "topology_simplify_threshold": 1e-8,
+      "topology_chart_area_penalty": 0.1,
+      "surface_mapping": "source_bvh",
+      "sparse_query_mode": "power2",
+      "texture_fill_mode": "telea",
+      "texture_dilation_pixels": 4,
+      "texture_dilation_pixels_effective": false,
+      "texture_erode_iterations": 2,
+      "texture_erode_iterations_effective": false,
+      "xatlas_block_align": false,
+      "projection_raster_instance_batch_size": 8
+    },
+    "execution": {
+      "resume_existing": true,
+      "continue_on_error": true,
+      "model_cache": false,
+      "read_workers": 8,
+      "raw_output_layout": "reconstruction/<scene_id>",
+      "object_selection": "all",
+      "detailed_profile": false
+    }
+  },
+  "evaluation": {
+    "enabled": false,
+    "reason": "No ScanNet++ GT object/mask evaluator is connected to the unified driver.",
+    "point_downsample": 8,
+    "sample_points": 100000
+  },
+  "views": {
+    "profile": "dataset-random",
+    "num_views": 16,
+    "seed": 20260828,
+    "lookat_distance": 2.0,
+    "width": 960,
+    "height": 540,
+    "intrinsics": {
+      "source": "dataset_camera",
+      "retargeting": "vertical_fov_preserved",
+      "square_pixels": true,
+      "principal_point": "viewport_center"
+    },
+    "selection_contract": "sample recorded source cameras deterministically from the configured frame set, apply the same enabled or identity wall-alignment transform as reconstruction, then retarget to 960x540 while preserving vertical field of view"
+  },
+  "render": {
+    "engine": "blender_4_5_1_eevee_next",
+    "recipe": "canonical_pbr",
+    "style": "normal",
+    "samples": 32,
+    "empty_background_rgb": [255, 255, 255],
+    "two_sided": true,
+    "opaque_material_fix": true,
+    "geometry_palette": "legacy",
+    "gt_background": false,
+    "reconstruction_geometry_background": false,
+    "reconstruction_texture_background": true,
+    "comparison_columns": [
+      "reconstruction_geometry",
+      "reconstruction_texture"
+    ],
+    "comparison_rows": 16,
+    "comparison_layout": "separate geometry and texture sheets; no GT scene assets"
+  }
+}

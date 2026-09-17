@@ -1,0 +1,34 @@
+{
+  "models": {
+    "encoder": {
+      "name": "SparseStructureEncoder",
+      "args": {
+        "in_channels": 1,
+        "latent_channels": 8,
+        "num_res_blocks": 2,
+        "num_res_blocks_middle": 3,
+        "channels": [32, 128, 512],
+        "use_fp16": true
+      }
+    },
+    "decoder": {
+      "name": "SparseStructureDecoder",
+      "args": {
+        "out_channels": 1,
+        "latent_channels": 8,
+        "num_res_blocks": 2,
+        "num_res_blocks_middle": 3,
+        "channels": [512, 128, 32],
+        "use_fp16": true
+      }
+    }
+  },
+  "dataset": {
+    "args": {}
+  },
+  "trainer": {
+    "args": {
+      "ema_rate": 0.9999
+    }
+  }
+}

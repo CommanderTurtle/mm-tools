@@ -1,0 +1,13 @@
+name: fire3d
+channels:
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10.20
+  - cuda-toolkit=12.8
+  - cmake>=3.28
+  - ninja
+  - git
+  - git-lfs
+  - ffmpeg
+  - pip
