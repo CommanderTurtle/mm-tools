@@ -1,0 +1,167 @@
+{
+  "id": "sculpting",
+  "title": "Sculpting Studio",
+  "short_name": "Sculpt",
+  "kind": "PBR 3D ASSET STUDIO",
+  "port": 8262,
+  "kicker": "RECONSTRUCT · CAMERA MATCH · RETEXTURE · DELIVER",
+  "hero": "One reference in. A production-ready object out.",
+  "description": "A private TRELLIS.2 and Pixal3D workstation with complete sparse-shape, camera, PBR, UV, remesh, preview, and export controls. Generated GLBs open in the built-in WebGL inspection room without a CDN or cloud viewer.",
+  "guide": "Use TRELLIS.2 for general single-image assets. Use Pixal3D when camera perspective and scale fidelity matter. The verified RTX 5090 profile keeps every model on CUDA and defaults to 1024 cascade; 1536 is visibly documented but refused on 32 GiB rather than secretly offloading to CPU.",
+  "engine": "TRELLIS.2-4B + Pixal3D + MoGe-2 + NAF",
+  "vram": "24–31 GiB · 1024 cascade",
+  "runtime_contract": "RTX 5090 · GPU-resident · one model stack at a time · no telemetry",
+  "residency": "Explicit model switcher; no CPU model shuttling",
+  "default_mode": "trellis_generate",
+  "max_upload_bytes": 17179869184,
+  "theme": {"accent": "#7de0ad", "secondary": "#b9916a"},
+  "badges": ["Full PBR", "Camera-aware projection", "WebGL GLB room", "Shape-conditioned texturing", "Exact sampler controls", "Offline runtime"],
+  "groups": [
+    {"id": "create", "title": "Create"},
+    {"id": "camera", "title": "Camera match"},
+    {"id": "material", "title": "Materials"},
+    {"id": "utility", "title": "Mesh utility"}
+  ],
+  "models": [
+    {"label": "TRELLIS.2-4B", "path": "pretrained/TRELLIS.2-4B", "note": "512, 1024, cascade shape + full PBR volume"},
+    {"label": "Pixal3D", "path": "world/pretrained/Pixal3D", "note": "View-aligned projected image conditioning"},
+    {"label": "DINOv3 ViT-L/16", "path": "pretrained/deps/camenduru--dinov3-vitl16-pretrain-lvd1689m"},
+    {"label": "BiRefNet", "path": "pretrained/deps/ZhengPeng7--BiRefNet", "note": "Official ungated local matte"},
+    {"label": "MoGe-2 ViT-L", "path": "pretrained/deps/Ruicheng--moge-2-vitl", "note": "Automatic intrinsics and horizontal FOV"},
+    {"label": "NAF", "path": "pretrained/deps/valeoai--NAF/naf_release.pth", "note": "Projection-feature upsampling"}
+  ],
+  "setup_steps": [
+    "Run `cd ~/multimedia/sculpting && ./setupwithuv.sh` once. It pins and compiles the CUDA mesh stack for the installed 5090.",
+    "Start with `./startwithuv.sh`; the listener remains `127.0.0.1:8262` unless explicitly changed in `.env.local`.",
+    "For a first pass choose TRELLIS 1024 cascade, 12/12/12 steps, 2K textures, and a 300K delivery mesh.",
+    "Open every GLB in the local WebGL output room: orbit, zoom, reset, wire inspection, auto-orbit, fullscreen, and A/B compare are built in.",
+    "Use Camera match for a photographed product or object whose lens perspective must survive reconstruction; automatic MoGe is released before Pixal loads."
+  ],
+  "presets": [
+    {"title": "5090 production PBR", "mode": "trellis_generate", "controls": {"pipeline_type": "1024_cascade", "ss_steps": 12, "shape_steps": 12, "texture_steps": 12, "max_num_tokens": 49152, "texture_size": 2048, "decimation_target": 300000, "render_turntable": true}},
+    {"title": "Fast shape proof", "mode": "trellis_generate", "controls": {"pipeline_type": "512", "ss_steps": 8, "shape_steps": 8, "texture_steps": 8, "max_num_tokens": 24576, "texture_size": 1024, "decimation_target": 100000}},
+    {"title": "Camera-faithful product", "mode": "pixal_generate", "controls": {"camera_mode": "auto", "pipeline_type": "1024_cascade", "max_num_tokens": 49152, "texture_size": 4096, "decimation_target": 500000}},
+    {"title": "Game-ready delivery", "mode": "mesh_lab", "controls": {"merge_vertices": true, "remove_degenerate": true, "fix_normals": true, "center_origin": true, "face_target": 75000, "output_format": "glb"}}
+  ],
+  "field_sets": {
+    "candidate": [
+      {"type": "section", "label": "Reference & candidates"},
+      {"id": "image_asset", "type": "asset", "label": "Object reference", "required": true, "span": "full", "accept": "image/*,.png,.jpg,.jpeg,.webp,.bmp,.tif,.tiff", "icon": "◈", "drop_label": "Drop a clean object photograph", "hint": "A single centered object with visible silhouette and minimal occlusion gives the strongest geometry."},
+      {"id": "remove_background", "type": "toggle", "label": "Local matte", "default": true, "span": "half", "toggle_label": "Run pinned BiRefNet before reconstruction"},
+      {"id": "takes", "type": "range", "label": "Candidates", "default": 1, "min": 1, "max": 4, "step": 1, "span": "half", "hint": "Sequential seeds; the one-GPU queue never duplicates the 4B model."},
+      {"id": "seed", "type": "number", "label": "Starting seed", "default": 42, "min": 0, "max": 4294967295, "step": 1, "span": "half"},
+      {"id": "seed_step", "type": "number", "label": "Seed step", "default": 1, "min": 1, "max": 1000000, "step": 1, "span": "half"}
+    ],
+    "sampling": [
+      {"type": "section", "label": "Sparse occupancy"},
+      {"id": "ss_steps", "type": "range", "label": "Sparse steps", "default": 12, "min": 1, "max": 50, "step": 1, "span": "half"},
+      {"id": "ss_guidance", "type": "range", "label": "Sparse guidance", "default": 7.5, "min": 0, "max": 20, "step": 0.1, "span": "half"},
+      {"id": "ss_rescale", "type": "range", "label": "Sparse guidance rescale", "default": 0.7, "min": 0, "max": 1, "step": 0.01, "span": "half"},
+      {"id": "ss_rescale_t", "type": "range", "label": "Sparse time rescale", "default": 5, "min": 0.1, "max": 10, "step": 0.1, "span": "half"},
+      {"type": "section", "label": "Structured shape latent"},
+      {"id": "shape_steps", "type": "range", "label": "Shape steps", "default": 12, "min": 1, "max": 50, "step": 1, "span": "half"},
+      {"id": "shape_guidance", "type": "range", "label": "Shape guidance", "default": 7.5, "min": 0, "max": 20, "step": 0.1, "span": "half"},
+      {"id": "shape_rescale", "type": "range", "label": "Shape guidance rescale", "default": 0.5, "min": 0, "max": 1, "step": 0.01, "span": "half"},
+      {"id": "shape_rescale_t", "type": "range", "label": "Shape time rescale", "default": 3, "min": 0.1, "max": 10, "step": 0.1, "span": "half"},
+      {"id": "guide_start", "type": "range", "label": "Shape guide begins", "default": 0.6, "min": 0, "max": 1, "step": 0.01, "span": "half"},
+      {"id": "guide_end", "type": "range", "label": "Shape guide ends", "default": 1.0, "min": 0, "max": 1, "step": 0.01, "span": "half"},
+      {"type": "section", "label": "PBR texture latent"},
+      {"id": "texture_steps", "type": "range", "label": "Texture steps", "default": 12, "min": 1, "max": 50, "step": 1, "span": "half"},
+      {"id": "texture_guidance", "type": "range", "label": "Texture guidance", "default": 1, "min": 0, "max": 10, "step": 0.05, "span": "half"},
+      {"id": "texture_rescale", "type": "range", "label": "Texture guidance rescale", "default": 0, "min": 0, "max": 1, "step": 0.01, "span": "half"},
+      {"id": "texture_rescale_t", "type": "range", "label": "Texture time rescale", "default": 3, "min": 0.1, "max": 10, "step": 0.1, "span": "half"},
+      {"id": "texture_guide_start", "type": "range", "label": "Texture guide begins", "default": 0.6, "min": 0, "max": 1, "step": 0.01, "span": "half"},
+      {"id": "texture_guide_end", "type": "range", "label": "Texture guide ends", "default": 0.9, "min": 0, "max": 1, "step": 0.01, "span": "half"}
+    ],
+    "delivery": [
+      {"type": "section", "label": "Geometry & material delivery"},
+      {"id": "decimation_target", "type": "number", "label": "Delivery face target", "default": 300000, "min": 1000, "max": 1000000, "step": 1000, "span": "half"},
+      {"id": "texture_size", "type": "select", "label": "Baked texture", "default": 2048, "span": "half", "options": [{"value": 1024, "label": "1K · compact"}, {"value": 2048, "label": "2K · production"}, {"value": 4096, "label": "4K · hero asset"}]},
+      {"id": "remesh", "type": "toggle", "label": "Topology rebuild", "default": true, "span": "half", "toggle_label": "Remesh before UV unwrap and PBR bake"},
+      {"id": "webp_textures", "type": "toggle", "label": "Texture compression", "default": true, "span": "half", "toggle_label": "Embed WebP textures in GLB"},
+      {"id": "remesh_band", "type": "range", "label": "Remesh band", "default": 1, "min": 0.1, "max": 4, "step": 0.1, "span": "third", "show_if": {"field": "remesh", "equals": true}},
+      {"id": "remesh_project", "type": "range", "label": "Surface projection", "default": 0, "min": 0, "max": 1, "step": 0.05, "span": "third", "show_if": {"field": "remesh", "equals": true}},
+      {"id": "uv_refine_iterations", "type": "number", "label": "UV refine passes", "default": 0, "min": 0, "max": 8, "step": 1, "span": "third"},
+      {"id": "uv_global_iterations", "type": "number", "label": "UV global passes", "default": 1, "min": 1, "max": 8, "step": 1, "span": "third"},
+      {"id": "uv_smooth_strength", "type": "range", "label": "UV cluster smoothing", "default": 1, "min": 0, "max": 8, "step": 0.1, "span": "third"},
+      {"id": "export_ply", "type": "toggle", "label": "Companion geometry", "default": false, "span": "third", "toggle_label": "Also export PLY"}
+    ],
+    "preview": [
+      {"type": "section", "label": "Turntable & inspection"},
+      {"id": "render_turntable", "type": "toggle", "label": "Native turntable", "default": true, "span": "full", "toggle_label": "Render a local PBR turntable in addition to the interactive GLB room"},
+      {"id": "environment", "type": "choice", "label": "Lighting environment", "default": "studio", "span": "full", "show_if": {"field": "render_turntable", "equals": true}, "options": [{"value": "studio", "label": "Soft studio", "icon": "◐", "description": "Warm key, cool falloff."}, {"value": "overcast", "label": "Overcast", "icon": "☁", "description": "Broad neutral inspection."}, {"value": "sunset", "label": "Sunset", "icon": "◒", "description": "Hard warm material read."}, {"value": "gallery", "label": "Gallery", "icon": "◇", "description": "Neutral product pedestal."}]},
+      {"id": "environment_background", "type": "toggle", "label": "Environment backdrop", "default": false, "span": "third", "toggle_label": "Show lighting map behind asset", "show_if": {"field": "render_turntable", "equals": true}},
+      {"id": "preview_pass", "type": "select", "label": "Turntable pass", "default": "beauty", "span": "third", "show_if": {"field": "render_turntable", "equals": true}, "options": [{"value": "beauty", "label": "Beauty shaded"}, {"value": "pbr_board", "label": "Beauty + normal + PBR board"}]},
+      {"id": "preview_resolution", "type": "select", "label": "Preview resolution", "default": 512, "span": "third", "show_if": {"field": "render_turntable", "equals": true}, "options": [{"value": 256, "label": "256"}, {"value": 512, "label": "512"}, {"value": 768, "label": "768"}, {"value": 1024, "label": "1024"}]},
+      {"id": "turntable_frames", "type": "range", "label": "Orbit frames", "default": 72, "min": 24, "max": 180, "step": 6, "span": "half", "show_if": {"field": "render_turntable", "equals": true}},
+      {"id": "preview_fps", "type": "range", "label": "Playback FPS", "default": 18, "min": 6, "max": 60, "step": 1, "span": "half", "show_if": {"field": "render_turntable", "equals": true}},
+      {"id": "orbit_radius", "type": "range", "label": "Orbit radius", "default": 2, "min": 1, "max": 6, "step": 0.1, "span": "third", "show_if": {"field": "render_turntable", "equals": true}},
+      {"id": "preview_fov", "type": "range", "label": "Preview FOV", "default": 40, "min": 10, "max": 90, "step": 1, "suffix": "°", "span": "third", "show_if": {"field": "render_turntable", "equals": true}},
+      {"id": "snapshot_count", "type": "range", "label": "Still views", "default": 4, "min": 0, "max": 12, "step": 1, "span": "third", "show_if": {"field": "render_turntable", "equals": true}}
+    ]
+  },
+  "modes": [
+    {
+      "id": "trellis_generate", "group": "create", "title": "Reference → PBR object", "icon": "◆", "badge": "RECOMMENDED", "engine": "TRELLIS.2-4B", "input_label": "Single object photograph", "output_label": "PBR GLB + turntable + settings", "short": "Reconstruct arbitrary topology, open surfaces, internal structure, and rich PBR material from one image.",
+      "description": "The full native sparse occupancy → structured shape → structured texture pipeline. Control every sampler, resolution cascade, token ceiling, mesh bake, UV pass, material texture, and preview artifact.",
+      "fields_refs": ["candidate"],
+      "fields": [
+        {"type": "section", "label": "Reconstruction profile"},
+        {"id": "pipeline_type", "type": "choice", "label": "Spatial pipeline", "default": "1024_cascade", "span": "full", "options": [{"value": "512", "label": "512 direct", "icon": "◻", "description": "Fast proof and small assets."}, {"value": "1024", "label": "1024 direct", "icon": "◫", "description": "Single high-resolution shape pass."}, {"value": "1024_cascade", "label": "1024 cascade", "icon": "▣", "description": "Verified 5090 production path."}, {"value": "1536_cascade", "label": "1536 cascade", "icon": "▦", "description": "Exposed honestly; requires >40 GiB without CPU offload."}]},
+        {"id": "max_num_tokens", "type": "range", "label": "High-resolution sparse token budget", "default": 49152, "min": 8192, "max": 65536, "step": 1024, "span": "full", "hint": "The cascade may lower effective resolution when this ceiling is reached."}
+      ],
+      "advanced_refs": ["sampling", "delivery", "preview"],
+      "preview_template": "TRELLIS.2 {{pipeline_type}} · {{takes}} candidate(s) · {{max_num_tokens}} sparse tokens\n{{texture_size}} texture · {{decimation_target}} faces · turntable {{render_turntable}}"
+    },
+    {
+      "id": "pixal_generate", "group": "camera", "title": "Camera-aware reconstruction", "icon": "◉", "badge": "PIXAL3D", "engine": "Pixal3D + MoGe-2 + NAF", "input_label": "Perspective-sensitive photograph", "output_label": "Camera-matched PBR GLB + calibration", "short": "Preserve the photographed lens, distance, scale, and view-aligned detail instead of treating the image as an uncalibrated icon.",
+      "description": "MoGe-2 can recover horizontal FOV locally, or you can provide exact camera values. Four DINOv3 projection stages and NAF feature upsampling condition occupancy, low/high shape, and texture independently.",
+      "fields_refs": ["candidate"],
+      "fields": [
+        {"type": "section", "label": "Camera contract"},
+        {"id": "camera_mode", "type": "choice", "label": "Intrinsics", "default": "auto", "span": "full", "options": [{"value": "auto", "label": "Recover with MoGe-2", "icon": "◎", "description": "Estimate horizontal FOV from the local reference."}, {"value": "manual", "label": "Manual camera", "icon": "⊕", "description": "Use known lens and distance values."}]},
+        {"id": "fov_degrees", "type": "range", "label": "Horizontal FOV", "default": 49.1, "min": 5, "max": 120, "step": 0.1, "suffix": "°", "span": "half", "show_if": {"field": "camera_mode", "equals": "manual"}},
+        {"id": "camera_distance", "type": "number", "label": "Camera distance override", "default": "", "min": 0.01, "max": 100, "step": 0.01, "span": "half", "show_if": {"field": "camera_mode", "equals": "manual"}, "hint": "Blank derives distance from FOV, framing, and mesh scale."},
+        {"id": "mesh_scale", "type": "range", "label": "Subject scale", "default": 1, "min": 0.1, "max": 4, "step": 0.01, "span": "third"},
+        {"id": "frame_extension", "type": "number", "label": "Framing extension", "default": 0, "min": -256, "max": 256, "step": 1, "suffix": " px", "span": "third"},
+        {"id": "camera_resolution", "type": "select", "label": "Calibration canvas", "default": 512, "span": "third", "options": [{"value": 512, "label": "512"}, {"value": 1024, "label": "1024"}]},
+        {"type": "section", "label": "Projection cascade"},
+        {"id": "pipeline_type", "type": "choice", "label": "Spatial pipeline", "default": "1024_cascade", "span": "full", "options": [{"value": "1024_cascade", "label": "1024 cascade", "icon": "▣", "description": "GPU-resident RTX 5090 profile."}, {"value": "1536_cascade", "label": "1536 cascade", "icon": "▦", "description": "Requires >40 GiB without forbidden CPU shuttling."}]},
+        {"id": "max_num_tokens", "type": "range", "label": "High-resolution sparse token budget", "default": 49152, "min": 8192, "max": 65536, "step": 1024, "span": "full"}
+      ],
+      "advanced_refs": ["sampling", "delivery", "preview"],
+      "preview_template": "Pixal3D {{pipeline_type}} · camera {{camera_mode}} · subject scale {{mesh_scale}}\n{{takes}} candidate(s) · {{texture_size}} PBR · {{decimation_target}} faces"
+    },
+    {
+      "id": "retexture", "group": "material", "title": "Shape-conditioned PBR texturing", "icon": "◈", "badge": "MESH + IMAGE", "engine": "TRELLIS.2 texturing", "input_label": "Existing mesh + material reference", "output_label": "New PBR GLB", "short": "Keep an existing shape while generating coherent base color, roughness, metallic, and alpha from a reference.",
+      "description": "The native shape encoder maps your mesh into TRELLIS structured latents; the texture flow then produces a full PBR volume and bakes it onto a fresh UV layout.",
+      "fields": [
+        {"id": "mesh_asset", "type": "asset", "label": "Source geometry", "required": true, "span": "full", "accept": ".glb,.gltf,.obj,.ply,.stl,.off", "drop_label": "Drop a triangle mesh"},
+        {"id": "image_asset", "type": "asset", "label": "Material reference", "required": true, "span": "full", "accept": "image/*", "drop_label": "Drop a material/object reference"},
+        {"id": "remove_background", "type": "toggle", "label": "Reference matte", "default": true, "span": "third", "toggle_label": "Run local BiRefNet"},
+        {"id": "seed", "type": "number", "label": "Seed", "default": 42, "min": 0, "max": 4294967295, "step": 1, "span": "third"},
+        {"id": "texture_resolution", "type": "select", "label": "Latent resolution", "default": 1024, "span": "third", "options": [{"value": 512, "label": "512"}, {"value": 1024, "label": "1024"}]},
+        {"id": "texture_size", "type": "select", "label": "Baked texture", "default": 2048, "span": "half", "options": [{"value": 1024, "label": "1K"}, {"value": 2048, "label": "2K"}, {"value": 4096, "label": "4K"}]},
+        {"id": "webp_textures", "type": "toggle", "label": "Compression", "default": true, "span": "half", "toggle_label": "Embed WebP textures"}
+      ],
+      "advanced_refs": ["sampling"],
+      "preview_template": "Retexture {{texture_resolution}} latent → {{texture_size}} PBR bake · seed {{seed}}"
+    },
+    {
+      "id": "mesh_lab", "group": "utility", "title": "Mesh delivery lab", "icon": "⌘", "badge": "NO MODEL LOAD", "engine": "trimesh + fast-simplification", "input_label": "Existing triangle mesh", "output_label": "Clean delivery mesh + integrity report", "short": "Clean topology, normals, origin, scale, face budget, and format without loading a generative model.",
+      "description": "A deterministic final-mile utility. The original upload remains immutable and the before/after geometry counts and bounds are written beside the result.",
+      "fields": [
+        {"id": "mesh_asset", "type": "asset", "label": "Source mesh", "required": true, "span": "full", "accept": ".glb,.gltf,.obj,.ply,.stl,.off", "drop_label": "Drop a triangle mesh"},
+        {"id": "merge_vertices", "type": "toggle", "label": "Vertex welding", "default": true, "span": "half", "toggle_label": "Merge equivalent vertices"},
+        {"id": "remove_degenerate", "type": "toggle", "label": "Degenerate cleanup", "default": true, "span": "half", "toggle_label": "Remove zero-area and unreferenced geometry"},
+        {"id": "fix_normals", "type": "toggle", "label": "Normals", "default": true, "span": "half", "toggle_label": "Repair winding and normals"},
+        {"id": "center_origin", "type": "toggle", "label": "Origin", "default": true, "span": "half", "toggle_label": "Center bounding-box centroid at origin"},
+        {"id": "uniform_scale", "type": "number", "label": "Uniform scale", "default": 1, "min": 0.0001, "max": 10000, "step": 0.01, "span": "third"},
+        {"id": "face_target", "type": "number", "label": "Face target", "default": 0, "min": 0, "max": 10000000, "step": 1000, "span": "third", "hint": "0 preserves current count; otherwise simplify only when above target."},
+        {"id": "output_format", "type": "select", "label": "Delivery format", "default": "glb", "span": "third", "options": [{"value": "glb", "label": "GLB · recommended"}, {"value": "ply", "label": "PLY"}, {"value": "obj", "label": "OBJ"}, {"value": "stl", "label": "STL"}]}
+      ],
+      "advanced": [],
+      "preview_template": "Mesh delivery · target {{face_target}} faces · scale {{uniform_scale}} · {{output_format}}"
+    }
+  ]
+}
