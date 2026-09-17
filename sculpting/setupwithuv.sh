@@ -85,9 +85,13 @@ export UV_LINK_MODE=hardlink
 export HF_HUB_DISABLE_TELEMETRY=1
 export DO_NOT_TRACK=1
 export TORCH_CUDA_ARCH_LIST=12.0
-export MAX_JOBS="${MAX_JOBS:-8}"
+export MAX_JOBS="${MAX_JOBS:-2}"
 cuda_root="$(dirname "$(dirname "$(command -v nvcc)")")"
 export CUDA_HOME="${CUDA_HOME:-$cuda_root}"
+if [[ -d /usr/lib/wsl/lib ]]; then
+  export LIBRARY_PATH="/usr/lib/wsl/lib${LIBRARY_PATH:+:$LIBRARY_PATH}"
+  export LD_LIBRARY_PATH="/usr/lib/wsl/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
 
 if [[ ! -x "$VENV/bin/python" ]]; then
   uv venv "$VENV" --python 3.12 --seed --managed-python
@@ -103,6 +107,16 @@ uv pip install --python "$VENV/bin/python" \
 uv pip install --python "$VENV/bin/python" \
   'natten==0.21.6+torch2110cu130' -f https://whl.natten.org
 
+# CUDA 13.3's nvcc rejects this dependent decltype cast in the PyTorch 2.11
+# header even though host C++ accepts it. Rewrite only the exact affected
+# expression to its equivalent concrete ListImpl type before compiling the
+# pinned extensions. Newer PyTorch headers are left untouched.
+torch_list_header="$($VENV/bin/python -c 'import pathlib, torch; print(pathlib.Path(torch.__file__).parent / "include/ATen/core/List_inl.h")')"
+torch_list_cast='static_cast<typename decltype(impl_->list)::difference_type>(pos)'
+if grep -Fq "$torch_list_cast" "$torch_list_header"; then
+  perl -0pi -e 's/static_cast<typename decltype\(impl_->list\)::difference_type>\(pos\)/static_cast<c10::detail::ListImpl::list_type::difference_type>(pos)/g' "$torch_list_header"
+fi
+
 # Build every native component against the already-installed Blackwell PyTorch
 # stack. --no-build-isolation prevents an extension build from silently pulling
 # a second torch/CUDA combination into a temporary environment.
@@ -110,9 +124,11 @@ uv pip install --python "$VENV/bin/python" \
 # without dependency resolution is intentional: o-voxel's upstream metadata
 # names floating Git URLs for CuMesh/FlexGEMM, while this monorepo has already
 # materialized and pinned those exact native sources locally.
-uv pip install --python "$VENV/bin/python" --no-build-isolation --no-deps \
+for native_project in \
   "$VENDOR/nvdiffrast" "$VENDOR/nvdiffrec" "$VENDOR/CuMesh" \
-  "$VENDOR/FlexGEMM" "$ROOT/o-voxel"
+  "$VENDOR/FlexGEMM" "$ROOT/o-voxel"; do
+  uv pip install --python "$VENV/bin/python" --no-build-isolation --no-deps "$native_project"
+done
 uv pip install --python "$VENV/bin/python" --no-deps \
   "$VENDOR/utils3d" "$VENDOR/utils3d-moge" "$VENDOR/MoGe"
 

@@ -8,6 +8,18 @@ VENDOR="$ROOT/.runtime/vendor"
 # shellcheck disable=SC1090
 source "$VENV/bin/activate"
 
+missing_native="$(python - <<'PY'
+import importlib.util
+
+required = ("cumesh", "flex_gemm", "nvdiffrast", "nvdiffrec_render", "o_voxel")
+print(" ".join(name for name in required if importlib.util.find_spec(name) is None))
+PY
+)"
+if [[ -n "$missing_native" ]]; then
+  printf 'Sculpting native runtime is incomplete (%s). Run bash ./setupwithuv.sh first.\n' "$missing_native" >&2
+  exit 1
+fi
+
 if [[ -f "$ROOT/.env.local" ]]; then
   set -a
   # shellcheck disable=SC1091

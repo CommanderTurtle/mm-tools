@@ -609,6 +609,7 @@
 !/nvidia-sim/MotionCorrection/setup.py
 !/nvidia-sim/MotionCorrection/python/
 !/nvidia-sim/MotionCorrection/python/**
+/nvidia-sim/MotionCorrection/python/**/*.so
 !/nvidia-sim/MotionCorrection/src/
 !/nvidia-sim/MotionCorrection/src/**
 !/nvidia-sim/SOMA-X/
