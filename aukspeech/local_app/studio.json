@@ -1,0 +1,461 @@
+{
+  "id": "aukspeech",
+  "title": "AuK Speech Studio",
+  "short_name": "AUK",
+  "kind": "SPEECH LAB",
+  "port": 8260,
+  "kicker": "FOUNDATIONAL SPEECH · FULL TASK SURFACE",
+  "hero": "Direct a voice, down to the breath.",
+  "description": "Generation, content repair, acoustic control, emotion, nonverbal performance, restoration, and source separation through AuK's native unified message model. Every structured control remains visible before it becomes an instruction.",
+  "guide": "The full AuK task map, local Qwen encoder, Base/Flash sampling rules, private Vox-compatible route, and exact model readiness contract.",
+  "engine": "AuK native API",
+  "vram": "≈25 GiB",
+  "runtime_contract": "RTX 5090 · CUDA-only · no CPU offload",
+  "residency": "Lazy and reusable",
+  "default_mode": "instruct_tts",
+  "max_upload_bytes": 8589934592,
+  "theme": {
+    "accent": "#86f0bb",
+    "secondary": "#c58e5b"
+  },
+  "badges": [
+    "48 kHz local audio",
+    "Base quality path",
+    "Emotion + nonverbal editing",
+    "Private Vox API",
+    "No telemetry"
+  ],
+  "groups": [
+    {"id": "generate", "title": "Generate"},
+    {"id": "content", "title": "Content"},
+    {"id": "acoustic", "title": "Acoustics"},
+    {"id": "expression", "title": "Expression"},
+    {"id": "restore", "title": "Restore & separate"},
+    {"id": "advanced", "title": "Open direction"}
+  ],
+  "models": [
+    {"label": "AuK Base diffusion transformer", "path": "ckpts/AuK/auk_base.safetensors"},
+    {"label": "AuK flow VAE", "path": "ckpts/AuK/vae.safetensors"},
+    {"label": "AuK release configuration", "path": "ckpts/AuK/config.yaml"},
+    {"label": "Qwen2.5-Omni-3B multimodal encoder", "path": "ckpts/Qwen2.5-Omni-3B/"},
+    {"label": "AuK-Flash distilled transformer", "path": "ckpts/AuK-Flash/auk_flash.safetensors", "optional": true},
+    {"label": "Loopback OpenAI-compatible LLM", "note": "Optional Prompt Enhancer; configured in .env.local", "optional": true}
+  ],
+  "setup_steps": [
+    "Run `cd ~/multimedia/aukspeech && ./setupwithuv.sh` once.",
+    "Confirm the downloader-created `ckpts/AuK` and `ckpts/Qwen2.5-Omni-3B` trees pass the setup audit.",
+    "Optionally copy `.env.local.example` to `.env.local` and name a loopback OpenAI-compatible model for Prompt Enhancer.",
+    "Run `./startwithuv.sh` for this studio and its private Vox-compatible endpoint on port 8260.",
+    "Use `./starthttp.sh` when only the server/API surface is wanted; it launches the same native adapter without opening a browser."
+  ],
+  "field_sets": {
+    "expression": [
+      {
+        "id": "emotion_mix",
+        "type": "emotion_mixer",
+        "label": "Emotion constellation",
+        "hint": "The eight emotions published in AuK's cookbook. Blend deliberately; zeroed sliders remain absent from the model instruction.",
+        "options": [
+          {"value": "happy", "label": "Happy", "icon": "😀"},
+          {"value": "angry", "label": "Angry", "icon": "😠"},
+          {"value": "sad", "label": "Sad", "icon": "😢"},
+          {"value": "fearful", "label": "Fearful", "icon": "😨"},
+          {"value": "surprised", "label": "Surprised", "icon": "😲"},
+          {"value": "disgusted", "label": "Disgusted", "icon": "🤢"},
+          {"value": "calm", "label": "Calm", "icon": "😌"},
+          {"value": "excited", "label": "Excited", "icon": "🤩"}
+        ]
+      },
+      {"id": "emotion_intensity", "type": "range", "label": "Emotional intensity", "min": 0, "max": 100, "step": 5, "default": 65, "suffix": "%", "span": "third", "hint": "How far the performance should move from neutral."},
+      {"id": "warmth", "type": "range", "label": "Warmth", "min": -100, "max": 100, "step": 5, "default": 0, "span": "third", "hint": "Cool and restrained ↔ warm and intimate."},
+      {"id": "energy", "type": "range", "label": "Energy", "min": -100, "max": 100, "step": 5, "default": 0, "span": "third", "hint": "Subdued ↔ forceful delivery."},
+      {"id": "breathiness", "type": "range", "label": "Breathiness", "min": -100, "max": 100, "step": 5, "default": 0, "span": "third", "hint": "Firm/clear ↔ airy/breathy timbre."},
+      {"id": "performance_pace", "type": "range", "label": "Performance pace", "min": 0.5, "max": 2.0, "step": 0.05, "default": 1.0, "suffix": "×", "span": "third", "hint": "Natural-language performance direction, separate from exact speed editing."},
+      {"id": "performance_note", "type": "textarea", "label": "Director's note", "rows": 3, "span": "full", "placeholder": "Measured pauses, a smile behind the consonants, a slight crack on the last phrase…", "hint": "Optional free-form nuance appended to the structured performance direction."}
+    ],
+    "sampling": [
+      {"type": "section", "label": "Model residency & sampling"},
+      {
+        "id": "model_variant",
+        "type": "select",
+        "label": "Model variant",
+        "default": "base",
+        "span": "third",
+        "options": [
+          {"value": "base", "label": "AuK Base · quality · 32 steps"},
+          {"value": "flash", "label": "AuK-Flash · 4-step distilled (if installed)"}
+        ],
+        "hint": "Flash locks its own 4-step time grid and disables CFG exactly as upstream requires."
+      },
+      {"id": "takes", "type": "number", "label": "Takes", "min": 1, "max": 4, "step": 1, "default": 1, "span": "third", "hint": "Sequential seeds; never concurrent model copies."},
+      {"id": "seed", "type": "number", "label": "Seed", "min": 0, "max": 4294967295, "step": 1, "default": 42, "span": "third"},
+      {"id": "nfe", "type": "range", "label": "ODE evaluations", "min": 4, "max": 64, "step": 1, "default": 32, "span": "third", "hint": "Base only; the Flash recipe is pinned to 4."},
+      {"id": "cfg", "type": "range", "label": "CFG strength", "min": 0, "max": 5, "step": 0.1, "default": 2.0, "span": "third", "hint": "Base only; Flash guidance is baked into the student."},
+      {"id": "sway", "type": "range", "label": "Sway sampling", "min": -2, "max": 2, "step": 0.05, "default": -1.0, "span": "third"},
+      {
+        "id": "dtype",
+        "type": "select",
+        "label": "CUDA autocast",
+        "default": "bf16",
+        "span": "third",
+        "options": [
+          {"value": "bf16", "label": "BF16 · recommended"},
+          {"value": "fp16", "label": "FP16"}
+        ]
+      },
+      {
+        "id": "output_format",
+        "type": "select",
+        "label": "Output container",
+        "default": "wav",
+        "span": "third",
+        "options": [
+          {"value": "wav", "label": "WAV · lossless PCM"},
+          {"value": "flac", "label": "FLAC · lossless compressed"}
+        ]
+      },
+      {"id": "normalization_ceiling", "type": "range", "label": "Peak safety ceiling", "min": 0.8, "max": 1.0, "step": 0.01, "default": 0.98, "span": "third", "hint": "Only attenuates an unsafe peak; it never loudness-normalizes ordinary speech."}
+    ],
+    "prompt_enhancer": [
+      {"type": "section", "label": "Optional local Prompt Enhancer"},
+      {"id": "use_prompt_enhancer", "type": "toggle", "label": "Normalize through Prompt Enhancer", "default": false, "span": "full", "toggle_label": "Use the loopback OpenAI-compatible LLM configured in .env.local", "hint": "Off means the transparent structured compiler below goes directly to AuK."},
+      {"id": "source_transcript", "type": "textarea", "label": "Source transcript", "rows": 4, "span": "full", "show_if": {"field": "use_prompt_enhancer", "equals": true}, "placeholder": "Exact words spoken in the uploaded clip…", "hint": "Required for audio-backed Prompt Enhancer requests. It prevents any cloud or CPU ASR fallback."}
+    ]
+  },
+  "modes": [
+    {
+      "id": "zero_shot_tts",
+      "group": "generate",
+      "title": "Voice clone TTS",
+      "short": "Speak new text in a supplied reference voice.",
+      "description": "AuK zero-shot TTS: condition on a reference clip, preserve the speaker identity, and speak entirely new text with optional expressive direction.",
+      "icon": "◉",
+      "badge": "REFERENCE",
+      "engine": "AuK Base / Flash",
+      "input_label": "Reference audio + target text",
+      "output_label": "48 kHz mono speech",
+      "recipe": "The reference clip supplies identity. Text, duration, and optional expressive direction stay explicit.",
+      "fields_refs": ["expression"],
+      "fields": [
+        {"type": "section", "label": "Reference & script"},
+        {"id": "source_audio_asset", "type": "asset", "label": "Reference voice", "required": true, "span": "full", "accept": "audio/*", "icon": "◉", "drop_label": "Drop a clean reference voice", "hint": "A few seconds of dry, single-speaker speech works best."},
+        {"id": "target_text", "type": "textarea", "label": "What this voice should say", "required": true, "rows": 5, "span": "full", "maxlength": 8000, "placeholder": "Ladies and gentlemen…"},
+        {"id": "target_seconds", "type": "range", "label": "Target duration", "min": 0.5, "max": 120, "step": 0.1, "default": 6, "suffix": " s", "span": "half", "hint": "Set directly, or approximate the delivery length from the script."}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Say the following with the same voice: “{{target_text}}”. Target duration: {{target_seconds}}."
+    },
+    {
+      "id": "instruct_tts",
+      "group": "generate",
+      "title": "Directed TTS",
+      "short": "Design a voice and performance without a reference clip.",
+      "description": "AuK instruction-only TTS with a complete voice brief, expressive emoji mixer, pace, warmth, energy, breathiness, and director's note.",
+      "icon": "✺",
+      "badge": "TEXT → VOICE",
+      "engine": "AuK Base / Flash",
+      "input_label": "Voice brief + script",
+      "output_label": "48 kHz mono speech",
+      "recipe": "This is the full showcase-style performance desk: the sliders become visible natural-language nuance, not secret numeric conditioning.",
+      "fields_refs": ["expression"],
+      "fields": [
+        {"type": "section", "label": "Voice, scene & script"},
+        {"id": "voice_description", "type": "textarea", "label": "Voice design", "required": true, "rows": 5, "span": "full", "maxlength": 5000, "placeholder": "A poised middle-aged narrator with a resonant, lightly textured baritone…", "hint": "Age, register, timbre, diction, physicality, attitude, scene, and delivery can all be described."},
+        {"id": "target_text", "type": "textarea", "label": "Script", "required": true, "rows": 6, "span": "full", "maxlength": 8000, "placeholder": "The line to perform…"},
+        {"id": "target_seconds", "type": "range", "label": "Target duration", "min": 0.5, "max": 120, "step": 0.1, "default": 7, "suffix": " s", "span": "half"}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Based on this voice and performance description — {{voice_description}} — say: “{{target_text}}”. Target duration: {{target_seconds}}."
+    },
+    {
+      "id": "speech_content_edit",
+      "group": "content",
+      "title": "Speech content repair",
+      "short": "Replace spoken words while preserving voice and surrounding audio.",
+      "description": "Edit a specific phrase in spoken audio. The original and replacement are kept separate so the model instruction and output manifest remain auditable.",
+      "icon": "✎",
+      "badge": "SPEECH EDIT",
+      "input_label": "Speech + exact replacement",
+      "output_label": "Edited speech",
+      "fields": [
+        {"type": "section", "label": "Source and replacement"},
+        {"id": "source_audio_asset", "type": "asset", "label": "Source speech", "required": true, "span": "full", "accept": "audio/*"},
+        {"id": "original_text", "type": "text", "label": "Words to replace", "required": true, "span": "half", "placeholder": "but accepting what we cannot have"},
+        {"id": "replacement_text", "type": "text", "label": "Replacement words", "required": true, "span": "half", "placeholder": "and living well with dreams unmet"},
+        {"id": "target_seconds", "type": "number", "label": "Target duration", "min": 0.1, "max": 300, "step": 0.01, "default": "", "unit": "optional seconds", "span": "half", "hint": "Blank preserves source duration."}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Replace “{{original_text}}” with “{{replacement_text}}” while preserving the speaker and surrounding delivery."
+    },
+    {
+      "id": "lyric_edit",
+      "group": "content",
+      "title": "Lyric repair",
+      "short": "Replace sung words while preserving the vocal performance.",
+      "description": "AuK's vocal-content edit path for an isolated singing recording. Separate vocals first when the source still contains accompaniment.",
+      "icon": "♫",
+      "badge": "VOCAL EDIT",
+      "input_label": "Isolated vocal + lyric replacement",
+      "output_label": "Edited vocal",
+      "fields": [
+        {"type": "section", "label": "Vocal and lyric"},
+        {"id": "source_audio_asset", "type": "asset", "label": "Isolated vocal", "required": true, "span": "full", "accept": "audio/*"},
+        {"id": "original_text", "type": "text", "label": "Lyric to replace", "required": true, "span": "half"},
+        {"id": "replacement_text", "type": "text", "label": "Replacement lyric", "required": true, "span": "half"},
+        {"id": "target_seconds", "type": "number", "label": "Target duration", "min": 0.1, "max": 300, "step": 0.01, "default": "", "unit": "optional seconds", "span": "half", "hint": "Blank preserves source duration."}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Replace “{{original_text}}” with “{{replacement_text}}” in the lyrics while preserving melody, singer, and phrasing."
+    },
+    {
+      "id": "pitch_edit",
+      "group": "acoustic",
+      "title": "Pitch shift",
+      "short": "Raise or lower speech by exact semitones.",
+      "description": "The canonical AuK pitch-edit task with a signed semitone control and source-length output.",
+      "icon": "↕",
+      "badge": "SEMITONES",
+      "input_label": "Audio + signed pitch change",
+      "output_label": "Same-length audio",
+      "fields": [
+        {"id": "source_audio_asset", "type": "asset", "label": "Source audio", "required": true, "span": "full", "accept": "audio/*"},
+        {"id": "semitones", "type": "range", "label": "Pitch change", "min": -12, "max": 12, "step": 1, "default": 2, "suffix": " st", "span": "full", "hint": "Negative lowers pitch; positive raises it."}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Change pitch by {{semitones}} semitones and preserve content, voice, and duration."
+    },
+    {
+      "id": "speed_edit",
+      "group": "acoustic",
+      "title": "Speech rate",
+      "short": "Change delivery speed with duration-aware output.",
+      "description": "Adjust speaking rate from half-speed to double-speed. The adapter computes the target duration from the real uploaded clip.",
+      "icon": "≫",
+      "badge": "RATE",
+      "input_label": "Audio + speed factor",
+      "output_label": "Duration-scaled audio",
+      "fields": [
+        {"id": "source_audio_asset", "type": "asset", "label": "Source speech", "required": true, "span": "full", "accept": "audio/*"},
+        {"id": "speed_factor", "type": "range", "label": "Speed factor", "min": 0.5, "max": 2.0, "step": 0.05, "default": 1.25, "suffix": "×", "span": "full"}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Adjust the speech speed to {{speed_factor}}× while preserving the speaker and content."
+    },
+    {
+      "id": "volume_edit",
+      "group": "acoustic",
+      "title": "Volume edit",
+      "short": "Raise or lower level by an explicit dB amount.",
+      "description": "The canonical AuK volume-edit instruction, with a safety ceiling applied only if generated peaks exceed it.",
+      "icon": "◖",
+      "badge": "DECIBELS",
+      "input_label": "Audio + gain direction",
+      "output_label": "Same-length audio",
+      "fields": [
+        {"id": "source_audio_asset", "type": "asset", "label": "Source audio", "required": true, "span": "full", "accept": "audio/*"},
+        {"id": "gain_db", "type": "range", "label": "Volume change", "min": -20, "max": 20, "step": 1, "default": 5, "suffix": " dB", "span": "full"}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Change volume by {{gain_db}} dB and preserve content, speaker, and duration."
+    },
+    {
+      "id": "emotion_edit",
+      "group": "expression",
+      "title": "Emotion performance",
+      "short": "Blend the full published emotion vocabulary.",
+      "description": "Preserve words and voice while redirecting the emotional performance. Emoji sliders expose happy, angry, sad, fearful, surprised, disgusted, calm, and excited—with intensity and secondary delivery controls.",
+      "icon": "😀",
+      "badge": "8 EMOTIONS",
+      "input_label": "Speech + emotion constellation",
+      "output_label": "Same-length re-performance",
+      "fields_refs": ["expression"],
+      "fields": [
+        {"id": "source_audio_asset", "type": "asset", "label": "Source performance", "required": true, "span": "full", "accept": "audio/*"}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Re-perform the line while preserving its words and speaker identity."
+    },
+    {
+      "id": "timbre_edit",
+      "group": "expression",
+      "title": "Timbre redesign",
+      "short": "Change vocal character without changing the script.",
+      "description": "Describe the destination timbre in natural language and optionally refine the expressive performance around it.",
+      "icon": "◇",
+      "badge": "TIMBRE",
+      "input_label": "Speech + voice destination",
+      "output_label": "Re-voiced speech",
+      "fields_refs": ["expression"],
+      "fields": [
+        {"id": "source_audio_asset", "type": "asset", "label": "Source speech", "required": true, "span": "full", "accept": "audio/*"},
+        {"id": "timbre_description", "type": "textarea", "label": "Destination timbre", "required": true, "rows": 5, "span": "full", "placeholder": "A deep, calm voice with clear diction, steady pacing, and reflective weight…"}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Keep the spoken content unchanged and change the timbre to: “{{timbre_description}}”."
+    },
+    {
+      "id": "deaccent",
+      "group": "expression",
+      "title": "Accent direction",
+      "short": "Remove or redirect accent while preserving identity.",
+      "description": "De-accent into a neutral target or name an intended pronunciation standard while preserving speaker, words, and duration.",
+      "icon": "◌",
+      "badge": "ACCENT",
+      "input_label": "Speech + pronunciation target",
+      "output_label": "Same-length speech",
+      "fields": [
+        {"id": "source_audio_asset", "type": "asset", "label": "Source speech", "required": true, "span": "full", "accept": "audio/*"},
+        {"id": "accent_target", "type": "text", "label": "Target pronunciation", "default": "neutral standard pronunciation", "required": true, "span": "full", "placeholder": "neutral General American English / standard Mandarin…"}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Remove the regional accent and use {{accent_target}}, while preserving the speaker's voice, content, and duration."
+    },
+    {
+      "id": "nonverbal_edit",
+      "group": "expression",
+      "title": "Nonverbal choreography",
+      "short": "Add or remove breaths, laughs, coughs, sighs, and more.",
+      "description": "Stack multiple visible nonverbal edits: breath, laugh, cough, sigh, sneeze, pause, humming, hiss, sobbing, gasp, sharp inhale, or filler—globally or around exact anchor words.",
+      "icon": "☄",
+      "badge": "12 EVENTS",
+      "input_label": "Speech + event list",
+      "output_label": "Edited performance",
+      "fields": [
+        {"id": "source_audio_asset", "type": "asset", "label": "Source audio", "required": true, "span": "full", "accept": "audio/*"},
+        {
+          "id": "nonverbal_events",
+          "type": "nonverbal_events",
+          "label": "Event choreography",
+          "required": true,
+          "span": "full",
+          "sounds": [
+            {"value": "breath", "label": "Breath", "icon": "💨"},
+            {"value": "laughter", "label": "Laughter", "icon": "😂"},
+            {"value": "cough", "label": "Cough", "icon": "😷"},
+            {"value": "sigh", "label": "Sigh", "icon": "😮‍💨"},
+            {"value": "sneeze", "label": "Sneeze", "icon": "🤧"},
+            {"value": "pause", "label": "Pause", "icon": "⏸"},
+            {"value": "humming", "label": "Humming", "icon": "🎶"},
+            {"value": "hiss", "label": "Hiss", "icon": "〰"},
+            {"value": "sobbing", "label": "Sobbing", "icon": "😭"},
+            {"value": "gasp of surprise", "label": "Gasp", "icon": "😮"},
+            {"value": "sharp inhale", "label": "Sharp inhale", "icon": "🌬"},
+            {"value": "filler", "label": "Filler", "icon": "…"}
+          ]
+        },
+        {"id": "target_seconds", "type": "number", "label": "Target duration", "min": 0.1, "max": 300, "step": 0.01, "default": "", "unit": "optional seconds", "span": "half", "hint": "Useful when adding events makes the clip longer. Blank preserves source duration."}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Preserve the words and speaker while applying the listed nonverbal edits."
+    },
+    {
+      "id": "whisper",
+      "group": "expression",
+      "title": "Whisper conversion",
+      "short": "Move cleanly between normal voice and whisper.",
+      "description": "Bidirectional whisper conversion while preserving speaker identity, content, and source duration.",
+      "icon": "☾",
+      "badge": "BIDIRECTIONAL",
+      "input_label": "Speech + direction",
+      "output_label": "Same-length speech",
+      "fields": [
+        {"id": "source_audio_asset", "type": "asset", "label": "Source speech", "required": true, "span": "full", "accept": "audio/*"},
+        {"id": "whisper_direction", "type": "choice", "label": "Conversion direction", "required": true, "default": "to_whisper", "span": "full", "options": [
+          {"value": "to_whisper", "label": "Normal → whisper", "icon": "☾"},
+          {"value": "to_normal", "label": "Whisper → normal", "icon": "☀"}
+        ]}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Convert the source {{whisper_direction}} while preserving the speaker, content, and duration."
+    },
+    {
+      "id": "speech_enhance",
+      "group": "restore",
+      "title": "Speech restoration",
+      "short": "Denoise, dereverberate, and repair damaged speech.",
+      "description": "Choose the exact defects to remove while preserving one or every speaker. Quality restoration covers telephone effect, muffling, clipping, dropouts, and custom damage.",
+      "icon": "✧",
+      "badge": "RESTORE",
+      "input_label": "Damaged audio + repair contract",
+      "output_label": "Same-length clean speech",
+      "fields": [
+        {"id": "source_audio_asset", "type": "asset", "label": "Audio to restore", "required": true, "span": "full", "accept": "audio/*"},
+        {"id": "denoise", "type": "toggle", "label": "Background noise", "default": true, "span": "third", "toggle_label": "Remove noise"},
+        {"id": "dereverb", "type": "toggle", "label": "Room reverberation", "default": true, "span": "third", "toggle_label": "Remove reverb"},
+        {"id": "preserve_all_speakers", "type": "toggle", "label": "Speaker policy", "default": true, "span": "third", "toggle_label": "Preserve every speaker"},
+        {"id": "damage", "type": "multi_choice", "label": "Quality defects", "default": [], "span": "full", "options": [
+          {"value": "telephone effect", "label": "Telephone band", "icon": "☎"},
+          {"value": "muffling", "label": "Muffling", "icon": "▨"},
+          {"value": "clipping", "label": "Clipping", "icon": "⚡"},
+          {"value": "dropouts", "label": "Dropouts", "icon": "⋯"},
+          {"value": "distortion", "label": "Distortion", "icon": "≈"},
+          {"value": "low bandwidth", "label": "Low bandwidth", "icon": "⌁"}
+        ]},
+        {"id": "custom_damage", "type": "text", "label": "Other defect", "span": "full", "placeholder": "Describe anything else that should be repaired…"}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Restore natural, clear speech while preserving the requested speakers."
+    },
+    {
+      "id": "speech_separate",
+      "group": "restore",
+      "title": "Speaker extraction",
+      "short": "Keep one speaker by order or by the words they say.",
+      "description": "AuK speech separation can target the first/second/etc. speaker or identify them from an exact phrase, then optionally clean noise and reverb.",
+      "icon": "⑴",
+      "badge": "SEPARATE",
+      "input_label": "Multi-speaker audio + identity rule",
+      "output_label": "Single-speaker clean speech",
+      "fields": [
+        {"id": "source_audio_asset", "type": "asset", "label": "Multi-speaker audio", "required": true, "span": "full", "accept": "audio/*"},
+        {"id": "speaker_method", "type": "choice", "label": "How to identify the target", "default": "phrase", "required": true, "span": "full", "options": [
+          {"value": "phrase", "label": "By words spoken", "icon": "“”"},
+          {"value": "order", "label": "By speaking order", "icon": "#"}
+        ]},
+        {"id": "speaker_phrase", "type": "text", "label": "Phrase spoken by target", "required": true, "span": "half", "show_if": {"field": "speaker_method", "equals": "phrase"}, "placeholder": "get what"},
+        {"id": "speaker_order", "type": "number", "label": "Speaker order", "min": 1, "max": 12, "step": 1, "default": 1, "required": true, "span": "half", "show_if": {"field": "speaker_method", "equals": "order"}},
+        {"id": "denoise", "type": "toggle", "label": "Background noise", "default": true, "span": "half", "toggle_label": "Denoise extracted speaker"},
+        {"id": "dereverb", "type": "toggle", "label": "Room reverberation", "default": false, "span": "half", "toggle_label": "Dereverberate extracted speaker"}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Keep only the selected speaker; remove every other speaker and apply the requested cleanup."
+    },
+    {
+      "id": "vocal_extract",
+      "group": "restore",
+      "title": "Vocal extraction",
+      "short": "Separate singing voice from accompaniment.",
+      "description": "The AuK music-separation path keeps the vocal and removes accompaniment; output safety prevents accidental clipping without imposing loudness normalization.",
+      "icon": "♬",
+      "badge": "MUSIC SEPARATION",
+      "input_label": "Music mix",
+      "output_label": "Isolated vocal",
+      "fields": [
+        {"id": "source_audio_asset", "type": "asset", "label": "Music mix", "required": true, "span": "full", "accept": "audio/*"},
+        {"id": "enhance_vocal", "type": "toggle", "label": "Vocal cleanup", "default": true, "span": "full", "toggle_label": "Improve clarity while removing the accompaniment"}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "Extract the singing voice and discard the accompaniment."
+    },
+    {
+      "id": "custom_instruction",
+      "group": "advanced",
+      "title": "Open AuK direction",
+      "short": "Use the native unified message interface directly.",
+      "description": "For valid combinations not captured by a structured desk. The instruction is recorded verbatim; source audio and duration remain explicit.",
+      "icon": "⌘",
+      "badge": "NATIVE MESSAGE",
+      "input_label": "Instruction + optional audio",
+      "output_label": "Task-dependent audio",
+      "requires_any": ["source_audio_asset", "target_seconds"],
+      "requires_any_message": "Supply source audio or an explicit target duration for text-only generation.",
+      "fields": [
+        {"id": "source_audio_asset", "type": "asset", "label": "Optional source/reference audio", "span": "full", "accept": "audio/*"},
+        {"id": "custom_instruction", "type": "textarea", "label": "Native instruction", "required": true, "rows": 7, "span": "full", "maxlength": 12000, "placeholder": "Describe one supported AuK operation precisely…"},
+        {"id": "target_seconds", "type": "number", "label": "Target duration", "min": 0.1, "max": 300, "step": 0.01, "default": "", "unit": "optional seconds", "span": "half"}
+      ],
+      "advanced_refs": ["sampling", "prompt_enhancer"],
+      "preview_template": "{{custom_instruction}}"
+    }
+  ]
+}
