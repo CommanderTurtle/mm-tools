@@ -16,7 +16,7 @@ class LLM2VecEncoder:
     def __init__(
         self,
         base_model_name_or_path: str,
-        peft_model_name_or_path: str,
+        peft_model_name_or_path: str | None,
         dtype: str,
         llm_dim: int,
         device: str = "auto",
@@ -28,7 +28,8 @@ class LLM2VecEncoder:
 
         if "TEXT_ENCODERS_DIR" in os.environ:
             base_model_name_or_path = os.path.join(os.environ["TEXT_ENCODERS_DIR"], base_model_name_or_path)
-            peft_model_name_or_path = os.path.join(os.environ["TEXT_ENCODERS_DIR"], peft_model_name_or_path)
+            if peft_model_name_or_path:
+                peft_model_name_or_path = os.path.join(os.environ["TEXT_ENCODERS_DIR"], peft_model_name_or_path)
 
         self.model = LLM2Vec.from_pretrained(
             base_model_name_or_path=base_model_name_or_path,
@@ -36,6 +37,11 @@ class LLM2VecEncoder:
             torch_dtype=torch_dtype,
             cache_dir=cache_dir,
         )
+        # The pre-merged ARDY build has the correct adapters baked in.  Its
+        # serialized transformers config cannot retain this identifier, but
+        # LLM2Vec uses it to select the Llama-3 instruction template.
+        if peft_model_name_or_path is None:
+            self.model.model.config._name_or_path = "meta-llama/Meta-Llama-3-8B-Instruct"
 
         env_device = os.environ.get("TEXT_ENCODER_DEVICE")
         if env_device:

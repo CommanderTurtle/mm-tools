@@ -55,6 +55,16 @@ def _build_api_text_encoder_conf(text_encoder_url: str) -> dict:
 
 
 def _build_local_text_encoder_conf(text_encoder_fp32: bool = False) -> dict:
+    merged_path = get_env_var("TEXT_ENCODER_MERGED_PATH")
+    if merged_path:
+        return {
+            "_target_": "ardy.model.LLM2VecEncoder",
+            "base_model_name_or_path": merged_path,
+            "peft_model_name_or_path": None,
+            "dtype": "float32" if text_encoder_fp32 else "bfloat16",
+            "llm_dim": 4096,
+            "device": "auto",
+        }
     text_encoder_name = get_env_var("TEXT_ENCODER", DEFAULT_TEXT_ENCODER)
     if text_encoder_name not in TEXT_ENCODER_PRESETS:
         available = ", ".join(sorted(TEXT_ENCODER_PRESETS))

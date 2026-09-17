@@ -1,0 +1,110 @@
+{
+  "id": "nvidia-sim",
+  "title": "NVIDIA Motion + Body Studio",
+  "short_name": "NV",
+  "kind": "MOTION · BODY · ROBOTICS",
+  "port": 8266,
+  "kicker": "ARDY TEXT MOTION · SOMA-X PARAMETRIC HUMANS",
+  "hero": "Direct motion, bodies, and robots—not black boxes.",
+  "description": "Generate constrained text-to-motion with every released ARDY Core/G1 horizon, inspect the exact skeleton interactively, and author native SOMA-X bodies and hands from one private workstation surface.",
+  "guide": "Core is the expressive human rig; G1 emits simulation-ready MuJoCo qpos. Long-horizon models favor continuity while Horizon8 variants react faster. Use SOMA-X for rigged identity geometry and LOD-controlled exports.",
+  "engine": "NVIDIA ARDY + NVLabs SOMA-X",
+  "vram": "~12–22 GiB by mode",
+  "runtime_contract": "RTX 5090 · CUDA-only model residency · offline after setup",
+  "residency": "One queued GPU job; models released after each job",
+  "default_mode": "text_motion",
+  "max_upload_bytes": 8589934592,
+  "theme": {"accent": "#78efa9", "secondary": "#a58c6c"},
+  "badges": ["4 ARDY variants", "INT8 semantic encoder", "Constraint tracks", "Interactive skeleton player", "SOMA body + hand", "GLB + native arrays"],
+  "groups": [
+    {"id": "motion", "title": "Motion"},
+    {"id": "body", "title": "SOMA-X"}
+  ],
+  "models": [
+    {"label": "ARDY Core · Horizon 40 + 8", "path": "checkpoints/ARDY-Core-*"},
+    {"label": "ARDY Unitree G1 · Horizon 52 + 8", "path": "checkpoints/ARDY-G1-*"},
+    {"label": "Merged LLM2Vec ARDY INT8", "path": "text-encoders/voxta/Llama-3-8B-LLM2Vec-ARDY-INT8/"},
+    {"label": "SOMA-X body, hand, procedural rig + correctives", "path": "SOMA-X/assets/"}
+  ],
+  "setup_steps": [
+    "Run `cd ~/multimedia/nvidia-sim && ./setupwithuv.sh` once.",
+    "Start with `./startwithuv.sh`; the listener is loopback-only unless explicitly configured.",
+    "Generate a Core proof at five seconds, inspect the skeleton player, then increase duration or add a native ARDY constraint list."
+  ],
+  "presets": [
+    {"title": "Natural five-second action", "description": "High-continuity Core motion.", "mode": "text_motion", "controls": {"model": "core_long", "prompt": "A person takes three confident steps forward, turns naturally, and gives a friendly wave.", "duration": 5, "samples": 1, "seed": 42}},
+    {"title": "Fast-reacting gesture", "description": "Short-horizon Core for prompt changes.", "mode": "text_motion", "controls": {"model": "core_fast", "prompt": "A person reacts with surprise, steps back, then points to the left.", "duration": 5, "samples": 2, "seed": 7}},
+    {"title": "G1 locomotion", "description": "Robot motion plus MuJoCo qpos CSV.", "mode": "text_motion", "controls": {"model": "g1_long", "prompt": "The humanoid robot walks forward, pivots ninety degrees, and comes to a stable stop.", "duration": 8, "samples": 1, "seed": 19}},
+    {"title": "SOMA production body", "description": "Corrected mid-LOD neutral body.", "mode": "soma_body", "controls": {"lod": "mid", "pose": "a_pose", "correctives": true, "global_scale": 1}}
+  ],
+  "modes": [
+    {
+      "id": "text_motion", "group": "motion", "title": "Direct ARDY motion", "short": "Text-to-human or Unitree G1 motion with native constraints.",
+      "description": "Runs the released ARDY diffusion stack and merged high-fidelity INT8 LLM2Vec encoder. Select every shipped skeleton/horizon, keep autoregressive context bounded, condition on key constraints, and receive the native NPZ plus a zero-dependency interactive skeleton.",
+      "icon": "⌁", "badge": "TEXT → MOTION", "engine": "ARDY",
+      "input_label": "Motion direction + optional constraint list", "output_label": "Interactive skeleton + NPZ + optional qpos CSV",
+      "recipe": "Long horizons prioritize continuity; Horizon8 follows changing intent more aggressively. G1 postprocessing is intentionally bypassed upstream and exports simulator qpos.",
+      "fields": [
+        {"type": "section", "label": "Direction"},
+        {"id": "prompt", "type": "textarea", "label": "Describe movement, timing, intent, and transitions", "required": true, "rows": 5, "span": "full", "default": "A person walks forward with relaxed confidence, turns to the right, and waves."},
+        {"id": "model", "type": "choice", "label": "Rig + response horizon", "default": "core_long", "span": "full", "options": [
+          {"value": "core_long", "label": "Core · Horizon 40", "description": "20 FPS · strongest long-form human continuity."},
+          {"value": "core_fast", "label": "Core · Horizon 8", "description": "20 FPS · faster response to intent changes."},
+          {"value": "g1_long", "label": "Unitree G1 · Horizon 52", "description": "25 FPS · smooth robot trajectories + qpos."},
+          {"value": "g1_fast", "label": "Unitree G1 · Horizon 8", "description": "25 FPS · reactive robot motion + qpos."}
+        ]},
+        {"id": "duration", "type": "range", "label": "Duration", "min": 0.5, "max": 120, "step": 0.5, "default": 5, "suffix": " s", "span": "third"},
+        {"id": "samples", "type": "range", "label": "Variations", "min": 1, "max": 8, "step": 1, "default": 1, "span": "third"},
+        {"id": "seed", "type": "number", "label": "Seed", "min": 0, "max": 4294967295, "step": 1, "default": 42, "span": "third"},
+        {"type": "section", "label": "Spatial choreography"},
+        {"id": "constraint_asset", "type": "asset", "label": "ARDY constraint list · optional", "required": false, "span": "full", "accept": ".pt,.pth,.pkl,.pickle", "icon": "⌖", "drop_label": "Drop native saved constraint list", "hint": "Joint position/rotation constraints are validated against the chosen skeleton and duration."},
+        {"id": "text_guidance", "type": "range", "label": "Text guidance", "min": 0, "max": 8, "step": 0.05, "default": 2, "span": "half"},
+        {"id": "constraint_guidance", "type": "range", "label": "Constraint guidance", "min": 0, "max": 8, "step": 0.05, "default": 2, "span": "half"},
+        {"id": "postprocess", "type": "toggle", "label": "Human foot cleanup", "default": true, "span": "full", "toggle_label": "Reduce Core foot skating after diffusion", "hint": "ARDY deliberately ignores this for G1."}
+      ],
+      "advanced": [
+        {"id": "diffusion_steps", "type": "number", "label": "Denoising steps · 0 = model schedule", "min": 0, "max": 1000, "step": 1, "default": 0, "span": "half"},
+        {"id": "history_frames", "type": "number", "label": "History frames · 0 = trained-window maximum", "min": 0, "max": 500, "step": 1, "default": 0, "span": "half"}
+      ],
+      "preview_template": "{{model}} · {{duration}} s · {{samples}} variation(s) · text CFG {{text_guidance}}"
+    },
+    {
+      "id": "inspect_motion", "group": "motion", "title": "Motion inspection deck", "short": "Open any compatible ARDY NPZ in the native skeleton player.",
+      "description": "A diffusion-free path for reviewing joints, timing, root trajectory, contacts, and prompt metadata. It preserves the original NPZ and creates only a bounded browser representation.",
+      "icon": "◉", "badge": "NO INFERENCE", "engine": "ARDY schema reader",
+      "input_label": "Native motion NPZ", "output_label": "Interactive timeline + original arrays", "recipe": "Use this to review old generations or files made by scripts/generate.py before sim export.",
+      "fields": [{"id": "motion_asset", "type": "asset", "label": "ARDY motion NPZ", "required": true, "span": "full", "accept": ".npz", "icon": "⌁", "drop_label": "Drop a motion archive"}], "advanced": []
+    },
+    {
+      "id": "soma_body", "group": "body", "title": "SOMA-X body forge", "short": "Author a native parametric human with production LODs and correctives.",
+      "description": "Runs NVLabs' procedural SOMA rig on the GPU. Shape coefficients remain explicit, poses are named, the corrected mesh exports to GLB, and every native array remains available for DCC or simulation work.",
+      "icon": "◇", "badge": "PARAMETRIC BODY", "engine": "SOMA-X",
+      "input_label": "Identity + rig direction", "output_label": "Interactive GLB + native rig arrays",
+      "recipe": "Start at low LOD while exploring identity, then export mid LOD with procedural twist joints and pose correctives for final work.",
+      "fields": [
+        {"id": "lod", "type": "choice", "label": "Mesh detail", "default": "mid", "span": "full", "options": [{"value": "mid", "label": "Mid · 18,056 vertices", "description": "Production surface."}, {"value": "low", "label": "Low · 4,505 vertices", "description": "Fast iteration."}, {"value": "xlo", "label": "XLO · 612 vertices", "description": "Proxy/simulation."}]},
+        {"id": "pose", "type": "select", "label": "Pose", "default": "a_pose", "span": "third", "options": [{"value": "neutral", "label": "Neutral"}, {"value": "a_pose", "label": "A-pose"}, {"value": "t_pose", "label": "T-pose"}, {"value": "stride", "label": "Walking stride"}, {"value": "hero", "label": "Hero stance"}]},
+        {"id": "body_yaw", "type": "range", "label": "Body yaw", "min": -180, "max": 180, "step": 1, "default": 0, "suffix": "°", "span": "third"},
+        {"id": "global_scale", "type": "range", "label": "Global scale", "min": 0.5, "max": 1.5, "step": 0.01, "default": 1, "span": "third"},
+        {"id": "identity_coefficients", "type": "tags", "label": "Ordered SOMA identity coefficients", "default": [], "span": "full", "placeholder": "0.0, -0.2, 0.45, …", "hint": "Unspecified coefficients remain exactly zero."},
+        {"id": "correctives", "type": "toggle", "label": "Pose correctives", "default": true, "span": "full", "toggle_label": "Apply released learned surface correctives"}
+      ], "advanced": [], "preview_template": "SOMA {{lod}} · {{pose}} · scale {{global_scale}}"
+    },
+    {
+      "id": "soma_hand", "group": "body", "title": "SOMA-X hand lab", "short": "Shape and articulate the released 25-joint hand topology.",
+      "description": "Build either native hand at mid, low, or XLO resolution. Independently direct curl, finger spread, thumb opposition, wrist orientation, identity PCA, and global scale.",
+      "icon": "✋", "badge": "25-JOINT HAND", "engine": "SOMAHand",
+      "input_label": "Hand identity + articulation", "output_label": "Interactive GLB + native arrays", "recipe": "Use low LOD while balancing curl and spread; switch to mid for the final GLB.",
+      "fields": [
+        {"id": "hand", "type": "choice", "label": "Side", "default": "right", "span": "full", "options": [{"value": "left", "label": "Left", "description": "Native left-hand mapping."}, {"value": "right", "label": "Right", "description": "Native right-hand mapping."}]},
+        {"id": "lod", "type": "select", "label": "LOD", "default": "mid", "span": "third", "options": [{"value": "mid", "label": "Mid · 2,859"}, {"value": "low", "label": "Low · 718"}, {"value": "xlo", "label": "XLO · 134"}]},
+        {"id": "global_scale", "type": "range", "label": "Scale", "min": 0.5, "max": 1.5, "step": 0.01, "default": 1, "span": "third"},
+        {"id": "wrist_yaw", "type": "range", "label": "Wrist yaw", "min": -180, "max": 180, "step": 1, "default": 0, "suffix": "°", "span": "third"},
+        {"id": "curl", "type": "range", "label": "Finger curl", "min": -1.4, "max": 1.4, "step": 0.01, "default": 0.2, "span": "third"},
+        {"id": "spread", "type": "range", "label": "Finger spread", "min": -0.5, "max": 0.5, "step": 0.01, "default": 0, "span": "third"},
+        {"id": "thumb", "type": "range", "label": "Thumb opposition", "min": -1, "max": 1, "step": 0.01, "default": 0.15, "span": "third"},
+        {"id": "identity_coefficients", "type": "tags", "label": "Ordered hand identity coefficients", "default": [], "span": "full", "placeholder": "0.0, 0.15, -0.3, …"}
+      ], "advanced": [], "preview_template": "{{hand}} hand · {{lod}} · curl {{curl}} · spread {{spread}}"
+    }
+  ]
+}
