@@ -1,0 +1,6 @@
+# Product/API surface. The pinned Comfy requirements are installed separately.
+-r ../studio/requirements.txt
+opencv-python-headless==4.12.0.88
+onnx>=1.18
+onnxruntime-gpu>=1.22
+hf-transfer>=0.1.9
