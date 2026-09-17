@@ -1,0 +1,17 @@
+numpy==1.23.5
+scipy==1.15.3
+torch==2.10.0
+trimesh==4.11.1
+warp-lang==1.11.1
+rtree==1.4.1
+chumpy==0.70
+anny==0.2.0
+Pillow==12.1.1
+pyrender==0.1.45
+tqdm==4.67.3
+imageio[ffmpeg]==2.37.2
+ruff==0.15.5
+pre-commit==4.5.1
+uv==0.10.4
+cholespy==2.2.0
+usd-core==26.3

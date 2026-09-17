@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+exclude = [
+    ".venv",
+    "build",
+    "dist",
+    "*.egg-info",
+    "notebooks",
+    "third_party",
+]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP", "W"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Scripts add repo to path before importing
+"tools/convert_amass_to_soma.py" = ["E402"]
+"**/mano2soma.py" = ["E402"]
+"**/soma2mano.py" = ["E402"]
+"**/build_soma_hand_npz.py" = ["E402"]
+"tools/pose_converter.py" = ["E402"]
+"tools/demo_soma_vis.py" = ["E402"]
+# Warp kernels use int()/float() as type declarations, not redundant casts
+"soma/geometry/*_warp.py" = ["UP018"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["soma", "tools"]
+
+[tool.pytest.ini_options]
+markers = [
+    "asset_heavy: loads large assets or constructs full model layers",
+    "cpu: CPU-backend smoke or portability coverage",
+    "gpu: CUDA/Warp backend coverage",
+    "hand: hand-model or hand-specific public-release-isolated coverage",
+    "internal: tests for internal tooling; isolated for public releases but still covered in CI",
+    "multiprocess: DataLoader, spawn, fork, or distributed multiprocessing coverage",
+    "slow: excluded from lightweight MR CI; included in full/manual/scheduled CI",
+    "xlo: XLO topology/skeleton-transfer coverage",
+]
