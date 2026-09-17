@@ -8,9 +8,6 @@ version = "0.2.2"
 description = "Audio-to-MIDI transcription using a transformer language model"
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
-license-files = ["LICENSE"]
-authors = [{ name = "Kyutai x Mirelo" }]
 keywords = ["audio", "midi", "transcription", "music", "transformer"]
 classifiers = [
     "Development Status :: 4 - Beta",

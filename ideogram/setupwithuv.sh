@@ -31,16 +31,7 @@ fi
 uv venv --python 3.12.10 --seed --managed-python .venv
 # shellcheck disable=SC1091
 source .venv/bin/activate
-uv pip install torch torchvision torchaudio
-uv pip install -r requirements-workstation.txt
-uv pip install paddlepaddle==3.1.0
-uv pip install --no-deps 'diffusers @ git+https://github.com/huggingface/diffusers.git'
-uv pip install 'sdnq>=0.1.5'
-uv pip install --no-deps 'sam-2 @ git+https://github.com/facebookresearch/sam2.git'
+uv pip install torch torchvision
+uv pip install -r requirements-local.txt
 
-if [[ -f modules/grounding_dino/setup.py ]]; then
-  uv pip install -e modules/grounding_dino --no-build-isolation ||
-    printf 'GroundingDINO CUDA extension was skipped; its Python fallback remains available.\n' >&2
-fi
-
-printf 'ReDesign is ready. Start it with ./startwithuv\n'
+printf 'Ideogram/ObjectClear is ready. Start it with ./startwithuv.sh\n'

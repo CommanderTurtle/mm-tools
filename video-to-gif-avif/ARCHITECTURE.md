@@ -19,15 +19,15 @@ GIF, AVIF, and WebM share the same local FFmpeg preparation path. GIF adds palet
 
 ```bash
 cd ~/multimedia/video-to-gif-avif
-./setupwithuv cpu
-./startwithuv
+./setupwithuv.sh cpu
+./startwithuv.sh
 ```
 
 The service listens on port `8241` unless `.env` overrides it. Animated AVIF requires matching muxer and encoder support in the host FFmpeg build.
 
 ## Runtime lanes
 
-- Browser editor: `./startwithuv`.
+- Browser editor: `./startwithuv.sh`.
 - CLI engine:
 
   ```bash

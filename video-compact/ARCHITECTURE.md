@@ -17,15 +17,15 @@ The browser streams media to a local workspace, probes it with the host FFmpeg t
 
 ```bash
 cd ~/multimedia/video-compact
-./setupwithuv cpu
-./startwithuv
+./setupwithuv.sh cpu
+./startwithuv.sh
 ```
 
 The service listens on port `8240` unless `.env` overrides it. `VIDEO_COMPACT_MIN_FREE_GIB` reserves local disk space before accepting work.
 
 ## Runtime lanes
 
-- Browser workbench: `./startwithuv`.
+- Browser workbench: `./startwithuv.sh`.
 - CLI engine:
 
   ```bash

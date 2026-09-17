@@ -6,7 +6,7 @@ SymphonyGen is exposed here as a private two-stage browser studio. The lightweig
 
 ```bash
 cd symphony
-./setupwithuv
+./setupwithuv.sh
 ./startwithuv.sh
 ```
 

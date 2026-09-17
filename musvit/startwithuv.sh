@@ -5,7 +5,7 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
 [[ -x .venv/bin/python ]] || {
-  printf 'Missing .venv. Run ./setupwithuv first.\n' >&2
+  printf 'Missing .venv. Run ./setupwithuv.sh first.\n' >&2
   exit 1
 }
 

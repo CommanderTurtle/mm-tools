@@ -61,6 +61,22 @@ case "$PROJECT" in
     fi
     ;;
   musvit)
+    if ! command -v pdftoppm >/dev/null 2>&1; then
+      command -v apt-get >/dev/null 2>&1 || {
+        printf 'MuSViT requires pdftoppm. Install the Poppler utilities for this Linux distribution.\n' >&2
+        exit 1
+      }
+      apt_command=(apt-get)
+      if (( EUID != 0 )); then
+        command -v sudo >/dev/null 2>&1 || {
+          printf 'MuSViT requires poppler-utils; rerun setup as root or install it manually.\n' >&2
+          exit 1
+        }
+        apt_command=(sudo apt-get)
+      fi
+      "${apt_command[@]}" update
+      "${apt_command[@]}" install -y poppler-utils
+    fi
     uv pip install -r requirements-local.txt
     ;;
   redesign)
@@ -106,4 +122,4 @@ esac
 
 printf '\n%s is ready in %s/.venv (Python 3.12.10, torch backend: %s).\n' \
   "$PROJECT" "$ROOT" "$torch_backend"
-printf 'Start it with ./startwithuv\n'
+printf 'Start it with ./startwithuv.sh\n'

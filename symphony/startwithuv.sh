@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-[[ -f .env ]] || { printf 'Missing .env. Run ./setupwithuv first.\n' >&2; exit 1; }
-[[ -x .venv/bin/python ]] || { printf 'Missing .venv. Run ./setupwithuv first.\n' >&2; exit 1; }
+[[ -f .env ]] || { printf 'Missing .env. Run ./setupwithuv.sh first.\n' >&2; exit 1; }
+[[ -x .venv/bin/python ]] || { printf 'Missing .venv. Run ./setupwithuv.sh first.\n' >&2; exit 1; }
 
 set -a
 # shellcheck disable=SC1091

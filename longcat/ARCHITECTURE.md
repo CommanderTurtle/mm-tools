@@ -23,7 +23,7 @@ The browser, HTTP service, and CLI share the same inference implementation while
 
 ```bash
 cd ~/multimedia/longcat
-./setupwithuv gpu
+./setupwithuv.sh gpu
 ```
 
 Verify `LONGCAT_MODEL_PATH` and `LONGCAT_TOKENIZER_PATH` in `.env` before loading. Setup installs dependencies but does not download checkpoints.

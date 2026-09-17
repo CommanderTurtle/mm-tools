@@ -21,14 +21,14 @@ Required host tools are `uv`, `ffmpeg`, and `bun`.
 
 ```bash
 cd ~/multimedia/muscriptor
-./setupwithuv gpu
+./setupwithuv.sh gpu
 ```
 
 Review `MUSCRIPTOR_MODEL_PATH`, `MUSCRIPTOR_SF2_PATH`, and `MUSCRIPTOR_SF3_PATH` in `.env` before starting inference.
 
 ## Runtime lanes
 
-- Browser and streaming API: `./startwithuv` on port `8222`.
+- Browser and streaming API: `./startwithuv.sh` on port `8222`.
 - One-file wrapper:
 
   ```bash

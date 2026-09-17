@@ -6,7 +6,7 @@ This folder adds a private browser studio to VocalRender’s highest-quality rel
 
 ```bash
 cd vocalrender
-./setupwithuv
+./setupwithuv.sh
 ./startwithuv.sh
 ```
 

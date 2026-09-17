@@ -35,7 +35,7 @@ const QA: { q: string; a: string }[] = [
   },
   {
     q: "Can I run it locally or use it from Python?",
-    a: "Yes. `./startwithuv` opens this local studio, while `./startwithuv song.mp3` runs the single-file CLI. The setup prompt prepares either a GPU or CPU environment.",
+    a: "Yes. `./startwithuv.sh` opens this local studio, while `./startwithuv.sh song.mp3` runs the single-file CLI. The setup prompt prepares either a GPU or CPU environment.",
   },
   {
     q: "How accurate is it?",

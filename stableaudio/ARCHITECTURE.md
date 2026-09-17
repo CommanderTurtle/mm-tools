@@ -6,7 +6,7 @@ This folder packages the enhanced Stable Audio browser interface around RoyalCit
 
 ```bash
 cd stableaudio
-./setupwithuv
+./setupwithuv.sh
 ./startwithuv.sh
 ```
 

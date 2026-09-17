@@ -8,6 +8,20 @@ command -v uv >/dev/null 2>&1 || {
   printf 'uv is required and was not found on PATH.\n' >&2
   exit 1
 }
+command -v bun >/dev/null 2>&1 || {
+  printf 'bun is required and was not found on PATH.\n' >&2
+  exit 1
+}
+
+if ! command -v fluidsynth >/dev/null 2>&1; then
+  if command -v apt-get >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+    printf 'Installing FluidSynth for browser WAV exports…\n'
+    sudo apt-get install -y fluidsynth
+  else
+    printf 'FluidSynth is required for WAV exports. Install the fluidsynth package, then rerun this setup.\n' >&2
+    exit 1
+  fi
+fi
 
 compute="${1:-}"
 if [[ -z "$compute" ]]; then
@@ -31,7 +45,11 @@ fi
 uv venv --python 3.12.10 --seed --managed-python .venv
 # shellcheck disable=SC1091
 source .venv/bin/activate
-uv pip install torch torchvision
-uv pip install -r requirements-local.txt
+uv pip install -e .
+(
+  cd web
+  bun install
+  bun run build
+)
 
-printf 'Ideogram/ObjectClear is ready. Start it with ./startwithuv\n'
+printf 'MuScriptor is ready. Start it with ./startwithuv.sh\n'

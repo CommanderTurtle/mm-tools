@@ -61,7 +61,7 @@ def _synthesize_midi(midi_path: Path, soundfont_path: Path) -> np.ndarray:
     fluidsynth = shutil.which(configured_binary)
     if fluidsynth is None:
         raise RuntimeError(
-            "FluidSynth is not installed. Re-run ./setupwithuv, or install the "
+            "FluidSynth is not installed. Re-run ./setupwithuv.sh, or install the "
             "fluidsynth package and restart MuScriptor."
         )
 

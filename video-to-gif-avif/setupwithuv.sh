@@ -106,4 +106,4 @@ esac
 
 printf '\n%s is ready in %s/.venv (Python 3.12.10, torch backend: %s).\n' \
   "$PROJECT" "$ROOT" "$torch_backend"
-printf 'Start it with ./startwithuv\n'
+printf 'Start it with ./startwithuv.sh\n'

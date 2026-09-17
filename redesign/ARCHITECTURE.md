@@ -29,9 +29,9 @@ but it is not on the browser execution path.
 
 ```bash
 cd ~/multimedia/redesign
-./setupwithuv gpu
+./setupwithuv.sh gpu
 cp .env.local.example .env   # only when .env does not already exist
-./startwithuv                # http://127.0.0.1:8173
+./startwithuv.sh                # http://127.0.0.1:8173
 ```
 
 The default runtime combines:

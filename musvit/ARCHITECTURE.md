@@ -22,7 +22,7 @@ Required host tools are `uv` and `pdftoppm` from Poppler for PDF input.
 
 ```bash
 cd ~/multimedia/musvit
-./setupwithuv gpu
+./setupwithuv.sh gpu
 ```
 
 Review `MUSVIT_MODEL_PATH`, `SMT_MODEL_PATH`, and `SMT_SOURCE_PATH` in `.env` after populating the shared model store.
@@ -32,7 +32,7 @@ Review `MUSVIT_MODEL_PATH`, `SMT_MODEL_PATH`, and `SMT_SOURCE_PATH` in `.env` af
 - Score conversion:
 
   ```bash
-  ./startwithuv score.pdf --page 2 -o outputs/page-2.mid
+  ./startwithuv.sh score.pdf --page 2 -o outputs/page-2.mid
   ```
 
 - Encoder representations:

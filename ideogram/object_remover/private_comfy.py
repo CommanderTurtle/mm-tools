@@ -21,8 +21,8 @@ MODELS = Path(os.getenv("MULTIMEDIA_MODELS", "~/multimedia/models")).expanduser(
 
 class PrivateComfy:
     def __init__(self):
-        self.runtime = Path(os.getenv("IDEOGRAM_COMFY_RUNTIME", str(ROOT.parent / "minimax/runtime"))).expanduser()
-        bundled_python = ROOT.parent / "minimax/.venv/bin/python"
+        self.runtime = Path(os.getenv("IDEOGRAM_COMFY_RUNTIME", str(ROOT.parent / "music/minimax/runtime"))).expanduser()
+        bundled_python = ROOT.parent / "music/minimax/.venv/bin/python"
         self.python = Path(os.getenv("IDEOGRAM_COMFY_PYTHON", str(bundled_python) if bundled_python.is_file() else sys.executable)).expanduser()
         self.state = Path(os.getenv("IDEOGRAM_COMFY_STATE", str(ROOT / ".runtime/editing"))).expanduser()
         self.model = Path(os.getenv("IDEOGRAM4_FP8_MODEL", str(MODELS / "ideogram-ai--ideogram-4-fp8"))).expanduser()

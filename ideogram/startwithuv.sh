@@ -6,19 +6,15 @@ PROJECT="$(basename -- "$ROOT")"
 cd "$ROOT"
 
 [[ -x .venv/bin/python ]] || {
-  printf 'Missing .venv. Run ./setupwithuv first.\n' >&2
+  printf 'Missing .venv. Run ./setupwithuv.sh first.\n' >&2
   exit 1
 }
 
 # shellcheck disable=SC1091
 source .venv/bin/activate
 
-if [[ $# -gt 0 ]]; then
-  exec uv run --active --no-sync python local_transcribe.py "$@"
-fi
-
 if [[ -x ./startwithuv.sh ]]; then
-  exec ./startwithuv.sh
+  exec ./startwithuv.sh "$@"
 fi
 
 case "$PROJECT" in
@@ -32,7 +28,7 @@ case "$PROJECT" in
     ;;
   musvit)
     if [[ $# -eq 0 ]]; then
-      printf 'Usage: ./startwithuv SCORE_IMAGE_OR_PDF [sheet_to_midi options]\n' >&2
+      printf 'Usage: ./startwithuv.sh SCORE_IMAGE_OR_PDF [sheet_to_midi options]\n' >&2
       exit 2
     fi
     exec uv run --active --no-sync python sheet_to_midi.py "$@"

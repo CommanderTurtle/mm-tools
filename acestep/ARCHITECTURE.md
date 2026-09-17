@@ -6,7 +6,7 @@ This folder exposes ACE-Step 1.5 as a private, offline Gradio music workbench. T
 
 ```bash
 cd acestep
-./setupwithuv
+./setupwithuv.sh
 ./startwithuv.sh
 ```
 

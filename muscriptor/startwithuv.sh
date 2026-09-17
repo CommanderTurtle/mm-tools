@@ -21,7 +21,7 @@ set +a
 source .venv/bin/activate
 
 if ! command -v "${MUSCRIPTOR_FLUIDSYNTH:-fluidsynth}" >/dev/null 2>&1; then
-  printf 'Warning: FluidSynth is unavailable; MIDI works, but WAV exports require ./setupwithuv.\n' >&2
+  printf 'Warning: FluidSynth is unavailable; MIDI works, but WAV exports require ./setupwithuv.sh.\n' >&2
 fi
 
 : "${MUSCRIPTOR_MODEL_PATH:?Set MUSCRIPTOR_MODEL_PATH in .env}"

@@ -8,20 +8,6 @@ command -v uv >/dev/null 2>&1 || {
   printf 'uv is required and was not found on PATH.\n' >&2
   exit 1
 }
-command -v bun >/dev/null 2>&1 || {
-  printf 'bun is required and was not found on PATH.\n' >&2
-  exit 1
-}
-
-if ! command -v fluidsynth >/dev/null 2>&1; then
-  if command -v apt-get >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
-    printf 'Installing FluidSynth for browser WAV exports…\n'
-    sudo apt-get install -y fluidsynth
-  else
-    printf 'FluidSynth is required for WAV exports. Install the fluidsynth package, then rerun this setup.\n' >&2
-    exit 1
-  fi
-fi
 
 compute="${1:-}"
 if [[ -z "$compute" ]]; then
@@ -45,11 +31,16 @@ fi
 uv venv --python 3.12.10 --seed --managed-python .venv
 # shellcheck disable=SC1091
 source .venv/bin/activate
-uv pip install -e .
-(
-  cd web
-  bun install
-  bun run build
-)
+uv pip install torch torchvision torchaudio
+uv pip install -r requirements-workstation.txt
+uv pip install paddlepaddle==3.1.0
+uv pip install --no-deps 'diffusers @ git+https://github.com/huggingface/diffusers.git'
+uv pip install 'sdnq>=0.1.5'
+uv pip install --no-deps 'sam-2 @ git+https://github.com/facebookresearch/sam2.git'
 
-printf 'MuScriptor is ready. Start it with ./startwithuv\n'
+if [[ -f modules/grounding_dino/setup.py ]]; then
+  uv pip install -e modules/grounding_dino --no-build-isolation ||
+    printf 'GroundingDINO CUDA extension was skipped; its Python fallback remains available.\n' >&2
+fi
+
+printf 'ReDesign is ready. Start it with ./startwithuv.sh\n'

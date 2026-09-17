@@ -21,7 +21,7 @@ The browser and machine service share inference code but own separate model life
 
 ```bash
 cd ~/multimedia/whisper
-./setupwithuv gpu
+./setupwithuv.sh gpu
 ```
 
 Review the checkpoint, backend, device, dtype, and listener values in `.env`. Setup does not download weights.
