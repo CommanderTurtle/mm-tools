@@ -3,6 +3,7 @@ import torch
 import math
 from .. import SparseTensor
 from .. import config
+from .sdpa import grouped_scaled_dot_product_attention
 
 
 __all__ = [
@@ -49,6 +50,7 @@ def calc_window_partition(
     mask = seq_lens != 0
     seq_lens = seq_lens[mask]
     
+    attn_func_args = {}
     if config.ATTN == 'xformers':
         if 'xops' not in globals():
             import xformers.ops as xops
@@ -120,6 +122,9 @@ def sparse_windowed_scaled_dot_product_self_attention(
         if 'flash_attn' not in globals():
             import flash_attn
         out = flash_attn.flash_attn_varlen_qkvpacked_func(qkv_feats, **attn_func_args)  # [M, H, C]
+    elif config.ATTN == 'sdpa':
+        q, k, v = qkv_feats.unbind(dim=1)
+        out = grouped_scaled_dot_product_attention(q, k, v, seq_lens, seq_lens)
 
     out = out[bwd_indices]      # [T, H, C]
 
@@ -199,6 +204,9 @@ def sparse_windowed_scaled_dot_product_cross_attention(
             cu_seqlens_q=q_attn_func_args['cu_seqlens_q'], cu_seqlens_k=kv_attn_func_args['cu_seqlens_k'],
             max_seqlen_q=q_attn_func_args['max_seqlen_q'], max_seqlen_k=kv_attn_func_args['max_seqlen_k'],
         )  # [M, H, C]
+    elif config.ATTN == 'sdpa':
+        k, v = kv_feats.unbind(dim=1)
+        out = grouped_scaled_dot_product_attention(q_feats, k, v, q_seq_lens, kv_seq_lens)
 
     out = out[q_bwd_indices]      # [T, H, C]
 

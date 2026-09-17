@@ -1,0 +1,1 @@
+"""Private WorldSculpt Studio integration."""

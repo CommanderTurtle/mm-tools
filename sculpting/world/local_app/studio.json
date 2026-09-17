@@ -1,0 +1,132 @@
+{
+  "id": "worldsculpt",
+  "title": "WorldSculpt Scene Foundry",
+  "short_name": "World",
+  "kind": "MULTI-OBJECT 3D SCENE STUDIO",
+  "port": 8263,
+  "kicker": "CALIBRATED VIEWS · INSTANCE MASKS · METRIC OBJECTS · SCENE GLB",
+  "hero": "Recover the objects, cameras, and scale of an entire photographed world.",
+  "description": "A private, resumable interface over every released WorldSculpt inference stage: package audit, calibrated crop construction, multi-view sparse/shape reconstruction, metric composition, camera-aligned previews, scene GLB export, point-cloud diagnostics, and optional project archival.",
+  "guide": "Package one or more scene folders as ZIP/TAR. Each scene contains transforms.json, referenced frames, and masks. Inspect first; then run the balanced preset. The public WorldSculpt checkpoint release includes sparse structure and 1024 geometry—not the unreleased texture finetune—so this studio accurately delivers geometry, normal passes, and metric GLBs without pretending to synthesize unavailable PBR weights.",
+  "engine": "WorldSculpt + Pixal3D MV + MoGe-2 + NAF",
+  "vram": "28–32 GiB · single-scene CUDA residency",
+  "runtime_contract": "RTX 5090 · CUDA-only · official geometry release · no telemetry",
+  "residency": "One scene subprocess at a time; no CPU model offload",
+  "default_mode": "inspect_package",
+  "max_upload_bytes": 68719476736,
+  "theme": {"accent": "#78dfae", "secondary": "#ba8f69"},
+  "badges": ["Safe scene packages", "Metric camera space", "Multi-view object fusion", "Interactive GLB room", "Resumable project archive", "Offline runtime"],
+  "groups": [
+    {"id": "prepare", "title": "Prepare"},
+    {"id": "reconstruct", "title": "Reconstruct"}
+  ],
+  "models": [
+    {"label": "Pixal3D base", "path": "pretrained/Pixal3D", "note": "Shared with Sculpting Studio; never duplicated"},
+    {"label": "WorldSculpt sparse MV LoRA + IBR", "path": "pretrained/ss_ft64_mv_lora_ibr_texverse"},
+    {"label": "WorldSculpt 1024 shape MV LoRA + IBR", "path": "pretrained/shape_ft1024_mv_lora_ibr_texverse_fixedmem05"},
+    {"label": "DINOv3 / BiRefNet / MoGe-2 / NAF", "path": "../pretrained/deps", "note": "Shared local perception stack"}
+  ],
+  "setup_steps": [
+    "Run `cd ~/multimedia/sculpting/world && ./setupwithuv.sh` once. It reuses the sculpting CUDA environment and installs only WorldSculpt's extra runtime modules.",
+    "Create a ZIP/TAR containing each scene's transforms.json, frame images, and masks. Use Inspect package before committing GPU time.",
+    "Start with `./startwithuv.sh`; it binds to 127.0.0.1:8263 unless `.env.local` explicitly says otherwise."
+  ],
+  "presets": [
+    {"title": "Audit only", "mode": "inspect_package", "controls": {}},
+    {"title": "Balanced 5090 scene", "mode": "reconstruct_scene", "controls": {"crop_resolution": 1024, "resolution": 1024, "max_views": 20, "view_select": "area", "sampler": "train", "max_num_tokens": 49152, "glb_faces_per_object": 750000, "render_previews": true, "make_video": true}},
+    {"title": "Wide-baseline geometry", "mode": "reconstruct_scene", "controls": {"crop_resolution": 1024, "resolution": 1024, "max_views": 24, "view_select": "fps", "sampler": "train", "max_num_tokens": 57344, "glb_faces_per_object": 1000000, "render_previews": true}},
+    {"title": "Fast proof scene", "mode": "reconstruct_scene", "controls": {"crop_resolution": 512, "resolution": 512, "max_views": 10, "view_select": "area", "sampler": "official", "max_num_tokens": 32768, "glb_faces_per_object": 250000, "preview_long": 960}},
+    {"title": "Geometry delivery only", "mode": "reconstruct_scene", "controls": {"render_previews": false, "make_video": false, "pointcloud_diagnostics": true, "bundle_reconstruction": true}}
+  ],
+  "modes": [
+    {
+      "id": "inspect_package",
+      "group": "prepare",
+      "title": "Inspect scene package",
+      "short": "Validate scenes, masks, frames, instances, cameras, and paths without loading a model.",
+      "description": "Safely expands the archive into an isolated job directory, rejects traversal/links/devices, discovers every eligible scene, checks frame references and mask inventory, and returns both a visual contact sheet and exact machine-readable audit.",
+      "icon": "⌗",
+      "badge": "NO GPU",
+      "engine": "WorldSculpt package auditor",
+      "input_label": "Scene ZIP/TAR",
+      "output_label": "Contact sheet + JSON/Markdown audit",
+      "recipe": "The archive is temporary and deleted at job completion. Uploads remain in the private studio asset vault until you remove them.",
+      "fields": [
+        {"id": "scene_package_asset", "type": "asset", "label": "WorldSculpt scene package", "required": true, "span": "full", "accept": ".zip,.tar,.tar.gz,.tgz,application/zip,application/gzip", "icon": "⌗", "drop_label": "Drop a calibrated scene ZIP/TAR", "hint": "May contain one scene or a nested collection. Every scene root must have transforms.json with frames and instances."},
+        {"id": "scene_path", "type": "text", "label": "Exact scene path (optional)", "default": "", "span": "full", "placeholder": "collection/living-room", "hint": "Leave blank to audit every discovered scene. Copy the exact path from a previous audit to target one scene later."}
+      ],
+      "advanced": [],
+      "preview_template": "Audit {{scene_path}} without model loading."
+    },
+    {
+      "id": "reconstruct_scene",
+      "group": "reconstruct",
+      "title": "Scene → metric 3D world",
+      "short": "Run all released WorldSculpt stages and deliver interactive scene assets.",
+      "description": "Builds calibrated per-instance crops, fuses multiple camera views with the released IBR aggregators, reconstructs every selected object at metric placement, remeshes/decimates a clean scene GLB, renders camera-aligned normal comparisons, and plots spatial diagnostics.",
+      "icon": "◫",
+      "badge": "FULL PIPELINE",
+      "engine": "WorldSculpt geometry release",
+      "input_label": "Calibrated frames + masks",
+      "output_label": "Metric scene GLB + views + diagnostics",
+      "recipe": "Use the area selector for ordinary capture sets and FPS for wide-baseline coverage. The studio never enables upstream low_vram mode: all models remain GPU-resident or the job refuses to run.",
+      "fields": [
+        {"type": "section", "label": "Scene package"},
+        {"id": "scene_package_asset", "type": "asset", "label": "WorldSculpt scene package", "required": true, "span": "full", "accept": ".zip,.tar,.tar.gz,.tgz,application/zip,application/gzip", "icon": "◫", "drop_label": "Drop scene package", "hint": "Run Inspect package first to verify the exact nested scene path."},
+        {"id": "scene_path", "type": "text", "label": "Exact scene path", "default": "", "span": "half", "placeholder": "collection/living-room", "hint": "Blank chooses the first discovered scene unless Run every scene is enabled."},
+        {"id": "run_all_scenes", "type": "toggle", "label": "Batch package", "default": false, "span": "half", "toggle_label": "Process every discovered scene sequentially"},
+        {"id": "instances", "type": "text", "label": "Instance allowlist", "default": "", "span": "full", "placeholder": "obj00,obj02,obj07", "hint": "Blank reconstructs all valid instances. Names come from the package audit."},
+
+        {"type": "section", "label": "Calibrated crop construction"},
+        {"id": "crop_resolution", "type": "select", "label": "Crop canvas", "default": 1024, "span": "third", "options": [{"value": 512, "label": "512 · proof"}, {"value": 1024, "label": "1024 · canonical"}]},
+        {"id": "crop_pad", "type": "range", "label": "Projected cube padding", "default": 0.005, "min": 0, "max": 0.25, "step": 0.001, "span": "third"},
+        {"id": "max_crop_ratio", "type": "range", "label": "Degenerate crop ceiling", "default": 4, "min": 1, "max": 12, "step": 0.1, "suffix": "×", "span": "third"},
+        {"id": "min_mask_pixels", "type": "number", "label": "Minimum visible mask", "default": 500, "min": 1, "max": 10000000, "step": 1, "suffix": " px", "span": "third"},
+        {"id": "min_mask_ratio", "type": "range", "label": "Minimum image coverage", "default": 0, "min": 0, "max": 0.5, "step": 0.001, "span": "third"},
+        {"id": "anchor_frame", "type": "select", "label": "Canonical box orientation", "default": "anchor", "span": "third", "options": [{"value": "anchor", "label": "Anchor camera aligned"}, {"value": "world", "label": "World-axis aligned"}]},
+        {"id": "mask_fit_scale", "type": "toggle", "label": "Mask-fit cube", "default": true, "span": "half", "toggle_label": "Enlarge the canonical cube until it contains observed masks"},
+        {"id": "mask_fit_pct", "type": "range", "label": "Mask-fit percentile", "default": 95, "min": 50, "max": 100, "step": 0.5, "suffix": "%", "span": "half", "show_if": {"field": "mask_fit_scale", "equals": true}},
+        {"id": "alpha_erode_kernel", "type": "select", "label": "Alpha erosion kernel", "default": 3, "span": "third", "options": [{"value": 0, "label": "Disabled"}, {"value": 3, "label": "3 px"}, {"value": 5, "label": "5 px"}, {"value": 7, "label": "7 px"}]},
+        {"id": "alpha_erode_iters", "type": "number", "label": "Alpha erosion passes", "default": 3, "min": 0, "max": 12, "step": 1, "span": "third"},
+        {"id": "save_alignments", "type": "toggle", "label": "Alignment proof", "default": true, "span": "third", "toggle_label": "Keep crop overlays for the project archive"},
+
+        {"type": "section", "label": "Multi-view reconstruction"},
+        {"id": "resolution", "type": "select", "label": "Shape latent resolution", "default": 1024, "span": "third", "options": [{"value": 512, "label": "512 · proof"}, {"value": 1024, "label": "1024 · released finetune"}]},
+        {"id": "views", "type": "text", "label": "Views", "default": "all", "span": "third", "hint": "`all`, `anchor`, or comma-separated subsample indices."},
+        {"id": "anchor", "type": "number", "label": "Anchor subsample override", "default": -1, "min": -1, "max": 100000, "step": 1, "span": "third", "hint": "-1 uses the scene's declared anchor."},
+        {"id": "max_views", "type": "range", "label": "Maximum input views", "default": 20, "min": 0, "max": 64, "step": 1, "span": "half", "hint": "0 keeps every selected view."},
+        {"id": "view_select", "type": "select", "label": "View cap strategy", "default": "area", "span": "half", "options": [{"value": "area", "label": "Largest visible object area"}, {"value": "fps", "label": "Farthest angular coverage"}]},
+        {"id": "sampler", "type": "select", "label": "Denoising schedule", "default": "train", "span": "third", "options": [{"value": "train", "label": "Training snapshot · recommended"}, {"value": "official", "label": "Official Pixal3D"}, {"value": "pipeline", "label": "Checkpoint-embedded"}]},
+        {"id": "seed", "type": "number", "label": "Scene seed", "default": 42, "min": 0, "max": 4294967295, "step": 1, "span": "third"},
+        {"id": "max_num_tokens", "type": "select", "label": "Sparse token budget", "default": 49152, "span": "third", "options": [{"value": 32768, "label": "32,768 · proof"}, {"value": 49152, "label": "49,152 · verified"}, {"value": 57344, "label": "57,344 · detailed"}, {"value": 65536, "label": "65,536 · ceiling"}]},
+        {"id": "visualize_sparse_structure", "type": "toggle", "label": "Sparse structure proof", "default": true, "span": "half", "toggle_label": "Save per-object sparse occupancy diagnostics"},
+        {"id": "overwrite", "type": "toggle", "label": "Resume policy", "default": false, "span": "half", "toggle_label": "Rebuild existing object meshes inside a resumed project"},
+
+        {"type": "section", "label": "Metric scene composition"},
+        {"id": "glb_faces_per_object", "type": "number", "label": "GLB faces per object", "default": 750000, "min": 10000, "max": 5000000, "step": 10000, "span": "third"},
+        {"id": "render_face_budget", "type": "number", "label": "Render faces per object", "default": 1500000, "min": 10000, "max": 10000000, "step": 10000, "span": "third"},
+        {"id": "raw_geometry", "type": "toggle", "label": "Raw surface", "default": false, "span": "third", "toggle_label": "Skip fill/remesh and export raw marching cubes"},
+        {"id": "render_previews", "type": "toggle", "label": "Camera-aligned proofs", "default": true, "span": "third", "toggle_label": "Render original + predicted normal panels"},
+        {"id": "render_frames", "type": "text", "label": "Rendered camera frames", "default": "all", "span": "third", "show_if": {"field": "render_previews", "equals": true}, "hint": "`all` or comma-separated subsample indices."},
+        {"id": "preview_long", "type": "select", "label": "Preview long side", "default": 1280, "span": "third", "show_if": {"field": "render_previews", "equals": true}, "options": [{"value": 720, "label": "720 px"}, {"value": 960, "label": "960 px"}, {"value": 1280, "label": "1280 px"}, {"value": 1920, "label": "1920 px"}]},
+        {"id": "full_resolution_renders", "type": "toggle", "label": "Full-resolution panels", "default": false, "span": "third", "show_if": {"field": "render_previews", "equals": true}, "toggle_label": "Ignore preview size and use source frame resolution"},
+        {"id": "ssaa", "type": "select", "label": "Preview antialiasing", "default": 2, "span": "third", "show_if": {"field": "render_previews", "equals": true}, "options": [{"value": 1, "label": "1×"}, {"value": 2, "label": "2×"}, {"value": 4, "label": "4×"}]},
+        {"id": "peel_layers", "type": "select", "label": "Depth peel layers", "default": 4, "span": "third", "show_if": {"field": "render_previews", "equals": true}, "options": [{"value": 1, "label": "1"}, {"value": 2, "label": "2"}, {"value": 4, "label": "4"}, {"value": 8, "label": "8"}]},
+        {"id": "white_background", "type": "toggle", "label": "Proof background", "default": false, "span": "third", "show_if": {"field": "render_previews", "equals": true}, "toggle_label": "Composite proofs over white"},
+        {"id": "make_video", "type": "toggle", "label": "Camera-pass movie", "default": true, "span": "third", "show_if": {"field": "render_previews", "equals": true}, "toggle_label": "Encode scene.mp4 from rendered cameras"},
+        {"id": "video_fps", "type": "range", "label": "Movie frame rate", "default": 10, "min": 1, "max": 60, "step": 1, "suffix": " FPS", "span": "third", "show_if": {"field": "make_video", "equals": true}},
+        {"id": "video_crf", "type": "range", "label": "Movie CRF", "default": 28, "min": 0, "max": 51, "step": 1, "span": "third", "show_if": {"field": "make_video", "equals": true}},
+
+        {"type": "section", "label": "Diagnostics & delivery"},
+        {"id": "pointcloud_diagnostics", "type": "toggle", "label": "Spatial diagnostics", "default": true, "span": "half", "toggle_label": "Plot mesh/backprojection clouds, cameras, anchors, and top-down maps"},
+        {"id": "diagnostic_points", "type": "number", "label": "Points per instance", "default": 8000, "min": 500, "max": 100000, "step": 500, "span": "half", "show_if": {"field": "pointcloud_diagnostics", "equals": true}},
+        {"id": "bundle_reconstruction", "type": "toggle", "label": "Resumable project", "default": false, "span": "full", "toggle_label": "Archive crops, alignments, raw mesh states, reconstruction metadata, and scene outputs", "hint": "Can be very large; leave off when only delivery GLBs/renders are needed."}
+      ],
+      "advanced": [
+        {"id": "per_object_glb_faces", "type": "number", "label": "Dormant per-object GLB target", "default": 100000, "min": 10000, "max": 2000000, "step": 10000, "span": "half", "hint": "Recorded for compatibility; the released geometry path disables intermediate GLBs and composes directly from mesh.pt."},
+        {"id": "texture_size", "type": "select", "label": "Future texture bake size", "default": 4096, "span": "half", "options": [{"value": 1024, "label": "1K"}, {"value": 2048, "label": "2K"}, {"value": 4096, "label": "4K"}], "hint": "Retained in the project contract for a future official texture finetune; geometry-only export does not fabricate textures."}
+      ],
+      "preview_template": "{{resolution}}px geometry from up to {{max_views}} views, {{glb_faces_per_object}} faces/object, seed {{seed}}."
+    }
+  ]
+}

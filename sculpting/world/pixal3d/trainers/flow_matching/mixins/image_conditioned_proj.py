@@ -415,11 +415,25 @@ class DinoV3ProjFeatureExtractor(nn.Module):
     def _load_naf(self):
         """Lazy-load pretrained NAF model."""
         if self.naf_model is None:
-            import torch.hub
             device = next(self.model.parameters()).device
-            self.naf_model = torch.hub.load(
-                "valeoai/NAF", "naf", pretrained=True, device=device, trust_repo=True
-            )
+            source = os.environ.get("PIXAL_NAF_SOURCE")
+            checkpoint = os.environ.get("PIXAL_NAF_CHECKPOINT")
+            if source and checkpoint:
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("pixal_local_naf", os.path.join(source, "hubconf.py"))
+                if spec is None or spec.loader is None:
+                    raise RuntimeError(f"Cannot import the pinned NAF source at {source}")
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                self.naf_model = module.naf(pretrained=False, device=device)
+                self.naf_model.load_state_dict(torch.load(checkpoint, map_location=device, weights_only=True))
+            else:
+                if os.environ.get("HF_HUB_OFFLINE") == "1":
+                    raise RuntimeError("Offline Pixal3D requires PIXAL_NAF_SOURCE and PIXAL_NAF_CHECKPOINT")
+                from torch import hub as torch_hub
+                self.naf_model = torch_hub.load(
+                    "valeoai/NAF", "naf", pretrained=True, device=device, trust_repo=True
+                )
             self.naf_model.eval()
             self.naf_model.requires_grad_(False)
         

@@ -32,7 +32,7 @@ import os
 # These must be set before importing pixal3d / o_voxel (read at import time).
 os.environ.setdefault('OPENCV_IO_ENABLE_OPENEXR', '1')
 os.environ.setdefault('PYTORCH_CUDA_ALLOC_CONF', 'expandable_segments:True')
-os.environ.setdefault('ATTN_BACKEND', 'flash_attn')
+os.environ.setdefault('ATTN_BACKEND', 'sdpa')
 _HERE = os.path.dirname(os.path.abspath(__file__))
 os.environ.setdefault('FLEX_GEMM_AUTOTUNE_CACHE_PATH', os.path.join(_HERE, 'autotune_cache.json'))
 
@@ -490,5 +490,4 @@ def splat(p2d, depth, color, valid, size, radius):
             py = np.clip(ys + dy, 0, size - 1)
             canvas[py, px] = cols                     # later (nearer) overwrites
     return canvas
-
 

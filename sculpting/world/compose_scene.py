@@ -42,7 +42,7 @@ from pathlib import Path
 
 os.environ['OPENCV_IO_ENABLE_OPENEXR'] = '1'
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
-os.environ.setdefault('ATTN_BACKEND', 'flash_attn')
+os.environ.setdefault('ATTN_BACKEND', 'sdpa')
 os.environ['FLEX_GEMM_AUTOTUNE_CACHE_PATH'] = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'autotune_cache.json')
 

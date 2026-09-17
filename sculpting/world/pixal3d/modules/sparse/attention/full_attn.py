@@ -2,6 +2,7 @@ from typing import *
 import torch
 from .. import VarLenTensor
 from .. import config
+from .sdpa import grouped_scaled_dot_product_attention
 
 
 __all__ = [
@@ -230,22 +231,11 @@ def sparse_scaled_dot_product_attention(*args, **kwargs):
             max_kv_seqlen = max(kv_seqlen)
         out, _ = flash_attn_4_varlen_func(q, k, v, cu_seqlens_q, cu_seqlens_kv, max_q_seqlen, max_kv_seqlen)
     elif config.ATTN == 'sdpa':
-        from torch.nn.functional import scaled_dot_product_attention as _sdpa
         if num_all_args == 1:
-            q, k, v = qkv.unbind(dim=1)   # [T, H, C] each
+            q, k, v = qkv.unbind(dim=1)
         elif num_all_args == 2:
-            k, v = kv.unbind(dim=1)        # [T_KV, H, C] each
-        # process each batch element independently (no varlen kernel needed)
-        q_offs  = [0] + list(torch.cumsum(torch.tensor(q_seqlen),  dim=0).tolist())
-        kv_offs = [0] + list(torch.cumsum(torch.tensor(kv_seqlen), dim=0).tolist())
-        outs = []
-        for i in range(len(q_seqlen)):
-            qi = q[q_offs[i]:q_offs[i+1]].unsqueeze(0).permute(0, 2, 1, 3)    # [1, H, Lq,  C]
-            ki = k[kv_offs[i]:kv_offs[i+1]].unsqueeze(0).permute(0, 2, 1, 3)  # [1, H, Lkv, C]
-            vi = v[kv_offs[i]:kv_offs[i+1]].unsqueeze(0).permute(0, 2, 1, 3)  # [1, H, Lkv, C]
-            out_i = _sdpa(qi, ki, vi)                                            # [1, H, Lq,  C]
-            outs.append(out_i.permute(0, 2, 1, 3).squeeze(0))                   # [Lq, H, C]
-        out = torch.cat(outs, dim=0)                                             # [T_Q, H, C]
+            k, v = kv.unbind(dim=1)
+        out = grouped_scaled_dot_product_attention(q, k, v, q_seqlen, kv_seqlen)
     else:
         raise ValueError(f"Unknown attention module: {config.ATTN}")
 

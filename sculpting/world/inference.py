@@ -9,7 +9,7 @@ from PIL import Image
 
 os.environ['OPENCV_IO_ENABLE_OPENEXR'] = '1'
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-os.environ.setdefault("ATTN_BACKEND", "flash_attn")
+os.environ.setdefault("ATTN_BACKEND", "sdpa")
 os.environ["FLEX_GEMM_AUTOTUNE_CACHE_PATH"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'autotune_cache.json')
 os.environ["FLEX_GEMM_AUTOTUNER_VERBOSE"] = '1'
 
@@ -20,7 +20,12 @@ import o_voxel
 # Constants & Defaults
 # ============================================================================
 
-MOGE_MODEL_NAME = "Ruicheng/moge-2-vitl"
+_WORLD_ROOT = os.path.dirname(os.path.abspath(__file__))
+_SCULPT_ROOT = os.path.dirname(_WORLD_ROOT)
+_DEPS_ROOT = os.path.join(_SCULPT_ROOT, "pretrained", "deps")
+_LOCAL_DINO = os.path.join(_DEPS_ROOT, "camenduru--dinov3-vitl16-pretrain-lvd1689m")
+_LOCAL_MOGE = os.path.join(_DEPS_ROOT, "Ruicheng--moge-2-vitl", "model.pt")
+MOGE_MODEL_NAME = _LOCAL_MOGE
 
 # Base Pixal3D weights. Prefer the copy bundled next to this file so the tree is
 # self-contained (no HuggingFace cache required) — this is also the SAME directory
@@ -35,26 +40,26 @@ MODEL_PATH = (_LOCAL_MODEL_PATH
 
 IMAGE_COND_CONFIGS = {
     "ss": {
-        "model_name": "camenduru/dinov3-vitl16-pretrain-lvd1689m",
+        "model_name": _LOCAL_DINO,
         "image_size": 512,
         "grid_resolution": 16,
     },
     "shape_512": {
-        "model_name": "camenduru/dinov3-vitl16-pretrain-lvd1689m",
+        "model_name": _LOCAL_DINO,
         "image_size": 512,
         "grid_resolution": 32,
         "use_naf_upsample": True,
         "naf_target_size": 512,
     },
     "shape_1024": {
-        "model_name": "camenduru/dinov3-vitl16-pretrain-lvd1689m",
+        "model_name": _LOCAL_DINO,
         "image_size": 1024,
         "grid_resolution": 64,
         "use_naf_upsample": True,
         "naf_target_size": 512,
     },
     "tex_1024": {
-        "model_name": "camenduru/dinov3-vitl16-pretrain-lvd1689m",
+        "model_name": _LOCAL_DINO,
         "image_size": 1024,
         "grid_resolution": 64,
         "use_naf_upsample": True,
@@ -111,7 +116,9 @@ def override_pipeline_ckpt(pipeline, model_name: str, ckpt_path: str):
 def init_pipeline(model_path=MODEL_PATH, device="cuda", low_vram=False,
                   tex_flow_ckpt: str = None):
     print(f"[Pipeline] Loading from {model_path}...")
-    pipeline = Pixal3DImageTo3DPipeline.from_pretrained(model_path)
+    pipeline = Pixal3DImageTo3DPipeline.from_pretrained(
+        model_path, config_file=os.environ.get("PIXAL_PIPELINE_CONFIG", "pipeline.json")
+    )
 
     # Swap texture flow weights with a finetuned checkpoint, if provided.
     if tex_flow_ckpt:
