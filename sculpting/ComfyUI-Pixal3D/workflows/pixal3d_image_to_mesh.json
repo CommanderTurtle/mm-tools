@@ -1,0 +1,317 @@
+{
+  "last_node_id": 9,
+  "last_link_id": 8,
+  "nodes": [
+    {
+      "id": 9,
+      "type": "Note",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        760,
+        140
+      ],
+      "flags": {},
+      "order": -1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "Note"
+      },
+      "widgets_values": [
+        "## Quality + VRAM settings (1536_cascade unlocked)\n\nDefaults below are **verified working on RTX 5090 (34 GB)** and target maximum-quality output:\n- **pipeline_type: 1536_cascade** + 16/16/16 sampling steps + **49k tokens** + 300k decimation + 4096 texture\n- **low_vram=True** (per-stage CPU offload; this is what makes 1536 fit on 34 GB and below)\n- **save_obj=True** writes both .glb and .obj (+ .mtl + PNG) alongside each run\n- Wall time: ~65-70 s warm per scan on a 5090.\n\n**Why low_vram=True is required for 1536_cascade:** the shape-1536 NAF attention activation pattern peaks near the cudaMallocAsync ceiling even with v0.1.8+ device-placement fixes. With low_vram=True the image_cond_model offloads to CPU between stages, freeing enough VRAM for the high-res NAF step. The wall-time tax is small (~10-15s) because the offload only fires twice per run.\n\n**To go faster on 32 GB+ cards:** drop to **pipeline_type=1024_cascade** + low_vram=False (cuts wall time roughly in half; mesh detail drops modestly).\n\n**If you OOM on a 12-16 GB card:**\n1. **max_num_tokens**: 49152 -> **24576** (smaller HR activation budget)\n2. **ss / shape / tex sampling_steps**: 16 -> **8** each\n3. **decimation_target**: 300000 -> **100000** (lighter mesh post-proc)\n4. **texture_size**: 4096 -> **1024**\n\nThe 1536_cascade ceiling is the comfy-aimdo cast buffer (16 GB reserved) plus Pixal3D weights (~30 GB) \u2014 without low_vram=True the peak overshoots even a 5090. See README \"Memory + performance\" for full breakdown."
+      ],
+      "title": "Low-VRAM tweaks (read first)",
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        40,
+        200
+      ],
+      "size": [
+        320,
+        370
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "slot_index": 1,
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "test_image.png",
+        "image"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "Pixal3DImageToMesh",
+      "pos": [
+        420,
+        200
+      ],
+      "size": [
+        380,
+        950
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "pipeline_ready",
+          "type": "PIXAL3D_PIPELINE_READY",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mesh",
+          "type": "TRIMESH",
+          "slot_index": 0,
+          "links": [
+            7
+          ]
+        },
+        {
+          "name": "preprocessed_image",
+          "type": "IMAGE",
+          "slot_index": 1,
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "camera_angle_x",
+          "type": "FLOAT",
+          "slot_index": 2,
+          "links": null
+        },
+        {
+          "name": "distance",
+          "type": "FLOAT",
+          "slot_index": 3,
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Pixal3DImageToMesh"
+      },
+      "widgets_values": [
+        "1536_cascade",
+        42,
+        "fixed",
+        true,
+        49152,
+        1.0,
+        512,
+        0.0,
+        0.0,
+        7.5,
+        16,
+        0.7,
+        5.0,
+        7.5,
+        16,
+        0.5,
+        3.0,
+        1.0,
+        16,
+        0.0,
+        3.0,
+        300000,
+        4096,
+        true,
+        "gray",
+        true,
+        true,
+        "pixal3d",
+        true
+      ]
+    },
+    {
+      "id": 4,
+      "type": "PreviewImage",
+      "pos": [
+        860,
+        200
+      ],
+      "size": [
+        320,
+        320
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 3
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": [],
+      "title": "Preprocessed input"
+    },
+    {
+      "id": 7,
+      "type": "Trellis2ExportTrimesh",
+      "pos": [
+        860,
+        560
+      ],
+      "size": [
+        320,
+        120
+      ],
+      "flags": {},
+      "order": 99,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "trimesh",
+          "type": "TRIMESH",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "file_path",
+          "type": "STRING",
+          "slot_index": 0,
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Trellis2ExportTrimesh"
+      },
+      "widgets_values": [
+        "pixal3d_preview",
+        "glb"
+      ],
+      "title": "Save GLB"
+    },
+    {
+      "id": 8,
+      "type": "Preview3D",
+      "pos": [
+        860,
+        720
+      ],
+      "size": [
+        400,
+        500
+      ],
+      "flags": {},
+      "order": 100,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model_file",
+          "type": "STRING",
+          "link": 8,
+          "widget": {
+            "name": "model_file"
+          }
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "Preview3D"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "title": "3D preview (drag to rotate)"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "IMAGE"
+    ],
+    [
+      3,
+      2,
+      1,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      7,
+      2,
+      0,
+      7,
+      0,
+      "TRIMESH"
+    ],
+    [
+      8,
+      7,
+      0,
+      8,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6,
+      "offset": [
+        80,
+        80
+      ]
+    },
+    "groupNodes": {}
+  },
+  "version": 0.4
+}
