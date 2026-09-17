@@ -1,23 +1,71 @@
-Create and activate a small uv environment in this directory, then install
-huggingface_hub and its current Rust Xet transport before running
-download_models.py:
+MM Tools model downloader
+=========================
 
+Create one small uv environment in this directory and install the current
+Hugging Face Hub client plus mm-tools' canonical hf_transfer backend:
+
+  cd ~/multimedia/models
   uv venv --python 3.12.10 --seed --managed-python .venv
   source .venv/bin/activate
-  uv pip install huggingface_hub hf_xet
+  uv pip install -U huggingface_hub hf_transfer
+  uv run download_models.py --list
   uv run download_models.py
 
-The first question sets both file-download and Xet Tokio workers. The script
-then presents numbered project bundles; press Enter for all models. Use
-`uv run download_models.py all --yes --workers 24` for a non-interactive full
-run. `hf_transfer` is a legacy transport and is not used by current Hub 1.x.
-It is stateful and resumable through snapshot_download. Run it again after an
-interrupted transfer with the same bundle selection. It recreates the exact
-model and ReDesign weight paths expected by this monorepo, does not prune
-older files, and does not create project venvs. Selecting `translate` migrates
-the former `text-only/anhbn--raX-Translator-V1.0-GGUF` directory after any
-interactive confirmation (or directly with `--yes`) when the canonical
-destination does not yet exist.
+The first interactive question sets the parallel snapshot file workers.
+The next prompt selects numbered project bundles; Enter preserves the original
+"all" behavior. Examples:
 
-Notice: downloading a model binds the downloader to that model repository's
-upstream terms. Model artifacts are not part of this AGPLv3 source tree.
+  uv run download_models.py 4d lingbot lingbot-5090 fire3d --workers 24
+  uv run download_models.py aukspeech sculpting worldsculpt
+  uv run download_models.py animate v2v
+  uv run download_models.py nvidia-sim
+  uv run download_models.py yue2
+  uv run download_models.py all --yes --workers 24
+
+Every newly introduced upstream snapshot is pinned to the immutable revision
+audited for this source import. File allowlists retain only runtime-required
+weights, configs, tokenizers, model code, manifests, and legal notices. The
+script does not create project environments and it never deletes older files.
+Hugging Face's local snapshot metadata makes interrupted transfers resumable:
+rerun the same selection.
+
+Most artifacts download directly into the path consumed by their project.
+Shared Comfy assets first land under `models/imports`, preserving resumable
+snapshot state, and are then exposed in `V2V/ComfyUI/models` by same-filesystem
+hard links. A copy is used only when the two paths reside on different
+filesystems. Existing different files are never overwritten.
+
+The sculpting bundles also install five pinned, allowlisted dependencies that
+the upstream pipeline JSON otherwise resolves online: TRELLIS-image-large's
+single required sparse decoder, DINOv3 ViT-L/16, the official ungated
+ZhengPeng7 BiRefNet checkpoint, MoGe-2 camera
+calibration, and NAF feature upsampling. The legacy
+decoder is hard-linked into TRELLIS.2-4B; both sculpting adapters point their
+generated local pipeline config at the shared DINO/BiRefNet directories.
+NAF is the sole direct-release asset: its partial download is resumable and is
+accepted only after exact byte-size and SHA-256 verification.
+
+`lingbot` contains only the 14B release's shared UMT5 encoder, tokenizer, and
+Wan VAE. Its approximately 70 GB 14B DiT is intentionally not downloaded:
+that model cannot run in the no-offload 32 GB workstation profile. Select
+`lingbot-5090` alongside it for the official 1.3B causal-fast DiT used by the
+local studio.
+
+`nvidia-sim` uses the pinned, ungated
+`voxta/Llama-3-8B-LLM2Vec-ARDY-INT8` snapshot. It is the complete ARDY text
+encoder after both McGill LLM2Vec adapters are merged and the final weights
+are quantized. This avoids the gated 16-bit base and runtime adapter merge;
+it does not alter `snapshot_download` or its resumable local metadata.
+The 4DAnyone neutral SMPL-X body model has separate upstream terms and must be
+obtained manually; the downloader intentionally does not redistribute it.
+
+`hf_transfer` is the canonical companion package in mm-tools setup commands.
+The downloader leaves transport negotiation to the installed Hub client so it
+does not inject version-specific backend flags or warnings.
+Selecting `translate` retains the existing safe migration from the historical
+`text-only/anhbn--raX-Translator-V1.0-GGUF` directory to its canonical name.
+
+See `which-ones.txt` for the exact artifact inventory, paths, manual gates,
+shared placements, and exclusions. Downloading a model binds the downloader
+to that repository's license and access terms. Model artifacts are not part
+of this AGPLv3 source tree.

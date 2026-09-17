@@ -5,7 +5,8 @@ MM Tools model downloader and inventory
 be launched from any working directory and still targets `<mm-tools>/models`.
 Before every selected download it explicitly creates the complete destination
 with `parents=True`. A fresh clone therefore does not need pre-existing `qwen`,
-`text-only`, `kijai`, `redesign/weights`, or PaddleX directories.
+`text-only`, `imports`, project-local checkpoint, Comfy model,
+`redesign/weights`, or PaddleX directories.
 Current Hugging Face Hub writes real files into `local_dir`; older Hub releases
 receive their former `local_dir_use_symlinks=False` compatibility flag only
 when that argument still exists.
@@ -16,10 +17,10 @@ Create the small downloader environment once:
 cd ~/multimedia/models
 uv venv --python 3.12 --seed --managed-python .venv
 source .venv/bin/activate
-uv pip install -U huggingface_hub hf_xet
+uv pip install -U huggingface_hub hf_transfer
 ```
 
-Interactive mode asks for the file/Xet worker count first, then presents the
+Interactive mode asks for the snapshot file-worker count first, then presents the
 bundle selection. Press Enter at the selection prompt to retain the original
 behavior and download everything:
 
@@ -32,12 +33,14 @@ The same choices work non-interactively by number or name:
 ```bash
 uv run download_models.py --list
 uv run download_models.py 2,6,10 --workers 24
-uv run download_models.py minimax stableaudio
+uv run download_models.py minimax stableaudio yue2
 uv run download_models.py all --yes --workers 24
 ```
 
-Bundle selection numbers are deliberately separate from the 40 inventory
-numbers below. Each bundle includes every artifact needed by that runtime.
+Bundle selection numbers are deliberately separate from the stable inventory
+identifiers below. Each bundle includes every downloadable artifact needed by
+that runtime. Inventory identifiers 22-23 are retired rather than renumbered,
+so older notes keep their meaning.
 
 ```text
  1  ideogram     inventory 1-3, 40
@@ -47,18 +50,30 @@ numbers below. Each bundle includes every artifact needed by that runtime.
  5  whisper      inventory 10
  6  translate    inventory 11-13
  7  redesign     inventory 14-19 and 24-31
- 8  kijai        inventory 20-23 (standalone V2V extras)
+ 8  v2v          inventory 20-21 (ID-V2V base + normal/depth and support set)
  9  acestep      inventory 32-34
 10  minimax      inventory 35 and 40
 11  stableaudio  inventory 36-37
 12  symphony     inventory 38
 13  vocalrender  inventory 39
+14  4d           inventory 41-42
+15  lingbot      inventory 43
+16  lingbot-5090 inventory 43a
+17  fire3d       inventory 44
+18  aukspeech    inventory 45-46
+19  sculpting    inventory 47-48
+20  worldsculpt  inventory 48-49
+21  animate      inventory 50-52
+22  nvidia-sim   inventory 53-58
+23  yue2         inventory 59-63
 ```
 
-The inventory mirrors all 40 artifact definitions in the downloader. Trees
-show files or major component directories expected from a fresh run; an
-ellipsis means the remainder of that repository snapshot is retained in the
-same folder. Model use remains governed by each upstream model license.
+The inventory mirrors all 62 active artifact definitions in the downloader,
+numbered through 63 because 22-23 are intentionally reserved. Trees show
+files or major component directories expected from a fresh run; an ellipsis
+means the remainder of that approved snapshot subset is retained in the same
+folder. Every new artifact is pinned to an immutable Hub revision. Model use
+remains governed by each upstream model license and access agreement.
 
 1. ideogram-ai/ideogram-4-fp8
 Expected folder: models/ideogram-ai--ideogram-4-fp8
@@ -342,52 +357,39 @@ Used by: the optional ReDesign Comfy-compatible layered pipeline as its VAE.
 The standalone browser obtains its VAE from the modular components in item 15.
 
 20. Kijai/Wan_ID_V2V_comfy
-Expected folder: models/kijai/Kijai--Wan_ID_V2V_comfy
+Resumable snapshot: models/imports/Kijai--Wan_ID_V2V_comfy
+Runtime placement: V2V/ComfyUI/models/diffusion_models
 
 ```text
-models/kijai/Kijai--Wan_ID_V2V_comfy/
-└── wan_2.1_idv2v_int8_convrot.safetensors
+V2V/ComfyUI/models/diffusion_models/
+├── wan_2.1_idv2v_int8_convrot.safetensors
+└── wan_2.1_idv2v_with_normal_depth_int8_convrot.safetensors
 ```
 
-Used by: the standalone ~/repos/kijai-v2v Comfy workflow as its ID-V2V
-diffusion model.
+Used by: the checked-in ID-V2V source and PR-pinned local Comfy runtime. Both
+the base and normal/depth-conditioned variants are approved; large runtime
+files are hard-linked from the resumable snapshot when the filesystem permits.
 
 21. Comfy-Org/Wan_2.1_ComfyUI_repackaged
-Expected folder: models/kijai/Comfy-Org--Wan_2.1_ComfyUI_repackaged
+Resumable snapshot: models/imports/Comfy-Org--Wan_2.1_ComfyUI_repackaged
+Runtime placement: V2V/ComfyUI/models
 
 ```text
-models/kijai/Comfy-Org--Wan_2.1_ComfyUI_repackaged/
-└── split_files/
-    ├── clip_vision/clip_vision_h.safetensors
-    ├── text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
-    └── vae/wan_2.1_vae.safetensors
+V2V/ComfyUI/models/
+├── clip_vision/clip_vision_h.safetensors
+├── text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+└── vae/wan_2.1_vae.safetensors
 ```
 
-Used by: the standalone ~/repos/kijai-v2v Comfy workflow for vision, text,
-and VAE components.
+Used by: ID-V2V's local Comfy workflow for its vision, text, and VAE support
+models. The downloader materializes Comfy's native directory layout without
+discarding the resumable `split_files` snapshot.
 
-22. denisbalon/lightx2v-i2v-14b-480p-cfg-step-distill-rank64-bf16.safetensors
-Expected folder:
-models/kijai/denisbalon--lightx2v-i2v-14b-480p-cfg-step-distill-rank64-bf16
+22-23. Retired inventory identifiers
 
-```text
-models/kijai/denisbalon--lightx2v-i2v-14b-480p-cfg-step-distill-rank64-bf16/
-└── lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
-```
-
-Used by: the standalone ~/repos/kijai-v2v Comfy workflow as the distilled
-I2V LoRA.
-
-23. Kijai/WanVideo_comfy
-Expected folder: models/kijai/Kijai--WanVideo_comfy
-
-```text
-models/kijai/Kijai--WanVideo_comfy/
-└── Wan2_1_VAE_bf16.safetensors
-```
-
-Used by: the standalone ~/repos/kijai-v2v Comfy workflow as the alternate Wan
-VAE artifact.
+The former unrelated LightX LoRA and redundant alternate Wan VAE were removed
+from the strict ID-V2V allowlist. These two identifiers remain reserved so the
+established 24-40 inventory does not silently change meaning.
 
 24. benjiaiplayground/GroundingDINO_SwinB
 Expected folder: redesign/weights
@@ -624,3 +626,388 @@ helper, through the bundled Comfy runtime with `CLIPLoader(type=krea2)`.
 Both project selections include this same artifact; selecting both downloads
 it only once. Neither application loads it until the corresponding helper is
 requested. Ideogram can also skip caption inference when given valid JSON.
+
+41. AntResearch/4DAnyone
+Expected folder: 4d-ify/models
+
+```text
+4d-ify/models/
+├── 4danyone/
+│   └── model.safetensors
+├── gvhmr/
+│   ├── ...
+│   ├── Wan2.2_VAE.pth
+│   ├── prompt_context.safetensors
+│   └── smplx_to_goliath70.pt
+├── perceptual/
+│   └── ...
+├── LICENSE.md
+└── licenses/
+```
+
+Used by: `4d-ify` for 4D human reconstruction, Wan decoding, prompt
+conditioning, body tracking, and perceptual evaluation. The snapshot is pinned
+to the revision researched for this import. The separately licensed neutral
+SMPL-X body model is not redistributed or downloaded automatically; obtain it
+from the official SMPL-X provider when the runtime asks for it.
+
+42. ZhengPeng7/BiRefNet (4DAnyone placement)
+Expected folder: 4d-ify/models/birefnet
+
+```text
+4d-ify/models/birefnet/
+├── BiRefNet_config.py
+├── birefnet.py
+├── config.json
+├── model.safetensors
+├── requirements.txt
+└── README.md
+```
+
+Used by: `4d-ify` for local foreground extraction. This is a separate,
+project-local placement from inventory item 3 so the imported runtime resolves
+its documented path without symlinks or a second setup script.
+
+43. robbyant/lingbot-world-v2-14b-causal-fast
+Expected folder: world-gen/lingbot/lingbot-world-v2-14b-causal-fast
+
+```text
+world-gen/lingbot/lingbot-world-v2-14b-causal-fast/
+├── config.json
+├── Wan2.1_VAE.pth
+├── models_t5_umt5-xxl-enc-bf16.pth
+└── google/umt5-xxl/
+```
+
+Used by: `world-gen/lingbot` as the shared UMT5 encoder, tokenizer, and Wan
+VAE for the 1.3B single-5090 lane below. The roughly 70 GB 14B transformer is
+intentionally excluded because it cannot satisfy the no-offload 32 GB runtime
+contract; its source release remains documented upstream without wasting local
+model storage.
+
+43a. robbyant/lingbot-world-v2-1.3b-causal-fast
+Expected folder: world-gen/lingbot/lingbot-world-v2-1.3b-causal-fast
+
+```text
+world-gen/lingbot/lingbot-world-v2-1.3b-causal-fast/
+├── README.md
+├── model.safetensors.index.json
+└── model-*.safetensors
+```
+
+Used by: `world-gen/lingbot` as the official causal-fast DiT that fits the
+single RTX 5090 profile while preserving GPU-only inference. Pair bundle
+`lingbot-5090` with bundle `lingbot`; neither runtime silently downloads the
+other.
+
+44. hongchi/Fire3D
+Expected folder: world-gen/fire3d/checkpoints/Fire3D
+
+```text
+world-gen/fire3d/checkpoints/Fire3D/
+├── checksums.sha256
+├── config.json
+├── manifest.json
+├── external/
+│   ├── dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth
+│   └── trellis2/
+├── perception/
+└── reconstruction/
+    ├── flows/
+    ├── stats/
+    └── vae/
+```
+
+Used by: `world-gen/fire3d` for the released single-image reconstruction
+pipeline: perception, sparse-structure, shape, PBR flows and VAEs, DINOv3,
+TRELLIS decoders, and normalization statistics. Fire3D was admitted because
+its Git source is modest; the large weights remain optional and user-selected.
+
+45. tencent/AuK
+Expected folder: aukspeech/ckpts/AuK
+
+```text
+aukspeech/ckpts/AuK/
+├── auk_base.safetensors
+├── config.yaml
+├── vae.safetensors
+├── LICENSE
+└── README.md
+```
+
+Used by: `aukspeech` for the canonical AuK base speech generation and editing
+path. AuK-Flash and service-only alternatives are intentionally outside this
+strict core bundle.
+
+46. Qwen/Qwen2.5-Omni-3B
+Expected folder: aukspeech/ckpts/Qwen2.5-Omni-3B
+
+```text
+aukspeech/ckpts/Qwen2.5-Omni-3B/
+├── config.json
+├── generation_config.json
+├── model-*.safetensors
+├── model.safetensors.index.json
+├── preprocessor_config.json
+├── spk_dict.pt
+└── tokenizer files
+```
+
+Used by: AuK as its required local multimodal/text encoder. The complete
+runtime snapshot is retained rather than relying on a later network fetch.
+
+47. microsoft/TRELLIS.2-4B
+Expected folder: sculpting/pretrained/TRELLIS.2-4B
+
+```text
+sculpting/pretrained/TRELLIS.2-4B/
+├── pipeline.json
+├── texturing_pipeline.json
+└── ckpts/
+    └── ...
+```
+
+Used by: `sculpting` for image/text-to-3D geometry and texturing. All released
+pipeline configs, flows, encoders, and decoders under `ckpts` are retained.
+Inventory 64 supplies the one sparse-structure decoder referenced from the
+older TRELLIS-image-large release but absent from this snapshot.
+
+48. TencentARC/Pixal3D
+Expected folder: sculpting/world/pretrained/Pixal3D
+
+```text
+sculpting/world/pretrained/Pixal3D/
+├── pipeline.json
+├── pipeline_mv.json
+├── ckpts/
+│   └── ...
+├── LICENSE
+└── NOTICE
+```
+
+Used by: both `sculpting/ComfyUI-Pixal3D` and `sculpting/world`. The full
+single-view, multiview, 512/1024, and texture checkpoint set is shared at one
+documented path.
+
+49. AlayaLab/WorldSculpt
+Expected folder: sculpting/world/pretrained
+
+```text
+sculpting/world/pretrained/
+├── shape_ft1024_mv_lora_ibr_texverse_fixedmem05/
+│   ├── config.json
+│   └── ckpts/
+└── ss_ft64_mv_lora_ibr_texverse/
+    ├── config.json
+    └── ckpts/
+```
+
+Used by: `sculpting/world` for its two released WorldSculpt stages. Inventory
+48 supplies its documented Pixal3D base; inventory 47 supplies the sibling
+TRELLIS.2 runtime dependency through the sculpting bundle when needed.
+Inventories 65-68 supply the shared, strictly local image encoder, background
+remover, camera calibration model, and feature upsampler used by the
+TRELLIS/Pixal pipelines.
+
+50. Comfy-Org/Wan-Animate-2
+Snapshot folder: models/imports/Comfy-Org--Wan-Animate-2
+
+```text
+models/imports/Comfy-Org--Wan-Animate-2/
+├── clip_vision/clip_vision_h.safetensors
+├── diffusion_models/wan_animate_2_distill_int8_convrot.safetensors
+├── text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+└── vae/Wan2_1_VAE_bf16.safetensors
+```
+
+Used by: the PR-pinned local Comfy runtime for Wan Animate 2. After the
+resumable snapshot completes, these four files are hard-linked into matching
+`V2V/ComfyUI/models/*` folders (copy fallback only across filesystems). The
+distilled INT8 checkpoint does not require a separate LightX LoRA.
+
+51. Wan-AI/Wan2.2-Animate-14B pose detector
+Snapshot folder: models/imports/Wan-AI--Wan2.2-Animate-14B-preprocess
+
+```text
+models/imports/Wan-AI--Wan2.2-Animate-14B-preprocess/
+└── process_checkpoint/det/yolov10m.onnx
+```
+
+Used by: `animate/ComfyUI-WanAnimatePreprocess`. The file is hard-linked into
+`V2V/ComfyUI/models/detection/yolov10m.onnx` after download.
+
+52. Kijai/vitpose_comfy
+Snapshot folder: models/imports/Kijai--vitpose_comfy
+
+```text
+models/imports/Kijai--vitpose_comfy/onnx/
+├── vitpose_h_wholebody_data.bin
+└── vitpose_h_wholebody_model.onnx
+```
+
+Used by: `animate/ComfyUI-WanAnimatePreprocess` for whole-body pose. Both ONNX
+parts are hard-linked into the local Comfy detection-model folder.
+
+53. nvidia/ARDY-Core-RP-20FPS-Horizon40
+Expected folder: nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon40
+
+54. nvidia/ARDY-Core-RP-20FPS-Horizon8
+Expected folder: nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon8
+
+55. nvidia/ARDY-G1-RP-25FPS-Horizon52
+Expected folder: nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon52
+
+56. nvidia/ARDY-G1-RP-25FPS-Horizon8
+Expected folder: nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon8
+
+Each ARDY folder contains its `config.yaml`, denoiser, tokenizer, complete
+per-character statistics, license, and README. Together these are the four
+canonical Core and Unitree G1 long/short-horizon variants named by
+`update.txt`; none is silently substituted.
+
+57. voxta/Llama-3-8B-LLM2Vec-ARDY-INT8
+Expected folder: nvidia-sim/text-encoders/voxta/Llama-3-8B-LLM2Vec-ARDY-INT8
+
+```text
+.../Llama-3-8B-LLM2Vec-ARDY-INT8/
+├── README.md
+├── chat_template.jinja
+├── config.json
+├── llm2vec_config.json
+├── model.safetensors
+├── tokenizer.json
+└── tokenizer_config.json
+```
+
+This is the exact ARDY encoder stack—Meta Llama 3 8B Instruct, bidirectional
+attention, the McGill MNTP adapter, and the McGill supervised adapter—merged
+before quantization. It is pinned, ungated, CUDA-only, and uses bitsandbytes
+INT8. The published comparison against ARDY's BF16 assembly reports 8.04 GB
+VRAM instead of 15.42 GB, a 4.4-second load instead of 21 seconds, and
+0.9976 minimum / 0.9980 mean cosine similarity over the tested prompts. A
+generic Llama quant is not interchangeable because it lacks the merged
+LLM2Vec encoder behavior. The future runtime must load this local directory
+without a post-load dtype conversion, set the canonical Llama-3 config name
+required by LLM2Vec's instruction template, require CUDA, and forbid CPU or
+network fallback. The former gated BF16 base and two loose adapters are not
+part of the canonical download.
+
+58. nvidia/SOMA-X
+Expected folder: nvidia-sim/SOMA-X/assets
+
+```text
+nvidia-sim/SOMA-X/assets/
+├── Anny/
+├── GarmentMeasurements/
+├── MANO/
+├── MHR/
+├── SMPL/
+├── SMPLX/
+├── SOMA-X-HF-MANIFEST.json
+├── SOMAHand.npz
+├── SOMA_neutral.npz
+├── SOMA_template_rig.usda
+└── supporting transforms/models
+```
+
+Used by: the imported SOMA-X Blender/Maya/body-model tools. The Git clone's
+LFS pointers stay outside the root index; the downloader materializes only
+the released runtime assets directly at the path expected by SOMA-X.
+
+59. m-a-p/YuE2-3B
+Expected folder: music/yue2/models/YuE2-3B
+
+```text
+music/yue2/models/YuE2-3B/
+├── config.json
+├── generation_config.json
+├── model.safetensors
+├── modeling_yue2.py
+├── qwen.tiktoken
+├── weights_manifest.json
+└── yue2_generation_config.json
+```
+
+60. m-a-p/YuE2-Vae
+Expected folder: music/yue2/models/YuE2-Vae
+
+```text
+music/yue2/models/YuE2-Vae/
+├── config.json
+├── model.safetensors
+├── modeling_vae.py
+└── weights_manifest.json
+```
+
+Items 59-60 are the two required native YuE2 checkpoints at the exact local
+paths used by its CLI. The optional legacy benchmark decoder is not part of
+the strict core bundle.
+
+61. m-a-p/SheetSage2
+Expected folder: music/yue2/models/SheetSage2
+
+The allowlist retains SheetSage's model, processor/config, Python runtime,
+render setup and assets, requirements, and notices. Benchmark/result material
+is excluded. YuE2 uses it for cover/transcription conditioning.
+
+62. m-a-p/MERT-v2-FullSong
+Expected folder: music/yue2/models/MERT-v2-FullSong
+
+The allowlist retains MERT's model, config, preprocessor, repository model
+code, weight manifest, and notices for full-song audio representation.
+
+63. Comfy-Org/YuE2
+Snapshot folder: models/imports/Comfy-Org--YuE2
+
+```text
+models/imports/Comfy-Org--YuE2/
+├── audio_encoders/sheetsage2_bf16.safetensors
+└── checkpoints/yue2_3b_int8_convrot.safetensors
+```
+
+Used by: the PR-pinned local Comfy YuE2 native-generation and cover
+blueprints. The downloader hard-links both files into the corresponding
+`V2V/ComfyUI/models` folders. These optimized Comfy assets complement, rather
+than replace, the native YuE2 models in items 59-62.
+
+64. microsoft/TRELLIS-image-large (sparse decoder only)
+Snapshot folder: sculpting/pretrained/deps/microsoft--TRELLIS-image-large
+
+Only `ckpts/ss_dec_conv3d_16l8_fp16.{json,safetensors}` plus the model card
+are retained. The two checkpoint files are hard-linked into
+`sculpting/pretrained/TRELLIS.2-4B/ckpts`, completing the exact pipeline graph
+without downloading the rest of this legacy repository.
+
+65. camenduru/dinov3-vitl16-pretrain-lvd1689m
+Expected folder:
+sculpting/pretrained/deps/camenduru--dinov3-vitl16-pretrain-lvd1689m
+
+The safetensors model, config, processor, model card, and license are retained.
+Both TRELLIS.2 and Pixal3D are given this absolute local directory in their
+generated runtime pipeline configs; no Hub resolution is permitted.
+
+66. ZhengPeng7/BiRefNet
+Expected folder: sculpting/pretrained/deps/ZhengPeng7--BiRefNet
+
+The safetensors model, configuration, and two required custom Python model
+files are retained. This is the official ungated checkpoint compatible with
+TRELLIS.2's BiRefNet wrapper, replacing the otherwise gated briaai alias.
+Both sculpting runtimes use this one local snapshot for deterministic
+background removal.
+
+67. Ruicheng/moge-2-vitl
+Expected folder: sculpting/pretrained/deps/Ruicheng--moge-2-vitl
+
+The released `model.pt` and model card are retained for optional automatic
+camera/FOV estimation in Pixal3D. Manual camera controls stay available and do
+not require loading MoGe.
+
+68. valeoai/NAF release checkpoint
+Expected file: sculpting/pretrained/deps/valeoai--NAF/naf_release.pth
+
+This 2.6 MB official release asset supplies Pixal3D's trained feature
+upsampling path. It is fetched directly from the upstream GitHub release with
+resumable `.partial` storage, exact 2,664,431-byte validation, and SHA-256
+`c096c1ab2217a5c3ac136365f721685e2201379cb69d509cfb0261183847c98f`.
+Runtime setup pins the matching NAF source revision separately; inference does
+not call Torch Hub.

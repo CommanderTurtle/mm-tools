@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 import argparse
+import filecmp
+import hashlib
 import inspect
 import os
+import shutil
 import sys
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
 
-# Current huggingface_hub uses its Xet transport for high-speed snapshots.
-os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"
+# mm-tools setup commands deliberately keep hf_transfer canonical. Transport
+# negotiation itself stays with the installed Hub client for version safety.
 CPU_DEFAULT_WORKERS = min(16, max(1, os.cpu_count() or 4))
 try:
     ENV_DEFAULT_WORKERS = int(
-        os.environ.get("TOKIO_WORKER_THREADS", str(CPU_DEFAULT_WORKERS))
+        os.environ.get("MMTOOLS_DOWNLOAD_WORKERS", str(CPU_DEFAULT_WORKERS))
     )
 except ValueError:
     ENV_DEFAULT_WORKERS = CPU_DEFAULT_WORKERS
@@ -22,8 +26,6 @@ DEFAULT_WORKERS = (
     if 1 <= ENV_DEFAULT_WORKERS <= 256
     else CPU_DEFAULT_WORKERS
 )
-os.environ["TOKIO_WORKER_THREADS"] = str(DEFAULT_WORKERS)
-
 from huggingface_hub import logging, snapshot_download
 
 
@@ -42,6 +44,12 @@ class Artifact:
     destination: Path
     allow_patterns: tuple[str, ...] = ()
     cache_layout: bool = False
+    revision: str | None = None
+    placements: tuple[tuple[str, Path], ...] = ()
+    direct_url: str | None = None
+    direct_filename: str | None = None
+    sha256: str | None = None
+    expected_size: int | None = None
 
 
 @dataclass(frozen=True)
@@ -65,6 +73,70 @@ QWEN_GUIDE = A(
     "SergiusFlavius/Qwen3-VL-4B-Instruct-heretic-NVFP4",
     model_path("qwen/text-encoder-vl-nvfp4"),
     ("qwen3_vl_4b_nvfp4_full.safetensors",),
+)
+
+# TRELLIS.2 and Pixal3D name these repositories from their pipeline JSON.  Keep
+# the dependencies local and pinned so neither sculpting runtime can silently
+# contact the Hub during model construction.  Only the one legacy sparse-
+# structure decoder absent from TRELLIS.2-4B is placed into that checkpoint
+# tree; the source snapshot remains intact for resume/checksum purposes.
+SCULPT_SPARSE_DECODER = A(
+    "microsoft/TRELLIS-image-large",
+    repo_path("sculpting/pretrained/deps/microsoft--TRELLIS-image-large"),
+    (
+        "ckpts/ss_dec_conv3d_16l8_fp16.json",
+        "ckpts/ss_dec_conv3d_16l8_fp16.safetensors",
+    ),
+    revision="25e0d31ffbebe4b5a97464dd851910efc3002d96",
+    placements=(
+        (
+            "ckpts/ss_dec_conv3d_16l8_fp16.json",
+            repo_path("sculpting/pretrained/TRELLIS.2-4B/ckpts/ss_dec_conv3d_16l8_fp16.json"),
+        ),
+        (
+            "ckpts/ss_dec_conv3d_16l8_fp16.safetensors",
+            repo_path("sculpting/pretrained/TRELLIS.2-4B/ckpts/ss_dec_conv3d_16l8_fp16.safetensors"),
+        ),
+    ),
+)
+SCULPT_DINO = A(
+    "camenduru/dinov3-vitl16-pretrain-lvd1689m",
+    repo_path("sculpting/pretrained/deps/camenduru--dinov3-vitl16-pretrain-lvd1689m"),
+    (
+        "config.json",
+        "model.safetensors",
+        "preprocessor_config.json",
+    ),
+    revision="3c276edd87d6f6e569ff0c4400e086807d0f3881",
+)
+SCULPT_RMBG = A(
+    # TRELLIS.2's BiRefNet wrapper accepts this checkpoint through the same
+    # Transformers remote-code contract.  Unlike the pipeline's briaai alias,
+    # the official ZhengPeng7 model is ungated, so unattended setup stays
+    # deterministic instead of stalling on a click-through approval.
+    "ZhengPeng7/BiRefNet",
+    repo_path("sculpting/pretrained/deps/ZhengPeng7--BiRefNet"),
+    (
+        "BiRefNet_config.py",
+        "birefnet.py",
+        "config.json",
+        "model.safetensors",
+    ),
+    revision="e2bf8e4460fc8fa32bba5ea4d94b3233d367b0e4",
+)
+SCULPT_MOGE = A(
+    "Ruicheng/moge-2-vitl",
+    repo_path("sculpting/pretrained/deps/Ruicheng--moge-2-vitl"),
+    ("model.pt",),
+    revision="39c4d5e957afe587e04eec59dc2bcc3be5ecd968",
+)
+SCULPT_NAF = A(
+    "valeoai/NAF release checkpoint",
+    repo_path("sculpting/pretrained/deps/valeoai--NAF"),
+    direct_url="https://github.com/valeoai/NAF/releases/download/model/naf_release.pth",
+    direct_filename="naf_release.pth",
+    sha256="c096c1ab2217a5c3ac136365f721685e2201379cb69d509cfb0261183847c98f",
+    expected_size=2664431,
 )
 BUNDLES: tuple[Bundle, ...] = (
     Bundle(
@@ -213,33 +285,52 @@ BUNDLES: tuple[Bundle, ...] = (
         ),
     ),
     Bundle(
-        "kijai",
-        "Standalone Kijai Wan V2V assets",
-        "20-23",
+        "v2v",
+        "ID-V2V with its complete local Comfy support set",
+        "20-21",
         (
             A(
                 "Kijai/Wan_ID_V2V_comfy",
-                model_path("kijai/Kijai--Wan_ID_V2V_comfy"),
-                ("wan_2.1_idv2v_int8_convrot.safetensors",),
+                model_path("imports/Kijai--Wan_ID_V2V_comfy"),
+                (
+                    "wan_2.1_idv2v_int8_convrot.safetensors",
+                    "wan_2.1_idv2v_with_normal_depth_int8_convrot.safetensors",
+                ),
+                revision="72a0683760887daf321a15ffe1d0ffe186ec9fbe",
+                placements=(
+                    (
+                        "wan_2.1_idv2v_int8_convrot.safetensors",
+                        repo_path("V2V/ComfyUI/models/diffusion_models/wan_2.1_idv2v_int8_convrot.safetensors"),
+                    ),
+                    (
+                        "wan_2.1_idv2v_with_normal_depth_int8_convrot.safetensors",
+                        repo_path("V2V/ComfyUI/models/diffusion_models/wan_2.1_idv2v_with_normal_depth_int8_convrot.safetensors"),
+                    ),
+                ),
             ),
             A(
                 "Comfy-Org/Wan_2.1_ComfyUI_repackaged",
-                model_path("kijai/Comfy-Org--Wan_2.1_ComfyUI_repackaged"),
+                model_path("imports/Comfy-Org--Wan_2.1_ComfyUI_repackaged"),
                 (
                     "split_files/clip_vision/clip_vision_h.safetensors",
                     "split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
                     "split_files/vae/wan_2.1_vae.safetensors",
                 ),
-            ),
-            A(
-                "denisbalon/lightx2v-i2v-14b-480p-cfg-step-distill-rank64-bf16.safetensors",
-                model_path("kijai/denisbalon--lightx2v-i2v-14b-480p-cfg-step-distill-rank64-bf16"),
-                ("lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",),
-            ),
-            A(
-                "Kijai/WanVideo_comfy",
-                model_path("kijai/Kijai--WanVideo_comfy"),
-                ("Wan2_1_VAE_bf16.safetensors",),
+                revision="617a7633e636506f850e043bc4605f290a466a8e",
+                placements=(
+                    (
+                        "split_files/clip_vision/clip_vision_h.safetensors",
+                        repo_path("V2V/ComfyUI/models/clip_vision/clip_vision_h.safetensors"),
+                    ),
+                    (
+                        "split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+                        repo_path("V2V/ComfyUI/models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"),
+                    ),
+                    (
+                        "split_files/vae/wan_2.1_vae.safetensors",
+                        repo_path("V2V/ComfyUI/models/vae/wan_2.1_vae.safetensors"),
+                    ),
+                ),
             ),
         ),
     ),
@@ -343,6 +434,400 @@ BUNDLES: tuple[Bundle, ...] = (
             A("pymaster/VocalRender", model_path("pymaster--VocalRender"), ("VocalRender-Pro/*",)),
         ),
     ),
+    Bundle(
+        "4d",
+        "4DAnyone reconstruction and foreground extraction",
+        "41-42",
+        (
+            A(
+                "AntResearch/4DAnyone",
+                repo_path("4d-ify/models"),
+                (
+                    "4danyone/*",
+                    "gvhmr/*",
+                    "perceptual/*",
+                ),
+                revision="4c80e87b805a5f8461cf339cdbe2fb4249e585aa",
+            ),
+            A(
+                "ZhengPeng7/BiRefNet",
+                repo_path("4d-ify/models/birefnet"),
+                (
+                    "BiRefNet_config.py",
+                    "birefnet.py",
+                    "config.json",
+                    "model.safetensors",
+                    "requirements.txt",
+                ),
+                revision="e2bf8e4460fc8fa32bba5ea4d94b3233d367b0e4",
+            ),
+        ),
+    ),
+    Bundle(
+        "lingbot",
+        "LingBot-World-V2 shared encoder, tokenizer, and VAE",
+        "43",
+        (
+            A(
+                "robbyant/lingbot-world-v2-14b-causal-fast",
+                repo_path("world-gen/lingbot/lingbot-world-v2-14b-causal-fast"),
+                (
+                    "Wan2.1_VAE.pth",
+                    "config.json",
+                    "google/umt5-xxl/*",
+                    "models_t5_umt5-xxl-enc-bf16.pth",
+                ),
+                revision="5c33dd40b213598c418fd25bff30fdbd23fd38a7",
+            ),
+        ),
+    ),
+    Bundle(
+        "lingbot-5090",
+        "LingBot-World-V2 official 1.3B single-5090 DiT",
+        "43a",
+        (
+            A(
+                "robbyant/lingbot-world-v2-1.3b-causal-fast",
+                repo_path("world-gen/lingbot/lingbot-world-v2-1.3b-causal-fast"),
+                (
+                    "model-*.safetensors",
+                    "model.safetensors.index.json",
+                ),
+                revision="7e36a5f919f86cb4255cc9bfc30adb44963fbde1",
+            ),
+        ),
+    ),
+    Bundle(
+        "fire3d",
+        "Fire3D single-image scene reconstruction",
+        "44",
+        (
+            A(
+                "hongchi/Fire3D",
+                repo_path("world-gen/fire3d/checkpoints/Fire3D"),
+                (
+                    "checksums.sha256",
+                    "config.json",
+                    "manifest.json",
+                    "external/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth",
+                    "external/trellis2/*",
+                    "perception/*",
+                    "reconstruction/flows/*/*",
+                    "reconstruction/stats/*.json",
+                    "reconstruction/vae/*/config.json",
+                    "reconstruction/vae/*/ckpts/*.pt",
+                ),
+                revision="84d4246ba2a0f47c8b93fd9dd65a67d354afd668",
+            ),
+        ),
+    ),
+    Bundle(
+        "aukspeech",
+        "AuK base speech generation/editing and Qwen encoder",
+        "45-46",
+        (
+            A(
+                "tencent/AuK",
+                repo_path("aukspeech/ckpts/AuK"),
+                (
+                    "auk_base.safetensors",
+                    "config.yaml",
+                    "vae.safetensors",
+                ),
+                revision="790742b71a4430120daf2b2099192abae449eb9f",
+            ),
+            A(
+                "Qwen/Qwen2.5-Omni-3B",
+                repo_path("aukspeech/ckpts/Qwen2.5-Omni-3B"),
+                (
+                    "added_tokens.json",
+                    "chat_template.json",
+                    "config.json",
+                    "generation_config.json",
+                    "merges.txt",
+                    "model-*.safetensors",
+                    "model.safetensors.index.json",
+                    "preprocessor_config.json",
+                    "special_tokens_map.json",
+                    "spk_dict.pt",
+                    "tokenizer.json",
+                    "tokenizer_config.json",
+                    "vocab.json",
+                ),
+                revision="f75b40e3da2003cdd6e1829b1f420ca70797c34e",
+            ),
+        ),
+    ),
+    Bundle(
+        "sculpting",
+        "TRELLIS.2 and Pixal3D single-object sculpting",
+        "47-48, 64-68",
+        (
+            A(
+                "microsoft/TRELLIS.2-4B",
+                repo_path("sculpting/pretrained/TRELLIS.2-4B"),
+                ("pipeline.json", "texturing_pipeline.json", "ckpts/*"),
+                revision="af44b45f2e35a493886929c6d786e563ec68364d",
+            ),
+            A(
+                "TencentARC/Pixal3D",
+                repo_path("sculpting/world/pretrained/Pixal3D"),
+                (
+                    "pipeline.json",
+                    "pipeline_mv.json",
+                    "ckpts/*",
+                ),
+                revision="b0cb2e1b794cab9aa0ac38a95d794a4d9337437f",
+            ),
+            SCULPT_SPARSE_DECODER,
+            SCULPT_DINO,
+            SCULPT_RMBG,
+            SCULPT_MOGE,
+            SCULPT_NAF,
+        ),
+    ),
+    Bundle(
+        "worldsculpt",
+        "WorldSculpt multi-object scene reconstruction",
+        "48-49, 64-68",
+        (
+            A(
+                "TencentARC/Pixal3D",
+                repo_path("sculpting/world/pretrained/Pixal3D"),
+                (
+                    "pipeline.json",
+                    "pipeline_mv.json",
+                    "ckpts/*",
+                ),
+                revision="b0cb2e1b794cab9aa0ac38a95d794a4d9337437f",
+            ),
+            A(
+                "AlayaLab/WorldSculpt",
+                repo_path("sculpting/world/pretrained"),
+                (
+                    "shape_ft1024_mv_lora_ibr_texverse_fixedmem05/config.json",
+                    "shape_ft1024_mv_lora_ibr_texverse_fixedmem05/ckpts/*.pt",
+                    "ss_ft64_mv_lora_ibr_texverse/config.json",
+                    "ss_ft64_mv_lora_ibr_texverse/ckpts/*.pt",
+                ),
+                revision="8cb81056d803c61371dd84ef18a14142a738610e",
+            ),
+            SCULPT_SPARSE_DECODER,
+            SCULPT_DINO,
+            SCULPT_RMBG,
+            SCULPT_MOGE,
+            SCULPT_NAF,
+        ),
+    ),
+    Bundle(
+        "animate",
+        "Wan Animate 2 distilled INT8 plus local pose preprocessing",
+        "50-52",
+        (
+            A(
+                "Comfy-Org/Wan-Animate-2",
+                model_path("imports/Comfy-Org--Wan-Animate-2"),
+                (
+                    "clip_vision/clip_vision_h.safetensors",
+                    "diffusion_models/wan_animate_2_distill_int8_convrot.safetensors",
+                    "text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+                    "vae/Wan2_1_VAE_bf16.safetensors",
+                ),
+                revision="ed158470869ff31fa51cf56012dac33fb00f494b",
+                placements=(
+                    (
+                        "clip_vision/clip_vision_h.safetensors",
+                        repo_path("V2V/ComfyUI/models/clip_vision/clip_vision_h.safetensors"),
+                    ),
+                    (
+                        "diffusion_models/wan_animate_2_distill_int8_convrot.safetensors",
+                        repo_path("V2V/ComfyUI/models/diffusion_models/wan_animate_2_distill_int8_convrot.safetensors"),
+                    ),
+                    (
+                        "text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+                        repo_path("V2V/ComfyUI/models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"),
+                    ),
+                    (
+                        "vae/Wan2_1_VAE_bf16.safetensors",
+                        repo_path("V2V/ComfyUI/models/vae/Wan2_1_VAE_bf16.safetensors"),
+                    ),
+                ),
+            ),
+            A(
+                "Wan-AI/Wan2.2-Animate-14B",
+                model_path("imports/Wan-AI--Wan2.2-Animate-14B-preprocess"),
+                ("process_checkpoint/det/yolov10m.onnx",),
+                revision="cb93a225fbaf1ca100f54e79da8f994995b689b3",
+                placements=(
+                    (
+                        "process_checkpoint/det/yolov10m.onnx",
+                        repo_path("V2V/ComfyUI/models/detection/yolov10m.onnx"),
+                    ),
+                ),
+            ),
+            A(
+                "Kijai/vitpose_comfy",
+                model_path("imports/Kijai--vitpose_comfy"),
+                (
+                    "onnx/vitpose_h_wholebody_data.bin",
+                    "onnx/vitpose_h_wholebody_model.onnx",
+                ),
+                revision="ae68f4e542151cebec0995b8469c70b07b8c3df4",
+                placements=(
+                    (
+                        "onnx/vitpose_h_wholebody_data.bin",
+                        repo_path("V2V/ComfyUI/models/detection/vitpose_h_wholebody_data.bin"),
+                    ),
+                    (
+                        "onnx/vitpose_h_wholebody_model.onnx",
+                        repo_path("V2V/ComfyUI/models/detection/vitpose_h_wholebody_model.onnx"),
+                    ),
+                ),
+            ),
+        ),
+    ),
+    Bundle(
+        "nvidia-sim",
+        "ARDY motion generation and SOMA-X character assets",
+        "53-58",
+        (
+            A(
+                "nvidia/ARDY-Core-RP-20FPS-Horizon40",
+                repo_path("nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon40"),
+                ("config.yaml", "denoiser.safetensors", "tokenizer.safetensors", "stats/*/*.npy"),
+                revision="abe6c43beb28c867c950acb824b9c4ef3d63fb76",
+            ),
+            A(
+                "nvidia/ARDY-Core-RP-20FPS-Horizon8",
+                repo_path("nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon8"),
+                ("config.yaml", "denoiser.safetensors", "tokenizer.safetensors", "stats/*/*.npy"),
+                revision="257a0843a10bf5201065963d7bca2791e9393a7a",
+            ),
+            A(
+                "nvidia/ARDY-G1-RP-25FPS-Horizon52",
+                repo_path("nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon52"),
+                ("config.yaml", "denoiser.safetensors", "tokenizer.safetensors", "stats/*/*.npy"),
+                revision="059b8007df0ba194a006a877b59a563955ac7b70",
+            ),
+            A(
+                "nvidia/ARDY-G1-RP-25FPS-Horizon8",
+                repo_path("nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon8"),
+                ("config.yaml", "denoiser.safetensors", "tokenizer.safetensors", "stats/*/*.npy"),
+                revision="334a8a9cdbafc962dcd304c26f31e6b17a869355",
+            ),
+            A(
+                "voxta/Llama-3-8B-LLM2Vec-ARDY-INT8",
+                repo_path("nvidia-sim/text-encoders/voxta/Llama-3-8B-LLM2Vec-ARDY-INT8"),
+                (
+                    "chat_template.jinja",
+                    "config.json",
+                    "llm2vec_config.json",
+                    "model.safetensors",
+                    "tokenizer.json",
+                    "tokenizer_config.json",
+                ),
+                revision="96c7eb1cc9100cd3925662d1093926c00b64a698",
+            ),
+            A(
+                "nvidia/SOMA-X",
+                repo_path("nvidia-sim/SOMA-X/assets"),
+                (
+                    "Anny/*",
+                    "GarmentMeasurements/*",
+                    "MANO/*",
+                    "MHR/*",
+                    "SMPL/*",
+                    "SMPLX/*",
+                    "SOMA-X-HF-MANIFEST.json",
+                    "SOMAHand.npz",
+                    "SOMA_neutral.npz",
+                    "SOMA_procedural_transforms.json",
+                    "SOMA_template_rig.usda",
+                    "correctives_model.pt",
+                    "example_animation.npy",
+                ),
+                revision="32f0ab41a0db0f2710d6542a435f90ad452c3b73",
+            ),
+        ),
+    ),
+    Bundle(
+        "yue2",
+        "YuE2 native and Comfy music generation/cover stack",
+        "59-63",
+        (
+            A(
+                "m-a-p/YuE2-3B",
+                repo_path("music/yue2/models/YuE2-3B"),
+                (
+                    "config.json",
+                    "generation_config.json",
+                    "model.safetensors",
+                    "modeling_yue2.py",
+                    "qwen.tiktoken",
+                    "weights_manifest.json",
+                    "yue2_generation_config.json",
+                ),
+                revision="14fc6c6f146441b1dd6363fcb2e01e82a6914cb7",
+            ),
+            A(
+                "m-a-p/YuE2-Vae",
+                repo_path("music/yue2/models/YuE2-Vae"),
+                (
+                    "config.json",
+                    "model.safetensors",
+                    "modeling_vae.py",
+                    "weights_manifest.json",
+                ),
+                revision="9a94e1d0ea9f8087e98f77fa88df4a4068104d2a",
+            ),
+            A(
+                "m-a-p/SheetSage2",
+                repo_path("music/yue2/models/SheetSage2"),
+                (
+                    "*.py",
+                    "config.json",
+                    "model.safetensors",
+                    "processor_config.json",
+                    "render_assets/**",
+                    "requirements-render.txt",
+                    "requirements.txt",
+                ),
+                revision="80af707174fc7ee521c25925d5f014729f0e61ae",
+            ),
+            A(
+                "m-a-p/MERT-v2-FullSong",
+                repo_path("music/yue2/models/MERT-v2-FullSong"),
+                (
+                    "config.json",
+                    "configuration_mert2.py",
+                    "model.safetensors",
+                    "modeling_mert2.py",
+                    "preprocessor_config.json",
+                    "weights_manifest.json",
+                ),
+                revision="d8ba1c745e733b3908ce6ad16ebeb17ac7600a42",
+            ),
+            A(
+                "Comfy-Org/YuE2",
+                model_path("imports/Comfy-Org--YuE2"),
+                (
+                    "audio_encoders/sheetsage2_bf16.safetensors",
+                    "checkpoints/yue2_3b_int8_convrot.safetensors",
+                ),
+                revision="8e6fcf0f23252ed188b634bd50d44f4b01fba890",
+                placements=(
+                    (
+                        "audio_encoders/sheetsage2_bf16.safetensors",
+                        repo_path("V2V/ComfyUI/models/audio_encoders/sheetsage2_bf16.safetensors"),
+                    ),
+                    (
+                        "checkpoints/yue2_3b_int8_convrot.safetensors",
+                        repo_path("V2V/ComfyUI/models/checkpoints/yue2_3b_int8_convrot.safetensors"),
+                    ),
+                ),
+            ),
+        ),
+    ),
 )
 
 
@@ -370,6 +855,9 @@ def resolve_selection(values: Sequence[str]) -> tuple[Bundle, ...]:
         return BUNDLES
 
     by_key = {bundle.key: bundle for bundle in BUNDLES}
+    # Preserve the former command-line name while presenting the canonical
+    # project name in the menu and documentation.
+    by_key["kijai"] = by_key["v2v"]
     selected: list[Bundle] = []
     seen: set[str] = set()
     for token in tokens:
@@ -411,7 +899,7 @@ def worker_count(value: str) -> int:
 def interactive_worker_count(default: int) -> int:
     while True:
         raw = input(
-            f"Parallel download workers / CPU threads [{default}]: "
+            f"Parallel Hugging Face file workers [{default}]: "
         ).strip()
         if not raw:
             return default
@@ -449,6 +937,10 @@ def download_artifact(
     # snapshot_download normally creates local_dir/cache_dir, but doing it here
     # guarantees that fresh nested roots such as qwen/ and text-only/ exist.
     artifact.destination.mkdir(parents=True, exist_ok=True)
+    if artifact.direct_url:
+        download_direct_artifact(artifact, number, total)
+        materialize_placements(artifact)
+        return
     mode = "cache_dir" if artifact.cache_layout else "local_dir"
     print(f"\n[{number}/{total}] {artifact.repo_id}")
     print(f"  {mode}: {artifact.destination}")
@@ -457,6 +949,8 @@ def download_artifact(
         mode: artifact.destination,
         "max_workers": workers,
     }
+    if artifact.revision:
+        kwargs["revision"] = artifact.revision
     # Older Hub releases need this to materialize local files. Current Hub
     # removed the argument and already uses real files for local_dir snapshots.
     if SNAPSHOT_SUPPORTS_SYMLINK_FLAG:
@@ -464,6 +958,90 @@ def download_artifact(
     if artifact.allow_patterns:
         kwargs["allow_patterns"] = list(artifact.allow_patterns)
     snapshot_download(**kwargs)
+    materialize_placements(artifact)
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(8 * 1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def download_direct_artifact(artifact: Artifact, number: int, total: int) -> None:
+    """Download one upstream release asset with resume and a pinned digest."""
+    if not artifact.direct_url or not artifact.direct_filename or not artifact.sha256:
+        raise ValueError(f"Incomplete direct artifact declaration: {artifact.repo_id}")
+    destination = artifact.destination / artifact.direct_filename
+    if destination.is_file():
+        if (artifact.expected_size is None or destination.stat().st_size == artifact.expected_size) and _sha256(destination) == artifact.sha256:
+            print(f"\n[{number}/{total}] {artifact.repo_id}")
+            print(f"  ready: {destination} (SHA-256 verified)")
+            return
+        raise FileExistsError(f"Refusing to replace an unverified direct artifact: {destination}")
+    partial = destination.with_name(destination.name + ".partial")
+    offset = partial.stat().st_size if partial.is_file() else 0
+    headers = {"User-Agent": "mm-tools-model-downloader/1"}
+    if offset:
+        headers["Range"] = f"bytes={offset}-"
+    print(f"\n[{number}/{total}] {artifact.repo_id}")
+    print(f"  release: {artifact.direct_url}")
+    print(f"  destination: {destination}")
+    with urllib.request.urlopen(urllib.request.Request(artifact.direct_url, headers=headers), timeout=60) as response:
+        resumed = offset > 0 and getattr(response, "status", 200) == 206
+        mode = "ab" if resumed else "wb"
+        with partial.open(mode) as handle:
+            shutil.copyfileobj(response, handle, length=1024 * 1024)
+    if artifact.expected_size is not None and partial.stat().st_size != artifact.expected_size:
+        raise RuntimeError(
+            f"Direct artifact has {partial.stat().st_size} bytes; expected {artifact.expected_size}: {partial}"
+        )
+    actual = _sha256(partial)
+    if actual != artifact.sha256:
+        raise RuntimeError(f"SHA-256 mismatch for {partial.name}: {actual}")
+    os.replace(partial, destination)
+    print(f"  ready: {destination} (SHA-256 verified)")
+
+
+def materialize_placements(artifact: Artifact) -> None:
+    """Expose selected snapshot files at native runtime paths without copies.
+
+    Hugging Face's resumable local snapshot remains intact. On the same
+    filesystem, the runtime path is a hard link to those verified bytes; the
+    copy fallback is only for an unusual cross-filesystem destination.
+    """
+    for relative_source, target in artifact.placements:
+        source = artifact.destination / relative_source
+        if not source.is_file():
+            raise FileNotFoundError(
+                f"Downloaded snapshot did not contain placement source: {source}"
+            )
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            try:
+                if source.samefile(target):
+                    print(f"  ready: {target}")
+                    continue
+            except OSError:
+                pass
+            if (
+                target.is_file()
+                and target.stat().st_size == source.stat().st_size
+                and filecmp.cmp(source, target, shallow=False)
+            ):
+                print(f"  ready: {target} (verified existing copy)")
+                continue
+            raise FileExistsError(
+                f"Refusing to replace a different runtime artifact: {target}"
+            )
+        try:
+            os.link(source, target)
+            method = "hard link"
+        except OSError:
+            shutil.copy2(source, target)
+            method = "copy"
+        print(f"  placed ({method}): {target}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -481,7 +1059,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--workers",
         type=worker_count,
-        help="parallel Hub file workers and Xet Tokio worker threads (1-256)",
+        help="parallel Hugging Face snapshot file workers (1-256)",
     )
     parser.add_argument("--debug", action="store_true", help="enable verbose huggingface_hub logging")
     return parser
@@ -497,7 +1075,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     workers = args.workers or DEFAULT_WORKERS
     if args.workers is None and not args.yes and sys.stdin.isatty():
         workers = interactive_worker_count(DEFAULT_WORKERS)
-    os.environ["TOKIO_WORKER_THREADS"] = str(workers)
     if args.download_all:
         bundles = BUNDLES
     elif args.selection:
