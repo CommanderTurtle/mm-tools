@@ -1,0 +1,88 @@
+type: pipelines.wan_animate_2_pipeline.WanAnimate2MPIPipeline
+
+model:
+  # t5
+  use_t5: True
+  t5_model: 'umt5_xxl'
+  t5_dtype: torch.bfloat16
+  text_len: 512
+  t5_checkpoint: '../ckpts/videomodel/Wan-AI/models_t5_umt5-xxl-enc-bf16.pth'
+  t5_tokenizer: '../ckpts/videomodel/Wan-AI/umt5-xxl'
+
+  # vae
+  vae_checkpoint: '../ckpts/videomodel/Wan-AI/vae.pth'
+
+  # clip
+  clip_model: 'clip_xlm_roberta_vit_h_14'
+  clip_dtype: "float16"
+  clip_checkpoint: '../ckpts/videomodel/Wan-AI/models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth'
+  clip_tokenizer: '../ckpts/videomodel/Wan-AI/xlm-roberta-large'
+
+  transformer:
+    type: wanxiang.wanxiang_animate_2_arch.WanxiangAnimate2Transformer
+    patch_size: [1, 2, 2]
+    in_dim: 36
+    dim: 5120
+    ffn_dim: 13824
+    freq_dim: 256
+    num_heads: 40
+    num_layers: 40
+    window_size: [-1, -1]
+    qk_norm: True
+    cross_attn_norm: True
+    eps: 1e-6
+    use_img_emb: True
+    refer_offset_t: 1
+    refer_offset_h: 0
+    refer_offset_w: -1
+    refer_stride: 1
+    sparse_type: 0
+    use_context_parallel: False
+    log_scale: 0.0
+
+
+  # flow_shift: 5.0
+  flow_reverse: True
+  flow_solver: 'euler'
+
+  weighting_scheme: ~
+  logit_mean: 0.0
+  logit_std: 1.0
+  mode_scale: 1.29
+
+  vae_encode_pose: True
+  enable_training_time_shift: True
+  enable_gradient_checkpointing: True
+
+  enable_train_lora: False
+  full_trainable_modules: []
+  lora_rank: 128
+  lora_init_weights: gaussian
+  only_train_attention: False
+
+test_cfg:
+  input_prompts: ['static background.']
+  sample_neg_prompt: '色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走'
+  num_train_timesteps: 1000
+  sample_fps: 16
+  sample_shift: 5.0
+  sample_guide_scale: 0.0
+  sample_steps: 20
+  target_shape: [7, 90, 90]
+  base_seed: 0
+  width: 640
+  height: 800
+  frame_num: 37   
+
+  # ------ parallel config ------
+  sp_size: 8
+  sharding_size: 8
+  
+  ## FSDP config
+  param_dtype: bfloat16
+  reduce_dtype: bfloat16
+  buffer_dtype: bfloat16
+  sharding_strategy: HYBRID_SHARD
+  use_fp8_gemm: False
+  
+model_path: '../ckpts/wan_animate_2/wan_animate_2_bf16.safetensors'
