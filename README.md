@@ -2,7 +2,10 @@
 
 `mm-tools` is a pruned, local-first multimedia workstation monorepo. It contains the runtime source, per-project setup entrypoints, and browser/CLI frontends used by this tool suite. It does not contain checkpoints, virtual environments, caches, generated media, or training/evaluation material.
 
-Pruning from tracked sources lives one AGPLv3 monorepo under the root `LICENSE`. There are no nested project licenses.
+Root-authored mm-tools code is distributed under the root AGPLv3 `LICENSE`.
+Imported upstream runtime files retain their required license, notice, and
+attribution files; those upstream terms continue to apply to their code and
+models. Exact source revisions are recorded in [UPSTREAMS.md](UPSTREAMS.md).
 
 The all-in-one frontend for local multimedia inference. Cutting out the cloud.
 
@@ -31,7 +34,7 @@ cd ~ && git clone https://github.com/CommanderTurtle/mm-tools multimedia && cd m
 cd models
 uv venv --python 3.12.10 --seed --managed-python
 source .venv/bin/activate
-uv pip install huggingface_hub hf_transfer
+uv pip install -U huggingface_hub hf_transfer
 
 uv run download_models.py
 # Choose workers first, then select project bundles or press Enter for all.
@@ -39,7 +42,23 @@ uv run download_models.py
 deactivate # when done
 ```
 
-The downloader is resumable. Run it again after an interrupted transfer. Model downloads remain governed by each model's native license and any access terms accepted for their usage. The ability to self-host a tool rivaling Adobe in 2026 was the purpose for this repo.
+The downloader is resumable. Run it again after an interrupted transfer. New
+source-import bundles are named `4d`, `lingbot`, `lingbot-5090`, `fire3d`,
+`aukspeech`, `sculpting`, `worldsculpt`, `animate`, `nvidia-sim`, `v2v`, and
+`yue2`; use `uv run download_models.py --list` for the complete current menu.
+The source imports, single-GPU adapters, setup/start contracts, and private
+browser studios are included here; model artifacts remain external and
+resumable. LingBot deliberately separates its shared encoder/VAE bundle from
+the official 1.3B single-5090 DiT and does not retain the unusable 14B DiT.
+
+Model downloads remain governed by each model's native license and any access
+terms accepted for their usage. ARDY uses an ungated, pre-merged INT8 LLM2Vec
+encoder that preserves the exact Llama 3 + MNTP + supervised-adapter pipeline;
+the original gated BF16 assembly is not downloaded. 4DAnyone's neutral SMPL-X
+body model remains a separate manual download. See
+[the model inventory](models/which-ones.txt) for
+every included artifact, output path, and explicit exclusion. The ability to
+self-host a tool rivaling Adobe in 2026 was the purpose for this repo.
 
 Assuming one has a nice GPU, you can host a wide variety of tools. Emulating the top-tier closed source software out there, solely with open-source runtimes. It wouldn't be without the community that building something like this would be possible.
 
@@ -97,6 +116,47 @@ https://github.com/user-attachments/assets/263b2134-0891-411b-932a-f0e5ead6b077
 
 https://github.com/user-attachments/assets/278fbb3b-93c9-4d4a-a4d8-0acaff4bc30a
 
+## New local creative studios
+
+The current expansion uses one shared, dependency-light product surface with
+project-native adapters. Every studio has responsive dark/light themes,
+searchable task cards, complete native controls, presets and drafts, raw
+streaming uploads, a persistent single-GPU queue, cancellation, SSE progress,
+model load/unload health, an output library, side-by-side comparison, and API
+examples. There are no hosted assets, analytics, CORS opt-ins, or automatic
+model downloads at runtime.
+
+| Project | Canonical surface | Default port |
+| --- | --- | ---: |
+| AuK | 16 speech generation, cloning, editing, emotion, timing, and nonverbal workflows; Vox-compatible speech route | 8260 |
+| 4DAnyone | monocular 4D human reconstruction and reusable result inspection | 8261 |
+| TRELLIS.2 + Pixal3D | image/multiview sculpting, local refinement, and interactive GLB inspection | 8262 |
+| WorldSculpt | complete multi-object scene reconstruction and scene inspection | 8263 |
+| Wan Animate 2 | character animation plus native pose/mask preprocessing | 8264 |
+| ID-V2V | identity-preserving transfer, normal/depth guidance, and reusable preprocessing | 8265 |
+| ARDY + SOMA-X | text-to-motion, motion inspection, parametric bodies, and hands | 8266 |
+| LingBot World V2 | 1.3B single-5090 world generation and visual camera-path authoring | 8267 |
+| Fire3D | RGB/RGBD scene reconstruction, native-release evaluation, and GLB inspection | 8268 |
+| YuE2 | composition, planning, continuation/cover, score realization/editing, transcription, resume, and VAE decode | 8270 |
+
+Run a studio from its project directory:
+
+```bash
+./setupwithuv.sh
+./startwithuv.sh
+```
+
+The default bind is `127.0.0.1`; set `MM_STUDIO_HOST=0.0.0.0` only for a
+trusted private network and set `MM_STUDIO_TOKEN` whenever the listener leaves
+loopback. Project `ARCHITECTURE.md` files document their exact model and VRAM
+contracts. The shared implementation lives in `studio/` and is checked without
+loading a model via:
+
+```bash
+python -m unittest studio.tests.test_contracts studio.tests.test_runtime
+bun build studio/web/app.js --target=browser --outfile=/tmp/mm-tools-studio.js
+```
+
 ## Have a 5090? 
 
 ![startupsh](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-startupsh.avif)
@@ -109,7 +169,7 @@ Jump into a project folder, run its setup once, and start it. Setup creates the 
 
 ```bash
 cd ~/multimedia/PROJECT
-./setupwithuv
+./setupwithuv.sh
 ./startwithuv.sh
 ```
 
@@ -169,8 +229,8 @@ Local Ideogram 4 generation source plus the fuzzy-mask editing browser: ObjectCl
 
 ```bash
 cd ~/multimedia/ideogram
-./setupwithuv
-./startwithuv                             # http://127.0.0.1:8174
+./setupwithuv.sh
+./startwithuv.sh                             # http://127.0.0.1:8174
 ```
 
 The standalone Ideogram generator is `local_generate.py`; add `src` to `PYTHONPATH` or install the local package when using that lane. The editor loads Ideogram only when explicitly selected. Its private engine reuses bundled Comfy code (not the Minimax service), supports local caption drafting and configurable crop processing, and preserves the original image outside the feathered mask. See [Ideogram architecture and setup](ideogram/ARCHITECTURE.md).
@@ -191,7 +251,7 @@ Local LongCat voice synthesis and cloning. The HTTP service and browser workbenc
 
 ```bash
 cd ~/multimedia/longcat
-./setupwithuv
+./setupwithuv.sh
 ./starthttp.sh                            # machine API: :8230
 ./startwithuv.sh                          # browser UI: :8231
 ```
@@ -202,7 +262,7 @@ Native ACE-Step 1.5 music generation, editing, repainting, extension, and audio-
 
 ```bash
 cd ~/multimedia/acestep
-./setupwithuv
+./setupwithuv.sh
 ./startwithuv.sh                          # http://127.0.0.1:8250
 ```
 
@@ -213,8 +273,8 @@ The browser process preloads the native XL-SFT DiT and 4B 5 Hz language model: t
 Standalone MiniMax Music 3 text-to-song production desk using the official graph: full FP16 DiT, pruned INT8 text encoder, DAV decoder, real CFG/top-k/sampler controls, and an animated lyrics-and-spectrum performance view. It does not require a separately running ComfyUI.
 
 ```bash
-cd ~/multimedia/minimax
-./setupwithuv
+cd ~/multimedia/music/minimax
+./setupwithuv.sh
 ./startwithuv.sh                          # http://127.0.0.1:8254
 ```
 
@@ -226,7 +286,7 @@ Foundation-1 text-to-audio with the enhanced Stable Audio Gradio controls, local
 
 ```bash
 cd ~/multimedia/stableaudio
-./setupwithuv
+./setupwithuv.sh
 ./startwithuv.sh                          # http://127.0.0.1:8251
 ```
 
@@ -236,7 +296,7 @@ Two-stage symbolic composition: generate harmony MIDI, then orchestrate a MIDI s
 
 ```bash
 cd ~/multimedia/symphony
-./setupwithuv
+./setupwithuv.sh
 ./startwithuv.sh                          # http://127.0.0.1:8252
 ```
 
@@ -248,7 +308,7 @@ Prompt-conditioned local singing synthesis with the highest-quality Pro weights 
 
 ```bash
 cd ~/multimedia/vocalrender
-./setupwithuv
+./setupwithuv.sh
 ./startwithuv.sh                          # http://127.0.0.1:8253
 ```
 
@@ -258,14 +318,14 @@ Audio-to-MIDI/score transcription with a browser piano roll.
 
 ```bash
 cd ~/multimedia/muscriptor
-./setupwithuv
-./startwithuv                             # http://127.0.0.1:8222
+./setupwithuv.sh
+./startwithuv.sh                             # http://127.0.0.1:8222
 ```
 
 Single-file CLI:
 
 ```bash
-./startwithuv INPUT.mp3
+./startwithuv.sh INPUT.mp3
 ```
 
 ### MuSViT
@@ -274,9 +334,9 @@ Sheet-music image/PDF encoding and SMT-backed beKern/MIDI/SVG conversion.
 
 ```bash
 cd ~/multimedia/musvit
-./setupwithuv
-./startwithuv                             # browser studio: :8223
-./startwithuv SCORE_IMAGE_OR_PDF          # direct CLI
+./setupwithuv.sh
+./startwithuv.sh                             # browser studio: :8223
+./startwithuv.sh SCORE_IMAGE_OR_PDF          # direct CLI
 ```
 
 Use `musvit_embed.py` directly for the embedding lane.
@@ -287,8 +347,8 @@ Flat-image decomposition into editable layers using local detection, segmentatio
 
 ```bash
 cd ~/multimedia/redesign
-./setupwithuv
-./startwithuv                             # http://127.0.0.1:8173
+./setupwithuv.sh
+./startwithuv.sh                             # http://127.0.0.1:8173
 ```
 
 Review `.env` before launch. Native Diffusers is the primary image lane; an existing private ComfyUI listener is optional.
@@ -314,8 +374,8 @@ Private VideoSmaller-style FFmpeg compression.
 
 ```bash
 cd ~/multimedia/video-compact
-./setupwithuv
-./startwithuv                             # http://127.0.0.1:8240
+./setupwithuv.sh
+./startwithuv.sh                             # http://127.0.0.1:8240
 ```
 
 ### Video to GIF/AVIF
@@ -324,8 +384,8 @@ Local trim/crop/resize and animated GIF or AVIF conversion.
 
 ```bash
 cd ~/multimedia/video-to-gif-avif
-./setupwithuv
-./startwithuv                             # http://127.0.0.1:8241
+./setupwithuv.sh
+./startwithuv.sh                             # http://127.0.0.1:8241
 ```
 
 The host FFmpeg build must expose the requested GIF/AVIF encoder and AVIF muxer.
@@ -336,7 +396,7 @@ Local CrisperWhisper 2.0 transcription in normalized or literal mode. The HTTP s
 
 ```bash
 cd ~/multimedia/whisper
-./setupwithuv
+./setupwithuv.sh
 ./starthttp.sh                            # machine API: :8172
 ./startwithuv.sh                          # browser UI: :8173
 ```
