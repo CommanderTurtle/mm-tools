@@ -5,8 +5,8 @@ This folder is a standalone, zero-telemetry MiniMax Music 3 studio. Its browser 
 ```mermaid
 flowchart LR
     Browser["Song Studio and Prompt Guide :8254"] --> API["Local FastAPI process"]
-    API --> Engine["Song engine 127.0.0.1:8264"]
-    API --> Guide["Optional guide engine 127.0.0.1:8265"]
+    API --> Engine["Song engine 127.0.0.1:8255"]
+    API --> Guide["Optional guide engine 127.0.0.1:8256"]
     Engine --> DiT["FP16 MiniMax Music 3 DiT"]
     Engine --> Encoder["Pruned INT8 MiniMax encoder"]
     Engine --> DAV["DAV audio decoder"]
@@ -20,8 +20,8 @@ flowchart LR
 ## Setup and start
 
 ```bash
-cd ~/multimedia/minimax
-./setupwithuv gpu
+cd ~/multimedia/music/minimax
+./setupwithuv.sh gpu
 ./startwithuv.sh
 ```
 
@@ -32,12 +32,12 @@ Song Studio has one intentionally process-local take ledger. A browser refresh r
 ## Exact local model layout
 
 ```text
-../models/Comfy-Org--Minimax-Music-3/
+../../models/Comfy-Org--Minimax-Music-3/
 ├── diffusion_models/minimax_music3_dit_fp16.safetensors
 ├── text_encoders/minimax_music3_text_encoder_pruned_int8_convrot.safetensors
 └── vae/minimax_music3_dav.safetensors
 
-../models/qwen/text-encoder-vl-nvfp4/
+../../models/qwen/text-encoder-vl-nvfp4/
 └── qwen3_vl_4b_nvfp4_full.safetensors
 ```
 

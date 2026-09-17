@@ -36,22 +36,22 @@ def _path_from_env(name: str, default: Path) -> Path:
 
 
 MODEL_ROOT = _path_from_env(
-    "MINIMAX_MODEL_DIR", ROOT.parent / "models" / "Comfy-Org--Minimax-Music-3"
+    "MINIMAX_MODEL_DIR", ROOT.parents[1] / "models" / "Comfy-Org--Minimax-Music-3"
 )
 OUTPUT_ROOT = _path_from_env("MINIMAX_OUTPUT_DIR", ROOT / "outputs")
 STATE_ROOT = ROOT / ".runtime"
 ENGINE_HOST = os.getenv("MINIMAX_ENGINE_HOST", "127.0.0.1")
-ENGINE_PORT = int(os.getenv("MINIMAX_ENGINE_PORT", "8264"))
+ENGINE_PORT = int(os.getenv("MINIMAX_ENGINE_PORT", "8255"))
 ENGINE_URL = f"http://{ENGINE_HOST}:{ENGINE_PORT}"
 ENGINE_START_TIMEOUT = float(os.getenv("MINIMAX_ENGINE_START_TIMEOUT", "120"))
 JOB_TIMEOUT = float(os.getenv("MINIMAX_JOB_TIMEOUT", "7200"))
-GUIDE_MODEL_ROOT = _path_from_env("MINIMAX_GUIDE_MODEL_ROOT", ROOT.parent / "models" / "qwen")
+GUIDE_MODEL_ROOT = _path_from_env("MINIMAX_GUIDE_MODEL_ROOT", ROOT.parents[1] / "models" / "qwen")
 GUIDE_DEFAULT_MODEL = os.getenv(
     "MINIMAX_GUIDE_DEFAULT_MODEL",
     "text-encoder-vl-nvfp4/qwen3_vl_4b_nvfp4_full.safetensors",
 ).replace("\\", "/")
 GUIDE_HOST = "127.0.0.1"
-GUIDE_PORT = int(os.getenv("MINIMAX_GUIDE_ENGINE_PORT", "8265"))
+GUIDE_PORT = int(os.getenv("MINIMAX_GUIDE_ENGINE_PORT", "8256"))
 GUIDE_URL = f"http://{GUIDE_HOST}:{GUIDE_PORT}"
 GUIDE_STATE_ROOT = STATE_ROOT / "prompt-guide"
 FIRECRAWL_URL = os.getenv("MINIMAX_GUIDE_FIRECRAWL_URL", "http://127.0.0.1:3002").rstrip("/")

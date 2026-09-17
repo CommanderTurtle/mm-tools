@@ -4,8 +4,10 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-[[ -f .env ]] || { printf 'Missing .env. Run ./setupwithuv first.\n' >&2; exit 1; }
-[[ -x .venv/bin/python ]] || { printf 'Missing .venv. Run ./setupwithuv first.\n' >&2; exit 1; }
+[[ -f .env ]] || { printf 'Missing .env. Run bash ./setupwithuv.sh first.\n' >&2; exit 1; }
+[[ -x .venv/bin/python ]] || { printf 'Missing .venv. Run bash ./setupwithuv.sh first.\n' >&2; exit 1; }
+# shellcheck disable=SC1091
+source .venv/bin/activate
 
 set -a
 # shellcheck disable=SC1091
@@ -14,16 +16,26 @@ set +a
 
 HOST="${MINIMAX_HOST:-0.0.0.0}"
 PORT="${MINIMAX_PORT:-8254}"
-MODEL_ROOT="${MINIMAX_MODEL_DIR:-../models/Comfy-Org--Minimax-Music-3}"
+MODEL_ROOT="${MINIMAX_MODEL_DIR:-../../models/Comfy-Org--Minimax-Music-3}"
 if [[ "$MODEL_ROOT" != /* ]]; then
-  MODEL_ROOT="$ROOT/$MODEL_ROOT"
+  candidate="$ROOT/$MODEL_ROOT"
+  # Preserve configs copied before MiniMax moved from the repository root to
+  # music/minimax. Their ../models path now needs one additional parent.
+  if [[ ! -e "$candidate" && "$MODEL_ROOT" == ../models/* ]]; then
+    candidate="$ROOT/../$MODEL_ROOT"
+  fi
+  MODEL_ROOT="$candidate"
 fi
 MODEL_ROOT="$(realpath -m -- "$MODEL_ROOT")"
 export MINIMAX_MODEL_DIR="$MODEL_ROOT"
 
-GUIDE_ROOT="${MINIMAX_GUIDE_MODEL_ROOT:-../models/qwen}"
+GUIDE_ROOT="${MINIMAX_GUIDE_MODEL_ROOT:-../../models/qwen}"
 if [[ "$GUIDE_ROOT" != /* ]]; then
-  GUIDE_ROOT="$ROOT/$GUIDE_ROOT"
+  candidate="$ROOT/$GUIDE_ROOT"
+  if [[ ! -e "$candidate" && "$GUIDE_ROOT" == ../models/* ]]; then
+    candidate="$ROOT/../$GUIDE_ROOT"
+  fi
+  GUIDE_ROOT="$candidate"
 fi
 GUIDE_ROOT="$(realpath -m -- "$GUIDE_ROOT")"
 export MINIMAX_GUIDE_MODEL_ROOT="$GUIDE_ROOT"
@@ -53,8 +65,6 @@ if command -v ss >/dev/null 2>&1 && ss -H -ltn "sport = :${PORT}" 2>/dev/null | 
   exit 1
 fi
 
-# shellcheck disable=SC1091
-source .venv/bin/activate
 printf 'MiniMax Music Studio: %s\n' "$LOCAL_URL"
 printf 'The song engine is private to this process. Prompt Guide owns a second loopback engine only while its switch is on. Ctrl+C unloads and stops both.\n'
 exec python -m uvicorn local_app.server:app \
