@@ -4,7 +4,6 @@ version = "1.5.0"
 description = "ACE-Step 1.5"
 readme = {text = "ACE-Step 1.5 local runtime package.", content-type = "text/plain"}
 requires-python = ">=3.11,<3.13"
-license = {text = "MIT"}
 dependencies = [
     # PyTorch for Windows with CUDA 12.8
     "torch==2.7.1+cu128; sys_platform == 'win32'",
@@ -50,8 +49,6 @@ dependencies = [
     "lightning>=2.0.0",
     "tensorboard>=2.0.0",
     # Local third-party packages
-    # nano-vllm source is configured in [tool.uv.sources]
-    "nano-vllm; sys_platform != 'darwin' or platform_machine != 'arm64'",
     "modelscope",
     "tensorboard>=2.20.0",
     "typer-slim>=0.21.1",
@@ -79,7 +76,6 @@ required-environments = [
 ]
 
 [tool.uv.sources]
-nano-vllm = { path = "acestep/third_parts/nano-vllm" }
 torch = [
     { index = "pytorch-cu128", marker = "sys_platform == 'win32' or (sys_platform == 'linux' and platform_machine == 'x86_64')" },
     { index = "pytorch-cu130", marker = "sys_platform == 'linux' and platform_machine == 'aarch64'" },
@@ -97,7 +93,6 @@ torchaudio = [
 acestep = "acestep.acestep_v15_pipeline:main"
 acestep-api = "acestep.api_server:main"
 acestep-download = "acestep.model_downloader:main"
-acestep-openrouter = "openrouter.openrouter_api_server:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -107,7 +102,7 @@ build-backend = "hatchling.build"
 dev = []
 
 [tool.hatch.build.targets.wheel]
-packages = ["acestep", "openrouter"]
+packages = ["acestep"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "acestep/ui/gradio/interfaces/audio_player_preferences.js" = "acestep/ui/gradio/interfaces/audio_player_preferences.js"

@@ -3,7 +3,6 @@ name = "img2svg"
 version = "0.1.0"
 edition = "2024"
 description = "Private local raster-to-SVG vectorizer with a native Rust CLI and web studio"
-license = "MIT"
 
 [[bin]]
 name = "img2svg"
