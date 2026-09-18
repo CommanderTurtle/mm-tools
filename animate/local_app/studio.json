@@ -93,7 +93,7 @@
         {"type": "section", "label": "Long clip & GPU cache"},
         {"id": "enable_context", "type": "toggle", "label": "Temporal context", "default": true, "span": "half", "toggle_label": "Sample in overlapping temporal windows"},
         {"id": "cache_precision", "type": "choice", "label": "GPU pose cache", "default": "disabled", "span": "full", "options": [{"value": "disabled", "label": "Disabled · safest", "description": "Keeps maximum headroom; pose work repeats each step."}, {"value": "int8", "label": "INT8", "description": "Optional GPU cache; roughly halves pose work."}, {"value": "int4", "label": "INT4", "description": "Smallest optional GPU cache."}]},
-        {"id": "context_length", "type": "number", "label": "Latent window", "min": 5, "max": 81, "step": 1, "default": 21, "span": "third"},
+        {"id": "context_length", "type": "number", "label": "Latent window", "min": 3, "max": 81, "step": 1, "default": 21, "span": "third", "hint": "Automatically bounded by resolution to the official 480p temporal-token budget."},
         {"id": "context_overlap", "type": "number", "label": "Window overlap", "min": 0, "max": 80, "step": 1, "default": 8, "span": "third"},
         {"id": "context_stride", "type": "number", "label": "Window stride", "min": 1, "max": 16, "step": 1, "default": 1, "span": "third"},
         {"id": "context_schedule", "type": "select", "label": "Window schedule", "default": "standard_static", "span": "half", "options": [{"value": "standard_static", "label": "Static · cache compatible"}, {"value": "standard_uniform", "label": "Uniform"}, {"value": "looped_uniform", "label": "Uniform looped"}, {"value": "batched", "label": "Batched"}]},

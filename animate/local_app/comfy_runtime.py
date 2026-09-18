@@ -156,6 +156,13 @@ class ComfyRuntime:
             if self.process.poll() is not None:
                 self._flush_log()
                 raise RuntimeError(self._failure_message())
+            if self._prompt_worker_failed():
+                # Comfy can lose only its prompt worker while leaving the HTTP
+                # process alive.  Without this guard the Studio would poll an
+                # impossible history record forever and retain all VRAM.
+                time.sleep(0.25)
+                self._flush_log()
+                raise RuntimeError(self._failure_message())
             try:
                 history = self._request(f"/history/{prompt_id}", timeout=10)
             except (OSError, urllib.error.URLError) as error:
@@ -178,6 +185,14 @@ class ComfyRuntime:
             self.context.update(stage, progress)
             self._flush_log(limit=40)
             time.sleep(1.0)
+
+    def _prompt_worker_failed(self) -> bool:
+        self._log.flush()
+        try:
+            log = self.log_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return False
+        return "Exception in thread " in log and "(prompt_worker)" in log
 
     def _failure_message(self) -> str:
         try:

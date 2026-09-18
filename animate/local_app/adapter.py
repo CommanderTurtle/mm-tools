@@ -15,6 +15,7 @@ LIGHTX2V_LORA = "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors"
 TEXT_ENCODER = "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
 CLIP_VISION = "clip_vision_h.safetensors"
 VAE = "Wan2_1_VAE_bf16.safetensors"
+CANONICAL_CONTEXT_TOKENS = 21 * (480 // 16) * (832 // 16)
 PROFILES: dict[str, dict[str, Any]] = {
     "distilled": {
         "label": "native distilled INT8",
@@ -64,6 +65,23 @@ def _wan_length(value: Any) -> int:
 
 def _latent_size(value: int) -> int:
     return (value + 15) // 16 * 16
+
+
+def _context_window_plan(
+    width: int,
+    height: int,
+    requested_length: int,
+    requested_overlap: int,
+) -> tuple[int, int]:
+    """Fit a temporal window to Animate 2's official 480p token budget."""
+
+    spatial_tokens = max(1, (width // 16) * (height // 16))
+    safe_length = max(3, CANONICAL_CONTEXT_TOKENS // spatial_tokens)
+    length = max(3, min(requested_length, safe_length))
+    if requested_overlap <= 0:
+        return length, 0
+    overlap = max(1, requested_overlap * length // max(1, requested_length))
+    return length, min(length - 1, overlap)
 
 
 def _profile(controls: dict[str, Any]) -> dict[str, Any]:
@@ -227,10 +245,24 @@ class Adapter(StudioAdapter):
             )
             model_ref = ["31", 0]
         if bool(c.get("enable_context", True)):
+            requested_context = int(c.get("context_length", 21))
+            requested_overlap = int(c.get("context_overlap", 8))
+            context_length, context_overlap = _context_window_plan(
+                latent_width,
+                latent_height,
+                requested_context,
+                requested_overlap,
+            )
+            if (context_length, context_overlap) != (requested_context, requested_overlap):
+                self._active_context.log(
+                    "GPU window planner: "
+                    f"{requested_context}/{requested_overlap} -> {context_length}/{context_overlap} "
+                    f"latent frames at {width}x{height}; full {length}-frame output is preserved."
+                )
             graph["16"] = _node(
                 "ContextWindowsManual", model=model_ref,
-                context_length=int(c.get("context_length", 21)),
-                context_overlap=int(c.get("context_overlap", 8)),
+                context_length=context_length,
+                context_overlap=context_overlap,
                 context_schedule=str(c.get("context_schedule", "standard_static")),
                 context_stride=int(c.get("context_stride", 1)), closed_loop=bool(c.get("closed_loop", False)),
                 fuse_method=str(c.get("fuse_method", "pyramid")), dim=2,
