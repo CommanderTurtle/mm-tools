@@ -34,9 +34,9 @@ source .venv/bin/activate
 uv pip install torch torchvision torchaudio
 uv pip install -r requirements-workstation.txt
 uv pip install paddlepaddle==3.1.0
-uv pip install --no-deps 'diffusers @ git+https://github.com/huggingface/diffusers.git'
+uv pip install --no-deps diffusers
 uv pip install 'sdnq>=0.1.5'
-uv pip install --no-deps 'sam-2 @ git+https://github.com/facebookresearch/sam2.git'
+python -c 'import pathlib, site, sys; pathlib.Path(site.getsitepackages()[0], "redesign-native.pth").write_text(sys.argv[1] + "\n")' "$ROOT/modules"
 
 if [[ -f modules/grounding_dino/setup.py ]]; then
   uv pip install -e modules/grounding_dino --no-build-isolation ||
