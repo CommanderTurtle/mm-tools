@@ -1,1 +1,1 @@
--r ../../studio/requirements.txt
+-r local_app/requirements.txt

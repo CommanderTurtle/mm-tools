@@ -46,7 +46,7 @@ PYTHONPATH="$ROOT/../..:$ROOT:$ROOT/trellis2_x2" HF_HUB_OFFLINE=1 TRANSFORMERS_O
   "$VENV/bin/python" - <<'PY'
 import torch
 from fire3d.cli import examples
-from studio.server import build_application
+from local_app.server import build_application
 assert torch.cuda.is_available()
 assert torch.cuda.get_device_properties(0).total_memory >= 30_000 * 1024**2
 assert "single_image" in examples()
