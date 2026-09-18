@@ -17,7 +17,7 @@ import numpy as np
 import soundfile as sf
 import torch
 
-from studio.runtime import StudioAdapter, StudioContext, StudioOutput
+from local_app.runtime import StudioAdapter, StudioContext, StudioOutput
 
 
 GENERATION_MODES = {

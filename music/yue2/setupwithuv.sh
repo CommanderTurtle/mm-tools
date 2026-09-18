@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 VENV="$ROOT/.venv"
 SHEET_VENV="$ROOT/.venv-sheetsage2"
-STUDIO="$ROOT/../../studio"
+STUDIO="$ROOT/local_app"
 
 command -v uv >/dev/null 2>&1 || { printf 'uv is required. Install uv, then rerun this script.\n' >&2; exit 1; }
 command -v nvidia-smi >/dev/null 2>&1 || { printf 'YuE2 requires an NVIDIA CUDA workstation.\n' >&2; exit 1; }
@@ -59,7 +59,7 @@ mkdir -p "$ROOT/.runtime/studio/assets" "$ROOT/.runtime/studio/outputs"
 PYTHONPATH="$ROOT/../..:$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" "$VENV/bin/python" - <<'PY'
 import torch
 from yue2 import YuE2Pipeline, SymbolicPlan
-from studio.server import build_application
+from local_app.server import build_application
 
 assert torch.cuda.is_available(), "CUDA is not visible inside the YuE2 environment"
 assert torch.cuda.is_bf16_supported(), "YuE2 requires BF16 support"
