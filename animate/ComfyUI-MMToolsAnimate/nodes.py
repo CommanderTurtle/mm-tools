@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gc
+import logging
 from typing import Any
 
 import torch
@@ -26,6 +27,20 @@ def _discard_encoder(value: Any) -> None:
     if patcher is not None:
         patcher.load_device = torch.device("meta")
         patcher.offload_device = torch.device("meta")
+
+
+def _use_ephemeral_lora_backups(patcher: Any) -> None:
+    """Keep LoRA rollback metadata storage-free in a job-scoped process.
+
+    Comfy normally retains every pre-LoRA weight on ``offload_device`` so a
+    shared runtime can restore the base model.  Under ``--gpu-only`` that
+    device is CUDA, which temporarily duplicates the entire 16 GiB Animate 2
+    checkpoint.  This runtime exits after one job, so restoration is neither
+    useful nor reachable.  Meta tensors retain the shapes Comfy expects while
+    consuming no VRAM or system RAM.
+    """
+
+    patcher.offload_device = torch.device("meta")
 
 
 class MMToolsGpuOnlyWanLoader:
@@ -83,6 +98,13 @@ class MMToolsGpuOnlyWanLoader:
 
         unet_path = folder_paths.get_full_path_or_raise("diffusion_models", unet_name)
         model = comfy.sd.load_diffusion_model(unet_path, model_options={})
+        _use_ephemeral_lora_backups(model)
+        free_bytes, total_bytes = torch.cuda.mem_get_info()
+        logging.info(
+            "GPU-only WAN staged with storage-free patch backups; %.2f/%.2f GiB free",
+            free_bytes / 1024**3,
+            total_bytes / 1024**3,
+        )
         return (
             model,
             positive,
