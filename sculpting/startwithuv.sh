@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 VENV="$ROOT/.venv"
-VENDOR="$ROOT/.runtime/vendor"
+NATIVE="$ROOT/native"
 [[ -x "$VENV/bin/python" ]] || { printf 'Run bash ./setupwithuv.sh first.\n' >&2; exit 1; }
 # shellcheck disable=SC1090
 source "$VENV/bin/activate"
@@ -27,7 +27,7 @@ if [[ -f "$ROOT/.env.local" ]]; then
   set +a
 fi
 
-export PYTHONPATH="$ROOT/..:$ROOT:$ROOT/world:$VENDOR/NAF:$VENDOR/MoGe${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$ROOT/..:$ROOT:$ROOT/world:$NATIVE/NAF:$NATIVE/MoGe${PYTHONPATH:+:$PYTHONPATH}"
 export HF_HUB_DISABLE_TELEMETRY=1
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1

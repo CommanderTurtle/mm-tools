@@ -36,9 +36,9 @@ unrelated texture model or attempts a network download at runtime.
 
 ## Shared dependency contract
 
-WorldSculpt reuses `sculpting/.venv`, the Pixal3D checkpoint, DINOv3, BiRefNet,
-MoGe-2, NAF, O-Voxel, CuMesh, FlexGEMM, and the shared private Studio. Its setup
-installs only the additional WorldSculpt Python modules. Models are not copied.
+WorldSculpt owns `world/.venv` while using the project-local Pixal3D checkpoint,
+DINOv3, BiRefNet, MoGe-2, NAF, O-Voxel, CuMesh, and FlexGEMM runtimes. Its setup
+installs the core and WorldSculpt modules into that environment. Models are not copied.
 
 The canonical 5090 path is PyTorch fused SDPA plus FlexGEMM sparse convolution.
 The grouped ragged-SDPA shim batches equal-length views, so FlashAttention and

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "utils3d_moge"
+version = "1.7"
+description = "A pure-Python collection of useful functions for 3D computer vision and graphics research"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "moderngl",
+    "numpy",
+    "scipy",
+]
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["utils3d_moge*"]

@@ -147,17 +147,17 @@ class Adapter(StudioAdapter):
     def __init__(self, project_root: Path, runtime_root: Path) -> None:
         super().__init__(project_root, runtime_root)
         self.sculpt_root = project_root.parent
-        self.python = self.sculpt_root / ".venv" / "bin" / "python"
+        self.python = project_root / ".venv" / "bin" / "python"
         self.pixal = project_root / "pretrained" / "Pixal3D"
         self.ss_stage = project_root / "pretrained" / "ss_ft64_mv_lora_ibr_texverse"
         self.shape_stage = project_root / "pretrained" / "shape_ft1024_mv_lora_ibr_texverse_fixedmem05"
         self.deps = self.sculpt_root / "pretrained" / "deps"
-        self.vendor = self.sculpt_root / ".runtime" / "vendor"
+        self.native = self.sculpt_root / "native"
         self._localize_pipeline()
 
     def _checks(self) -> list[tuple[str, Path]]:
         return [
-            ("Shared sculpting Python", self.python),
+            ("WorldSculpt Python", self.python),
             ("Pixal3D pipeline", self.pixal / "pipeline.json"),
             ("WorldSculpt sparse-stage config", self.ss_stage / "config.json"),
             ("WorldSculpt sparse-stage denoiser", self.ss_stage / "ckpts" / "denoiser_step0015000.pt"),
@@ -169,8 +169,8 @@ class Adapter(StudioAdapter):
             ("BiRefNet", self.deps / "ZhengPeng7--BiRefNet" / "model.safetensors"),
             ("MoGe-2", self.deps / "Ruicheng--moge-2-vitl" / "model.pt"),
             ("NAF weights", self.deps / "valeoai--NAF" / "naf_release.pth"),
-            ("Pinned NAF source", self.vendor / "NAF" / "hubconf.py"),
-            ("Pinned MoGe source", self.vendor / "MoGe" / "moge" / "model" / "v2.py"),
+            ("NAF source", self.native / "NAF" / "hubconf.py"),
+            ("MoGe source", self.native / "MoGe" / "moge" / "model" / "v2.py"),
         ]
 
     def health(self) -> dict[str, Any]:
@@ -489,7 +489,7 @@ class Adapter(StudioAdapter):
         (work / "tmp").mkdir(parents=True, exist_ok=True)
         python_path = [
             str(self.sculpt_root.parent), str(self.sculpt_root), str(self.project_root),
-            str(self.vendor / "NAF"), str(self.vendor / "MoGe"),
+            str(self.native / "NAF"), str(self.native / "MoGe"),
         ]
         existing = os.environ.get("PYTHONPATH")
         if existing:
@@ -506,7 +506,7 @@ class Adapter(StudioAdapter):
             "SPARSE_CONV_BACKEND": "flex_gemm",
             "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True",
             "PIXAL_PIPELINE_CONFIG": "pipeline.mmtools.json",
-            "PIXAL_NAF_SOURCE": str(self.vendor / "NAF"),
+            "PIXAL_NAF_SOURCE": str(self.native / "NAF"),
             "PIXAL_NAF_CHECKPOINT": str(self.deps / "valeoai--NAF" / "naf_release.pth"),
             "FLEX_GEMM_AUTOTUNE_CACHE_PATH": str(self.runtime_root / "flex_gemm_autotune.json"),
             "TMPDIR": str(work / "tmp"),

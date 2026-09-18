@@ -1,13 +1,3 @@
-/*
- * O-Voxel Convertion API
- *
- * Copyright (C) 2025, Jianfeng XIANG <belljig@outlook.com>
- * All rights reserved.
- *
- * Licensed under The MIT License [see LICENSE for details]
- *
- * Written by Jianfeng XIANG
- */
 
 #pragma once
 #include <torch/extension.h>
@@ -41,7 +31,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> mesh_to_flexible_dual_gr
 
 /**
  * Voxelizes a triangle mesh with PBR materials
- * 
+ *
  * @param voxel_size                    [3] tensor containing the size of a voxel
  * @param grid_range                    [6] tensor containing the size of the grid
  * @param vertices                      [N_tri, 3, 3] array containing the triangle vertices
@@ -74,7 +64,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> mesh_to_flexible_dual_gr
  * @param normalTextureFilter           list of int indicating the normal texture filter (0: NEAREST, 1: LINEAR)
  * @param normalTextureWrap             list of int indicating the normal texture wrap (0: REPEAT, 1: CLAMP_TO_EDGE, 2: MIRRORED_REPEAT)
  * @param mipLevelOffset                float indicating the mip level offset for texture mipmap
- * 
+ *
  * @return tuple containing:
  *   - coords: tensor of shape [N, 3] containing the voxel coordinates
  *   - out_baseColor: tensor of shape [N, 3] containing the base color of each voxel

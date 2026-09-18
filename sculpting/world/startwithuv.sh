@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SCULPT_ROOT="$(cd -- "$ROOT/.." && pwd)"
 VENV="$ROOT/.venv"
-VENDOR="$SCULPT_ROOT/.runtime/vendor"
+NATIVE="$SCULPT_ROOT/native"
 [[ -x "$VENV/bin/python" ]] || { printf 'Run bash ./setupwithuv.sh first.\n' >&2; exit 1; }
 # shellcheck disable=SC1090
 source "$VENV/bin/activate"
@@ -18,7 +18,7 @@ for env_file in "$SCULPT_ROOT/.env.local" "$ROOT/.env.local"; do
   fi
 done
 
-export PYTHONPATH="$SCULPT_ROOT/..:$SCULPT_ROOT:$ROOT:$VENDOR/NAF:$VENDOR/MoGe${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$SCULPT_ROOT/..:$SCULPT_ROOT:$ROOT:$NATIVE/NAF:$NATIVE/MoGe${PYTHONPATH:+:$PYTHONPATH}"
 export HF_HUB_DISABLE_TELEMETRY=1
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
@@ -27,7 +27,7 @@ export TOKENIZERS_PARALLELISM=false
 export ATTN_BACKEND="${ATTN_BACKEND:-sdpa}"
 export SPARSE_ATTN_BACKEND="${SPARSE_ATTN_BACKEND:-sdpa}"
 export SPARSE_CONV_BACKEND="${SPARSE_CONV_BACKEND:-flex_gemm}"
-export PIXAL_NAF_SOURCE="$VENDOR/NAF"
+export PIXAL_NAF_SOURCE="$NATIVE/NAF"
 export PIXAL_NAF_CHECKPOINT="$SCULPT_ROOT/pretrained/deps/valeoai--NAF/naf_release.pth"
 export PIXAL_PIPELINE_CONFIG=pipeline.mmtools.json
 export MM_STUDIO_HOST="${WORLD_SCULPT_HOST:-${MM_STUDIO_HOST:-127.0.0.1}}"

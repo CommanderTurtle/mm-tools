@@ -1,15 +1,3 @@
-// This file is part of Eigen, a lightweight C++ template library
-// for linear algebra.
-//
-// Copyright (C) 2012 Alexey Korepanov
-// Copyright (C) 2025 Ludwig Striet <ludwig.striet@mathematik.uni-freiburg.de>
-//
-// This Source Code Form is subject to the terms of the
-// Mozilla Public License v. 2.0. If a copy of the MPL
-// was not distributed with this file, You can obtain one at
-// https://mozilla.org/MPL/2.0/.
-//
-// Derived from: Eigen/src/Eigenvalues/RealQZ.h
 
 #ifndef EIGEN_COMPLEX_QZ_H_
 #define EIGEN_COMPLEX_QZ_H_

@@ -1,12 +1,3 @@
-// This file is part of Eigen, a lightweight C++ template library
-// for linear algebra.
-//
-// Copyright (C) 2012 Désiré Nuentsa-Wakam <desire.nuentsa_wakam@inria.fr>
-// Copyright (C) 2014 Gael Guennebaud <gael.guennebaud@inria.fr>
-//
-// This Source Code Form is subject to the terms of the Mozilla
-// Public License v. 2.0. If a copy of the MPL was not distributed
-// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #ifndef EIGEN_INCOMPLETE_LUT_H
 #define EIGEN_INCOMPLETE_LUT_H
@@ -66,38 +57,7 @@ Index QuickSplit(VectorV& row, VectorI& ind, Index ncut) {
 
 }  // end namespace internal
 
-/** \ingroup IterativeLinearSolvers_Module
- * \class IncompleteLUT
- * \brief Incomplete LU factorization with dual-threshold strategy
- *
- * \implsparsesolverconcept
- *
- * During the numerical factorization, two dropping rules are used :
- *  1) any element whose magnitude is less than some tolerance is dropped.
- *    This tolerance is obtained by multiplying the input tolerance @p droptol
- *    by the average magnitude of all the original elements in the current row.
- *  2) After the elimination of the row, only the @p fill largest elements in
- *    the L part and the @p fill largest elements in the U part are kept
- *    (in addition to the diagonal element ). Note that @p fill is computed from
- *    the input parameter @p fillfactor which is used the ratio to control the fill_in
- *    relatively to the initial number of nonzero elements.
- *
- * The two extreme cases are when @p droptol=0 (to keep all the @p fill*2 largest elements)
- * and when @p fill=n/2 with @p droptol being different to zero.
- *
- * References : Yousef Saad, ILUT: A dual threshold incomplete LU factorization,
- *              Numerical Linear Algebra with Applications, 1(4), pp 387-402, 1994.
- *
- * NOTE : The following implementation is derived from the ILUT implementation
- * in the SPARSKIT package, Copyright (C) 2005, the Regents of the University of Minnesota
- *  released under the terms of the GNU LGPL:
- *    http://www-users.cs.umn.edu/~saad/software/SPARSKIT/README
- * However, Yousef Saad gave us permission to relicense his ILUT code to MPL2.
- * See the Eigen mailing list archive, thread: ILUT, date: July 8, 2012:
- *   http://listengine.tuxfamily.org/lists.tuxfamily.org/eigen/2012/07/msg00064.html
- * alternatively, on GMANE:
- *   http://comments.gmane.org/gmane.comp.lib.eigen/3302
- */
+
 template <typename Scalar_, typename StorageIndex_ = int>
 class IncompleteLUT : public SparseSolverBase<IncompleteLUT<Scalar_, StorageIndex_> > {
  protected:

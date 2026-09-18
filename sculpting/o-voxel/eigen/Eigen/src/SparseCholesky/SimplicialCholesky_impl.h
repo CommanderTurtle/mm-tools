@@ -1,21 +1,3 @@
-// This file is part of Eigen, a lightweight C++ template library
-// for linear algebra.
-//
-// Copyright (C) 2008-2012 Gael Guennebaud <gael.guennebaud@inria.fr>
-//
-// This Source Code Form is subject to the terms of the Mozilla
-// Public License v. 2.0. If a copy of the MPL was not distributed
-// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-/*
-NOTE: these functions have been adapted from the LDL library:
-
-LDL Copyright (c) 2005 by Timothy A. Davis.  All Rights Reserved.
-
-The author of LDL, Timothy A. Davis., has executed a license with Google LLC
-to permit distribution of this code and derivative works as part of Eigen under
-the Mozilla Public License v. 2.0, as stated at the top of this file.
- */
 
 #ifndef EIGEN_SIMPLICIAL_CHOLESKY_IMPL_H
 #define EIGEN_SIMPLICIAL_CHOLESKY_IMPL_H

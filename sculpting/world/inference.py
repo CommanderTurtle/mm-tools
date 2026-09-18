@@ -27,16 +27,10 @@ _LOCAL_DINO = os.path.join(_DEPS_ROOT, "camenduru--dinov3-vitl16-pretrain-lvd168
 _LOCAL_MOGE = os.path.join(_DEPS_ROOT, "Ruicheng--moge-2-vitl", "model.pt")
 MOGE_MODEL_NAME = _LOCAL_MOGE
 
-# Base Pixal3D weights. Prefer the copy bundled next to this file so the tree is
-# self-contained (no HuggingFace cache required) — this is also the SAME directory
-# reconstruct_object.py reads its LoRA base checkpoints from, so the base
-# weights are loaded from one place instead of two. Falls back to the HF repo id
-# when the local copy is absent; init_pipeline prints which one is used.
+# Base Pixal3D weights live inside this project and are shared with the LoRA stages.
 _LOCAL_MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                  'pretrained', 'Pixal3D')
-MODEL_PATH = (_LOCAL_MODEL_PATH
-              if os.path.exists(os.path.join(_LOCAL_MODEL_PATH, 'pipeline.json'))
-              else "TencentARC/Pixal3D")
+MODEL_PATH = _LOCAL_MODEL_PATH
 
 IMAGE_COND_CONFIGS = {
     "ss": {

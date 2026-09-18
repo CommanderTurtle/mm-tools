@@ -44,7 +44,7 @@ class Adapter(StudioAdapter):
         self.biref = self.deps / "ZhengPeng7--BiRefNet"
         self.moge = self.deps / "Ruicheng--moge-2-vitl" / "model.pt"
         self.naf = self.deps / "valeoai--NAF" / "naf_release.pth"
-        self.vendor = project_root / ".runtime" / "vendor"
+        self.native = project_root / "native"
         self.pipeline: Any | None = None
         self.profile: str | None = None
         self._localize_configs()
@@ -57,8 +57,8 @@ class Adapter(StudioAdapter):
             ("BiRefNet matte", self.biref / "model.safetensors", True),
             ("MoGe-2 camera calibration", self.moge, True),
             ("NAF feature upsampler", self.naf, True),
-            ("Pinned NAF source", self.vendor / "NAF" / "hubconf.py", True),
-            ("Pinned MoGe source", self.vendor / "MoGe" / "moge" / "model" / "v2.py", True),
+            ("NAF source", self.native / "NAF" / "hubconf.py", True),
+            ("MoGe source", self.native / "MoGe" / "moge" / "model" / "v2.py", True),
             ("Python environment", self.project_root / ".venv" / "bin" / "python", True),
         ]
         details = [
@@ -190,7 +190,7 @@ class Adapter(StudioAdapter):
         return self.pipeline
 
     def _load_naf(self) -> Any:
-        root = self.vendor / "NAF"
+        root = self.native / "NAF"
         if str(root) not in sys.path:
             sys.path.insert(0, str(root))
         spec = importlib.util.spec_from_file_location("mm_naf_hub", root / "hubconf.py")
@@ -331,7 +331,7 @@ class Adapter(StudioAdapter):
             angle = math.radians(float(controls.get("fov_degrees", 49.1)))
         else:
             context.update("Estimating camera intrinsics with MoGe-2", 0.08)
-            moge_root = self.vendor / "MoGe"
+            moge_root = self.native / "MoGe"
             if str(moge_root) not in sys.path:
                 sys.path.insert(0, str(moge_root))
             from moge.model.v2 import MoGeModel

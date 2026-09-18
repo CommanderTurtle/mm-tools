@@ -36,9 +36,8 @@ nvdiffrast, nvdiffrec-render, and o-voxel are compiled locally with
 
 ## Pinned auxiliary stack
 
-`setupwithuv.sh` materializes exact source revisions beneath ignored
-`.runtime/vendor`, removes their nested Git metadata, records each revision,
-and installs them without build isolation. The model downloader separately
+`setupwithuv.sh` installs the project-owned native runtimes from `native/`
+without build isolation. The model downloader separately
 owns the allowlisted DINOv3, BiRefNet, MoGe-2, NAF, sparse decoder, TRELLIS.2,
 and Pixal3D artifacts. Runtime loading is offline-only; localized pipeline
 JSON points only at those durable paths.

@@ -1,14 +1,3 @@
-// This file is part of Eigen, a lightweight C++ template library
-// for linear algebra.
-//
-// Copyright (C) 2007 Julien Pommier
-// Copyright (C) 2014 Pedro Gonnet (pedro.gonnet@gmail.com)
-// Copyright (C) 2009-2019 Gael Guennebaud <gael.guennebaud@inria.fr>
-// Copyright (C) 2018-2025 Rasmus Munk Larsen <rmlarsen@gmail.com>
-//
-// This Source Code Form is subject to the terms of the Mozilla
-// Public License v. 2.0. If a copy of the MPL was not distributed
-// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 /* The exp and log functions of this file initially come from
  * Julien Pommier's sse math library: http://gruntthepeon.free.fr/ssemath/

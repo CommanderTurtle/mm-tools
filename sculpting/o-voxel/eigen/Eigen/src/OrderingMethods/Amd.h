@@ -1,22 +1,3 @@
-// This file is part of Eigen, a lightweight C++ template library
-// for linear algebra.
-//
-// Copyright (C) 2010 Gael Guennebaud <gael.guennebaud@inria.fr>
-//
-// This Source Code Form is subject to the terms of the Mozilla
-// Public License v. 2.0. If a copy of the MPL was not distributed
-// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-/*
-NOTE: this routine has been adapted from the CSparse library:
-
-Copyright (c) 2006, Timothy A. Davis.
-http://www.suitesparse.com
-
-The author of CSparse, Timothy A. Davis., has executed a license with Google LLC
-to permit distribution of this code and derivative works as part of Eigen under
-the Mozilla Public License v. 2.0, as stated at the top of this file.
-*/
 
 #ifndef EIGEN_SPARSE_AMD_H
 #define EIGEN_SPARSE_AMD_H

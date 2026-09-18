@@ -1,37 +1,3 @@
-// This file is part of Eigen, a lightweight C++ template library
-// for linear algebra.
-//
-// Copyright (C) 2001 Intel Corporation
-// Copyright (C) 2010 Gael Guennebaud <gael.guennebaud@inria.fr>
-// Copyright (C) 2009 Benoit Jacob <jacob.benoit.1@gmail.com>
-//
-// This Source Code Form is subject to the terms of the Mozilla
-// Public License v. 2.0. If a copy of the MPL was not distributed
-// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-//
-// The algorithm below is a reimplementation of former \src\LU\Inverse_SSE.h using PacketMath.
-// inv(M) = M#/|M|, where inv(M), M# and |M| denote the inverse of M,
-// adjugate of M and determinant of M respectively. M# is computed block-wise
-// using specific formulae. For proof, see:
-// https://lxjk.github.io/2017/09/03/Fast-4x4-Matrix-Inverse-with-SSE-SIMD-Explained.html
-// Variable names are adopted from \src\LU\Inverse_SSE.h.
-//
-// The SSE code for the 4x4 float and double matrix inverse in former (deprecated) \src\LU\Inverse_SSE.h
-// comes from the following Intel's library:
-// http://software.intel.com/en-us/articles/optimized-matrix-library-for-use-with-the-intel-pentiumr-4-processors-sse2-instructions/
-//
-// Here is the respective copyright and license statement:
-//
-//   Copyright (c) 2001 Intel Corporation.
-//
-// Permission is granted to use, copy, distribute and prepare derivative works
-// of this library for any purpose and without fee, provided, that the above
-// copyright notice and this statement appear in all copies.
-// Intel makes no representations about the suitability of this software for
-// any purpose, and specifically disclaims all warranties.
-// See LEGAL.TXT for all the legal information.
-//
-// TODO: Unify implementations of different data types (i.e. float and double).
 #ifndef EIGEN_INVERSE_SIZE_4_H
 #define EIGEN_INVERSE_SIZE_4_H
 

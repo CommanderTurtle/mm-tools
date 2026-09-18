@@ -1,32 +1,4 @@
-// This file is part of Eigen, a lightweight C++ template library
-// for linear algebra.
-//
-// Copyright (C) 2012 Désiré Nuentsa-Wakam <desire.nuentsa_wakam@inria.fr>
-//
-// This Source Code Form is subject to the terms of the Mozilla
-// Public License v. 2.0. If a copy of the MPL was not distributed
-// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-/*
-
- * NOTE: This file is the modified version of [s,d,c,z]panel_dfs.c file in SuperLU
-
- * -- SuperLU routine (version 2.0) --
- * Univ. of California Berkeley, Xerox Palo Alto Research Center,
- * and Lawrence Berkeley National Lab.
- * November 15, 1997
- *
- * Copyright (c) 1994 by Xerox Corporation.  All rights reserved.
- *
- * THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY
- * EXPRESSED OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.
- *
- * Permission is hereby granted to use or copy this program for any
- * purpose, provided the above notices are retained on all copies.
- * Permission to modify the code and to distribute modified code is
- * granted, provided the above notices are retained, and a notice that
- * the code was modified is included with the above copyright notice.
- */
 #ifndef SPARSELU_PANEL_DFS_H
 #define SPARSELU_PANEL_DFS_H
 

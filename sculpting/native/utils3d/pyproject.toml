@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "utils3d"
+version = "0.0.2"
+description = "A small package for 3D graphics"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "moderngl",
+    "numpy",
+    "plyfile",
+    "scipy"
+]
+requires-python = ">=3.7"
+
+[tool.setuptools.package-data]
+"utils3d.numpy.shaders" = ["*"]

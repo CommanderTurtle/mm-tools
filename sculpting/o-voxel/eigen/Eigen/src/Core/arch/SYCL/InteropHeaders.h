@@ -1,14 +1,3 @@
-// This file is part of Eigen, a lightweight C++ template library
-// for linear algebra.
-//
-// Mehdi Goli    Codeplay Software Ltd.
-// Ralph Potter  Codeplay Software Ltd.
-// Luke Iwanski  Codeplay Software Ltd.
-// Contact: <eigen@codeplay.com>
-//
-// This Source Code Form is subject to the terms of the Mozilla
-// Public License v. 2.0. If a copy of the MPL was not distributed
-// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 /*****************************************************************
  * InteropHeaders.h

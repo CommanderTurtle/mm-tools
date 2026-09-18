@@ -1,21 +1,3 @@
-// This file is part of Eigen, a lightweight C++ template library
-// for linear algebra.
-//
-// We used the "A Divide-And-Conquer Algorithm for the Bidiagonal SVD"
-// research report written by Ming Gu and Stanley C.Eisenstat
-// The code variable names correspond to the names they used in their
-// report
-//
-// Copyright (C) 2013 Gauthier Brun <brun.gauthier@gmail.com>
-// Copyright (C) 2013 Nicolas Carre <nicolas.carre@ensimag.fr>
-// Copyright (C) 2013 Jean Ceccato <jean.ceccato@ensimag.fr>
-// Copyright (C) 2013 Pierre Zoppitelli <pierre.zoppitelli@ensimag.fr>
-// Copyright (C) 2013 Jitse Niesen <jitse@maths.leeds.ac.uk>
-// Copyright (C) 2014-2017 Gael Guennebaud <gael.guennebaud@inria.fr>
-//
-// Source Code Form is subject to the terms of the Mozilla
-// Public License v. 2.0. If a copy of the MPL was not distributed
-// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #ifndef EIGEN_BDCSVD_H
 #define EIGEN_BDCSVD_H

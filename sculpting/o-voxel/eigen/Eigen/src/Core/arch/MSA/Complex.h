@@ -1,14 +1,3 @@
-// This file is part of Eigen, a lightweight C++ template library
-// for linear algebra.
-//
-// Copyright (C) 2018 Wave Computing, Inc.
-// Written by:
-//   Chris Larsen
-//   Alexey Frunze (afrunze@wavecomp.com)
-//
-// This Source Code Form is subject to the terms of the Mozilla
-// Public License v. 2.0. If a copy of the MPL was not distributed
-// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #ifndef EIGEN_COMPLEX_MSA_H
 #define EIGEN_COMPLEX_MSA_H

@@ -26,13 +26,13 @@ export HF_HUB_DISABLE_TELEMETRY=1
 export DO_NOT_TRACK=1
 uv pip install --python "$VENV/bin/python" -r "$ROOT/requirements-local.txt"
 
-export PYTHONPATH="$SCULPT_ROOT/..:$SCULPT_ROOT:$ROOT:$SCULPT_ROOT/.runtime/vendor/NAF:$SCULPT_ROOT/.runtime/vendor/MoGe${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$SCULPT_ROOT/..:$SCULPT_ROOT:$ROOT:$SCULPT_ROOT/native/NAF:$SCULPT_ROOT/native/MoGe${PYTHONPATH:+:$PYTHONPATH}"
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export ATTN_BACKEND=sdpa
 export SPARSE_ATTN_BACKEND=sdpa
 export SPARSE_CONV_BACKEND=flex_gemm
-export PIXAL_NAF_SOURCE="$SCULPT_ROOT/.runtime/vendor/NAF"
+export PIXAL_NAF_SOURCE="$SCULPT_ROOT/native/NAF"
 export PIXAL_NAF_CHECKPOINT="$SCULPT_ROOT/pretrained/deps/valeoai--NAF/naf_release.pth"
 
 "$VENV/bin/python" - <<'PY'
@@ -46,8 +46,6 @@ import iopath
 import pycocotools
 import ftfy
 from pixal3d_multiview.mv_aggregator import IBRMVAggregator
-from studio.server import build_application
-
 assert torch.cuda.is_available(), "CUDA is unavailable"
 properties = torch.cuda.get_device_properties(0)
 assert properties.total_memory >= 30_000 * 1024**2

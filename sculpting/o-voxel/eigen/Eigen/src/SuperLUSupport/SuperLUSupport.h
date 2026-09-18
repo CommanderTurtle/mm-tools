@@ -1,11 +1,3 @@
-// This file is part of Eigen, a lightweight C++ template library
-// for linear algebra.
-//
-// Copyright (C) 2008-2015 Gael Guennebaud <gael.guennebaud@inria.fr>
-//
-// This Source Code Form is subject to the terms of the Mozilla
-// Public License v. 2.0. If a copy of the MPL was not distributed
-// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #ifndef EIGEN_SUPERLUSUPPORT_H
 #define EIGEN_SUPERLUSUPPORT_H
@@ -630,13 +622,6 @@ void SuperLU<MatrixType>::_solve_impl(const MatrixBase<Rhs> &b, MatrixBase<Dest>
   m_info = info == 0 ? Success : NumericalIssue;
 }
 
-// the code of this extractData() function has been adapted from the SuperLU's Matlab support code,
-//
-//  Copyright (c) 1994 by Xerox Corporation.  All rights reserved.
-//
-//  THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY
-//  EXPRESSED OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.
-//
 template <typename MatrixType, typename Derived>
 void SuperLUBase<MatrixType, Derived>::extractData() const {
   eigen_assert(m_factorizationIsOk &&

@@ -1,11 +1,3 @@
-// This file is part of Eigen, a lightweight C++ template library
-// for linear algebra.
-//
-// Copyright (C) 2018 Rasmus Munk Larsen <rmlarsen@google.com>
-//
-// This Source Code Form is subject to the terms of the Mozilla
-// Public License v. 2.0. If a copy of the MPL was not distributed
-// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 // Barrier is an object that allows one or more threads to wait until
 // Notify has been called a specified number of times.

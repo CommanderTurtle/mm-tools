@@ -1,16 +1,3 @@
-// This file is part of Eigen, a lightweight C++ template library
-// for linear algebra.
-//
-// Copyright (C) 2008-2015 Gael Guennebaud <gael.guennebaud@inria.fr>
-// Copyright (C) 2008-2009 Benoit Jacob <jacob.benoit.1@gmail.com>
-// Copyright (C) 2009 Kenneth Riddile <kfriddile@yahoo.com>
-// Copyright (C) 2010 Hauke Heibel <hauke.heibel@gmail.com>
-// Copyright (C) 2010 Thomas Capricelli <orzel@freehackers.org>
-// Copyright (C) 2013 Pavel Holoborodko <pavel@holoborodko.com>
-//
-// This Source Code Form is subject to the terms of the Mozilla
-// Public License v. 2.0. If a copy of the MPL was not distributed
-// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 /*****************************************************************************
 *** Platform checks for aligned malloc functions                           ***
