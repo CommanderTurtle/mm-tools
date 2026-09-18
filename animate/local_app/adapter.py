@@ -5,8 +5,8 @@ import shutil
 from pathlib import Path
 from typing import Any, Callable
 
-from studio.comfy_runtime import ComfyRuntime
-from studio.runtime import StudioAdapter, StudioContext, StudioOutput, gpu_snapshot
+from local_app.comfy_runtime import ComfyRuntime
+from local_app.runtime import StudioAdapter, StudioContext, StudioOutput, gpu_snapshot
 
 
 DISTILLED_MODEL = "wan_animate_2_distill_int8_convrot.safetensors"
