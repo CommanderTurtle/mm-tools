@@ -37,7 +37,6 @@ PROFILES: dict[str, dict[str, Any]] = {
         "label": "LightX2V official Comfy recipe",
         "model": BASE_MODEL,
         "lora": LIGHTX2V_LORA,
-        "pixel_budget": PIXEL_BUDGET_480P,
         "steps": 6,
         "sampler": "lcm",
         "scheduler": "simple",
@@ -47,7 +46,6 @@ PROFILES: dict[str, dict[str, Any]] = {
         "label": "LightX2V four-step speed",
         "model": BASE_MODEL,
         "lora": LIGHTX2V_LORA,
-        "pixel_budget": PIXEL_BUDGET_480P,
         "steps": 4,
         "sampler": "lcm",
         "scheduler": "simple",
@@ -150,13 +148,16 @@ def _delivery_size(width: int, height: int) -> tuple[int, int]:
 
 
 def _profile_budget(controls: dict[str, Any], profile: dict[str, Any]) -> int:
-    """Resolve the inference budget; pinned lanes ignore the canvas choice."""
+    """Resolve the inference budget from the selected canvas class."""
 
     pinned = profile.get("pixel_budget")
     if pinned:
         return int(pinned)
-    if str(controls.get("inference_resolution", "720p")) == "1080p":
+    resolution = str(controls.get("inference_resolution", "720p"))
+    if resolution == "1080p":
         return PIXEL_BUDGET_1080P
+    if resolution == "480p":
+        return PIXEL_BUDGET_480P
     return PIXEL_BUDGET_720P
 
 def _profile(controls: dict[str, Any]) -> dict[str, Any]:

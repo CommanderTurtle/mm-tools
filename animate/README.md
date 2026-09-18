@@ -17,12 +17,12 @@ Two production lanes plus a diagnostic:
   point JSON for difficult source material.
 
  Runs are automated the way the model expects: the input is probed, the
- reference loads at its native resolution, and generation runs on a 720p-class
- canvas (an opt-in 1080p-class canvas sharpens detail further; the LightX2V
- lanes stay on their 480p distill canvas). Delivery matches the requested
- resolution, up to the 2160x1440 ceiling. An optional LightX2V profile loads
- the base INT8 model plus the acceleration LoRA for four-step distilled
- inference.
+ reference loads at its native resolution, and generation runs on the
+ selected canvas class - a 720p-class default, an opt-in 1080p-class canvas
+ for sharper detail, and a 480p class matching the LightX2V LoRA's training
+ resolution. Delivery matches the requested resolution, up to the 2160x1440
+ ceiling. The LightX2V profiles load the base INT8 model plus the
+ acceleration LoRA for six-step or four-step distilled inference.
 
 ## Install and start
 
