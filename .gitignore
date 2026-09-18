@@ -228,9 +228,6 @@
 !/4d-ify/inference.py
 !/4d-ify/requirements.txt
 !/4d-ify/requirements-gui.txt
-!/4d-ify/scripts/
-/4d-ify/scripts/*
-!/4d-ify/scripts/download_smplx.py
 !/4d-ify/fdanyone/
 !/4d-ify/fdanyone/**
 !/4d-ify/setup.py
@@ -312,25 +309,6 @@
 !/world-gen/fire3d/scripts/install.sh
 !/world-gen/fire3d/scripts/install_blender.sh
 !/world-gen/fire3d/scripts/run_single_image_example.sh
-
-# AuK speech inference and its native Comfy nodes.
-!/studio/
-/studio/*
-!/studio/__init__.py
-!/studio/runtime.py
-!/studio/comfy_runtime.py
-!/studio/server.py
-!/studio/requirements.txt
-!/studio/README.md
-!/studio/web/
-/studio/web/*
-!/studio/web/index.html
-!/studio/web/style.css
-!/studio/web/app.js
-!/studio/tests/
-/studio/tests/*
-!/studio/tests/test_contracts.py
-!/studio/tests/test_runtime.py
 
 # 4DAnyone private studio integration
 !/4d-ify/local_app/
@@ -682,6 +660,14 @@
 !/models/download_models_info.txt
 !/models/which-ones.txt
 
+# Project-owned workbench runtimes. Shared root-level Studio code is excluded.
+!/**/local_app/runtime.py
+!/**/local_app/comfy_runtime.py
+!/**/local_app/requirements.txt
+!/**/local_app/web/
+!/**/local_app/web/**
+/studio/
+
 # vox/, even-g2-duet/, and .git-archives/ are consequently excluded in full.
 
 # Runtime bytecode is always disposable, including beneath explicitly opened
@@ -741,3 +727,4 @@
 # They remain local artifacts rather than source-history payloads.
 /4d-ify/hmr4d/utils/body_model/*.pt
 /4d-ify/hmr4d/utils/body_model/*.pth
+/4d-ify/hmr4d/utils/body_model/README.md
