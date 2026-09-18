@@ -13,4 +13,4 @@ export TEXT_ENCODER_MODE=local TEXT_ENCODER_MERGED_PATH="$ROOT/text-encoders/vox
 export MM_STUDIO_HOST="${NVIDIA_SIM_STUDIO_HOST:-${MM_STUDIO_HOST:-127.0.0.1}}"
 export MM_STUDIO_PORT="${NVIDIA_SIM_STUDIO_PORT:-${MM_STUDIO_PORT:-8266}}"
 printf 'NVIDIA Motion + Body Studio: http://%s:%s\n' "$MM_STUDIO_HOST" "$MM_STUDIO_PORT"
-exec python "$ROOT/../studio/server.py" --project-root "$ROOT" --manifest "$ROOT/local_app/studio.json" --adapter "$ROOT/local_app/adapter.py" --host "$MM_STUDIO_HOST" --port "$MM_STUDIO_PORT"
+exec python "$ROOT/local_app/server.py" --project-root "$ROOT" --manifest "$ROOT/local_app/studio.json" --adapter "$ROOT/local_app/adapter.py" --host "$MM_STUDIO_HOST" --port "$MM_STUDIO_PORT"
