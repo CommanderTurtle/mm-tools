@@ -29,7 +29,7 @@ class Adapter(StudioAdapter):
     def __init__(self, project_root: Path, runtime_root: Path) -> None:
         super().__init__(project_root, runtime_root)
         self.model_dir = project_root / "models"
-        self.gvhmr_root = project_root / "third_party" / "GVHMR"
+        self.gvhmr_root = project_root
         self.smplx = self.model_dir / "smplx" / "SMPLX_NEUTRAL.npz"
 
     def health(self) -> dict[str, Any]:
@@ -39,6 +39,7 @@ class Adapter(StudioAdapter):
             ("4DAnyone checkpoint", self.model_dir / "4danyone" / "model.safetensors", True),
             ("Wan VAE", self.model_dir / "4danyone" / "Wan2.2_VAE.pth", True),
             ("GVHMR checkpoint", self.model_dir / "gvhmr" / "gvhmr_siga24_release.ckpt", True),
+            ("DPVO moving-camera checkpoint", self.model_dir / "gvhmr" / "dpvo.pth", False),
             ("BiRefNet", self.model_dir / "birefnet" / "model.safetensors", True),
             ("SMPL-X neutral body", self.smplx, False),
             ("Python environment", self.project_root / ".venv" / "bin" / "python", True),
@@ -76,6 +77,14 @@ class Adapter(StudioAdapter):
             raise ValueError("Views per layer must be between 1 and 48.")
         if any(not -15 <= int(value) <= 45 for value in pitches):
             raise ValueError("Every pitch must be between -15° and 45°.")
+        camera_motion = str(controls.get("camera_motion", "simple_vo"))
+        if camera_motion not in {"static", "simple_vo", "dpvo"}:
+            raise ValueError("Camera recovery must be Static, SimpleVO, or DPVO.")
+        focal_length = float(controls.get("focal_length_mm", 0) or 0)
+        if focal_length and not 1 <= focal_length <= 1000:
+            raise ValueError("Lens focal length must be 0 (auto) or between 1 and 1000 mm.")
+        if camera_motion == "dpvo" and not (self.model_dir / "gvhmr" / "dpvo.pth").is_file():
+            raise ValueError("DPVO needs models/gvhmr/dpvo.pth. Run ../models/download_models.py 4d first.")
         if not self.smplx.is_file():
             raise ValueError("Install the licensed SMPL-X neutral body in the Setup mode before generation.")
 
@@ -95,6 +104,7 @@ class Adapter(StudioAdapter):
         source = context.asset(str(controls["source_video_asset"]))
         destination = context.output_dir / "capture"
         pitches = [int(value) for value in (controls.get("layer_pitches") or [15])]
+        focal_length = float(controls.get("focal_length_mm", 0) or 0)
         payload = {
             "video_path": str(source),
             "output_dir": str(destination),
@@ -111,6 +121,8 @@ class Adapter(StudioAdapter):
             "attention_backend": str(controls.get("attention_backend", "auto")),
             "target_fps": controls.get("target_fps", "auto"),
             "start_time": float(controls.get("start_time", 0.0)),
+            "camera_motion": str(controls.get("camera_motion", "simple_vo")),
+            "focal_length_mm": focal_length or None,
             "seed": int(controls.get("seed", 42)),
         }
         request_file = context.output_dir / "native-request.json"

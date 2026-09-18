@@ -29,6 +29,8 @@ class MotionResult:
     smpl_params_incam: dict[str, Any]
     K_fullimg: Any
     observed_keypoints_2d: Any
+    camera_motion: str = "static"
+    focal_length_mm: float | None = None
     motion_world: str = "gvhmr_gravity_aligned_y_up"
 
     @property
@@ -42,6 +44,10 @@ class MotionResult:
             raise FourDAnyoneError("PyTorch is required to validate motion tensors.") from exc
         if self.motion_world != "gvhmr_gravity_aligned_y_up":
             raise FourDAnyoneError(f"Unknown motion world convention: {self.motion_world!r}.")
+        if self.camera_motion not in {"static", "simple_vo", "dpvo"}:
+            raise FourDAnyoneError(f"Unknown camera-motion solver: {self.camera_motion!r}.")
+        if self.focal_length_mm is not None and not 1 <= self.focal_length_mm <= 1000:
+            raise FourDAnyoneError("MotionResult focal length must be between 1 and 1000 mm.")
         if (
             not isinstance(self.gvhmr_revision, str)
             or len(self.gvhmr_revision) != 40
@@ -96,7 +102,13 @@ class MotionResult:
         if not bool(torch.isfinite(self.observed_keypoints_2d).all()):
             raise FourDAnyoneError("observed_keypoints_2d contains non-finite values.")
 
-    def validate_against_clip(self, clip) -> None:
+    def validate_against_clip(
+        self,
+        clip,
+        *,
+        camera_motion: str | None = None,
+        focal_length_mm: float | None = None,
+    ) -> None:
         """Reject a cached result produced from a different video timeline."""
 
         self.validate(expected_frames=len(clip.frames))
@@ -114,6 +126,15 @@ class MotionResult:
             clip.source_mtime_ns,
         ):
             raise FourDAnyoneError("Cached GVHMR motion belongs to a different source file.")
+        if camera_motion is not None and self.camera_motion != camera_motion:
+            raise FourDAnyoneError(
+                f"Cached motion used {self.camera_motion!r}, but this run requests {camera_motion!r}. "
+                "Choose a new output directory to recover motion with the selected camera solver."
+            )
+        if focal_length_mm != self.focal_length_mm:
+            raise FourDAnyoneError(
+                "Cached motion used a different focal length. Choose a new output directory to recover it again."
+            )
 
     def save(self, directory: str | Path) -> Path:
         from safetensors.torch import save_file
@@ -147,6 +168,8 @@ class MotionResult:
             "source_mtime_ns": self.source_mtime_ns,
             "image_height": self.image_height,
             "image_width": self.image_width,
+            "camera_motion": self.camera_motion,
+            "focal_length_mm": self.focal_length_mm,
             "motion_world": self.motion_world,
             "tensor_file": tensor_path.name,
         }
@@ -182,6 +205,10 @@ class MotionResult:
             smpl_params_incam={name: owned[f"smpl_params_incam.{name}"] for name in SMPL_PARAMETER_NAMES},
             K_fullimg=owned["K_fullimg"],
             observed_keypoints_2d=owned["observed_keypoints_2d"],
+            camera_motion=str(metadata.get("camera_motion", "static")),
+            focal_length_mm=(
+                None if metadata.get("focal_length_mm") is None else float(metadata["focal_length_mm"])
+            ),
             motion_world=str(metadata["motion_world"]),
         )
         result.validate()

@@ -20,7 +20,6 @@ from .ba import BA
 from . import projective_ops as pops
 
 autocast = torch.cuda.amp.autocast
-import matplotlib.pyplot as plt
 
 DIM = 384
 
@@ -270,4 +269,3 @@ class VONet(nn.Module):
             traj.append((valid, coords, coords_gt, Gs[:,:n], Ps[:,:n], kl))
 
         return traj
-

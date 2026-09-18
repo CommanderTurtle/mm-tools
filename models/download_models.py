@@ -461,6 +461,13 @@ BUNDLES: tuple[Bundle, ...] = (
                 ),
                 revision="e2bf8e4460fc8fa32bba5ea4d94b3233d367b0e4",
             ),
+            A(
+                "camenduru/GVHMR",
+                repo_path("4d-ify/models/.sources/camenduru--GVHMR"),
+                ("dpvo/dpvo.pth",),
+                revision="21b32d5389e2e59c0737d4c4095bbc0b8c23f66b",
+                placements=(("dpvo/dpvo.pth", repo_path("4d-ify/models/gvhmr/dpvo.pth")),),
+            ),
         ),
     ),
     Bundle(

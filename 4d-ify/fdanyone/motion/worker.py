@@ -21,7 +21,12 @@ def main(request_path: str) -> None:
         "output_dir": request["output_dir"],
         "device": device,
     }
-    result = run_gvhmr(gvhmr_root=request["gvhmr_root"], **common)
+    result = run_gvhmr(
+        gvhmr_root=request["gvhmr_root"],
+        camera_motion=request.get("camera_motion", "static"),
+        focal_length_mm=request.get("focal_length_mm"),
+        **common,
+    )
     result.save(request["result_dir"])
 
 

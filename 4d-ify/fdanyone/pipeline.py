@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import subprocess
 import sys
@@ -25,7 +26,7 @@ from fdanyone.assets import (
 )
 from fdanyone.config import BASE24, INFERENCE, RANK64_DELTA4
 from fdanyone.device import CUDA_ALLOCATOR_CONF, select_cuda_devices
-from fdanyone.download import ensure_example_video, ensure_models, ensure_smplx
+from fdanyone.download import create_dpvo_gvhmr_link, ensure_example_video, ensure_models, ensure_smplx
 from fdanyone.errors import ConfigurationError
 from fdanyone.io import remove_tree, resolve_output_path, write_json
 from fdanyone.motion.gvhmr import validate_gvhmr
@@ -103,6 +104,8 @@ def _run_motion(
     device: str,
     worker_python: str,
     clip_metadata: Path,
+    camera_motion: str,
+    focal_length_mm: float | None,
 ):
     output_dir.mkdir(parents=True, exist_ok=True)
     request_path = output_dir / ".motion-worker-request.json"
@@ -116,6 +119,8 @@ def _run_motion(
             "output_dir": str(output_dir / "runtime"),
             "result_dir": str(result_dir),
             "device": device,
+            "camera_motion": camera_motion,
+            "focal_length_mm": focal_length_mm,
         },
     )
     try:
@@ -187,6 +192,8 @@ def run_pipeline(
     attention_backend: str,
     start_time: float,
     target_fps: str | int | float,
+    camera_motion: str,
+    focal_length_mm: float | None,
     seed: int,
     views_per_layer: int,
     layer_pitches: list[int],
@@ -206,6 +213,16 @@ def run_pipeline(
         raise ConfigurationError(f"seed must be non-negative, got {seed}.")
     if not isinstance(enable_turbo, bool):
         raise ConfigurationError(f"enable_turbo must be True or False, got {enable_turbo!r}.")
+    camera_motion = str(camera_motion).strip().lower().replace("-", "_")
+    if camera_motion not in {"static", "simple_vo", "dpvo"}:
+        raise ConfigurationError("camera_motion must be static, simple_vo, or dpvo.")
+    if focal_length_mm is not None:
+        if isinstance(focal_length_mm, bool) or not math.isfinite(float(focal_length_mm)):
+            raise ConfigurationError("focal_length_mm must be a finite number or None.")
+        focal_length_mm = float(focal_length_mm)
+        if not 1 <= focal_length_mm <= 1000:
+            raise ConfigurationError("focal_length_mm must be between 1 and 1000 mm.")
+    request_options.update(camera_motion=camera_motion, focal_length_mm=focal_length_mm)
     denoising_profile = RANK64_DELTA4 if enable_turbo else BASE24
     view_plan = resolve_view_plan(
         views_per_layer=views_per_layer,
@@ -243,8 +260,10 @@ def run_pipeline(
     # background jobs receive an actionable error instead of hanging.
     ensure_smplx(model_dir, gvhmr_root)
     ensure_models(model_dir, gvhmr_root)
+    if camera_motion == "dpvo":
+        create_dpvo_gvhmr_link(model_dir, gvhmr_root, required=True)
     turbo_lora = resolve_turbo_lora(model_dir) if enable_turbo else None
-    gvhmr_root, gvhmr_revision = validate_gvhmr(gvhmr_root)
+    gvhmr_root, gvhmr_revision = validate_gvhmr(gvhmr_root, require_dpvo=camera_motion == "dpvo")
     worker_python = os.path.abspath(sys.executable)
 
     if checkpoint is None:
@@ -280,13 +299,19 @@ def run_pipeline(
                     device=device,
                     worker_python=worker_python,
                     clip_metadata=clip_metadata,
+                    camera_motion=camera_motion,
+                    focal_length_mm=focal_length_mm,
                 )
             if motion.gvhmr_revision != gvhmr_revision:
                 raise ConfigurationError(
                     f"GVHMR motion has revision {motion.gvhmr_revision}, expected {gvhmr_revision}. "
                     "Choose a new --output_dir to recover motion with the current GVHMR version."
                 )
-            motion.validate_against_clip(clip)
+            motion.validate_against_clip(
+                clip,
+                camera_motion=camera_motion,
+                focal_length_mm=focal_length_mm,
+            )
             if output.motion_dir.exists():
                 save_run_request(destination, request_options)
             else:

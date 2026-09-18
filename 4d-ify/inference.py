@@ -22,11 +22,13 @@ def inference(
     model_dir: str = "models",
     checkpoint_path: str | None = None,
     mhr70_regressor_path: str | None = None,
-    gvhmr_root: str = "third_party/GVHMR",
+    gvhmr_root: str = ".",
     gpu_ids: list[int] | None = None,
     attention_backend: str = "auto",
     target_fps: str | int | float = "auto",
     start_time: float = 0.0,
+    camera_motion: str = "simple_vo",
+    focal_length_mm: float | None = None,
     seed: int = 42,
 ) -> dict:
     """Generate synchronized target-view videos from one monocular video.
@@ -58,6 +60,10 @@ def inference(
         target_fps: auto preserves the input clock unless it divides evenly
             to 24, 25, or 30 FPS; a positive number requests an explicit FPS.
         start_time: Clip start time on the input timeline, in seconds.
+        camera_motion: Source-camera recovery: simple_vo (recommended),
+            dpvo (learned CUDA solver), or static (locked camera).
+        focal_length_mm: Optional full-frame-equivalent focal length in mm.
+            Leave unset to use GVHMR's camera estimate.
         seed: Random seed shared by proposal and target generation.
     """
 
@@ -89,6 +95,8 @@ def inference(
         attention_backend=attention_backend,
         target_fps=target_fps,
         start_time=start_time,
+        camera_motion=camera_motion,
+        focal_length_mm=focal_length_mm,
         seed=seed,
     )
 

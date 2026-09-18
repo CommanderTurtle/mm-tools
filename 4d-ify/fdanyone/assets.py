@@ -40,6 +40,11 @@ GVHMR_CHECKPOINT = "gvhmr/gvhmr_siga24_release.ckpt"
 HMR2_CHECKPOINT = "gvhmr/epoch=10-step=25000.ckpt"
 VITPOSE_CHECKPOINT = "gvhmr/vitpose-h-multi-coco.pth"
 YOLO_CHECKPOINT = "gvhmr/yolov8x.pt"
+DPVO_CHECKPOINT = "gvhmr/dpvo.pth"
+DPVO_REPO_ID = "camenduru/GVHMR"
+DPVO_REVISION = "21b32d5389e2e59c0737d4c4095bbc0b8c23f66b"
+DPVO_REPO_FILE = "dpvo/dpvo.pth"
+DPVO_GVHMR_TARGET = "inputs/checkpoints/dpvo/dpvo.pth"
 PERCEPTUAL_VGG19 = "perceptual/imagenet-vgg-verydeep-19-conv.safetensors"
 
 SMPLX_MODEL = "body_models/smplx/SMPLX_NEUTRAL.npz"
@@ -150,6 +155,18 @@ def resolve_perceptual_vgg19(model_dir: str | Path = "models") -> Path:
         "Perceptual VGG-19 weights",
         "scripts/download_model.py",
     )
+
+
+def resolve_dpvo_checkpoint(model_dir: str | Path = "models") -> Path:
+    """Resolve the optional learned visual-odometry checkpoint."""
+
+    resolved = (Path(model_dir) / DPVO_CHECKPOINT).expanduser().resolve()
+    if not resolved.is_file():
+        raise AssetError(
+            f"DPVO checkpoint does not exist: {resolved}. "
+            "Run `../models/download_models.py 4d` before selecting DPVO camera recovery."
+        )
+    return resolved
 
 
 def resolve_base_assets(model_dir: str | Path = "models") -> BaseAssets:

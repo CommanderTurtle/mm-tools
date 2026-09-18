@@ -12,6 +12,7 @@ lapx>=0.5,<1
 numpy>=2,<3
 opencv-python>=4.10,<5
 pillow>=10,<13
+pycolmap>=3.12,<4
 pytorch-lightning>=2.3,<3
 safetensors>=0.5,<1
 scipy>=1.10,<2

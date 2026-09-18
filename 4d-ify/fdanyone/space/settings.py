@@ -42,6 +42,16 @@ def validate_options(options: dict) -> None:
     )
     fps = options["target_fps"]
     validate_clip_options(start_time=options["start_time"], fps=None if str(fps).lower() == "auto" else fps)
+    camera_motion = str(options["camera_motion"]).strip().lower().replace("-", "_")
+    if camera_motion not in {"static", "simple_vo", "dpvo"}:
+        raise ConfigurationError("camera_motion must be static, simple_vo, or dpvo.")
+    focal_length = options["focal_length_mm"]
+    if focal_length is not None and (
+        isinstance(focal_length, bool)
+        or not math.isfinite(float(focal_length))
+        or not 1 <= float(focal_length) <= 1000
+    ):
+        raise ConfigurationError("focal_length_mm must be None or between 1 and 1000 mm.")
 
 
 def make_options(video, views, pitches, start_yaw, yaw_span, turbo, start_time) -> dict:

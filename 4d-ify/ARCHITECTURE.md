@@ -6,8 +6,8 @@ share the root studio's durable FIFO GPU queue, and retain the complete native
 output tree: resolved settings, camera calibration, reusable GVHMR motion,
 skeleton conditioning, proposal views, and every dense target view.
 
-The imported GVHMR checkout intentionally has no nested `.git` directory in the
-single-repository mm-tools export. Runtime cache identity is therefore checked
+GVHMR and DPVO are integrated directly into the 4D project tree. Runtime cache identity is
+therefore checked
 against its archived, pinned commit rather than requiring nested Git metadata.
 
 SMPL-X has separate license terms and is never downloaded by the general model

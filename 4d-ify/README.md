@@ -26,8 +26,7 @@
 
 ```bash
 git clone https://github.com/ant-research/4DAnyone.git
-cd 4DAnyone
-git submodule update --init third_party/GVHMR
+cd 4d-ify
 
 conda create -n 4danyone python=3.11 -y
 conda activate 4danyone

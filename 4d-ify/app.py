@@ -16,7 +16,7 @@ def launch(
     video_path: str | None = None,
     output_dir: str | None = None,
     model_dir: str = "models",
-    gvhmr_root: str = "third_party/GVHMR",
+    gvhmr_root: str = ".",
     cache_dir: str = "outputs/space",
     gpu_ids: list[int] | None = None,
     attention_backend: str = "auto",

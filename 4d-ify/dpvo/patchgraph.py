@@ -4,7 +4,6 @@ from einops import asnumpy, reduce, repeat
 
 from . import projective_ops as pops
 from .lietorch import SE3
-from .loop_closure.optim_utils import reduce_edges
 from .utils import *
 
 
@@ -55,6 +54,8 @@ class PatchGraph:
 
     def edges_loop(self):
         """ Adding edges from old patches to new frames """
+        from .loop_closure.optim_utils import reduce_edges
+
         lc_range = self.cfg.MAX_EDGE_AGE
         l = self.n - self.cfg.REMOVAL_WINDOW # l is the upper bound for "old" patches
 

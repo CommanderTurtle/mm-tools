@@ -23,6 +23,7 @@
   "models": [
     {"label": "4DAnyone Base + Turbo", "path": "models/4danyone/"},
     {"label": "GVHMR motion recovery", "path": "models/gvhmr/"},
+    {"label": "DPVO learned camera recovery", "path": "models/gvhmr/dpvo.pth", "note": "Optional; SimpleVO is the default moving-camera solver", "optional": true},
     {"label": "BiRefNet matte", "path": "models/birefnet/"},
     {"label": "SMPL-X neutral body", "path": "models/smplx/SMPLX_NEUTRAL.npz", "note": "Separately licensed; install from this studio", "optional": true}
   ],
@@ -56,6 +57,9 @@
         {"id": "start_time", "type": "number", "label": "Clip start", "min": 0, "max": 86400, "step": 0.1, "default": 0, "suffix": " s", "span": "third"},
         {"id": "target_fps", "type": "select", "label": "Timeline FPS", "default": "auto", "span": "third", "options": [{"value": "auto", "label": "Auto · preserve clock"}, {"value": 24, "label": "24 FPS"}, {"value": 25, "label": "25 FPS"}, {"value": 30, "label": "30 FPS"}]},
         {"id": "seed", "type": "number", "label": "Seed", "min": 0, "max": 4294967295, "step": 1, "default": 42, "span": "third"},
+        {"type": "section", "label": "Source camera recovery"},
+        {"id": "camera_motion", "type": "select", "label": "Camera solver", "default": "simple_vo", "span": "half", "options": [{"value": "simple_vo", "label": "SimpleVO · recommended"}, {"value": "dpvo", "label": "DPVO · learned CUDA"}, {"value": "static", "label": "Static · locked camera"}], "hint": "SimpleVO is efficient and handles ordinary handheld motion. DPVO uses the optional learned checkpoint. Static skips visual odometry."},
+        {"id": "focal_length_mm", "type": "number", "label": "Full-frame focal length", "min": 0, "max": 1000, "step": 1, "default": 0, "suffix": " mm", "span": "half", "hint": "0 estimates intrinsics automatically. Typical phone lenses are 13, 24, 48, or 77 mm equivalent."},
         {"type": "section", "label": "Virtual camera rig"},
         {"id": "layer_pitches", "type": "tags", "label": "Pitch rings", "required": true, "default": [15], "span": "full", "placeholder": "-10, 15, 35", "hint": "Degrees from -15 to 45. Add as many rings as needed."},
         {"id": "views_per_layer", "type": "range", "label": "Views per ring", "min": 1, "max": 48, "step": 1, "default": 6, "span": "half", "hint": "Ring count × this value must be divisible by six."},

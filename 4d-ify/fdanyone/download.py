@@ -26,6 +26,7 @@ from fdanyone.assets import (
     BIREFNET_FILES,
     BIREFNET_REPO_ID,
     BIREFNET_REVISION,
+    DPVO_GVHMR_TARGET,
     EXAMPLE_FILES,
     GVHMR_LINKS,
     HF_REPO_ID,
@@ -33,6 +34,7 @@ from fdanyone.assets import (
     MODEL_FILES,
     PERCEPTUAL_VGG19,
     SMPLX_MODEL,
+    resolve_dpvo_checkpoint,
     resolve_perceptual_vgg19,
 )
 from fdanyone.errors import AssetError
@@ -87,7 +89,7 @@ def require_gvhmr_checkout(gvhmr_root: str | Path) -> Path:
     root = Path(gvhmr_root).expanduser().resolve()
     if not (root / "hmr4d/__init__.py").is_file():
         raise AssetError(
-            f"GVHMR is not initialized at {root}. Run `git submodule update --init third_party/GVHMR` first."
+            f"The integrated GVHMR runtime is missing at {root}. Re-run this project's setup."
         )
     return root
 
@@ -115,7 +117,7 @@ def _ensure_link(source: Path, destination: Path) -> None:
 
 def create_classic_gvhmr_links(
     model_dir: str | Path = "models",
-    gvhmr_root: str | Path = "third_party/GVHMR",
+    gvhmr_root: str | Path = ".",
     *,
     require_models: bool = True,
     require_smplx: bool = True,
@@ -136,9 +138,29 @@ def create_classic_gvhmr_links(
     return root
 
 
+def create_dpvo_gvhmr_link(
+    model_dir: str | Path = "models",
+    gvhmr_root: str | Path = ".",
+    *,
+    required: bool = True,
+) -> Path | None:
+    """Link the optional DPVO weights into the path expected by GVHMR."""
+
+    root = require_gvhmr_checkout(gvhmr_root)
+    try:
+        source = resolve_dpvo_checkpoint(model_dir)
+    except AssetError:
+        if required:
+            raise
+        return None
+    destination = root / DPVO_GVHMR_TARGET
+    _ensure_link(source, destination)
+    return destination
+
+
 def ensure_models(
     model_dir: str | Path = "models",
-    gvhmr_root: str | Path = "third_party/GVHMR",
+    gvhmr_root: str | Path = ".",
 ) -> Path:
     """Download any missing published model file and refresh the GVHMR links."""
 
@@ -168,7 +190,7 @@ def ensure_perceptual_vgg19(model_dir: str | Path = "models") -> Path:
 
 def download_model(
     model_dir: str = "models",
-    gvhmr_root: str = "third_party/GVHMR",
+    gvhmr_root: str = ".",
 ) -> dict[str, str]:
     """Download the published model checkpoints."""
 
@@ -262,7 +284,7 @@ def _copy_model_from_source(source: Path, destination: Path) -> None:
 def install_smplx(
     source_path: str | Path,
     model_dir: str | Path = "models",
-    gvhmr_root: str | Path = "third_party/GVHMR",
+    gvhmr_root: str | Path = ".",
 ) -> Path:
     """Install a user-provided official ZIP or neutral NPZ."""
 
@@ -322,7 +344,7 @@ def _prompt_for_archive(model_dir: str, gvhmr_root: str) -> dict[str, str] | Non
 def download_smplx(
     archive_path: str | None = None,
     model_dir: str = "models",
-    gvhmr_root: str = "third_party/GVHMR",
+    gvhmr_root: str = ".",
 ) -> dict[str, str] | None:
     """Install the separately licensed SMPL-X neutral body model."""
 
@@ -357,7 +379,7 @@ def download_smplx(
 
 def ensure_smplx(
     model_dir: str | Path = "models",
-    gvhmr_root: str | Path = "third_party/GVHMR",
+    gvhmr_root: str | Path = ".",
 ) -> Path:
     """Install SMPL-X interactively on first use, without blocking jobs."""
 
