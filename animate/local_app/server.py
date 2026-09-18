@@ -123,8 +123,8 @@ def _probe_video(path: Path) -> dict[str, Any]:
         scale = max(scale, 256 / min(width, height))
     output_width = max(256, min(2160, int(round(width * scale / 8)) * 8))
     output_height = max(256, min(2160, int(round(height * scale / 8)) * 8))
-    bounded = max(17, min(241, source_frames))
-    wan_frames = min(241, bounded + ((1 - bounded) % 4))
+    bounded = max(17, min(1921, source_frames))
+    wan_frames = min(1921, bounded + ((1 - bounded) % 4))
     return {
         "duration": duration,
         "fps": fps,
@@ -134,7 +134,7 @@ def _probe_video(path: Path) -> dict[str, Any]:
         "source_height": height,
         "output_width": output_width,
         "output_height": output_height,
-        "limited": source_frames > 241,
+        "limited": source_frames > 1921,
     }
 
 

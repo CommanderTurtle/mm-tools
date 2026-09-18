@@ -18,7 +18,8 @@ TEXT_ENCODER = "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
 CLIP_VISION = "clip_vision_h.safetensors"
 VAE = "Wan2_1_VAE_bf16.safetensors"
 REPLACEMENT_MODEL = "wan2.2_animate_14B_int8_convrot.safetensors"
-CANONICAL_CONTEXT_TOKENS = 21 * (480 // 16) * (832 // 16)
+MAX_MOTION_FRAMES = 1921
+NATIVE_PIXEL_BUDGET = 480 * 832
 PROFILES: dict[str, dict[str, Any]] = {
     "distilled": {
         "label": "native distilled INT8",
@@ -62,8 +63,8 @@ def _node(class_type: str, **inputs: Any) -> dict[str, Any]:
 def _wan_length(value: Any) -> int:
     """Clamp and round upward to Wan's required 4n+1 frame count."""
 
-    requested = max(17, min(241, int(value)))
-    return min(241, requested + ((1 - requested) % 4))
+    requested = max(17, min(MAX_MOTION_FRAMES, int(value)))
+    return min(MAX_MOTION_FRAMES, requested + ((1 - requested) % 4))
 
 
 def _latent_size(value: int) -> int:
@@ -117,21 +118,20 @@ def _video_probe(path: Path) -> dict[str, Any]:
     return {"fps": fps, "frames": frames, "width": width, "height": height}
 
 
-def _context_window_plan(
-    width: int,
-    height: int,
-    requested_length: int,
-    requested_overlap: int,
-) -> tuple[int, int]:
-    """Fit a temporal window to Animate 2's official 480p token budget."""
+def _native_inference_size(width: int, height: int) -> tuple[int, int]:
+    """Fit the generation canvas to Animate 2's native 480p budget."""
 
-    spatial_tokens = max(1, (width // 16) * (height // 16))
-    safe_length = max(3, CANONICAL_CONTEXT_TOKENS // spatial_tokens)
-    length = max(3, min(requested_length, safe_length))
-    if requested_overlap <= 0:
-        return length, 0
-    overlap = max(1, requested_overlap * length // max(1, requested_length))
-    return length, min(length - 1, overlap)
+    scale = min(1.0, (NATIVE_PIXEL_BUDGET / max(1, width * height)) ** 0.5)
+    native_width = max(256, int(width * scale) // 16 * 16)
+    native_height = max(256, int(height * scale) // 16 * 16)
+    while native_width * native_height > NATIVE_PIXEL_BUDGET:
+        if native_width >= native_height and native_width > 256:
+            native_width -= 16
+        elif native_height > 256:
+            native_height -= 16
+        else:
+            break
+    return native_width, native_height
 
 
 def _profile(controls: dict[str, Any]) -> dict[str, Any]:
@@ -228,7 +228,7 @@ class Adapter(StudioAdapter):
         if mode in {"motion_transfer", "character_replace"}:
             resolve_asset(str(controls.get("reference_image_asset", "")))
             length = int(controls.get("length", 81 if mode == "motion_transfer" else 77))
-            maximum = 241 if mode == "motion_transfer" else 77
+            maximum = MAX_MOTION_FRAMES if mode == "motion_transfer" else 77
             if length < 17 or length > maximum:
                 raise ValueError(
                     f"Frame count must be from 17 through {maximum}; it is rounded to 4n+1 automatically."
@@ -247,11 +247,6 @@ class Adapter(StudioAdapter):
             start, end = float(controls.get("pose_start_percent", 0)), float(controls.get("pose_end_percent", 1))
             if not 0 <= start <= end <= 1:
                 raise ValueError("Pose influence start must be no later than its end, both in the 0–1 range.")
-            if bool(controls.get("enable_context", True)):
-                context_length = int(controls.get("context_length", 21))
-                overlap = int(controls.get("context_overlap", 8))
-                if context_length < 5 or overlap < 0 or overlap >= context_length:
-                    raise ValueError("Context overlap must be non-negative and smaller than context length.")
             optional = str(controls.get("continue_motion_asset", "")).strip()
             if optional:
                 resolve_asset(optional)
@@ -366,7 +361,7 @@ class Adapter(StudioAdapter):
         driving_path = self._asset(c, "driving_video_asset")
         driving = runtime.add_input(driving_path, f"driving-{driving_path.name}")
         width, height = int(c.get("width", 480)), int(c.get("height", 832))
-        latent_width, latent_height = _latent_size(width), _latent_size(height)
+        latent_width, latent_height = _native_inference_size(width, height)
         length = _wan_length(c.get("length", 81))
         source = _video_probe(driving_path)
         continuation = str(c.get("continue_motion_asset", "")).strip()
@@ -382,6 +377,11 @@ class Adapter(StudioAdapter):
             f"Input window: decoding {source_length} frame{'s' if source_length != 1 else ''} "
             f"from frame {source_start} of {source['frames']} before tensor materialization."
         )
+        if (latent_width, latent_height) != (width, height):
+            self._active_context.log(
+                f"Native Animate 2 inference: {latent_width}x{latent_height}; "
+                f"delivery scales once to {width}x{height}."
+            )
         profile = _profile(c)
         sampling = _sampling(c, profile)
         graph: dict[str, Any] = {
@@ -420,32 +420,14 @@ class Adapter(StudioAdapter):
                 lora_name=str(profile["lora"]), strength_model=1.0,
             )
             model_ref = ["31", 0]
-        if bool(c.get("enable_context", True)):
-            requested_context = int(c.get("context_length", 21))
-            requested_overlap = int(c.get("context_overlap", 8))
-            context_length, context_overlap = _context_window_plan(
-                latent_width,
-                latent_height,
-                requested_context,
-                requested_overlap,
-            )
-            if (context_length, context_overlap) != (requested_context, requested_overlap):
-                self._active_context.log(
-                    "GPU window planner: "
-                    f"{requested_context}/{requested_overlap} -> {context_length}/{context_overlap} "
-                    f"latent frames at {width}x{height}; full {length}-frame output is preserved."
-                )
-            graph["16"] = _node(
-                "ContextWindowsManual", model=model_ref,
-                context_length=context_length,
-                context_overlap=context_overlap,
-                context_schedule=str(c.get("context_schedule", "standard_static")),
-                context_stride=int(c.get("context_stride", 1)), closed_loop=bool(c.get("closed_loop", False)),
-                fuse_method=str(c.get("fuse_method", "pyramid")), dim=2,
-                freenoise=bool(c.get("freenoise", True)), cond_retain_index_list="0",
-                split_conds_to_windows=False, latent_retain_index_list="", causal_window_fix=True,
-            )
-            model_ref = ["16", 0]
+        graph["16"] = _node(
+            "ContextWindowsManual", model=model_ref,
+            context_length=21, context_overlap=8, context_schedule="standard_static",
+            context_stride=1, closed_loop=False, fuse_method="pyramid", dim=2,
+            freenoise=True, cond_retain_index_list="0", split_conds_to_windows=False,
+            latent_retain_index_list="", causal_window_fix=True,
+        )
+        model_ref = ["16", 0]
         cache = str(c.get("cache_precision", "disabled"))
         if cache != "disabled":
             graph["17"] = _node("WanAnimate2Cache", model=model_ref, device="gpu", dtype=cache)
@@ -495,8 +477,8 @@ class Adapter(StudioAdapter):
             image_ref = ["27", 0]
         if (latent_width, latent_height) != (width, height):
             graph["30"] = _node(
-                "ImageCrop", image=image_ref, width=width, height=height,
-                x=(latent_width - width) // 2, y=(latent_height - height) // 2,
+                "ImageScale", image=image_ref, upscale_method="lanczos",
+                width=width, height=height, crop="disabled",
             )
             image_ref = ["30", 0]
         graph["28"] = _node("CreateVideo", images=image_ref, fps=float(c.get("fps", 24)), bit_depth=int(c.get("bit_depth", 8)), color_space=str(c.get("color_space", "sRGB")), codec="none")
