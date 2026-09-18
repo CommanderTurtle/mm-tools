@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 VENV="$ROOT/.venv"
-STUDIO="$ROOT/../studio"
+STUDIO="$ROOT/local_app"
 
 command -v uv >/dev/null 2>&1 || { printf 'uv is required. Install uv, then rerun this script.\n' >&2; exit 1; }
 command -v nvidia-smi >/dev/null 2>&1 || { printf 'AuK requires an NVIDIA CUDA workstation.\n' >&2; exit 1; }
@@ -45,7 +45,7 @@ PYTHONPATH="$ROOT/..:$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" "$VENV/bin/python" - 
 import torch
 import torchaudio
 from auk.infer.infer_auk import AukInfer
-from studio.server import build_application
+from local_app.server import build_application
 
 assert torch.cuda.is_available(), "CUDA is not visible inside the AuK environment"
 assert torch.cuda.get_device_properties(0).total_memory >= 30_000 * 1024**2
