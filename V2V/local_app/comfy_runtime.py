@@ -73,6 +73,10 @@ class ComfyRuntime:
             "--user-directory", str(self.user_dir),
             "--disable-auto-launch", "--disable-metadata", "--disable-api-nodes",
             "--disable-all-custom-nodes", "--gpu-only", "--disable-async-offload", "--cache-none",
+            # cudaMallocAsync aborts inside Comfy's staged model detach/load path
+            # on the RTX 5090. The native expandable allocator releases the
+            # encoder blocks deterministically before WAN claims the device.
+            "--disable-cuda-malloc",
         ]
         # Comfy's whitelist is folder-name based. Keeping the global disable
         # flag in place means a runtime-generated or user-installed node can
