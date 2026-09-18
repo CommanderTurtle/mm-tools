@@ -546,12 +546,10 @@
 !/nvidia-sim/SOMA-X/tools/**
 /nvidia-sim/SOMA-X/tools/soma_procedural_blender/smoke_test_blender.py
 
-# ID-V2V, its required DiffSynth fork, and PR-pinned local Comfy runtime.
+# ID-V2V studio and the PR-pinned shared Comfy runtime.
 !/V2V/
 /V2V/*
 !/V2V/README.md
-!/V2V/pyproject.toml
-!/V2V/uv.lock
 !/V2V/.env.local.example
 !/V2V/ARCHITECTURE.md
 !/V2V/requirements-local.txt
@@ -563,22 +561,6 @@
 !/V2V/local_app/adapter.py
 !/V2V/local_app/server.py
 !/V2V/local_app/studio.json
-!/V2V/src/
-!/V2V/src/**
-!/V2V/scripts/
-!/V2V/scripts/**
-/V2V/scripts/examples/
-/V2V/scripts/examples/**
-!/V2V/diffsynth_studio/
-/V2V/diffsynth_studio/*
-!/V2V/diffsynth_studio/README.md
-!/V2V/diffsynth_studio/requirements.txt
-!/V2V/diffsynth_studio/setup.py
-!/V2V/diffsynth_studio/diffsynth/
-!/V2V/diffsynth_studio/diffsynth/**
-/V2V/diffsynth_studio/diffsynth/trainers/
-/V2V/diffsynth_studio/diffsynth/extensions/ImageQualityMetric/trainer/
-/V2V/diffsynth_studio/diffsynth/extensions/ImageQualityMetric/trainer/**
 !/V2V/ComfyUI/
 /V2V/ComfyUI/*
 !/V2V/ComfyUI/README.md
