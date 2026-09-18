@@ -46,7 +46,7 @@ torch_cuda_major="$("$PY" -c 'import torch; print(torch.version.cuda.split(".")[
 if [[ -n "$nvcc_major" && "$nvcc_major" -gt "$torch_cuda_major" ]]; then
   export MMTOOLS_FORWARD_CUDA=1
 fi
-uv pip install --python "$PY" 'setuptools<81' wheel ninja -r requirements.txt -r local_app/requirements.txt
+uv pip install --python "$PY" 'setuptools<81' wheel ninja -r requirements.txt -r requirements-gui.txt -r local_app/requirements.txt
 uv pip install --python "$PY" 'torch-scatter==2.1.2+pt28cu128' -f https://data.pyg.org/whl/torch-2.8.0+cu128.html
 uv pip uninstall --python "$PY" smplx >/dev/null 2>&1 || true
 uv pip install --python "$PY" --no-build-isolation --no-deps "$ROOT"

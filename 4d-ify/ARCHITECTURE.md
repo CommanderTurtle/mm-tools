@@ -2,7 +2,7 @@
 
 The studio wraps the pinned native 4DAnyone pipeline rather than translating it
 through a second inference framework. Jobs run in a cancellable child process,
-share the root studio's durable FIFO GPU queue, and retain the complete native
+share a project-local durable FIFO GPU queue, and retain the complete native
 output tree: resolved settings, camera calibration, reusable GVHMR motion,
 skeleton conditioning, proposal views, and every dense target view.
 
