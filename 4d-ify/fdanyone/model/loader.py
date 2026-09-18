@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     import torch
     from torch import nn
 
-    from fdanyone.vendor.diffsynth.schedulers.flow_match import FlowMatchScheduler
+    from fdanyone.diffsynth.schedulers.flow_match import FlowMatchScheduler
 
 POSE_ENCODER_PREFIX = "pose_encoder."
 
@@ -82,7 +82,7 @@ def _strict_assign(module, state_dict: dict, label: str) -> None:
 def _load_dit(checkpoint_path: Path, attention_backend: str):
     import torch
 
-    from fdanyone.vendor.diffsynth.models.wan_video_dit import (
+    from fdanyone.diffsynth.models.wan_video_dit import (
         MODEL_DIM,
         NUM_HEADS,
         FourDAnyoneDiT,
@@ -105,8 +105,8 @@ def load_pose_encoder(checkpoint_path: str | Path, device: str):
 
     import torch
 
-    from fdanyone.vendor.diffsynth.models.wan_video_dit import MODEL_DIM
-    from fdanyone.vendor.diffsynth.models.wan_video_pose_encoder import PoseEncoder
+    from fdanyone.diffsynth.models.wan_video_dit import MODEL_DIM
+    from fdanyone.diffsynth.models.wan_video_pose_encoder import PoseEncoder
 
     checkpoint, _ = _load_checkpoint(Path(checkpoint_path), include_prefix=POSE_ENCODER_PREFIX)
     state_dict = {key.removeprefix(POSE_ENCODER_PREFIX): value for key, value in checkpoint.items()}
@@ -121,7 +121,7 @@ def load_pose_encoder(checkpoint_path: str | Path, device: str):
 def _load_vae(path: Path, dtype):
     import torch
 
-    from fdanyone.vendor.diffsynth.models.wan_video_vae import WanVideoVAE38
+    from fdanyone.diffsynth.models.wan_video_vae import WanVideoVAE38
 
     state_dict = torch.load(path, map_location="cpu", weights_only=True)
     state_dict = WanVideoVAE38.state_dict_converter().from_civitai(state_dict)
@@ -154,7 +154,7 @@ def load_denoiser(
 
     import torch
 
-    from fdanyone.vendor.diffsynth.schedulers.flow_match import FlowMatchScheduler
+    from fdanyone.diffsynth.schedulers.flow_match import FlowMatchScheduler
 
     dtype = torch.bfloat16
     checkpoint = Path(checkpoint_path).expanduser().resolve()

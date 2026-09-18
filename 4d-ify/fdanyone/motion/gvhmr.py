@@ -18,7 +18,7 @@ from pathlib import Path
 
 from fdanyone.errors import AssetError, VideoContractError
 from fdanyone.motion.result import SMPL_PARAMETER_NAMES, MotionResult
-from fdanyone.vendor.pytorch3d_compat import install_if_needed as install_pytorch3d_compat
+from fdanyone.pytorch3d_compat import install_if_needed as install_pytorch3d_compat
 from fdanyone.video import CanonicalClip
 
 GVHMR_ASSETS = (

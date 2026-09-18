@@ -246,7 +246,7 @@ def run_pipeline(
     devices = select_cuda_devices(gpu_ids)
     device = devices[0]
 
-    from fdanyone.vendor.diffsynth.models.wan_video_dit import get_attention_backend
+    from fdanyone.diffsynth.models.wan_video_dit import get_attention_backend
 
     # Resolve once, before downloading assets or preparing conditioning. Every
     # DiT, including spawned replicas, receives this concrete backend.

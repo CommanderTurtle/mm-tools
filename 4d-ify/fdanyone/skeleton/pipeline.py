@@ -31,7 +31,7 @@ from fdanyone.motion.gvhmr import gvhmr_imports, validate_gvhmr
 from fdanyone.motion.result import MotionResult
 from fdanyone.skeleton.keypoints import KEYPOINT_NAMES
 from fdanyone.skeleton.renderer import estimate_body_height, projected_body_scales, render_goliath40
-from fdanyone.vendor.pytorch3d_compat import install_if_needed as install_pytorch3d_compat
+from fdanyone.pytorch3d_compat import install_if_needed as install_pytorch3d_compat
 from fdanyone.video import CanonicalClip, iter_rgb_video, write_lossless_video, write_video
 from fdanyone.views import ViewPlan
 

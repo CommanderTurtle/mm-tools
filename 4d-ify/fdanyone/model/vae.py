@@ -22,7 +22,7 @@ from fdanyone.video import CanonicalClip, write_video
 if TYPE_CHECKING:
     from torch import Tensor
 
-    from fdanyone.vendor.diffsynth.models.wan_video_vae import WanVideoVAE38
+    from fdanyone.diffsynth.models.wan_video_vae import WanVideoVAE38
 
 LOGGER = logging.getLogger("fdanyone")
 
