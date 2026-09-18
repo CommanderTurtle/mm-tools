@@ -144,8 +144,15 @@ class ComfyRuntime:
                     raise JobCancelled("Cancelled by user")
             if self.process.poll() is not None:
                 self._flush_log()
-                raise RuntimeError(f"The private Comfy runtime exited with code {self.process.returncode}.")
-            history = self._request(f"/history/{prompt_id}", timeout=10)
+                raise RuntimeError(self._failure_message())
+            try:
+                history = self._request(f"/history/{prompt_id}", timeout=10)
+            except (OSError, urllib.error.URLError) as error:
+                time.sleep(0.25)
+                if self.process.poll() is not None:
+                    self._flush_log()
+                    raise RuntimeError(self._failure_message()) from error
+                continue
             record = history.get(prompt_id)
             if record:
                 self._flush_log()
@@ -160,6 +167,16 @@ class ComfyRuntime:
             self.context.update(stage, progress)
             self._flush_log(limit=40)
             time.sleep(1.0)
+
+    def _failure_message(self) -> str:
+        try:
+            lines = self.log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            lines = []
+        useful = [line.strip() for line in lines[-120:] if line.strip()]
+        assertions = [line for line in useful if "assert" in line.lower() or "cuda" in line.lower()]
+        detail = assertions[-1] if assertions else (useful[-1] if useful else "No runtime detail was logged.")
+        return f"The private GPU-only Comfy runtime exited with code {self.process.returncode}: {detail} (log: {self.log_path})"
 
     def output_files(self) -> list[Path]:
         return sorted(path for path in self.output_dir.rglob("*") if path.is_file())

@@ -815,15 +815,20 @@ Snapshot folder: models/imports/Comfy-Org--Wan-Animate-2
 ```text
 models/imports/Comfy-Org--Wan-Animate-2/
 ├── clip_vision/clip_vision_h.safetensors
+├── diffusion_models/wan_animate_2_int8_convrot.safetensors
 ├── diffusion_models/wan_animate_2_distill_int8_convrot.safetensors
+├── loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
 ├── text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
 └── vae/Wan2_1_VAE_bf16.safetensors
 ```
 
 Used by: the PR-pinned local Comfy runtime for Wan Animate 2. After the
-resumable snapshot completes, these four files are hard-linked into matching
-`V2V/ComfyUI/models/*` folders (copy fallback only across filesystems). The
-distilled INT8 checkpoint does not require a separate LightX LoRA.
+resumable snapshot completes, these six files are hard-linked into matching
+`V2V/ComfyUI/models/*` folders (copy fallback only across filesystems). Native
+distilled inference uses the distilled INT8 checkpoint alone at 10 Euler steps.
+The optional acceleration lane pairs the base INT8 checkpoint with the rank-64
+LightX2V LoRA for the official six-step LCM recipe or the explicit four-step
+speed profile. Both stay GPU-only.
 
 51. Wan-AI/Wan2.2-Animate-14B pose detector
 Snapshot folder: models/imports/Wan-AI--Wan2.2-Animate-14B-preprocess

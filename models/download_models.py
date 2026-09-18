@@ -628,7 +628,7 @@ BUNDLES: tuple[Bundle, ...] = (
     ),
     Bundle(
         "animate",
-        "Wan Animate 2 distilled INT8 plus local pose preprocessing",
+        "Wan Animate 2 distilled INT8, base INT8 + LightX2V, and local pose preprocessing",
         "50-52",
         (
             A(
@@ -636,7 +636,9 @@ BUNDLES: tuple[Bundle, ...] = (
                 model_path("imports/Comfy-Org--Wan-Animate-2"),
                 (
                     "clip_vision/clip_vision_h.safetensors",
+                    "diffusion_models/wan_animate_2_int8_convrot.safetensors",
                     "diffusion_models/wan_animate_2_distill_int8_convrot.safetensors",
+                    "loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
                     "text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
                     "vae/Wan2_1_VAE_bf16.safetensors",
                 ),
@@ -647,8 +649,16 @@ BUNDLES: tuple[Bundle, ...] = (
                         repo_path("V2V/ComfyUI/models/clip_vision/clip_vision_h.safetensors"),
                     ),
                     (
+                        "diffusion_models/wan_animate_2_int8_convrot.safetensors",
+                        repo_path("V2V/ComfyUI/models/diffusion_models/wan_animate_2_int8_convrot.safetensors"),
+                    ),
+                    (
                         "diffusion_models/wan_animate_2_distill_int8_convrot.safetensors",
                         repo_path("V2V/ComfyUI/models/diffusion_models/wan_animate_2_distill_int8_convrot.safetensors"),
+                    ),
+                    (
+                        "loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+                        repo_path("V2V/ComfyUI/models/loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors"),
                     ),
                     (
                         "text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",

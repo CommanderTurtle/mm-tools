@@ -7,12 +7,17 @@ nodes are disabled, metadata is disabled, and every model stays on CUDA. The
 only optional custom node allowed to load is the repository-pinned
 `ComfyUI-WanAnimatePreprocess` pack used by the diagnostic mode.
 
-`motion_transfer` constructs the current Comfy-Org distilled Wan Animate 2
-graph directly. It retains the complete native conditioning surface: separate
-character and pose prompts, CLIP vision on both inputs, independent reference
-and motion strengths, denoising-time motion windows, continuation frames and
-offsets, manual context windows, FreeNoise/fusion options, ConvRot GPU caches,
-sampler/scheduler/shift/CFG, cropping, and encoded delivery.
+`motion_transfer` constructs Wan Animate 2 directly and has two local INT8
+lanes. Native distilled inference uses the upstream 10-step Euler/no-CFG
+recipe. LightX2V loads the base INT8 model plus the rank-64 acceleration LoRA;
+its recommended profile mirrors Comfy's published six-step LCM graph, with a
+separate literal four-step speed profile. Only the selected model is loaded and
+all execution remains GPU-only. The graph retains the complete conditioning
+surface: separate character and pose prompts, CLIP vision on both inputs,
+independent reference and motion strengths, denoising-time motion windows,
+continuation frames and offsets, manual context windows, FreeNoise/fusion
+options, optional ConvRot GPU caches, explicit manual sampler overrides,
+cropping, and encoded delivery.
 
 `pose_lab` is deliberately separate. Animate 2 can consume video end-to-end,
 but difficult source material benefits from an inspectable CUDA ViTPose/YOLO

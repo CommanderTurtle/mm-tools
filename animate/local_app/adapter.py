@@ -9,10 +9,41 @@ from studio.comfy_runtime import ComfyRuntime
 from studio.runtime import StudioAdapter, StudioContext, StudioOutput, gpu_snapshot
 
 
-MODEL = "wan_animate_2_distill_int8_convrot.safetensors"
+DISTILLED_MODEL = "wan_animate_2_distill_int8_convrot.safetensors"
+BASE_MODEL = "wan_animate_2_int8_convrot.safetensors"
+LIGHTX2V_LORA = "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors"
 TEXT_ENCODER = "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
 CLIP_VISION = "clip_vision_h.safetensors"
 VAE = "Wan2_1_VAE_bf16.safetensors"
+PROFILES: dict[str, dict[str, Any]] = {
+    "distilled": {
+        "label": "native distilled INT8",
+        "model": DISTILLED_MODEL,
+        "lora": None,
+        "steps": 10,
+        "sampler": "euler",
+        "scheduler": "simple",
+        "guidance": 1.0,
+    },
+    "lightx2v": {
+        "label": "LightX2V official Comfy recipe",
+        "model": BASE_MODEL,
+        "lora": LIGHTX2V_LORA,
+        "steps": 6,
+        "sampler": "lcm",
+        "scheduler": "simple",
+        "guidance": 1.0,
+    },
+    "lightx2v_4step": {
+        "label": "LightX2V four-step speed",
+        "model": BASE_MODEL,
+        "lora": LIGHTX2V_LORA,
+        "steps": 4,
+        "sampler": "lcm",
+        "scheduler": "simple",
+        "guidance": 1.0,
+    },
+}
 NEGATIVE = (
     "oversaturated, overexposed, static, blurred details, subtitles, painting, still frame, "
     "gray cast, worst quality, low quality, jpeg artifacts, ugly, malformed limbs, fused fingers, "
@@ -22,6 +53,37 @@ NEGATIVE = (
 
 def _node(class_type: str, **inputs: Any) -> dict[str, Any]:
     return {"class_type": class_type, "inputs": inputs}
+
+
+def _wan_length(value: Any) -> int:
+    """Clamp and round upward to Wan's required 4n+1 frame count."""
+
+    requested = max(17, min(241, int(value)))
+    return min(241, requested + ((1 - requested) % 4))
+
+
+def _latent_size(value: int) -> int:
+    return (value + 15) // 16 * 16
+
+
+def _profile(controls: dict[str, Any]) -> dict[str, Any]:
+    profile_id = str(controls.get("inference_profile", "distilled"))
+    try:
+        return PROFILES[profile_id]
+    except KeyError as exc:
+        raise ValueError(f"Unknown Animate inference profile: {profile_id}") from exc
+
+
+def _sampling(controls: dict[str, Any], profile: dict[str, Any]) -> dict[str, Any]:
+    if not bool(controls.get("manual_sampling", False)):
+        return profile
+    return {
+        **profile,
+        "steps": int(controls.get("steps", profile["steps"])),
+        "sampler": str(controls.get("sampler", profile["sampler"])),
+        "scheduler": str(controls.get("scheduler", profile["scheduler"])),
+        "guidance": float(controls.get("guidance", profile["guidance"])),
+    }
 
 
 def _kind(path: Path) -> tuple[str, str | None]:
@@ -59,7 +121,7 @@ class Adapter(StudioAdapter):
 
     def health(self) -> dict[str, Any]:
         checks = [
-            ("Animate 2 distilled INT8", self.models / "diffusion_models" / MODEL),
+            ("Animate 2 distilled INT8", self.models / "diffusion_models" / DISTILLED_MODEL),
             ("UMT5 FP8", self.models / "text_encoders" / TEXT_ENCODER),
             ("CLIP Vision H", self.models / "clip_vision" / CLIP_VISION),
             ("Wan VAE BF16", self.models / "vae" / VAE),
@@ -69,6 +131,14 @@ class Adapter(StudioAdapter):
             ("Shared Python environment", self.python),
         ]
         details = [{"label": label, "ready": path.is_file(), "required": True, "path": str(path)} for label, path in checks]
+        optional = [
+            ("Animate 2 base INT8 · LightX2V", self.models / "diffusion_models" / BASE_MODEL),
+            ("LightX2V acceleration LoRA", self.models / "loras" / LIGHTX2V_LORA),
+        ]
+        details.extend(
+            {"label": label, "ready": path.is_file(), "required": False, "path": str(path)}
+            for label, path in optional
+        )
         gpu = gpu_snapshot()
         device = gpu.get("devices", [{}])[0] if gpu.get("available") else {}
         gpu_ok = bool(device) and int(device.get("memory_total_mib", 0)) >= 30000
@@ -82,17 +152,27 @@ class Adapter(StudioAdapter):
             raise ValueError(f"Unknown Animate mode: {mode}")
         resolve_asset(str(controls.get("driving_video_asset", "")))
         width, height = int(controls.get("width", 480)), int(controls.get("height", 832))
-        if width % 16 or height % 16 or not 256 <= width <= 1280 or not 256 <= height <= 1280:
-            raise ValueError("Width and height must be multiples of 16 between 256 and 1280 pixels.")
+        if width % 8 or height % 8 or not 256 <= width <= 2160 or not 256 <= height <= 2160:
+            raise ValueError("Width and height must be multiples of 8 between 256 and 2160 pixels.")
         if mode == "motion_transfer":
+            profile = _profile(controls)
+            profile_files = [self.models / "diffusion_models" / str(profile["model"])]
+            if profile["lora"]:
+                profile_files.append(self.models / "loras" / str(profile["lora"]))
+            missing = [path.name for path in profile_files if not path.is_file()]
+            if missing:
+                raise ValueError(
+                    f"{profile['label']} is not installed ({', '.join(missing)}). "
+                    "Run the model downloader's animate bundle, then retry."
+                )
             resolve_asset(str(controls.get("reference_image_asset", "")))
             length = int(controls.get("length", 81))
-            if length < 17 or length > 241 or (length - 1) % 4:
-                raise ValueError("Frame count must be 4n+1, from 17 through 241.")
+            if length < 17 or length > 241:
+                raise ValueError("Frame count must be from 17 through 241; it is rounded up to 4n+1 automatically.")
             start, end = float(controls.get("pose_start_percent", 0)), float(controls.get("pose_end_percent", 1))
             if not 0 <= start <= end <= 1:
                 raise ValueError("Pose influence start must be no later than its end, both in the 0–1 range.")
-            if bool(controls.get("enable_context", False)):
+            if bool(controls.get("enable_context", True)):
                 context_length = int(controls.get("context_length", 21))
                 overlap = int(controls.get("context_overlap", 8))
                 if context_length < 5 or overlap < 0 or overlap >= context_length:
@@ -109,11 +189,15 @@ class Adapter(StudioAdapter):
         reference = runtime.add_input(context_asset := self._asset(c, "reference_image_asset"), f"reference-{context_asset.name}")
         driving_path = self._asset(c, "driving_video_asset")
         driving = runtime.add_input(driving_path, f"driving-{driving_path.name}")
-        width, height, length = int(c.get("width", 480)), int(c.get("height", 832)), int(c.get("length", 81))
+        width, height = int(c.get("width", 480)), int(c.get("height", 832))
+        latent_width, latent_height = _latent_size(width), _latent_size(height)
+        length = _wan_length(c.get("length", 81))
+        profile = _profile(c)
+        sampling = _sampling(c, profile)
         graph: dict[str, Any] = {
             "1": _node("LoadImage", image=reference),
             "2": _node("LoadVideo", file=driving),
-            "3": _node("UNETLoader", unet_name=MODEL, weight_dtype="default"),
+            "3": _node("UNETLoader", unet_name=str(profile["model"]), weight_dtype="default"),
             "4": _node("CLIPLoader", clip_name=TEXT_ENCODER, type="wan", device="default"),
             "5": _node("CLIPTextEncode", clip=["4", 0], text=str(c.get("prompt", ""))),
             "6": _node("CLIPTextEncode", clip=["4", 0], text=str(c.get("negative_prompt", NEGATIVE))),
@@ -121,16 +205,22 @@ class Adapter(StudioAdapter):
             "8": _node("CLIPVisionLoader", clip_name=CLIP_VISION),
             "9": _node("VAELoader", vae_name=VAE),
             "10": _node("ResizeImageMaskNode", input=["1", 0], resize_type="scale dimensions", **{
-                "resize_type.width": width, "resize_type.height": height, "resize_type.crop": str(c.get("crop", "center")), "scale_method": str(c.get("scale_method", "area"))}),
+                "resize_type.width": latent_width, "resize_type.height": latent_height, "resize_type.crop": str(c.get("crop", "center")), "scale_method": str(c.get("scale_method", "area"))}),
             "11": _node("CLIPVisionEncode", clip_vision=["8", 0], image=["10", 0], crop="none"),
             "12": _node("GetVideoComponents", video=["2", 0]),
             "13": _node("ResizeImageMaskNode", input=["12", 0], resize_type="scale dimensions", **{
-                "resize_type.width": width, "resize_type.height": height, "resize_type.crop": str(c.get("crop", "center")), "scale_method": str(c.get("scale_method", "area"))}),
+                "resize_type.width": latent_width, "resize_type.height": latent_height, "resize_type.crop": str(c.get("crop", "center")), "scale_method": str(c.get("scale_method", "area"))}),
             "14": _node("ImageFromBatch", image=["13", 0], batch_index=int(c.get("video_frame_offset", 0)), length=1),
             "15": _node("CLIPVisionEncode", clip_vision=["8", 0], image=["14", 0], crop="none"),
         }
         model_ref: list[Any] = ["3", 0]
-        if bool(c.get("enable_context", False)):
+        if profile["lora"]:
+            graph["31"] = _node(
+                "LoraLoaderModelOnly", model=model_ref,
+                lora_name=str(profile["lora"]), strength_model=1.0,
+            )
+            model_ref = ["31", 0]
+        if bool(c.get("enable_context", True)):
             graph["16"] = _node(
                 "ContextWindowsManual", model=model_ref,
                 context_length=int(c.get("context_length", 21)),
@@ -142,16 +232,19 @@ class Adapter(StudioAdapter):
                 split_conds_to_windows=False, latent_retain_index_list="", causal_window_fix=True,
             )
             model_ref = ["16", 0]
-        cache = str(c.get("cache_precision", "int8"))
+        cache = str(c.get("cache_precision", "disabled"))
         if cache != "disabled":
             graph["17"] = _node("WanAnimate2Cache", model=model_ref, device="gpu", dtype=cache)
             model_ref = ["17", 0]
-        graph["18"] = _node("BasicScheduler", model=model_ref, scheduler=str(c.get("scheduler", "simple")), steps=int(c.get("steps", 10)), denoise=float(c.get("denoise", 1)))
+        graph["18"] = _node(
+            "BasicScheduler", model=model_ref, scheduler=str(sampling["scheduler"]),
+            steps=int(sampling["steps"]), denoise=float(c.get("denoise", 1)),
+        )
         graph["19"] = _node("ModelSamplingSD3", model=model_ref, shift=float(c.get("shift", 5)))
-        graph["20"] = _node("KSamplerSelect", sampler_name=str(c.get("sampler", "lcm")))
+        graph["20"] = _node("KSamplerSelect", sampler_name=str(sampling["sampler"]))
         conditioning: dict[str, Any] = {
             "positive": ["5", 0], "negative": ["6", 0], "vae": ["9", 0],
-            "width": width, "height": height, "length": length, "batch_size": 1,
+            "width": latent_width, "height": latent_height, "length": length, "batch_size": 1,
             "reference_image": ["10", 0], "pose_video": ["13", 0],
             "clip_vision_output": ["11", 0], "positive_pose": ["7", 0],
             "clip_vision_output_pose": ["15", 0],
@@ -172,7 +265,7 @@ class Adapter(StudioAdapter):
         graph["24"] = _node(
             "SamplerCustom", model=["19", 0], positive=["23", 0], negative=["23", 1], sampler=["20", 0],
             sigmas=["18", 0], latent_image=["23", 2], add_noise=bool(c.get("add_noise", True)),
-            noise_seed=int(c.get("seed", 42)), cfg=float(c.get("guidance", 1)),
+            noise_seed=int(c.get("seed", 42)), cfg=float(sampling["guidance"]),
         )
         graph["25"] = _node("TrimVideoLatent", samples=["24", 0], trim_amount=["23", 3])
         graph["26"] = _node("VAEDecode", samples=["25", 0], vae=["9", 0])
@@ -180,6 +273,12 @@ class Adapter(StudioAdapter):
         if bool(c.get("trim_duplicate", False)):
             graph["27"] = _node("ImageFromBatch", image=image_ref, batch_index=1, length=4096)
             image_ref = ["27", 0]
+        if (latent_width, latent_height) != (width, height):
+            graph["30"] = _node(
+                "ImageCrop", image=image_ref, width=width, height=height,
+                x=(latent_width - width) // 2, y=(latent_height - height) // 2,
+            )
+            image_ref = ["30", 0]
         graph["28"] = _node("CreateVideo", images=image_ref, fps=float(c.get("fps", 24)), bit_depth=int(c.get("bit_depth", 8)), color_space=str(c.get("color_space", "sRGB")), codec="none")
         graph["29"] = _save_video(["28", 0], f"animate/{job_id}/motion-transfer", str(c.get("container", "mp4")), str(c.get("codec", "h264")), int(c.get("crf", 18)))
         return graph
