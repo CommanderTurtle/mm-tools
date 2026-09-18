@@ -22,7 +22,7 @@ MAX_MOTION_FRAMES = 1921
 PIXEL_BUDGET_480P = 480 * 832
 PIXEL_BUDGET_720P = 1280 * 720
 PIXEL_BUDGET_1080P = 1920 * 1080
-DELIVERY_MAX_LONG_EDGE = 1280
+DELIVERY_MAX_DIMENSION = 2160
 PROFILES: dict[str, dict[str, Any]] = {
     "distilled": {
         "label": "native distilled INT8",
@@ -138,15 +138,14 @@ def _inference_canvas(width: int, height: int, budget: int = PIXEL_BUDGET_720P) 
 
 
 def _delivery_size(width: int, height: int) -> tuple[int, int]:
-    """Cap the delivered video at the 720p long edge, preserving aspect."""
+    """Keep the delivered video at the requested size up to the 2160 ceiling."""
 
-    long_edge = max(width, height)
-    if long_edge <= DELIVERY_MAX_LONG_EDGE:
-        return width, height
-    scale = DELIVERY_MAX_LONG_EDGE / long_edge
+    scale = min(1.0, DELIVERY_MAX_DIMENSION / width, DELIVERY_MAX_DIMENSION / height)
+    if min(width * scale, height * scale) < 256:
+        scale = max(scale, 256 / min(width, height))
     return (
-        max(256, int(width * scale) // 16 * 16),
-        max(256, int(height * scale) // 16 * 16),
+        max(256, min(DELIVERY_MAX_DIMENSION, int(round(width * scale / 8)) * 8)),
+        max(256, min(DELIVERY_MAX_DIMENSION, int(round(height * scale / 8)) * 8)),
     )
 
 

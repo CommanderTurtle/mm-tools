@@ -22,7 +22,7 @@ cropping, and encoded delivery.
  pixel budget (720p class by default, an opt-in 1080p class for the distilled
  lane, and a pinned 480p canvas for the LightX2V lanes whose rank-64 distill
  LoRA is 480p-trained), and the delivered video matches the requested
- resolution up to a 720p long-edge cap, scaled once with lanczos when needed.
+ resolution up to the 2160x1440 delivery ceiling, scaled once with lanczos when needed.
 
 `pose_lab` is deliberately separate. Animate 2 can consume video end-to-end,
 but difficult source material benefits from an inspectable CUDA ViTPose/YOLO

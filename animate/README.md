@@ -20,7 +20,7 @@ Two production lanes plus a diagnostic:
  reference loads at its native resolution, and generation runs on a 720p-class
  canvas (an opt-in 1080p-class canvas sharpens detail further; the LightX2V
  lanes stay on their 480p distill canvas). Delivery matches the requested
- resolution, capped at a 720p long edge. An optional LightX2V profile loads
+ resolution, up to the 2160x1440 ceiling. An optional LightX2V profile loads
  the base INT8 model plus the acceleration LoRA for four-step distilled
  inference.
 
