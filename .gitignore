@@ -353,6 +353,7 @@
 /aukspeech/local_app/*
 !/aukspeech/local_app/__init__.py
 !/aukspeech/local_app/adapter.py
+!/aukspeech/local_app/server.py
 !/aukspeech/local_app/studio.json
 !/aukspeech/src/
 /aukspeech/src/*
@@ -390,6 +391,7 @@
 /sculpting/local_app/*
 !/sculpting/local_app/__init__.py
 !/sculpting/local_app/adapter.py
+!/sculpting/local_app/server.py
 !/sculpting/local_app/studio.json
 !/sculpting/trellis2/
 /sculpting/trellis2/*
@@ -451,6 +453,7 @@
 /sculpting/world/local_app/*
 !/sculpting/world/local_app/__init__.py
 !/sculpting/world/local_app/adapter.py
+!/sculpting/world/local_app/server.py
 !/sculpting/world/local_app/studio.json
 !/sculpting/world/pixal3d/
 /sculpting/world/pixal3d/*
@@ -493,6 +496,7 @@
 /animate/local_app/*
 !/animate/local_app/__init__.py
 !/animate/local_app/adapter.py
+!/animate/local_app/server.py
 !/animate/local_app/studio.json
 !/animate/core/
 !/animate/core/**
@@ -542,6 +546,7 @@
 /nvidia-sim/local_app/*
 !/nvidia-sim/local_app/__init__.py
 !/nvidia-sim/local_app/adapter.py
+!/nvidia-sim/local_app/server.py
 !/nvidia-sim/local_app/studio.json
 !/nvidia-sim/ardy/
 !/nvidia-sim/ardy/**
@@ -593,6 +598,7 @@
 /V2V/local_app/*
 !/V2V/local_app/__init__.py
 !/V2V/local_app/adapter.py
+!/V2V/local_app/server.py
 !/V2V/local_app/studio.json
 !/V2V/src/
 !/V2V/src/**
@@ -676,6 +682,7 @@
 /music/yue2/local_app/*
 !/music/yue2/local_app/__init__.py
 !/music/yue2/local_app/adapter.py
+!/music/yue2/local_app/server.py
 !/music/yue2/local_app/transcribe.py
 !/music/yue2/local_app/studio.json
 !/music/yue2/src/
