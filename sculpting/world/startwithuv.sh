@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SCULPT_ROOT="$(cd -- "$ROOT/.." && pwd)"
-VENV="$SCULPT_ROOT/.venv"
+VENV="$ROOT/.venv"
 VENDOR="$SCULPT_ROOT/.runtime/vendor"
 [[ -x "$VENV/bin/python" ]] || { printf 'Run bash ./setupwithuv.sh first.\n' >&2; exit 1; }
 # shellcheck disable=SC1090
@@ -35,7 +35,7 @@ export MM_STUDIO_PORT="${WORLD_SCULPT_PORT:-${MM_STUDIO_PORT:-8263}}"
 unset MM_STUDIO_API_ONLY
 
 printf 'WorldSculpt Studio: http://%s:%s\n' "$MM_STUDIO_HOST" "$MM_STUDIO_PORT"
-exec python "$SCULPT_ROOT/../studio/server.py" \
+exec python "$ROOT/local_app/server.py" \
   --project-root "$ROOT" \
   --manifest "$ROOT/local_app/studio.json" \
   --adapter "$ROOT/local_app/adapter.py" \

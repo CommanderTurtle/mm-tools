@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-VENV="$ROOT/.venv"
+VENV="${SCULPTING_VENV:-$ROOT/.venv}"
 VENDOR="$ROOT/.runtime/vendor"
 STUDIO="$ROOT/../studio"
 

@@ -3,13 +3,10 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SCULPT_ROOT="$(cd -- "$ROOT/.." && pwd)"
-VENV="$SCULPT_ROOT/.venv"
+VENV="$ROOT/.venv"
 
 command -v uv >/dev/null 2>&1 || { printf 'uv is required. Install uv, then rerun this script.\n' >&2; exit 1; }
-if [[ ! -x "$VENV/bin/python" ]]; then
-  printf 'Preparing the shared Blackwell sculpting environment first...\n'
-  "$SCULPT_ROOT/setupwithuv.sh"
-fi
+SCULPTING_VENV="$VENV" "$SCULPT_ROOT/setupwithuv.sh"
 
 required=(
   "$ROOT/pretrained/Pixal3D/pipeline.json"
