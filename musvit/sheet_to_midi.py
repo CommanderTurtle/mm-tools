@@ -25,7 +25,7 @@ import torch
 import verovio
 
 ROOT = Path(__file__).resolve().parent
-SMT_SOURCE = Path(os.environ.get("SMT_SOURCE_PATH", ROOT / "vendor" / "SMT"))
+SMT_SOURCE = Path(os.environ.get("SMT_SOURCE_PATH", ROOT))
 if not (SMT_SOURCE / "smt_model").is_dir():
     raise SystemExit("SMT source is missing. Run ./uvsetup.sh first.")
 sys.path.insert(0, str(SMT_SOURCE))
