@@ -642,13 +642,12 @@
 !/models/download_models_info.txt
 !/models/which-ones.txt
 
-# Project-owned workbench runtimes. Shared root-level Studio code is excluded.
+# Project-owned workbench runtimes.
 !/**/local_app/runtime.py
 !/**/local_app/comfy_runtime.py
 !/**/local_app/requirements.txt
 !/**/local_app/web/
 !/**/local_app/web/**
-/studio/
 
 # vox/, even-g2-duet/, and .git-archives/ are consequently excluded in full.
 
