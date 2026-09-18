@@ -17,19 +17,17 @@
   "theme": {"accent": "#73e6c1", "secondary": "#ba8c62"},
   "badges": ["121-frame capture", "Flexible camera rings", "Turbo 4-step path", "Synchronized output wall", "No telemetry"],
   "groups": [
-    {"id": "capture", "title": "Capture"},
-    {"id": "setup", "title": "Licensed setup"}
+    {"id": "capture", "title": "Capture"}
   ],
   "models": [
     {"label": "4DAnyone Base + Turbo", "path": "models/4danyone/"},
     {"label": "GVHMR motion recovery", "path": "models/gvhmr/"},
     {"label": "DPVO learned camera recovery", "path": "models/gvhmr/dpvo.pth", "note": "Optional; SimpleVO is the default moving-camera solver", "optional": true},
     {"label": "BiRefNet matte", "path": "models/birefnet/"},
-    {"label": "SMPL-X neutral body", "path": "models/smplx/SMPLX_NEUTRAL.npz", "note": "Separately licensed; install from this studio", "optional": true}
+    {"label": "SMPL-X neutral body", "path": "models/body_models/smplx/SMPLX_NEUTRAL.npz", "note": "Pinned and verified automatically by setup"}
   ],
   "setup_steps": [
-    "Run `cd ~/multimedia/4d-ify && ./setupwithuv.sh` once.",
-    "Open Licensed setup and provide the official SMPL-X ZIP or neutral NPZ; the original upload remains private and the runtime installs only the required neutral model.",
+    "Run `cd ~/multimedia/4d-ify && ./setupwithuv.sh` once; it installs and verifies the complete local runtime.",
     "Run `./startwithuv.sh`, begin with the six-view Turbo preset, and inspect the synchronized output wall before increasing view density."
   ],
   "presets": [
@@ -73,23 +71,6 @@
       ],
       "advanced": [],
       "preview_template": "{{views_per_layer}} views per pitch ring across {{yaw_span}}° from {{start_yaw}}°, using {{model_variant}}."
-    },
-    {
-      "id": "install_smplx",
-      "group": "setup",
-      "title": "Install licensed SMPL-X",
-      "short": "Privately install the neutral body model required by GVHMR conditioning.",
-      "description": "SMPL-X is not redistributable with the downloader. Download models_smplx_v1_1.zip after accepting its license, then install it locally here without exposing credentials or modifying the archive.",
-      "icon": "◇",
-      "badge": "ONE TIME",
-      "engine": "Local verified installer",
-      "input_label": "Official SMPL-X ZIP or neutral NPZ",
-      "output_label": "Installation receipt",
-      "recipe": "The installer extracts exactly models/smplx/SMPLX_NEUTRAL.npz and links it into the pinned GVHMR runtime.",
-      "fields": [
-        {"id": "smplx_asset", "type": "asset", "label": "Official SMPL-X package", "required": true, "span": "full", "accept": ".zip,.npz", "icon": "◇", "drop_label": "Drop models_smplx_v1_1.zip or SMPLX_NEUTRAL.npz", "hint": "Obtain it from smpl-x.is.tue.mpg.de after accepting the model license."}
-      ],
-      "advanced": []
     }
   ]
 }

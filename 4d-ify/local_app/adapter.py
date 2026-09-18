@@ -30,7 +30,7 @@ class Adapter(StudioAdapter):
         super().__init__(project_root, runtime_root)
         self.model_dir = project_root / "models"
         self.gvhmr_root = project_root
-        self.smplx = self.model_dir / "smplx" / "SMPLX_NEUTRAL.npz"
+        self.smplx = self.model_dir / "body_models" / "smplx" / "SMPLX_NEUTRAL.npz"
 
     def health(self) -> dict[str, Any]:
         gpu = gpu_snapshot()
@@ -42,7 +42,7 @@ class Adapter(StudioAdapter):
             ("GVHMR checkpoint", self.model_dir / "gvhmr" / "gvhmr_siga24_release.ckpt", True),
             ("DPVO moving-camera checkpoint", self.model_dir / "gvhmr" / "dpvo.pth", False),
             ("BiRefNet", self.model_dir / "birefnet" / "model.safetensors", True),
-            ("SMPL-X neutral body", self.smplx, False),
+            ("SMPL-X neutral body", self.smplx, True),
             ("Python environment", self.project_root / ".venv" / "bin" / "python", True),
         ]
         details = [
@@ -62,11 +62,6 @@ class Adapter(StudioAdapter):
     def validate(self, request: dict[str, Any], resolve_asset: Callable[[str], Path]) -> None:
         mode = str(request.get("mode", ""))
         controls = request.get("controls") or {}
-        if mode == "install_smplx":
-            source = resolve_asset(str(controls.get("smplx_asset", "")))
-            if source.suffix.lower() not in {".zip", ".npz"}:
-                raise ValueError("SMPL-X setup accepts models_smplx_v1_1.zip or SMPLX_NEUTRAL.npz.")
-            return
         if mode != "generate_4d":
             raise ValueError(f"Unknown 4DAnyone mode: {mode}")
         resolve_asset(str(controls.get("source_video_asset", "")))
@@ -87,21 +82,10 @@ class Adapter(StudioAdapter):
         if camera_motion == "dpvo" and not (self.model_dir / "gvhmr" / "dpvo.pth").is_file():
             raise ValueError("DPVO needs models/gvhmr/dpvo.pth. Run ../models/download_models.py 4d first.")
         if not self.smplx.is_file():
-            raise ValueError("Install the licensed SMPL-X neutral body in the Setup mode before generation.")
+            raise ValueError("SMPL-X is missing. Re-run ./setupwithuv.sh to restore the pinned neutral parameters.")
 
     def run(self, request: dict[str, Any], context: StudioContext) -> list[StudioOutput]:
         controls = request.get("controls") or {}
-        if request["mode"] == "install_smplx":
-            from fdanyone.download import install_smplx
-
-            source = context.asset(str(controls["smplx_asset"]))
-            context.update("Installing the licensed SMPL-X body model", 0.20)
-            installed = install_smplx(source, self.model_dir, self.gvhmr_root)
-            receipt = context.output_dir / "smplx-installation.json"
-            receipt.write_text(json.dumps({"installed": str(installed), "source": source.name}, indent=2) + "\n", encoding="utf-8")
-            context.update("SMPL-X is ready", 0.99)
-            return [StudioOutput(receipt, "document", "SMPL-X installation receipt", "application/json")]
-
         source = context.asset(str(controls["source_video_asset"]))
         destination = context.output_dir / "capture"
         pitches = [int(value) for value in (controls.get("layer_pitches") or [15])]

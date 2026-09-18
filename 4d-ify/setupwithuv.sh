@@ -54,7 +54,7 @@ PYTHONPATH="$ROOT/.." "$PY" - <<'PY'
 from pathlib import Path
 
 from fdanyone.assets import BIREFNET_FILES, MODEL_FILES
-from fdanyone.download import create_classic_gvhmr_links, create_dpvo_gvhmr_link
+from fdanyone.download import create_classic_gvhmr_links, create_dpvo_gvhmr_link, ensure_smplx
 import torch
 import cuda_ba
 import cuda_corr
@@ -77,11 +77,12 @@ missing.extend(
 if missing:
     raise SystemExit("Missing model artifacts. Run ../models/download_models.py for 4d first:\n" + "\n".join(missing))
 
-create_classic_gvhmr_links("models", ".", require_smplx=False)
+ensure_smplx("models", ".")
+create_classic_gvhmr_links("models", ".", require_smplx=True)
 create_dpvo_gvhmr_link("models", ".", required=False)
 assert torch.cuda.is_available(), "CUDA is required"
 major, _ = torch.cuda.get_device_capability()
 assert major >= 12, "The local RTX 5090 CUDA build is not active"
 print(f"4DAnyone environment ready: torch={torch.__version__} GPU={torch.cuda.get_device_name(0)}")
 PY
-echo "4DAnyone Capture Studio is ready. The SMPL-X runtime is integrated; install the neutral parameter asset from setup mode before the first capture."
+echo "4DAnyone Capture Studio is ready."

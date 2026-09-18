@@ -1,22 +1,13 @@
-"""Download the published 4DAnyone assets from Hugging Face.
-
-Missing model checkpoints and bundled example clips are fetched automatically
-when inference needs them; the scripts under ``scripts/`` pre-fetch the same
-files. SMPL-X is licensed separately, so first-run inference starts its
-interactive installer only when a terminal is available.
-"""
+"""Download the pinned runtime assets used by 4DAnyone."""
 
 from __future__ import annotations
 
-import getpass
+import hashlib
 import logging
 import os
-import shlex
 import shutil
-import sys
 import tempfile
 import urllib.error
-import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -41,8 +32,8 @@ from fdanyone.errors import AssetError
 
 LOGGER = logging.getLogger("fdanyone")
 
-SMPLX_HOME = "https://smpl-x.is.tue.mpg.de/"
-SMPLX_DOWNLOAD_URL = "https://download.is.tue.mpg.de/download.php?domain=smplx&sfile=models_smplx_v1_1.zip"
+SMPLX_NEUTRAL_URL = "https://huggingface.co/lilpotat/pytorch3d/resolve/main/models/SMPLX_NEUTRAL.npz?download=true"
+SMPLX_NEUTRAL_SHA256 = "376021446ddc86e99acacd795182bbef903e61d33b76b9d8b359c2b0865bd992"
 SMPLX_ARCHIVE_MEMBER = ("models", "smplx", "SMPLX_NEUTRAL.npz")
 
 
@@ -243,19 +234,6 @@ def ensure_example_video(video_path: str | Path) -> Path:
     return path
 
 
-def _parse_interactive_path(value: str) -> Path:
-    try:
-        parts = shlex.split(value.strip(), posix=os.name != "nt")
-    except ValueError as exc:
-        raise AssetError(f"Could not parse the archive path: {exc}") from None
-    if len(parts) != 1:
-        raise AssetError("Enter one ZIP or SMPLX_NEUTRAL.npz path.")
-    path = parts[0]
-    if os.name == "nt" and len(path) >= 2 and path[0] == path[-1] and path[0] in "'\"":
-        path = path[1:-1]
-    return Path(path).expanduser()
-
-
 def _copy_model_from_source(source: Path, destination: Path) -> None:
     if source.name == "SMPLX_NEUTRAL.npz":
         shutil.copyfile(source, destination)
@@ -304,41 +282,22 @@ def install_smplx(
     return target
 
 
-def _download_official(username: str, password: str, destination: Path) -> None:
-    payload = urllib.parse.urlencode({"username": username, "password": password}).encode()
-    request = urllib.request.Request(
-        SMPLX_DOWNLOAD_URL,
-        data=payload,
-        headers={"User-Agent": "4DAnyone SMPL-X installer"},
-        method="POST",
-    )
+def _download_pinned_smplx(destination: Path) -> None:
+    """Fetch and checksum the neutral parameter file used by GVHMR."""
+
+    digest = hashlib.sha256()
+    request = urllib.request.Request(SMPLX_NEUTRAL_URL, headers={"User-Agent": "mm-tools/4d-ify"})
     try:
-        with urllib.request.urlopen(request, timeout=120) as response, destination.open("wb") as output:
-            shutil.copyfileobj(response, output, length=8 * 1024 * 1024)
+        with urllib.request.urlopen(request, timeout=180) as response, destination.open("wb") as output:
+            while chunk := response.read(8 * 1024 * 1024):
+                digest.update(chunk)
+                output.write(chunk)
     except (OSError, urllib.error.URLError) as exc:
-        raise AssetError(f"Official SMPL-X download failed: {exc}") from None
-    if not zipfile.is_zipfile(destination):
-        raise AssetError(
-            "The SMPL-X website did not return a ZIP archive. Check the account, license acceptance, or website."
-        )
-
-
-def _prompt_for_archive(model_dir: str, gvhmr_root: str) -> dict[str, str] | None:
-    print(f"Download models_smplx_v1_1.zip from:\n  {SMPLX_DOWNLOAD_URL}")
-    while True:
-        try:
-            value = input("Archive path (drag the downloaded ZIP here): ").strip()
-        except EOFError:
-            value = ""
-        if not value:
-            print("SMPL-X setup cancelled; the downloaded ZIP was not modified.")
-            return None
-        try:
-            installed = install_smplx(_parse_interactive_path(value), model_dir, gvhmr_root)
-        except AssetError as exc:
-            print(f"error: {exc}")
-            continue
-        return {"installed": str(installed)}
+        destination.unlink(missing_ok=True)
+        raise AssetError(f"Could not fetch the pinned SMPL-X neutral parameter: {exc}") from None
+    if digest.hexdigest() != SMPLX_NEUTRAL_SHA256:
+        destination.unlink(missing_ok=True)
+        raise AssetError("The downloaded SMPL-X neutral parameter failed its SHA-256 check.")
 
 
 def download_smplx(
@@ -346,7 +305,7 @@ def download_smplx(
     model_dir: str = "models",
     gvhmr_root: str = ".",
 ) -> dict[str, str] | None:
-    """Install the separately licensed SMPL-X neutral body model."""
+    """Install the pinned SMPL-X neutral body model inside this project."""
 
     target = Path(model_dir).expanduser().resolve() / SMPLX_MODEL
     if target.is_file():
@@ -356,32 +315,22 @@ def download_smplx(
     if archive_path is not None:
         return {"installed": str(install_smplx(archive_path, model_dir, gvhmr_root))}
 
-    print(f"SMPL-X requires a free account and license acceptance at {SMPLX_HOME}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = target.parent / f".{target.name}.download-{os.getpid()}"
     try:
-        accepted = input("Have you registered and accepted the SMPL-X license? [y/N]: ").strip().lower()
-    except EOFError:
-        accepted = ""
-    if accepted in {"y", "yes"}:
-        username = input("SMPL-X username or email: ").strip()
-        password = getpass.getpass("SMPL-X password: ")
-        if username and password:
-            with tempfile.TemporaryDirectory(prefix="fdanyone-smplx-") as temporary_dir:
-                archive = Path(temporary_dir) / "models_smplx_v1_1.zip"
-                try:
-                    _download_official(username, password, archive)
-                    installed = install_smplx(archive, model_dir, gvhmr_root)
-                except AssetError as exc:
-                    print(f"Automatic download was unavailable: {exc}")
-                else:
-                    return {"installed": str(installed)}
-    return _prompt_for_archive(model_dir, gvhmr_root)
+        _download_pinned_smplx(temporary)
+        temporary.replace(target)
+    finally:
+        temporary.unlink(missing_ok=True)
+    create_classic_gvhmr_links(model_dir, gvhmr_root, require_models=False, require_smplx=True)
+    return {"installed": str(target)}
 
 
 def ensure_smplx(
     model_dir: str | Path = "models",
     gvhmr_root: str | Path = ".",
 ) -> Path:
-    """Install SMPL-X interactively on first use, without blocking jobs."""
+    """Ensure setup has installed the project-local neutral body parameters."""
 
     require_gvhmr_checkout(gvhmr_root)
     target = Path(model_dir).expanduser().resolve() / SMPLX_MODEL
@@ -389,13 +338,6 @@ def ensure_smplx(
         create_classic_gvhmr_links(model_dir, gvhmr_root, require_models=False, require_smplx=True)
         return target
 
-    if not getattr(sys.stdin, "isatty", lambda: False)():
-        raise AssetError(
-            f"SMPL-X is not installed at {target}, and inference has no interactive terminal. "
-            "Run `python scripts/download_smplx.py` before starting this job."
-        )
-
-    print("SMPL-X is required and has not been installed; starting its licensed setup.")
     result = download_smplx(model_dir=str(model_dir), gvhmr_root=str(gvhmr_root))
     if result is None or not target.is_file():
         raise AssetError("SMPL-X setup was cancelled; inference cannot continue.")
