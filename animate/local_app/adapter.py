@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any, Callable
 
@@ -65,6 +66,53 @@ def _wan_length(value: Any) -> int:
 
 def _latent_size(value: int) -> int:
     return (value + 15) // 16 * 16
+
+
+def _ratio(value: Any) -> float:
+    text = str(value or "").strip()
+    if not text or text in {"0/0", "N/A"}:
+        return 0.0
+    if "/" in text:
+        numerator, denominator = text.split("/", 1)
+        return float(numerator) / float(denominator)
+    return float(text)
+
+
+def _video_probe(path: Path) -> dict[str, Any]:
+    """Read the source timeline without decoding its frames into tensors."""
+
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe", "-v", "error", "-select_streams", "v:0",
+                "-show_entries",
+                "stream=width,height,avg_frame_rate,r_frame_rate,nb_frames,duration:stream_tags=rotate:stream_side_data=rotation:format=duration",
+                "-of", "json", str(path),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        payload = json.loads(result.stdout)
+        stream = (payload.get("streams") or [])[0]
+    except (FileNotFoundError, subprocess.SubprocessError, json.JSONDecodeError, IndexError) as exc:
+        raise ValueError(f"Could not inspect driving video metadata: {path.name}") from exc
+
+    fps = _ratio(stream.get("avg_frame_rate")) or _ratio(stream.get("r_frame_rate"))
+    duration = float(stream.get("duration") or (payload.get("format") or {}).get("duration") or 0)
+    raw_frames = str(stream.get("nb_frames") or "").strip()
+    frames = int(raw_frames) if raw_frames.isdigit() else int(round(duration * fps))
+    width, height = int(stream.get("width") or 0), int(stream.get("height") or 0)
+    side_data = stream.get("side_data_list") or []
+    rotation = next((item.get("rotation") for item in side_data if item.get("rotation") is not None), None)
+    if rotation is None:
+        rotation = (stream.get("tags") or {}).get("rotate", 0)
+    if abs(int(float(rotation or 0))) % 180 == 90:
+        width, height = height, width
+    if fps <= 0 or frames <= 0 or width <= 0 or height <= 0:
+        raise ValueError(f"Driving video does not expose usable frame metadata: {path.name}")
+    return {"fps": fps, "frames": frames, "width": width, "height": height}
 
 
 def _context_window_plan(
@@ -210,11 +258,29 @@ class Adapter(StudioAdapter):
         width, height = int(c.get("width", 480)), int(c.get("height", 832))
         latent_width, latent_height = _latent_size(width), _latent_size(height)
         length = _wan_length(c.get("length", 81))
+        source = _video_probe(driving_path)
+        continuation = str(c.get("continue_motion_asset", "")).strip()
+        requested_offset = max(0, int(c.get("video_frame_offset", 0)))
+        # Animate 2 consumes one prior output frame when continuing. Seek that
+        # overlap in the lazy VIDEO object before GetVideoComponents creates a
+        # float tensor, then give Wan a local, zero-based window.
+        source_start = max(0, requested_offset - (1 if continuation else 0))
+        available = max(1, int(source["frames"]) - source_start)
+        source_length = min(length, available)
+        source_fps = float(source["fps"])
+        self._active_context.log(
+            f"Input window: decoding {source_length} frame{'s' if source_length != 1 else ''} "
+            f"from frame {source_start} of {source['frames']} before tensor materialization."
+        )
         profile = _profile(c)
         sampling = _sampling(c, profile)
         graph: dict[str, Any] = {
             "1": _node("LoadImage", image=reference),
             "2": _node("LoadVideo", file=driving),
+            "33": _node(
+                "Video Slice", video=["2", 0], start_time=source_start / source_fps,
+                duration=source_length / source_fps, strict_duration=False,
+            ),
             "4": _node("CLIPLoader", clip_name=TEXT_ENCODER, type="wan", device="default"),
             "5": _node("CLIPTextEncode", clip=["4", 0], text=str(c.get("prompt", ""))),
             "6": _node("CLIPTextEncode", clip=["4", 0], text=str(c.get("negative_prompt", NEGATIVE))),
@@ -224,10 +290,10 @@ class Adapter(StudioAdapter):
             "10": _node("ResizeImageMaskNode", input=["1", 0], resize_type="scale dimensions", **{
                 "resize_type.width": latent_width, "resize_type.height": latent_height, "resize_type.crop": str(c.get("crop", "center")), "scale_method": str(c.get("scale_method", "area"))}),
             "11": _node("CLIPVisionEncode", clip_vision=["8", 0], image=["10", 0], crop="none"),
-            "12": _node("GetVideoComponents", video=["2", 0]),
+            "12": _node("GetVideoComponents", video=["33", 0]),
             "13": _node("ResizeImageMaskNode", input=["12", 0], resize_type="scale dimensions", **{
                 "resize_type.width": latent_width, "resize_type.height": latent_height, "resize_type.crop": str(c.get("crop", "center")), "scale_method": str(c.get("scale_method", "area"))}),
-            "14": _node("ImageFromBatch", image=["13", 0], batch_index=int(c.get("video_frame_offset", 0)), length=1),
+            "14": _node("ImageFromBatch", image=["13", 0], batch_index=0, length=1),
             "15": _node("CLIPVisionEncode", clip_vision=["8", 0], image=["14", 0], crop="none"),
         }
         graph["32"] = _node(
@@ -286,18 +352,24 @@ class Adapter(StudioAdapter):
             "reference_image": ["10", 0], "pose_video": ["13", 0],
             "clip_vision_output": ["32", 4], "positive_pose": ["32", 3],
             "clip_vision_output_pose": ["32", 5],
-            "video_frame_offset": int(c.get("video_frame_offset", 0)),
+            "video_frame_offset": 0,
             "pose_strength": float(c.get("pose_strength", 1)),
             "pose_start_percent": float(c.get("pose_start_percent", 0)),
             "pose_end_percent": float(c.get("pose_end_percent", 1)),
             "reference_image_strength": float(c.get("reference_strength", 1)),
         }
-        continuation = str(c.get("continue_motion_asset", "")).strip()
         if continuation:
             continuation_path = self._asset(c, "continue_motion_asset")
             continuation_name = runtime.add_input(continuation_path, f"continue-{continuation_path.name}")
+            continuation_source = _video_probe(continuation_path)
+            continuation_fps = float(continuation_source["fps"])
+            continuation_start = max(0, int(continuation_source["frames"]) - 1)
             graph["21"] = _node("LoadVideo", file=continuation_name)
-            graph["22"] = _node("GetVideoComponents", video=["21", 0])
+            graph["34"] = _node(
+                "Video Slice", video=["21", 0], start_time=continuation_start / continuation_fps,
+                duration=1 / continuation_fps, strict_duration=False,
+            )
+            graph["22"] = _node("GetVideoComponents", video=["34", 0])
             conditioning["continue_motion"] = ["22", 0]
         graph["23"] = _node("WanAnimate2ToVideo", **conditioning)
         graph["24"] = _node(
