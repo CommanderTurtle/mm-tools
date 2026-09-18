@@ -19,7 +19,7 @@ uv pip install --python "$VENV/bin/python" flash-attn --no-build-isolation
 mkdir -p "$ROOT/.runtime/studio/assets" "$ROOT/.runtime/studio/outputs"
 PYTHONPATH="$ROOT/../..:$ROOT" HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 CUDA_VISIBLE_DEVICES=0 "$VENV/bin/python" - <<'PY'
 import torch
-from studio.server import build_application
+from local_app.server import build_application
 from wan.configs import WAN_CONFIGS
 assert torch.cuda.is_available()
 assert torch.cuda.get_device_properties(0).total_memory >= 30_000 * 1024**2

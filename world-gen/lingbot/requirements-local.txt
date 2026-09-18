@@ -1,4 +1,4 @@
--r ../../studio/requirements.txt
+-r local_app/requirements.txt
 numpy>=1.26,<2
 pillow>=10
 hf-transfer>=0.1.9
