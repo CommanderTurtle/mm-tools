@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 VENV="${SCULPTING_VENV:-$ROOT/.venv}"
 NATIVE="$ROOT/native"
-STUDIO="$ROOT/../studio"
+STUDIO="$ROOT/local_app"
 
 command -v uv >/dev/null 2>&1 || { printf 'uv is required. Install uv, then rerun this script.\n' >&2; exit 1; }
 command -v nvidia-smi >/dev/null 2>&1 || { printf 'Sculpting Studio requires an NVIDIA CUDA workstation.\n' >&2; exit 1; }

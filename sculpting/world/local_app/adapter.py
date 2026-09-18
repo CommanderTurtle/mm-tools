@@ -12,7 +12,7 @@ from typing import Any, Callable, Iterable
 
 from PIL import Image, ImageDraw, ImageOps
 
-from studio.runtime import StudioAdapter, StudioContext, StudioOutput, gpu_snapshot
+from local_app.runtime import StudioAdapter, StudioContext, StudioOutput, gpu_snapshot
 
 
 ARCHIVE_SUFFIXES = (".zip", ".tar", ".tar.gz", ".tgz")

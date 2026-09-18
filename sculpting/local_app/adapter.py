@@ -13,7 +13,7 @@ import numpy as np
 import torch
 from PIL import Image
 
-from studio.runtime import StudioAdapter, StudioContext, StudioOutput, gpu_snapshot
+from local_app.runtime import StudioAdapter, StudioContext, StudioOutput, gpu_snapshot
 
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}

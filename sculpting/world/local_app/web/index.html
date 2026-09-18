@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark light">
+    <title>mm-tools studio</title>
+    <link rel="stylesheet" href="/assets/style.css">
+  </head>
+  <body>
+    <div class="ambient ambient-a" aria-hidden="true"></div>
+    <div class="ambient ambient-b" aria-hidden="true"></div>
+    <div class="shell">
+      <aside class="rail">
+        <a class="brand" href="#create" aria-label="Open studio">
+          <span class="brand-glyph"><i></i><i></i><i></i></span>
+          <span><b id="brandName">MM</b><small id="brandKind">LOCAL STUDIO</small></span>
+        </a>
+        <nav class="primary-nav" aria-label="Workspace">
+          <button class="nav-item active" data-page="create"><span>✦</span><b>Create</b><small>Native workflows</small></button>
+          <button class="nav-item" data-page="queue"><span>◫</span><b>Queue</b><small id="queueNavCount">0 active</small></button>
+          <button class="nav-item" data-page="library"><span>▤</span><b>Library</b><small id="libraryNavCount">0 outputs</small></button>
+          <button class="nav-item" data-page="compare"><span>◒</span><b>Compare</b><small>A/B listening</small></button>
+          <button class="nav-item" data-page="presets"><span>⌁</span><b>Presets</b><small>Your recipes</small></button>
+          <button class="nav-item" data-page="help"><span>?</span><b>Guide & API</b><small>Exact setup</small></button>
+        </nav>
+        <div class="privacy-seal">
+          <span class="seal-dot"></span>
+          <div><b>Private by default</b><small>No telemetry · no CORS</small></div>
+        </div>
+        <button id="railCollapse" class="rail-collapse" type="button" title="Fold navigation">‹</button>
+      </aside>
+
+      <section class="workbench">
+        <header class="topbar">
+          <div class="crumbs"><span id="projectEyebrow">MM-TOOLS</span><b id="pageTitle">Create</b></div>
+          <div class="runtime-pill" id="runtimePill">
+            <span id="runtimeDot" class="status-dot"></span>
+            <span><small>GPU RUNTIME</small><b id="runtimeText">Inspecting…</b></span>
+            <button id="runtimeRefresh" type="button" title="Refresh runtime">↻</button>
+          </div>
+          <div class="top-actions">
+            <button id="loadModels" class="top-button" type="button">Load models</button>
+            <button id="unloadModels" class="top-button" type="button">Unload</button>
+            <button id="exportStudio" class="icon-button" type="button" title="Export studio state">⇩</button>
+            <button id="importStudio" class="icon-button" type="button" title="Import studio state">⇧</button>
+            <input id="studioStateFile" type="file" accept="application/json,.json" hidden>
+            <button id="themeToggle" class="icon-button" type="button" title="Toggle color theme">◐</button>
+          </div>
+        </header>
+
+        <main>
+          <section id="page-create" class="page active">
+            <header class="hero">
+              <div>
+                <p id="heroKicker" class="kicker">LOCAL CREATIVE RUNTIME</p>
+                <h1 id="heroTitle">Loading your studio…</h1>
+                <p id="heroCopy" class="hero-copy">Reading the native task inventory and local model state.</p>
+                <div id="heroBadges" class="hero-badges"></div>
+              </div>
+              <div class="hero-meter" aria-label="Runtime profile">
+                <div class="meter-orbit"><span id="modelFootprint">—</span><small>VRAM PROFILE</small></div>
+                <p id="runtimeContract">GPU-only · one job at a time</p>
+              </div>
+            </header>
+
+            <section class="task-browser">
+              <div class="section-head">
+                <div><small>01 · WORKFLOW</small><h2>Choose the exact operation.</h2></div>
+                <label class="task-search"><span>⌕</span><input id="taskSearch" type="search" placeholder="Search every capability…"></label>
+              </div>
+              <div id="taskGroupTabs" class="task-group-tabs" role="tablist"></div>
+              <div id="taskCards" class="task-cards"></div>
+            </section>
+
+            <section class="studio-deck">
+              <div class="deck-main">
+                <div class="section-head compact">
+                  <div><small>02 · INPUT & DIRECTION</small><h2 id="modeTitle">Select a workflow</h2><p id="modeDescription"></p></div>
+                  <button id="resetMode" class="text-button" type="button">Reset workflow</button>
+                </div>
+                <form id="generationForm">
+                  <div id="dynamicForm" class="dynamic-form"></div>
+                  <details id="advancedPanel" class="advanced-panel">
+                    <summary><span>03 · Native render controls</span><small>Exact model, sampling, and output knobs</small></summary>
+                    <div id="advancedForm" class="dynamic-form advanced-fields"></div>
+                  </details>
+                  <div class="submit-dock">
+                    <div>
+                      <span id="validationDot" class="validation-dot"></span>
+                      <p id="validationText">Choose a workflow to begin.</p>
+                      <small>Ctrl/⌘ + Enter queues a render</small>
+                    </div>
+                    <button id="queueJob" class="primary-button" type="submit" disabled><span>Queue local render</span><b>↗</b></button>
+                  </div>
+                </form>
+              </div>
+              <aside class="recipe-panel">
+                <div class="recipe-head"><small>LIVE RECIPE</small><button id="savePresetQuick" type="button">＋ Save preset</button></div>
+                <div id="recipeIcon" class="recipe-icon">✦</div>
+                <h3 id="recipeTitle">No workflow selected</h3>
+                <p id="recipeSummary">Pick a task above. Every visible control maps to the native model or to an explicit instruction sent to it.</p>
+                <div id="recipeFacts" class="recipe-facts"></div>
+                <div id="compiledPrompt" class="compiled-prompt" hidden><small>COMPILED NATIVE DIRECTION</small><pre></pre></div>
+                <div class="privacy-card"><span>⌂</span><div><b>Never leaves this machine</b><p>Inputs, drafts, model calls, and output history stay in this project.</p></div></div>
+              </aside>
+            </section>
+          </section>
+
+          <section id="page-queue" class="page">
+            <header class="page-hero"><div><p class="kicker">SINGLE-GPU DISCIPLINE</p><h1>Every job has a place.</h1><p>First in, first out. Models remain reusable; outputs and logs remain inspectable.</p></div><button id="queueRefresh" class="secondary-button">Refresh queue</button></header>
+            <div id="queueSummary" class="stat-row"></div>
+            <div id="queueList" class="job-list"></div>
+          </section>
+
+          <section id="page-library" class="page">
+            <header class="page-hero"><div><p class="kicker">DURABLE ARTIFACT LEDGER</p><h1>Your local output room.</h1><p>Preview, inspect metadata, download, compare, or reopen the exact recipe.</p></div><label class="library-search"><span>⌕</span><input id="librarySearch" type="search" placeholder="Filter outputs, modes, seeds…"></label></header>
+            <div id="libraryFilters" class="filter-pills"></div>
+            <div id="libraryGrid" class="library-grid"></div>
+          </section>
+
+          <section id="page-compare" class="page">
+            <header class="page-hero"><div><p class="kicker">BLIND-FRIENDLY REVIEW</p><h1>Hear what changed.</h1><p>Lock playback, crossfade between takes, and compare the full generation recipes.</p></div></header>
+            <div class="compare-desk">
+              <article class="compare-slot" data-side="a"><div class="compare-label">A</div><select id="compareA"></select><div id="compareMediaA" class="compare-media"><p>Choose an output.</p></div><pre id="compareMetaA"></pre></article>
+              <div class="crossfade"><span>A</span><input id="crossfade" type="range" min="0" max="100" value="50"><span>B</span><button id="comparePlay" type="button">▶ Synced play</button></div>
+              <article class="compare-slot" data-side="b"><div class="compare-label">B</div><select id="compareB"></select><div id="compareMediaB" class="compare-media"><p>Choose an output.</p></div><pre id="compareMetaB"></pre></article>
+            </div>
+          </section>
+
+          <section id="page-presets" class="page">
+            <header class="page-hero"><div><p class="kicker">REPEATABLE, NOT HIDDEN</p><h1>Your recipes, named.</h1><p>Presets store visible controls only. They never bake in an undocumented default.</p></div><button id="newPreset" class="secondary-button">Save current recipe</button></header>
+            <div id="presetGrid" class="preset-grid"></div>
+          </section>
+
+          <section id="page-help" class="page">
+            <header class="page-hero"><div><p class="kicker">ZERO-GUESSWORK SETUP</p><h1 id="guideTitle">Studio guide & API.</h1><p id="guideCopy">The actual local model paths, readiness checks, and request contract.</p></div></header>
+            <div class="guide-grid">
+              <article class="guide-card span-two"><small>CAPABILITY MAP</small><h2>Nothing useful is hiding in a README.</h2><div id="capabilityMap" class="capability-map"></div></article>
+              <article class="guide-card"><small>MODEL READINESS</small><h2>Expected local artifacts</h2><div id="modelChecklist" class="checklist"></div></article>
+              <article class="guide-card"><small>START CONTRACT</small><h2>One setup, one start</h2><ol id="setupSteps" class="setup-steps"></ol></article>
+              <article class="guide-card span-two"><small>LOCAL API</small><h2>Queue the same native workflow</h2><div class="api-tabs"><button class="active" data-code="curl">curl</button><button data-code="python">Python</button><button data-code="js">Browser JS</button></div><pre id="apiExample" class="api-example"></pre><button id="copyApi" class="copy-button">Copy example</button></article>
+              <article class="guide-card"><small>PRIVACY CONTRACT</small><h2>Observable boundaries</h2><ul class="privacy-list"><li>Loopback listener by default</li><li>No analytics or remote UI assets</li><li>No permissive CORS response</li><li>Single local GPU queue</li><li>Explicit LAN bearer token option</li></ul></article>
+              <article class="guide-card"><small>KEYBOARD</small><h2>Fast hands</h2><dl class="shortcut-list"><div><dt>Ctrl/⌘ Enter</dt><dd>Queue render</dd></div><div><dt>/</dt><dd>Search workflows</dd></div><div><dt>1–6</dt><dd>Switch workspace</dd></div><div><dt>Esc</dt><dd>Close dialog</dd></div></dl></article>
+            </div>
+          </section>
+        </main>
+      </section>
+    </div>
+
+    <dialog id="presetDialog" class="studio-dialog">
+      <form method="dialog">
+        <div class="dialog-head"><div><small>SAVE VISIBLE STATE</small><h2>Name this recipe</h2></div><button value="cancel" aria-label="Close">×</button></div>
+        <label><span>Preset name</span><input id="presetName" required maxlength="80" placeholder="Warm dramatic edit"></label>
+        <label><span>Note <i>optional</i></span><textarea id="presetNote" rows="3" maxlength="500" placeholder="When and why this version works…"></textarea></label>
+        <div class="dialog-actions"><button value="cancel" class="secondary-button">Cancel</button><button id="confirmPreset" value="default" class="primary-button"><span>Save preset</span></button></div>
+      </form>
+    </dialog>
+
+    <dialog id="jobDialog" class="studio-dialog job-dialog">
+      <form method="dialog">
+        <div class="dialog-head"><div><small id="jobDialogMode">JOB</small><h2 id="jobDialogTitle">Render details</h2></div><button value="cancel" aria-label="Close">×</button></div>
+        <div id="jobDialogBody"></div>
+      </form>
+    </dialog>
+
+    <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
