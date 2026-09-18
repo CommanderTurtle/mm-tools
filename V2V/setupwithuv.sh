@@ -64,7 +64,7 @@ export CUDA_VISIBLE_DEVICES=0
 "$VENV/bin/python" - <<'PY'
 import onnxruntime as ort
 import torch
-from studio.server import build_application
+from local_app.server import build_application
 
 assert torch.cuda.is_available(), "CUDA is unavailable inside the video environment"
 props = torch.cuda.get_device_properties(0)
