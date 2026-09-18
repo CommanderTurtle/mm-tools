@@ -286,6 +286,12 @@
 !/world-gen/fire3d/configs/models/**
 !/world-gen/fire3d/models/
 !/world-gen/fire3d/models/**
+!/world-gen/fire3d/anyup/
+!/world-gen/fire3d/anyup/**
+!/world-gen/fire3d/dinov3/
+!/world-gen/fire3d/dinov3/**
+!/world-gen/fire3d/native/
+!/world-gen/fire3d/native/**
 !/world-gen/fire3d/modules/
 !/world-gen/fire3d/modules/**
 !/world-gen/fire3d/trellis2_x2/
@@ -300,10 +306,6 @@
 /world-gen/fire3d/benchmarks/*
 !/world-gen/fire3d/benchmarks/scene_reconstruction/
 !/world-gen/fire3d/benchmarks/scene_reconstruction/**
-!/world-gen/fire3d/third_party/
-/world-gen/fire3d/third_party/*
-!/world-gen/fire3d/third_party/anyup/
-!/world-gen/fire3d/third_party/anyup/**
 !/world-gen/fire3d/scripts/
 /world-gen/fire3d/scripts/*
 !/world-gen/fire3d/scripts/download.sh

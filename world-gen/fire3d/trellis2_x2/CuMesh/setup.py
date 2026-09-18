@@ -105,13 +105,13 @@ ext_modules = [
     CUDAExtension(
         name="cumesh._cubvh",
         sources=[
-            "third_party/cubvh/src/bvh.cu",
-            "third_party/cubvh/src/api_gpu.cu",
-            "third_party/cubvh/src/bindings.cpp",
+            "cubvh/src/bvh.cu",
+            "cubvh/src/api_gpu.cu",
+            "cubvh/src/bindings.cpp",
         ],
         include_dirs=[
-            os.path.join(ROOT, "third_party/cubvh/include"),
-            os.path.join(ROOT, "third_party/cubvh/third_party/eigen"),
+            os.path.join(ROOT, "cubvh/include"),
+            os.path.join(ROOT, "..", "eigen"),
         ],
         extra_compile_args={
             "cxx": cxx_flags,
@@ -132,8 +132,8 @@ ext_modules = [
     CUDAExtension(
         name="cumesh._cumesh_xatlas",
         sources=[
-            "third_party/xatlas/xatlas.cpp",
-            "third_party/xatlas/binding.cpp",
+            "xatlas/xatlas.cpp",
+            "xatlas/binding.cpp",
         ],
         extra_compile_args={
             "cxx": cxx_flags,

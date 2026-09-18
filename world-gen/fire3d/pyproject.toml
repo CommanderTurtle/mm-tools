@@ -99,9 +99,6 @@ extend-exclude = [
   "results",
   "baselines/_upstream",
   "data_processing/_upstream",
-  "third_party/dinov3",
-  "trellis2_x2/CuMesh/third_party",
-  "trellis2_x2/o-voxel/third_party",
 ]
 
 [tool.ruff.lint]

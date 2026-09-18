@@ -89,7 +89,7 @@ def download_data(
         raise ValueError("--scene-id requires exactly one --dataset")
 
     archive_root = destination / ".fire3d_archives"
-    metadata_patterns = ["README.md", "manifest.json", "checksums.sha256", "licenses/**"]
+    metadata_patterns = ["README.md", "manifest.json", "checksums.sha256"]
     _snapshot_download(
         repo_id=DATA_REPO,
         repo_type="dataset",
@@ -150,7 +150,7 @@ def download_evaluation_data(
     if unknown:
         raise ValueError(f"Unknown Fire3D evaluation datasets: {unknown}")
     archive_root = destination / ".fire3d_archives"
-    metadata_patterns = ["README.md", "manifest.json", "checksums.sha256", "licenses/**"]
+    metadata_patterns = ["README.md", "manifest.json", "checksums.sha256"]
     _snapshot_download(
         repo_id=DATA_REPO,
         repo_type="dataset",

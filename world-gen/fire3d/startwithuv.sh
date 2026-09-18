@@ -13,7 +13,7 @@ export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:T
 export MM_STUDIO_HOST="${FIRE3D_STUDIO_HOST:-${MM_STUDIO_HOST:-127.0.0.1}}"
 export MM_STUDIO_PORT="${FIRE3D_STUDIO_PORT:-${MM_STUDIO_PORT:-8268}}"
 printf 'Fire3D Scene Foundry: http://%s:%s\n' "$MM_STUDIO_HOST" "$MM_STUDIO_PORT"
-exec python "$ROOT/../../studio/server.py" \
+exec python "$ROOT/local_app/server.py" \
   --project-root "$ROOT" \
   --manifest "$ROOT/local_app/studio.json" \
   --adapter "$ROOT/local_app/adapter.py" \

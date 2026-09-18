@@ -21,6 +21,7 @@ from models.context_encoder import (
 from models.dino_anyup import (
     dino_feature_downsample,
     load_anyup_upsampler,
+    load_dino_model,
     move_module_to_device,
     run_dino_anyup_features,
     validate_dino_upsample,
@@ -175,12 +176,7 @@ class ObjectGen(nn.Module):
     @torch.no_grad()
     def get_dino_model_and_transform(self):
         dino = self.config["dino"]
-        model = torch.hub.load(
-            dino["repo_dir"],
-            dino.get("model_name", "dinov3_vitl16"),
-            source="local",
-            weights=dino["model_path"],
-        )
+        model = load_dino_model(dino)
         return model, make_transform()
 
     def _get_anyup_upsampler(self, device):

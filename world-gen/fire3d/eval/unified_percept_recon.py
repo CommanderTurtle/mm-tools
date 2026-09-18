@@ -75,7 +75,7 @@ SHIPPED_GEOMETRY_ARGS = [
 DEFAULT_PERCEPTION_BUNDLE = REPO_ROOT / (
     "checkpoints/Fire3D/perception"
 )
-DEFAULT_DINO_REPO = REPO_ROOT / "third_party/dinov3"
+DEFAULT_DINO_REPO = REPO_ROOT / "dinov3"
 DEFAULT_DINO_MODEL = Path(
     REPO_ROOT
     / "checkpoints/Fire3D/external/"

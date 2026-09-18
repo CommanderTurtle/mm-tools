@@ -34,7 +34,7 @@ class Adapter(StudioAdapter):
             ("SS reconstruction flow", self.models / "reconstruction" / "flows" / "ss" / "model.pt"),
             ("Shape reconstruction flow", self.models / "reconstruction" / "flows" / "shape" / "model.pt"),
             ("PBR reconstruction flow", self.models / "reconstruction" / "flows" / "pbr" / "model.pt"),
-            ("DINOv3 runtime source", self.project_root / "third_party" / "dinov3" / "dinov3" / "__init__.py"),
+            ("DINOv3 runtime source", self.project_root / "dinov3" / "__init__.py"),
             ("Python environment", self.project_root / ".venv" / "bin" / "python"),
         ]
         details = [{"label": label, "ready": path.is_file(), "path": str(path)} for label, path in checks]

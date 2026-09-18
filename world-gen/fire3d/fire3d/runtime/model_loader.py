@@ -90,10 +90,10 @@ def conditioning_overrides(
         raise ValueError("Fire3D reconstruction requires model.dino in the config")
     dino["upsample"] = int(args.dino_upsample)
     dino["anyup_frame_batch_size"] = int(args.anyup_frame_batch_size)
-    dino["repo_dir"] = str(args.dino_repo_dir)
     dino["model_path"] = str(args.dino_model_path)
-    dino["anyup_repo"] = str(args.anyup_repo_dir)
-    dino["anyup_source"] = "local"
+    dino["anyup_model_path"] = str(
+        Path(args.dino_model_path).with_name("anyup_multi_backbone.pth")
+    )
     stats_root = Path(args.ss_run_dir).parents[1] / "stats"
     if "ss_x2" in model:
         model["ss_x2"]["latent_stats_path"] = str(

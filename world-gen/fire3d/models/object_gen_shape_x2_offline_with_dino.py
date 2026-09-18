@@ -25,6 +25,7 @@ from models.flow_trainer_sparse import SparseFlowMatchingCFGTrainer
 from models.dino_anyup import (
     dino_feature_downsample,
     load_anyup_upsampler,
+    load_dino_model,
     move_module_to_device,
     run_dino_anyup_features,
     validate_dino_upsample,
@@ -126,10 +127,7 @@ class ObjectGen(nn.Module):
 
     @torch.no_grad()
     def get_dino_model_and_transform(self):
-        model_path = self.config["dino"]["model_path"]
-        repo_dir = self.config["dino"]["repo_dir"]
-        model_name = self.config["dino"].get("model_name", "dinov3_vitl16")
-        model = torch.hub.load(repo_dir, model_name, source="local", weights=model_path)
+        model = load_dino_model(self.config["dino"])
         return model, make_transform()
 
     def _get_anyup_upsampler(self, device):

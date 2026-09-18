@@ -62,16 +62,3 @@ See the [examples](examples) directory for more detailed usage.
 *   **`pack_charts(resolution, padding, ...)`**: Pack generated charts into a texture atlas.
 *   **`get_mesh(index)`**: Retrieve processed data as `(vertex_map, faces, uvs)`.
     *   `vertex_map`: Maps new vertex indices to original input indices.
-
-
-## Acknowledgements
-
-This package builds upon and integrates code from several excellent open-source libraries. We would like to express our gratitude to the authors of:
-
-*   **[cubvh](https://github.com/ashawkey/cubvh)**: For the high-performance CUDA BVH acceleration toolkit.
-*   **[xatlas](https://github.com/jpcy/xatlas)**: For the robust UV parameterization and atlas packing library.
-*   **[pamo](https://github.com/SarahWeiii/pamo)**: For the reference implementation of the GPU parallel edge collapse algorithm used in our mesh simplification module.
-
-## License
-
-[MIT License](LICENSE)

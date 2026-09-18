@@ -138,6 +138,14 @@ SCULPT_NAF = A(
     sha256="c096c1ab2217a5c3ac136365f721685e2201379cb69d509cfb0261183847c98f",
     expected_size=2664431,
 )
+FIRE3D_ANYUP = A(
+    "wimmerth/AnyUp multi-backbone checkpoint",
+    repo_path("world-gen/fire3d/checkpoints/Fire3D/external"),
+    direct_url="https://github.com/wimmerth/anyup/releases/download/checkpoint_v2/anyup_multi_backbone.pth",
+    direct_filename="anyup_multi_backbone.pth",
+    sha256="b6cc407da8986c7e5c9098e61f7531767a9aca8fff20a1bc6c99d488e61aac59",
+    expected_size=3541624,
+)
 BUNDLES: tuple[Bundle, ...] = (
     Bundle(
         "ideogram",
@@ -526,6 +534,7 @@ BUNDLES: tuple[Bundle, ...] = (
                 ),
                 revision="84d4246ba2a0f47c8b93fd9dd65a67d354afd668",
             ),
+            FIRE3D_ANYUP,
         ),
     ),
     Bundle(

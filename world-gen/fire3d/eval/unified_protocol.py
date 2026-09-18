@@ -397,7 +397,7 @@ def reproduction_geometry_args(
             "--dino-model-path",
             str(_bundle_path(repo_root, protocol["perception"]["dino_model"])),
             "--anyup-repo-dir",
-            str(repo_root / "third_party/anyup"),
+            str(repo_root / "anyup"),
             "--max-cond-len",
             str(flow["max_cond_len"]),
             "--pbr-max-cond-len",

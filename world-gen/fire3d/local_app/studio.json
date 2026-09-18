@@ -23,7 +23,7 @@
   ],
   "models": [
     {"label": "Fire3D perception + three reconstruction flows", "path": "checkpoints/Fire3D/"},
-    {"label": "DINOv3 source pinned by setup", "path": "third_party/dinov3/"},
+    {"label": "Integrated DINOv3 runtime", "path": "dinov3/"},
     {"label": "Native TRELLIS.2 decoders", "path": "checkpoints/Fire3D/external/trellis2/"}
   ],
   "setup_steps": [

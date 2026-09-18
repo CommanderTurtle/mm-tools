@@ -53,7 +53,7 @@ setup(
                 "src/ext.cpp",
             ],
             include_dirs=[
-                os.path.join(ROOT, "third_party/eigen"),
+                os.path.join(ROOT, "..", "eigen"),
             ],
             extra_compile_args={
                 "cxx": ["-O3", "-std=c++17"],

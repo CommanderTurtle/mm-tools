@@ -61,11 +61,8 @@ def validate_release_inputs(dataset: str, data_root: Path) -> None:
             f"Missing {dataset} data at {dataset_root}. Run "
             f"`fire3d download --data --dataset {dataset}`."
         )
-    if not (REPO_ROOT / "third_party/dinov3/dinov3").is_dir():
-        raise FileNotFoundError(
-            "Missing third_party/dinov3. Run `scripts/install.sh` to install "
-            "the pinned DINOv3 source tree."
-        )
+    if not (REPO_ROOT / "dinov3" / "__init__.py").is_file():
+        raise FileNotFoundError("The integrated DINOv3 runtime is incomplete.")
 
 
 def infer_command(args: argparse.Namespace) -> list[str]:

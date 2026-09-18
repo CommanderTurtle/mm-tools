@@ -8,10 +8,19 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from anyup import AnyUp
+from dinov3 import dinov3_vitl16
+
 
 DINO_PATCH_DOWNSAMPLE = 16
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_ANYUP_REPO = REPO_ROOT / "third_party/anyup"
+DEFAULT_ANYUP_WEIGHTS = (
+    REPO_ROOT / "checkpoints/Fire3D/external/anyup_multi_backbone.pth"
+)
+
+
+def load_dino_model(dino_config: dict):
+    return dinov3_vitl16(dino_config["model_path"])
 
 
 def validate_dino_upsample(upsample: int, dino_downsample: int = DINO_PATCH_DOWNSAMPLE) -> int:
@@ -31,21 +40,17 @@ def dino_feature_downsample(upsample: int, dino_downsample: int = DINO_PATCH_DOW
 
 
 def load_anyup_upsampler(dino_config: dict, device: torch.device | str):
-    local_repo = DEFAULT_ANYUP_REPO
-    repo = dino_config.get(
-        "anyup_repo", str(local_repo) if local_repo.is_dir() else "wimmerth/anyup"
-    )
-    model_name = dino_config.get("anyup_model", "anyup_multi_backbone")
-    source = dino_config.get(
-        "anyup_source", "local" if Path(repo).is_dir() else "github"
-    )
-    use_natten = bool(dino_config.get("anyup_use_natten", True))
-    upsampler = torch.hub.load(
-        repo,
-        model_name,
-        source=source,
-        use_natten=use_natten,
-    )
+    weights = Path(dino_config.get("anyup_model_path", DEFAULT_ANYUP_WEIGHTS))
+    if not weights.is_file():
+        raise FileNotFoundError(
+            f"Missing AnyUp checkpoint: {weights}. Run models/download_models.py fire3d."
+        )
+    use_natten = bool(dino_config.get("anyup_use_natten", False))
+    upsampler = AnyUp(use_natten=use_natten)
+    state = torch.load(weights, map_location="cpu", weights_only=True)
+    if isinstance(state, dict) and "state_dict" in state:
+        state = state["state_dict"]
+    upsampler.load_state_dict(state, strict=True)
     upsampler = upsampler.to(device).eval()
     for param in upsampler.parameters():
         param.requires_grad = False

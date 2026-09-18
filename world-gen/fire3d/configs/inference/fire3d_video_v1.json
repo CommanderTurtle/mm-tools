@@ -44,7 +44,7 @@
   "perception": {
     "bundle": "checkpoints/Fire3D/perception",
     "checkpoint": "model.pt",
-    "dino_repo": "third_party/dinov3",
+    "dino_repo": "dinov3",
     "dino_model": "checkpoints/Fire3D/external/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth",
     "valid_score_threshold": 0.2,
     "nms_iou_threshold": 0.4,

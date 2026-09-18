@@ -10,6 +10,7 @@ from models.scene_decoder_w_seg_voxelize import SceneDecoder
 from models.point_unet import PointCloudUNet
 from torchvision.transforms import v2
 from datetime import datetime
+from models.dino_anyup import load_dino_model
 
 
 def split_background_supervision(
@@ -196,11 +197,7 @@ class ObjectPoseWSegVoxelize(nn.Module):
 
     @torch.no_grad()
     def get_dino_model_and_transform(self):
-
-        model_path = self.config['dino']['model_path']
-        REPO_DIR = self.config['dino']['repo_dir']
-
-        model = torch.hub.load(REPO_DIR, 'dinov3_vitl16', source='local', weights=model_path)
+        model = load_dino_model(self.config['dino'])
         transform_fn = make_transform()
         return model, transform_fn
 

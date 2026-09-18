@@ -546,7 +546,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dino-repo-dir",
         type=Path,
-        default=REPO_ROOT / "third_party/dinov3",
+        default=REPO_ROOT / "dinov3",
     )
     parser.add_argument(
         "--dino-model-path",
@@ -560,7 +560,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--anyup-repo-dir",
         type=Path,
-        default=REPO_ROOT / "third_party/anyup",
+        default=REPO_ROOT / "anyup",
     )
     parser.add_argument("--dino-upsample", type=int, default=4)
     parser.add_argument("--anyup-frame-batch-size", type=int, default=16)

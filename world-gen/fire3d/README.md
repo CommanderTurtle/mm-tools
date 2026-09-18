@@ -39,17 +39,13 @@ and Blender 4.5.1 LTS. A CUDA-capable NVIDIA GPU is required; the release
 protocols were validated on a 96 GB GPU.
 
 ```bash
-git clone https://github.com/xiahongchi/Fire3D.git
-cd Fire3D
-bash scripts/install.sh
-conda activate fire3d
-bash scripts/install_blender.sh
+bash setupwithuv.sh
+bash startwithuv.sh
 ```
 
-`scripts/install.sh` builds the CUDA extensions used by O-Voxel and CuMesh.
-Install a CUDA 12.8-compatible NVIDIA driver and a C++ compiler before running
-it. DINOv3 is installed at its pinned source revision and remains subject to
-the DINOv3 license in `licenses/DINOV3_LICENSE.md`.
+The setup script creates this project's `.venv` and builds the bundled CUDA
+extensions used by O-Voxel and CuMesh. Install a CUDA-compatible NVIDIA driver
+and a C++ compiler before running it.
 
 ## Download
 
@@ -180,7 +176,9 @@ data_processing/         scene/object preprocessing reference pipelines
 models/ modules/         Fire3D neural network definitions
 utils/                    dataset adapters and geometric utilities
 trellis2_x2/             required TRELLIS.2, O-Voxel, and CuMesh runtime
-third_party/anyup/       pinned AnyUp feature upsampler
+anyup/                   feature upsampler runtime
+dinov3/                  image encoder runtime
+native/                  compiled project runtimes
 scripts/                 installation, download, and example commands
 tests/                   release and protocol validation gates
 ```
@@ -208,8 +206,7 @@ The dataset-processing reference covers SAGE-10K, InternScenes, MansionWorld,
 iTHOR, ProcTHOR, SceneSmith, Imaginarium, 3D-FUTURE, ABO, HSSD, and the GitHub
 and Sketchfab subsets of Objaverse. It includes scene rendering, transform
 export, O-Voxel generation, and sparse latent encoding. Upstream source data is
-not redistributed. All training sources are publicly available and retain
-their original licenses and access terms. For object training data, use
+not redistributed. For object training data, use
 [TRELLIS-500K](https://huggingface.co/datasets/JeffreyXiang/TRELLIS-500K),
 which provides the metadata and preparation tools for the ObjaverseXL, ABO,
 3D-FUTURE, and HSSD sources used by the object pipeline. Official scene-data
@@ -242,30 +239,3 @@ their repositories and checkpoints remain separate. See
 **Figure 8: Whole-scene reconstruction across diverse datasets**
 
 ![Whole-scene reconstruction across diverse datasets](assets/paper_figure_8.png)
-
-## License
-
-Fire3D code is released under the MIT license. Model weights, datasets, and
-third-party components may have separate terms. See
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), the Hugging Face model card,
-and the Hugging Face dataset card before redistribution or commercial use.
-
-## Citation
-
-Please cite the [Fire3D paper](https://arxiv.org/pdf/2609.08848):
-
-```bibtex
-@article{xia2026fire3d,
-  title={{FIRE3D}: Feed-forward Interactive 3D Scene Reconstruction Within A Minute},
-  author={Xia, Hongchi and Cheng, Tianhang and Ma, Wei-Chiu and Wang, Shenlong},
-  journal={arXiv preprint arXiv:2609.08848},
-  year={2026},
-  url={https://arxiv.org/pdf/2609.08848}
-}
-```
-
-## Acknowledgements
-
-This release builds on DINOv3, AnyUp, TRELLIS.2, O-Voxel, CuMesh,
-nvdiffrast, PyTorch3D, and the iTHOR, Imaginarium, and ScanNet++ datasets. We
-thank their authors and maintainers.

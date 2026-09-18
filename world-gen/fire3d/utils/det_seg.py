@@ -935,15 +935,10 @@ def get_dino_model(model_path=None, repo_dir=None):
                 / "dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth"
             ),
         )
-    if repo_dir is None:
-        repo_dir = os.environ.get("FIRE3D_DINOV3_REPO")
-    if not repo_dir:
-        raise ValueError(
-            "DINOv3 source checkout is required; pass repo_dir or set "
-            "FIRE3D_DINOV3_REPO."
-        )
+    from dinov3 import dinov3_vitl16
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = torch.hub.load(repo_dir, 'dinov3_vitl16', source='local', weights=model_path)
+    model = dinov3_vitl16(model_path)
     model.to(device)
     model.eval()
     transform_fn = make_transform()
