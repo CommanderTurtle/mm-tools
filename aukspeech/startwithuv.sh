@@ -22,7 +22,7 @@ export MM_STUDIO_PORT="${AUK_STUDIO_PORT:-${MM_STUDIO_PORT:-8260}}"
 unset MM_STUDIO_API_ONLY
 
 printf 'AuK Speech Studio: http://%s:%s\n' "$MM_STUDIO_HOST" "$MM_STUDIO_PORT"
-exec python "$ROOT/../studio/server.py" \
+exec python "$ROOT/local_app/server.py" \
   --project-root "$ROOT" \
   --manifest "$ROOT/local_app/studio.json" \
   --adapter "$ROOT/local_app/adapter.py" \

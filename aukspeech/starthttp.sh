@@ -25,7 +25,7 @@ export DO_NOT_TRACK=1
 export TOKENIZERS_PARALLELISM=false
 
 printf 'AuK private API: http://%s:%s (UI disabled)\n' "$AUK_STUDIO_HOST" "$AUK_STUDIO_PORT"
-exec "$VENV/bin/python" "$ROOT/../studio/server.py" \
+exec "$VENV/bin/python" "$ROOT/local_app/server.py" \
   --project-root "$ROOT" \
   --manifest "$ROOT/local_app/studio.json" \
   --adapter "$ROOT/local_app/adapter.py" \
