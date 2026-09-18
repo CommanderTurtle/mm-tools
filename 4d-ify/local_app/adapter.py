@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any, Callable
 
-from studio.runtime import StudioAdapter, StudioContext, StudioOutput, gpu_snapshot
+from local_app.runtime import StudioAdapter, StudioContext, StudioOutput, gpu_snapshot
 
 
 PROGRESS = re.compile(r"^MM_PROGRESS\s+([0-9.]+)\s+(.*)$")
