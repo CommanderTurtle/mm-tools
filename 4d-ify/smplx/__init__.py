@@ -14,6 +14,8 @@
 #
 # Contact: ps-license@tuebingen.mpg.de
 
+MMTOOLS_SOURCE_REVISION = "CommanderTurtle/archive--smplx@1265df7ba545e8b00f72e7c557c766e15c71632f"
+
 from .body_models import (
     create,
     SMPL,

@@ -36,6 +36,7 @@ class Adapter(StudioAdapter):
         gpu = gpu_snapshot()
         device = gpu.get("devices", [{}])[0] if gpu.get("available") else {}
         checks = [
+            ("Integrated SMPL-X runtime", self.project_root / "smplx" / "__init__.py", True),
             ("4DAnyone checkpoint", self.model_dir / "4danyone" / "model.safetensors", True),
             ("Wan VAE", self.model_dir / "4danyone" / "Wan2.2_VAE.pth", True),
             ("GVHMR checkpoint", self.model_dir / "gvhmr" / "gvhmr_siga24_release.ckpt", True),

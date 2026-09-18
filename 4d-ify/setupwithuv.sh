@@ -48,6 +48,7 @@ if [[ -n "$nvcc_major" && "$nvcc_major" -gt "$torch_cuda_major" ]]; then
 fi
 uv pip install --python "$PY" 'setuptools<81' wheel ninja -r requirements.txt -r ../studio/requirements.txt
 uv pip install --python "$PY" 'torch-scatter==2.1.2+pt28cu128' -f https://data.pyg.org/whl/torch-2.8.0+cu128.html
+uv pip uninstall --python "$PY" smplx >/dev/null 2>&1 || true
 uv pip install --python "$PY" --no-build-isolation --no-deps "$ROOT"
 PYTHONPATH="$ROOT/.." "$PY" - <<'PY'
 from pathlib import Path
@@ -60,9 +61,13 @@ import cuda_corr
 import dpvo
 import lietorch_backends
 import pycolmap
+import smplx
 import torch_scatter
 
 root = Path.cwd()
+expected_smplx = (root / "smplx" / "__init__.py").resolve()
+if Path(smplx.__file__).resolve() != expected_smplx:
+    raise SystemExit(f"The integrated SMPL-X runtime is not active: {smplx.__file__}")
 missing = [str(root / "models" / item) for item in MODEL_FILES if not (root / "models" / item).is_file()]
 missing.extend(
     str(root / "models" / "birefnet" / item)
@@ -79,4 +84,4 @@ major, _ = torch.cuda.get_device_capability()
 assert major >= 12, "The local RTX 5090 CUDA build is not active"
 print(f"4DAnyone environment ready: torch={torch.__version__} GPU={torch.cuda.get_device_name(0)}")
 PY
-echo "4DAnyone Capture Studio is ready. Install SMPL-X from its setup mode before the first capture."
+echo "4DAnyone Capture Studio is ready. The SMPL-X runtime is integrated; install the neutral parameter asset from setup mode before the first capture."

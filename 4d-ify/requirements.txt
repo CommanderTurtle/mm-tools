@@ -16,7 +16,6 @@ pycolmap>=3.12,<4
 pytorch-lightning>=2.3,<3
 safetensors>=0.5,<1
 scipy>=1.10,<2
-smplx==0.1.28
 timm==0.9.12
 torch>=2.8,<2.9
 torchvision>=0.23,<0.24

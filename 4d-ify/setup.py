@@ -28,7 +28,7 @@ def extension(name, sources, *, include_dirs=()):
 setup(
     name="dpvo",
     version="0.0.0",
-    packages=find_namespace_packages(include=("dpvo", "dpvo.*")),
+    packages=find_namespace_packages(include=("dpvo", "dpvo.*", "smplx", "smplx.*")),
     ext_modules=[
         extension(
             "cuda_corr",
