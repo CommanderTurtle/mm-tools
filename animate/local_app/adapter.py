@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import json
 import shutil
 import subprocess
@@ -16,6 +17,7 @@ LIGHTX2V_LORA = "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors"
 TEXT_ENCODER = "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
 CLIP_VISION = "clip_vision_h.safetensors"
 VAE = "Wan2_1_VAE_bf16.safetensors"
+REPLACEMENT_MODEL = "wan2.2_animate_14B_int8_convrot.safetensors"
 CANONICAL_CONTEXT_TOKENS = 21 * (480 // 16) * (832 // 16)
 PROFILES: dict[str, dict[str, Any]] = {
     "distilled": {
@@ -184,6 +186,7 @@ class Adapter(StudioAdapter):
         self.comfy = self.v2v / "ComfyUI"
         self.python = self.project_root / ".venv" / "bin" / "python"
         self.models = self.comfy / "models"
+        self.birefnet = self.repo_root / "sculpting" / "pretrained" / "deps" / "ZhengPeng7--BiRefNet"
 
     def health(self) -> dict[str, Any]:
         checks = [
@@ -200,6 +203,8 @@ class Adapter(StudioAdapter):
         optional = [
             ("Animate 2 base INT8 · LightX2V", self.models / "diffusion_models" / BASE_MODEL),
             ("LightX2V acceleration LoRA", self.models / "loras" / LIGHTX2V_LORA),
+            ("Animate 2 scene-preserving replacement", self.models / "diffusion_models" / REPLACEMENT_MODEL),
+            ("Local BiRefNet character matte", self.birefnet / "model.safetensors"),
         ]
         details.extend(
             {"label": label, "ready": path.is_file(), "required": False, "path": str(path)}
@@ -214,12 +219,20 @@ class Adapter(StudioAdapter):
     def validate(self, request: dict[str, Any], resolve_asset: Callable[[str], Path]) -> None:
         mode = str(request.get("mode", ""))
         controls = request.get("controls") or {}
-        if mode not in {"motion_transfer", "pose_lab"}:
+        if mode not in {"motion_transfer", "character_replace", "pose_lab"}:
             raise ValueError(f"Unknown Animate mode: {mode}")
         resolve_asset(str(controls.get("driving_video_asset", "")))
         width, height = int(controls.get("width", 480)), int(controls.get("height", 832))
         if width % 8 or height % 8 or not 256 <= width <= 2160 or not 256 <= height <= 2160:
             raise ValueError("Width and height must be multiples of 8 between 256 and 2160 pixels.")
+        if mode in {"motion_transfer", "character_replace"}:
+            resolve_asset(str(controls.get("reference_image_asset", "")))
+            length = int(controls.get("length", 81 if mode == "motion_transfer" else 77))
+            maximum = 241 if mode == "motion_transfer" else 77
+            if length < 17 or length > maximum:
+                raise ValueError(
+                    f"Frame count must be from 17 through {maximum}; it is rounded to 4n+1 automatically."
+                )
         if mode == "motion_transfer":
             profile = _profile(controls)
             profile_files = [self.models / "diffusion_models" / str(profile["model"])]
@@ -231,10 +244,6 @@ class Adapter(StudioAdapter):
                     f"{profile['label']} is not installed ({', '.join(missing)}). "
                     "Run the model downloader's animate bundle, then retry."
                 )
-            resolve_asset(str(controls.get("reference_image_asset", "")))
-            length = int(controls.get("length", 81))
-            if length < 17 or length > 241:
-                raise ValueError("Frame count must be from 17 through 241; it is rounded up to 4n+1 automatically.")
             start, end = float(controls.get("pose_start_percent", 0)), float(controls.get("pose_end_percent", 1))
             if not 0 <= start <= end <= 1:
                 raise ValueError("Pose influence start must be no later than its end, both in the 0–1 range.")
@@ -246,10 +255,111 @@ class Adapter(StudioAdapter):
             optional = str(controls.get("continue_motion_asset", "")).strip()
             if optional:
                 resolve_asset(optional)
+        elif mode == "character_replace":
+            required = [
+                self.models / "diffusion_models" / REPLACEMENT_MODEL,
+                self.models / "loras" / LIGHTX2V_LORA,
+            ]
+            missing = [path.name for path in required if not path.is_file()]
+            if missing:
+                raise ValueError(
+                    f"Animate 2 replacement mode is not installed ({', '.join(missing)}). "
+                    "Run the model downloader's animate bundle, then retry."
+                )
+            strategy = str(controls.get("mask_strategy", "automatic"))
+            if strategy == "automatic":
+                if not (self.birefnet / "model.safetensors").is_file():
+                    raise ValueError("Automatic character replacement needs the local BiRefNet matte model.")
+            elif strategy == "prepared":
+                resolve_asset(str(controls.get("character_mask_asset", "")))
+            else:
+                raise ValueError(f"Unknown character mask source: {strategy}")
         else:
             optional = str(controls.get("retarget_image_asset", "")).strip()
             if optional:
                 resolve_asset(optional)
+
+    def _character_mask(
+        self,
+        source: Path,
+        destination: Path,
+        *,
+        source_start: int,
+        length: int,
+        width: int,
+        height: int,
+        threshold: float,
+        expand: int,
+        feather: int,
+    ) -> Path:
+        """Extract the source performer one frame at a time with local BiRefNet."""
+
+        import cv2
+        import numpy as np
+        import torch
+        from PIL import Image
+        from torchvision import transforms
+        from transformers import AutoModelForImageSegmentation
+
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        capture = cv2.VideoCapture(str(source))
+        if not capture.isOpened():
+            raise ValueError(f"Could not decode {source.name}")
+        capture.set(cv2.CAP_PROP_POS_FRAMES, source_start)
+        fps = float(capture.get(cv2.CAP_PROP_FPS) or 24.0)
+        writer = cv2.VideoWriter(
+            str(destination), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height)
+        )
+        if not writer.isOpened():
+            capture.release()
+            raise RuntimeError("OpenCV could not initialize the local character-mask encoder.")
+
+        transform = transforms.Compose([
+            transforms.Resize((1024, 1024)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        ])
+        model = AutoModelForImageSegmentation.from_pretrained(
+            str(self.birefnet), trust_remote_code=True, local_files_only=True
+        ).eval().to("cuda")
+        written = 0
+        try:
+            for index in range(length):
+                self._active_context.check_cancelled()
+                ok, frame = capture.read()
+                if not ok:
+                    break
+                frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                tensor = transform(Image.fromarray(rgb)).unsqueeze(0).to("cuda")
+                with torch.inference_mode():
+                    matte = model(tensor)[-1].sigmoid()[0, 0].float().cpu().numpy()
+                matte = cv2.resize(matte, (width, height), interpolation=cv2.INTER_LINEAR)
+                matte = np.clip((matte - threshold) / max(0.01, 1.0 - threshold), 0.0, 1.0)
+                if expand > 0:
+                    kernel = np.ones((expand * 2 + 1, expand * 2 + 1), dtype=np.uint8)
+                    matte = cv2.dilate(matte, kernel, iterations=1)
+                if feather > 0:
+                    size = feather * 2 + 1
+                    matte = cv2.GaussianBlur(matte, (size, size), 0)
+                mono = np.rint(matte * 255.0).astype(np.uint8)
+                writer.write(cv2.cvtColor(mono, cv2.COLOR_GRAY2BGR))
+                written += 1
+                if index % 4 == 0 or index + 1 == length:
+                    self._active_context.update(
+                        f"Extracting the source character matte · frame {index + 1}/{length}",
+                        0.03 + 0.12 * ((index + 1) / length),
+                    )
+        finally:
+            capture.release()
+            writer.release()
+            del model
+            gc.collect()
+            torch.cuda.empty_cache()
+        if written != length:
+            destination.unlink(missing_ok=True)
+            raise ValueError(f"The driving video ended after {written} of {length} requested frames.")
+        return destination
 
     def _motion_graph(self, runtime: ComfyRuntime, c: dict[str, Any], job_id: str) -> dict[str, Any]:
         reference = runtime.add_input(context_asset := self._asset(c, "reference_image_asset"), f"reference-{context_asset.name}")
@@ -393,6 +503,134 @@ class Adapter(StudioAdapter):
         graph["29"] = _save_video(["28", 0], f"animate/{job_id}/motion-transfer", str(c.get("container", "mp4")), str(c.get("codec", "h264")), int(c.get("crf", 18)))
         return graph
 
+    def _replacement_graph(
+        self,
+        runtime: ComfyRuntime,
+        c: dict[str, Any],
+        job_id: str,
+        mask_path: Path,
+        *,
+        mask_windowed: bool,
+    ) -> dict[str, Any]:
+        reference_path = self._asset(c, "reference_image_asset")
+        driving_path = self._asset(c, "driving_video_asset")
+        reference = runtime.add_input(reference_path, f"replacement-{reference_path.name}")
+        driving = runtime.add_input(driving_path, f"source-{driving_path.name}")
+        mask = runtime.add_input(mask_path, f"mask-{mask_path.name}")
+        width, height = int(c.get("width", 480)), int(c.get("height", 832))
+        latent_width, latent_height = _latent_size(width), _latent_size(height)
+        length = min(77, _wan_length(c.get("length", 77)))
+        source = _video_probe(driving_path)
+        source_start = max(0, int(c.get("video_frame_offset", 0)))
+        if source_start + length > int(source["frames"]):
+            raise ValueError(
+                f"The selected {length}-frame replacement window exceeds the "
+                f"{source['frames']}-frame driving video at offset {source_start}."
+            )
+        source_fps = float(source["fps"])
+        self._active_context.log(
+            f"Replacement window: decoding {length} frames from frame {source_start} "
+            f"of {source['frames']} before tensor materialization."
+        )
+
+        graph: dict[str, Any] = {
+            "1": _node("LoadImage", image=reference),
+            "2": _node("LoadVideo", file=driving),
+            "3": _node(
+                "Video Slice", video=["2", 0], start_time=source_start / source_fps,
+                duration=length / source_fps, strict_duration=False,
+            ),
+            "4": _node("GetVideoComponents", video=["3", 0]),
+            "5": _node("ResizeImageMaskNode", input=["4", 0], resize_type="scale dimensions", **{
+                "resize_type.width": latent_width, "resize_type.height": latent_height,
+                "resize_type.crop": str(c.get("crop", "center")),
+                "scale_method": str(c.get("scale_method", "area")),
+            }),
+            "6": _node(
+                "OnnxDetectionModelLoader",
+                vitpose_model="vitpose_h_wholebody_model.onnx",
+                yolo_model="yolov10m.onnx",
+                onnx_device="CUDAExecutionProvider",
+            ),
+            "7": _node(
+                "PoseAndFaceDetection", model=["6", 0], images=["5", 0],
+                width=latent_width, height=latent_height,
+                face_padding=int(c.get("face_padding", 24)),
+            ),
+            "8": _node(
+                "DrawViTPose", pose_data=["7", 0], width=latent_width, height=latent_height,
+                retarget_padding=int(c.get("retarget_padding", 16)),
+                body_stick_width=-1, hand_stick_width=-1, draw_head=True,
+            ),
+            "9": _node("LoadVideo", file=mask),
+            "14": _node("CLIPLoader", clip_name=TEXT_ENCODER, type="wan", device="default"),
+            "15": _node("CLIPTextEncode", clip=["14", 0], text=str(c.get("prompt", ""))),
+            "16": _node("ConditioningZeroOut", conditioning=["15", 0]),
+            "17": _node("VAELoader", vae_name=VAE),
+            "18": _node(
+                "MMToolsGpuOnlyWan22Loader", unet_name=REPLACEMENT_MODEL,
+                positive=["15", 0], negative=["16", 0], text_encoder=["14", 0],
+            ),
+            "19": _node(
+                "LoraLoaderModelOnly", model=["18", 0], lora_name=LIGHTX2V_LORA,
+                strength_model=float(c.get("lora_strength", 1.0)),
+            ),
+            "20": _node(
+                "BasicScheduler", model=["19", 0], scheduler="simple",
+                steps=4, denoise=float(c.get("denoise", 1)),
+            ),
+            "21": _node("KSamplerSelect", sampler_name="lcm"),
+        }
+        mask_video: list[Any] = ["9", 0]
+        if not mask_windowed:
+            graph["10"] = _node(
+                "Video Slice", video=mask_video, start_time=source_start / source_fps,
+                duration=length / source_fps, strict_duration=False,
+            )
+            mask_video = ["10", 0]
+        graph["11"] = _node("GetVideoComponents", video=mask_video)
+        graph["12"] = _node("ResizeImageMaskNode", input=["11", 0], resize_type="scale dimensions", **{
+            "resize_type.width": latent_width, "resize_type.height": latent_height,
+            "resize_type.crop": str(c.get("crop", "center")),
+            "scale_method": "bilinear",
+        })
+        graph["13"] = _node("ImageToMask", image=["12", 0], channel="red")
+        graph["22"] = _node(
+            "WanAnimateToVideo",
+            positive=["18", 1], negative=["18", 2], vae=["17", 0],
+            width=latent_width, height=latent_height, length=length, batch_size=1,
+            reference_image=["1", 0], face_video=["7", 1], pose_video=["8", 0],
+            background_video=["5", 0], character_mask=["13", 0],
+            continue_motion_max_frames=5, video_frame_offset=0,
+        )
+        graph["23"] = _node(
+            "CFGGuider", model=["19", 0], positive=["22", 0], negative=["22", 1], cfg=1.0,
+        )
+        graph["24"] = _node("RandomNoise", noise_seed=int(c.get("seed", 42)))
+        graph["25"] = _node(
+            "SamplerCustomAdvanced", noise=["24", 0], guider=["23", 0], sampler=["21", 0],
+            sigmas=["20", 0], latent_image=["22", 2],
+        )
+        graph["26"] = _node("TrimVideoLatent", samples=["25", 0], trim_amount=["22", 3])
+        graph["27"] = _node("VAEDecode", samples=["26", 0], vae=["17", 0])
+        image_ref: list[Any] = ["27", 0]
+        if (latent_width, latent_height) != (width, height):
+            graph["28"] = _node(
+                "ImageCrop", image=image_ref, width=width, height=height,
+                x=(latent_width - width) // 2, y=(latent_height - height) // 2,
+            )
+            image_ref = ["28", 0]
+        graph["29"] = _node(
+            "CreateVideo", images=image_ref, fps=float(c.get("fps", source_fps)),
+            bit_depth=int(c.get("bit_depth", 8)), color_space=str(c.get("color_space", "sRGB")),
+            codec="none",
+        )
+        graph["30"] = _save_video(
+            ["29", 0], f"animate/{job_id}/character-replacement",
+            str(c.get("container", "mp4")), str(c.get("codec", "h264")), int(c.get("crf", 18)),
+        )
+        return graph
+
     def _pose_graph(self, runtime: ComfyRuntime, c: dict[str, Any], job_id: str) -> dict[str, Any]:
         driving_path = self._asset(c, "driving_video_asset")
         driving = runtime.add_input(driving_path, f"pose-lab-{driving_path.name}")
@@ -467,16 +705,65 @@ class Adapter(StudioAdapter):
 
     def _run_active(self, request: dict[str, Any], context: StudioContext) -> list[StudioOutput]:
         controls = request.get("controls") or {}
-        custom = ["mmtools_wan_animate_preprocess"] if request["mode"] == "pose_lab" else ["mmtools_animate"]
-        with ComfyRuntime(
-            python=self.python, comfy_root=self.comfy, runtime_root=self.runtime_root,
-            context=context, custom_node_allowlist=custom,
-        ) as runtime:
-            if request["mode"] == "pose_lab":
-                graph, stage = self._pose_graph(runtime, controls, context.job_id), "Detecting body, hands, face, and retargeted pose"
+        mode = str(request["mode"])
+        generated_mask: Path | None = None
+        mask_path: Path | None = None
+        mask_windowed = False
+        try:
+            if mode == "character_replace":
+                strategy = str(controls.get("mask_strategy", "automatic"))
+                if strategy == "prepared":
+                    mask_path = self._asset(controls, "character_mask_asset")
+                else:
+                    source = self._asset(controls, "driving_video_asset")
+                    source_info = _video_probe(source)
+                    source_start = max(0, int(controls.get("video_frame_offset", 0)))
+                    length = min(77, _wan_length(controls.get("length", 77)))
+                    if source_start + length > int(source_info["frames"]):
+                        raise ValueError(
+                            f"The selected {length}-frame replacement window exceeds the "
+                            f"{source_info['frames']}-frame driving video at offset {source_start}."
+                        )
+                    generated_mask = self.runtime_root / "character-masks" / f"{context.job_id}.mp4"
+                    mask_path = self._character_mask(
+                        source,
+                        generated_mask,
+                        source_start=source_start,
+                        length=length,
+                        width=_latent_size(int(controls.get("width", 480))),
+                        height=_latent_size(int(controls.get("height", 832))),
+                        threshold=float(controls.get("matte_threshold", 0.35)),
+                        expand=int(controls.get("matte_expand", 6)),
+                        feather=int(controls.get("matte_feather", 5)),
+                    )
+                    mask_windowed = True
+
+            if mode == "pose_lab":
+                custom = ["mmtools_wan_animate_preprocess"]
+            elif mode == "character_replace":
+                custom = ["mmtools_animate", "mmtools_wan_animate_preprocess"]
             else:
-                graph, stage = self._motion_graph(runtime, controls, context.job_id), "Transferring motion with Wan Animate 2"
-            runtime.execute(graph, stage=stage)
-            outputs = self._collect(runtime, context, request)
+                custom = ["mmtools_animate"]
+            with ComfyRuntime(
+                python=self.python, comfy_root=self.comfy, runtime_root=self.runtime_root,
+                context=context, custom_node_allowlist=custom,
+            ) as runtime:
+                if mode == "pose_lab":
+                    graph = self._pose_graph(runtime, controls, context.job_id)
+                    stage = "Detecting body, hands, face, and retargeted pose"
+                elif mode == "character_replace":
+                    assert mask_path is not None
+                    graph = self._replacement_graph(
+                        runtime, controls, context.job_id, mask_path, mask_windowed=mask_windowed
+                    )
+                    stage = "Replacing the source character while preserving the scene"
+                else:
+                    graph = self._motion_graph(runtime, controls, context.job_id)
+                    stage = "Transferring motion with Wan Animate 2"
+                runtime.execute(graph, stage=stage)
+                outputs = self._collect(runtime, context, request)
+        finally:
+            if generated_mask is not None:
+                generated_mask.unlink(missing_ok=True)
         context.update("Animation artifacts are ready", 0.99)
         return outputs

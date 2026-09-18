@@ -637,7 +637,7 @@ BUNDLES: tuple[Bundle, ...] = (
     ),
     Bundle(
         "animate",
-        "Wan Animate 2 distilled INT8, base INT8 + LightX2V, and local pose preprocessing",
+        "Wan Animate 2 direct motion, Wan2.2 scene replacement, and local preprocessing",
         "50-52",
         (
             A(
@@ -680,6 +680,16 @@ BUNDLES: tuple[Bundle, ...] = (
                 ),
             ),
             A(
+                "Comfy-Org/Wan_2.2_ComfyUI_Repackaged",
+                model_path("imports/Comfy-Org--Wan_2.2_ComfyUI_Repackaged-animate"),
+                ("split_files/diffusion_models/wan2.2_animate_14B_int8_convrot.safetensors",),
+                revision="fb1388adc906ab39ffc26ee40e96b22886b56bc4",
+                placements=((
+                    "split_files/diffusion_models/wan2.2_animate_14B_int8_convrot.safetensors",
+                    repo_path("V2V/ComfyUI/models/diffusion_models/wan2.2_animate_14B_int8_convrot.safetensors"),
+                ),),
+            ),
+            A(
                 "Wan-AI/Wan2.2-Animate-14B",
                 model_path("imports/Wan-AI--Wan2.2-Animate-14B-preprocess"),
                 ("process_checkpoint/det/yolov10m.onnx",),
@@ -710,6 +720,7 @@ BUNDLES: tuple[Bundle, ...] = (
                     ),
                 ),
             ),
+            SCULPT_RMBG,
         ),
     ),
     Bundle(

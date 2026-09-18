@@ -6,16 +6,16 @@
   "port": 8264,
   "kicker": "REFERENCE CHARACTER · DIRECT VIDEO MOTION · LOCAL GPU",
   "hero": "Direct the performance. Keep the character.",
-  "description": "Transfer facial animation, body motion, and hand gestures from any driving clip onto one reference character. Choose native distilled INT8 or the official base-INT8 + LightX2V acceleration path; both remain fully local and GPU-only. Inspect the exact ViTPose skeleton and face track in a separate diagnostic lab when a difficult shot needs it.",
-  "guide": "Start with the Portrait proof preset, a clean full-body reference, and a driving video of similar framing. Animate 2 consumes the real video directly—the pose lab is an optional inspection and retargeting surface, not a hidden prerequisite.",
-  "engine": "Wan Animate 2 INT8 · Distilled + LightX2V · Kijai ViTPose",
+  "description": "Animate 2 exposes two creation modes in one studio and one private Comfy runtime: direct, extractor-free motion transfer with a prompt-directed scene, and source-scene character replacement that retains the original stage, lighting, and camera. Everything remains local and GPU-only; the pose lab exposes the tracking controls used by replacement.",
+  "guide": "Choose Direct motion when the reference should perform in a newly directed scene. Choose Replace character when the driving video itself must remain the stage. Both use the same queue, assets, output library, and job-scoped runtime; replacement adds a local character matte before its graph runs.",
+  "engine": "Animate 2 · Direct + Replace · INT8 ConvRot · LightX2V · Kijai ViTPose",
   "vram": "32 GiB GPU-only profile",
   "runtime_contract": "RTX 5090 · local Comfy graph · no CPU model offload",
   "residency": "Private per-job runtime",
   "default_mode": "motion_transfer",
   "max_upload_bytes": 25769803776,
   "theme": {"accent": "#9ae69a", "secondary": "#b58b67"},
-  "badges": ["End-to-end motion", "Face + hands", "INT8 ConvRot", "LightX2V 4-step option", "Long-clip continuation", "ViTPose proof lab", "No telemetry"],
+  "badges": ["Direct motion transfer", "Scene-preserving replacement", "Face + hands", "INT8 ConvRot", "LightX2V 4-step", "Local character matte", "No telemetry"],
   "groups": [
     {"id": "create", "title": "Create"},
     {"id": "inspect", "title": "Inspect"}
@@ -23,16 +23,18 @@
   "models": [
     {"label": "Wan Animate 2 Distilled", "path": "../V2V/ComfyUI/models/diffusion_models/wan_animate_2_distill_int8_convrot.safetensors", "note": "Native 10-step Euler · INT8 ConvRot"},
     {"label": "Wan Animate 2 Base", "path": "../V2V/ComfyUI/models/diffusion_models/wan_animate_2_int8_convrot.safetensors", "note": "LightX2V lane · INT8 ConvRot"},
+    {"label": "Wan2.2 Animate Mix", "path": "../V2V/ComfyUI/models/diffusion_models/wan2.2_animate_14B_int8_convrot.safetensors", "note": "Scene-preserving character replacement · INT8 ConvRot"},
     {"label": "LightX2V acceleration", "path": "../V2V/ComfyUI/models/loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors", "note": "Rank-64 LoRA"},
     {"label": "UMT5 XXL", "path": "../V2V/ComfyUI/models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors", "note": "FP8 scaled"},
     {"label": "CLIP Vision H", "path": "../V2V/ComfyUI/models/clip_vision/clip_vision_h.safetensors"},
-    {"label": "ViTPose + YOLO", "path": "../V2V/ComfyUI/models/detection/", "note": "Optional diagnostic lane"}
+    {"label": "ViTPose + YOLO", "path": "../V2V/ComfyUI/models/detection/", "note": "Mix preprocessing and diagnostic lane"},
+    {"label": "BiRefNet", "path": "../sculpting/pretrained/deps/ZhengPeng7--BiRefNet/model.safetensors", "note": "Shared local source-character matte"}
   ],
   "setup_steps": [
-    "For LightX2V, run `cd ~/multimedia/models && uv run download_models.py animate`; native distilled mode remains available without the optional pair.",
+    "Run `cd ~/multimedia/models && uv run download_models.py animate` to install the allowlisted direct-motion and scene-replacement models.",
     "Run `cd ~/multimedia/animate && ./setupwithuv.sh` once. The command prepares Animate's isolated GPU environment.",
     "Run `./startwithuv.sh` and open the printed loopback URL.",
-    "Use Motion transfer for normal work. Use Pose & face lab only to inspect detection, retarget a skeleton, or diagnose unusual framing."
+    "Use Motion transfer for a new prompt-directed scene, Scene-preserving replacement to retain the driving video's stage, and Pose & face lab only for inspection."
   ],
   "presets": [
     {"title": "Portrait proof", "mode": "motion_transfer", "controls": {"inference_profile": "distilled", "width": 480, "height": 832, "length": 81, "fps": 24, "pose_strength": 1, "reference_strength": 1, "cache_precision": "disabled", "enable_context": true}},
@@ -42,6 +44,7 @@
     {"title": "3:2 high resolution", "mode": "motion_transfer", "controls": {"inference_profile": "distilled", "width": 2160, "height": 1440, "length": 17, "fps": 24, "cache_precision": "disabled", "enable_context": true, "context_length": 5, "context_overlap": 2}},
     {"title": "Long portrait continuity", "mode": "motion_transfer", "controls": {"inference_profile": "distilled", "width": 480, "height": 832, "length": 161, "fps": 24, "cache_precision": "disabled", "enable_context": true, "context_length": 21, "context_overlap": 8, "freenoise": true}},
     {"title": "Loose restyle", "mode": "motion_transfer", "controls": {"inference_profile": "distilled", "width": 480, "height": 832, "length": 81, "reference_strength": 0.72, "pose_strength": 0.9, "pose_end_percent": 0.78}},
+    {"title": "Preserve the source scene", "mode": "character_replace", "controls": {"width": 480, "height": 832, "length": 77, "fps": 24, "mask_strategy": "automatic", "matte_threshold": 0.35, "matte_expand": 6, "matte_feather": 5}},
     {"title": "Pose audit", "mode": "pose_lab", "controls": {"width": 480, "height": 832, "face_padding": 24, "retarget_padding": 64, "body_stick_width": -1, "hand_stick_width": -1, "draw_head": true}}
   ],
   "modes": [
@@ -110,6 +113,54 @@
         {"id": "color_space", "type": "select", "label": "Color space", "default": "sRGB", "span": "half", "options": [{"value": "sRGB", "label": "sRGB"}, {"value": "HDR", "label": "BT.2020 HLG"}, {"value": "HDR PQ", "label": "BT.2020 PQ"}]}
       ],
       "preview_template": "{{inference_profile}} · {{width}}×{{height}} · {{length}} frames @ {{fps}} FPS · identity {{reference_strength}} · motion {{pose_strength}}"
+    },
+    {
+      "id": "character_replace",
+      "group": "create",
+      "title": "Replace character · preserve scene",
+      "short": "Replace the performer while retaining the source stage, lighting, framing, and camera.",
+      "description": "The official Wan2.2 Animate Mix path: local ViTPose and face extraction drive the replacement character, the source video supplies the background, and a private BiRefNet pass creates the character mask automatically before Comfy starts.",
+      "icon": "◉",
+      "badge": "ANIMATE 2 · REPLACE",
+      "engine": "Animate 2 replacement graph · 14B INT8 ConvRot · LightX2V 4-step",
+      "input_label": "Replacement character + source scene",
+      "output_label": "Character-replaced source video + run settings",
+      "recipe": "Use a clean target-character image and the original video whose environment must remain intact. The automatic matte isolates the original performer; the rest of every source frame is conditioned back into the result.",
+      "fields": [
+        {"type": "section", "label": "Character & source scene"},
+        {"id": "reference_image_asset", "type": "asset", "label": "Replacement character", "required": true, "span": "half", "accept": "image/*", "icon": "◎", "drop_label": "Drop the new character image", "hint": "A full-body image with visible hands produces the cleanest replacement."},
+        {"id": "driving_video_asset", "type": "asset", "label": "Original scene", "required": true, "span": "half", "accept": "video/*", "icon": "▶", "drop_label": "Drop the video whose stage should remain", "hint": "Resolution, FPS, and the official 77-frame single-pass window match automatically.", "video_probe": {"frames_field": "length", "fps_field": "fps", "width_field": "width", "height_field": "height"}},
+        {"id": "mask_strategy", "type": "choice", "label": "Source character mask", "default": "automatic", "span": "full", "options": [{"value": "automatic", "label": "Automatic local matte", "description": "Run the shared private BiRefNet model frame by frame before loading Wan."}, {"value": "prepared", "label": "Prepared mask video", "description": "Use a synchronized white-character-on-black mask video instead."}]},
+        {"id": "character_mask_asset", "type": "asset", "label": "Prepared mask · optional", "required": false, "span": "full", "accept": "video/*", "icon": "◐", "drop_label": "Drop a synchronized mask video", "hint": "Used only when Prepared mask video is selected. White replaces; black preserves the source."},
+        {"id": "prompt", "type": "textarea", "label": "Replacement description", "default": "The reference character replaces the performer naturally, matching the original scene's lighting, color, perspective, and contact shadows while preserving the environment and camera movement.", "rows": 4, "span": "full"},
+        {"type": "section", "label": "Frame & timeline"},
+        {"id": "width", "type": "number", "label": "Width", "min": 256, "max": 2160, "step": 8, "default": 480, "suffix": " px", "span": "third"},
+        {"id": "height", "type": "number", "label": "Height", "min": 256, "max": 2160, "step": 8, "default": 832, "suffix": " px", "span": "third"},
+        {"id": "length", "type": "number", "label": "Frames · 4n+1", "min": 17, "max": 77, "step": 1, "default": 77, "span": "third", "hint": "The official Mix graph is one native 77-frame pass; no hidden generation segmentation is introduced.", "auto_video_asset": "driving_video_asset", "auto_fps_field": "fps", "auto_width_field": "width", "auto_height_field": "height", "auto_label": "Match source clip"},
+        {"id": "fps", "type": "range", "label": "Output FPS", "min": 1, "max": 60, "step": 1, "default": 24, "span": "half"},
+        {"id": "video_frame_offset", "type": "number", "label": "Source frame offset", "min": 0, "max": 99999, "step": 1, "default": 0, "span": "half"},
+        {"id": "seed", "type": "number", "label": "Seed", "min": 0, "max": 1125899906842624, "step": 1, "default": 42, "span": "full"}
+      ],
+      "advanced": [
+        {"type": "section", "label": "Automatic matte"},
+        {"id": "matte_threshold", "type": "range", "label": "Matte threshold", "min": 0, "max": 0.9, "step": 0.01, "default": 0.35, "span": "third"},
+        {"id": "matte_expand", "type": "range", "label": "Mask expansion", "min": 0, "max": 32, "step": 1, "default": 6, "suffix": " px", "span": "third"},
+        {"id": "matte_feather", "type": "range", "label": "Edge feather", "min": 0, "max": 32, "step": 1, "default": 5, "suffix": " px", "span": "third"},
+        {"id": "face_padding", "type": "range", "label": "Face crop padding", "min": 0, "max": 256, "step": 1, "default": 24, "suffix": " px", "span": "half"},
+        {"id": "retarget_padding", "type": "range", "label": "Pose framing padding", "min": 0, "max": 256, "step": 1, "default": 16, "suffix": " px", "span": "half"},
+        {"type": "section", "label": "Official four-step sampling"},
+        {"id": "lora_strength", "type": "range", "label": "LightX2V strength", "min": 0, "max": 2, "step": 0.05, "default": 1, "span": "half"},
+        {"id": "denoise", "type": "range", "label": "Denoise", "min": 0.1, "max": 1, "step": 0.01, "default": 1, "span": "half"},
+        {"type": "section", "label": "Framing & delivery"},
+        {"id": "crop", "type": "select", "label": "Resize crop", "default": "center", "span": "half", "options": [{"value": "center", "label": "Center crop"}, {"value": "disabled", "label": "No crop"}]},
+        {"id": "scale_method", "type": "select", "label": "Resize filter", "default": "area", "span": "half", "options": [{"value": "area", "label": "Area"}, {"value": "lanczos", "label": "Lanczos"}, {"value": "bicubic", "label": "Bicubic"}, {"value": "bilinear", "label": "Bilinear"}]},
+        {"id": "container", "type": "select", "label": "Container", "default": "mp4", "span": "third", "options": [{"value": "mp4", "label": "MP4"}, {"value": "mkv", "label": "MKV"}, {"value": "webm", "label": "WebM"}]},
+        {"id": "codec", "type": "select", "label": "Codec", "default": "h264", "span": "third", "options": [{"value": "h264", "label": "H.264"}, {"value": "av1", "label": "AV1"}, {"value": "auto", "label": "Auto"}]},
+        {"id": "crf", "type": "range", "label": "Delivery CRF", "min": 0, "max": 51, "step": 1, "default": 18, "span": "third"},
+        {"id": "bit_depth", "type": "select", "label": "Bit depth", "default": 8, "span": "half", "options": [{"value": 8, "label": "8-bit"}, {"value": 10, "label": "10-bit"}]},
+        {"id": "color_space", "type": "select", "label": "Color space", "default": "sRGB", "span": "half", "options": [{"value": "sRGB", "label": "sRGB"}, {"value": "HDR", "label": "BT.2020 HLG"}, {"value": "HDR PQ", "label": "BT.2020 PQ"}]}
+      ],
+      "preview_template": "source-preserving Mix · {{width}}×{{height}} · {{length}} frames @ {{fps}} FPS · {{mask_strategy}} matte"
     },
     {
       "id": "pose_lab",

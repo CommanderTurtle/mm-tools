@@ -115,5 +115,47 @@ class MMToolsGpuOnlyWanLoader:
         )
 
 
-NODE_CLASS_MAPPINGS = {"MMToolsGpuOnlyWanLoader": MMToolsGpuOnlyWanLoader}
-NODE_DISPLAY_NAME_MAPPINGS = {"MMToolsGpuOnlyWanLoader": "WAN Loader · GPU-only staged"}
+class MMToolsGpuOnlyWan22Loader:
+    """Stage the older Mix/Move checkpoint after its text embeddings exist."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "unet_name": (folder_paths.get_filename_list("diffusion_models"),),
+                "positive": ("CONDITIONING",),
+                "negative": ("CONDITIONING",),
+                "text_encoder": ("CLIP",),
+            }
+        }
+
+    RETURN_TYPES = ("MODEL", "CONDITIONING", "CONDITIONING")
+    RETURN_NAMES = ("model", "positive", "negative")
+    FUNCTION = "load_after_encoder"
+    CATEGORY = "mm-tools/animate"
+
+    def load_after_encoder(self, unet_name, positive, negative, text_encoder):
+        _discard_encoder(text_encoder)
+        gc.collect()
+        model_management.soft_empty_cache(force=True)
+
+        unet_path = folder_paths.get_full_path_or_raise("diffusion_models", unet_name)
+        model = comfy.sd.load_diffusion_model(unet_path, model_options={})
+        _use_ephemeral_lora_backups(model)
+        free_bytes, total_bytes = torch.cuda.mem_get_info()
+        logging.info(
+            "GPU-only WAN 2.2 staged with storage-free patch backups; %.2f/%.2f GiB free",
+            free_bytes / 1024**3,
+            total_bytes / 1024**3,
+        )
+        return model, positive, negative
+
+
+NODE_CLASS_MAPPINGS = {
+    "MMToolsGpuOnlyWanLoader": MMToolsGpuOnlyWanLoader,
+    "MMToolsGpuOnlyWan22Loader": MMToolsGpuOnlyWan22Loader,
+}
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "MMToolsGpuOnlyWanLoader": "WAN Loader · GPU-only staged",
+    "MMToolsGpuOnlyWan22Loader": "WAN 2.2 Loader · GPU-only staged",
+}
