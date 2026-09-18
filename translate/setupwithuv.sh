@@ -19,11 +19,7 @@ else
   printf 'Reusing existing isolated environment: %s\n' "$here/.venv"
 fi
 
-accelerator="${1:-${TRANSLATE_ACCELERATOR:-}}"
-if [[ -z "$accelerator" ]]; then
-  read -r -p 'Compute target [gpu/cpu] (gpu): ' accelerator
-  accelerator="${accelerator:-gpu}"
-fi
+accelerator="${1:-${TRANSLATE_ACCELERATOR:-gpu}}"
 accelerator="${accelerator,,}"
 
 case "$accelerator" in

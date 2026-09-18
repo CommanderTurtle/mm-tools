@@ -9,11 +9,7 @@ command -v uv >/dev/null 2>&1 || {
   exit 1
 }
 
-compute="${1:-}"
-if [[ -z "$compute" ]]; then
-  read -r -p 'Compute target [gpu/cpu] (gpu): ' compute
-  compute="${compute:-gpu}"
-fi
+compute="${1:-${COMPUTE_TARGET:-gpu}}"
 
 case "${compute,,}" in
   gpu) export UV_TORCH_BACKEND="${UV_TORCH_BACKEND:-auto}" ;;

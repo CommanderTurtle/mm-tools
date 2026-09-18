@@ -46,7 +46,7 @@ if port_is_listening; then
   exit 1
 fi
 
-[[ -x .venv/bin/python ]] || { printf 'Missing .venv. Run ./uvsetup.sh first.\n' >&2; exit 1; }
+[[ -x .venv/bin/python ]] || { printf 'Missing .venv. Run ./setupwithuv.sh first.\n' >&2; exit 1; }
 command -v flock >/dev/null 2>&1 || { printf 'Missing flock (util-linux).\n' >&2; exit 1; }
 LOCK_FILE="${XDG_RUNTIME_DIR:-/tmp}/crisperwhisper-local-${UID}.lock"
 exec 9>"$LOCK_FILE"
