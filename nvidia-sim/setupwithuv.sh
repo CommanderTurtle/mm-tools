@@ -16,12 +16,12 @@ for path in "${required[@]}"; do [[ -s "$path" ]] || { printf 'Missing allowlist
 export UV_LINK_MODE=hardlink HF_HUB_DISABLE_TELEMETRY=1 DO_NOT_TRACK=1
 [[ -x "$VENV/bin/python" ]] || uv venv "$VENV" --python 3.12 --seed --managed-python
 uv pip install --python "$VENV/bin/python" --index-url https://download.pytorch.org/whl/cu130 'torch==2.11.0+cu130' 'torchvision==0.26.0+cu130' 'torchaudio==2.11.0+cu130'
-uv pip install --python "$VENV/bin/python" 'setuptools<81' wheel packaging -e "$ROOT" -e "$ROOT/SOMA-X" -r "$ROOT/requirements-local.txt"
+uv pip install --python "$VENV/bin/python" 'setuptools<81' wheel packaging -e "$ROOT" -e "$ROOT/SOMA-X" -r "$ROOT/requirements-local.txt" -r "$ROOT/local_app/requirements.txt"
 mkdir -p "$ROOT/.runtime/studio/assets" "$ROOT/.runtime/studio/outputs"
 export PYTHONPATH="$ROOT/..:$ROOT:$ROOT/SOMA-X${PYTHONPATH:+:$PYTHONPATH}" HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 CUDA_VISIBLE_DEVICES=0
 "$VENV/bin/python" - <<'PY'
 import torch
-from studio.server import build_application
+from local_app.server import build_application
 assert torch.cuda.is_available()
 p = torch.cuda.get_device_properties(0)
 assert p.total_memory >= 30_000 * 1024**2

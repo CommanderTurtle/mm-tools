@@ -9,7 +9,7 @@ from typing import Any, Callable
 
 import numpy as np
 
-from studio.runtime import StudioAdapter, StudioContext, StudioOutput, gpu_snapshot
+from local_app.runtime import StudioAdapter, StudioContext, StudioOutput, gpu_snapshot
 
 
 MODEL_NAMES = {
