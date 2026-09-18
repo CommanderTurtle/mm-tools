@@ -160,6 +160,8 @@ main { padding: 0 clamp(18px, 3vw, 50px) 70px; }
 .field input:not([type="range"]):not([type="checkbox"]), .field textarea, .field select, .collection-row input, .collection-row select { width: 100%; border: 1px solid var(--line); border-radius: 12px; outline: 0; background: var(--bg-soft); padding: 11px 12px; transition: .18s ease; }
 .field textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
 .field input:focus, .field textarea:focus, .field select:focus { border-color: rgba(var(--accent-rgb), .6); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .08); }
+.field .field-action { justify-self: start; padding: 7px 10px; border: 1px solid rgba(var(--accent-rgb), .42); border-radius: 9px; background: rgba(var(--accent-rgb), .1); color: var(--accent); font-size: 9px; font-weight: 700; }
+.field .field-action:hover:not(:disabled) { border-color: var(--accent); background: rgba(var(--accent-rgb), .16); }
 .range-wrap { display: grid; grid-template-columns: 1fr 78px; gap: 12px; align-items: center; min-height: 42px; }
 input[type="range"] { width: 100%; accent-color: var(--accent); }
 .range-readout { padding: 8px; border: 1px solid var(--line); border-radius: 10px; text-align: center; background: var(--bg-soft); font-variant-numeric: tabular-nums; font-size: 11px; }

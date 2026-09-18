@@ -197,7 +197,6 @@ class Adapter(StudioAdapter):
         graph: dict[str, Any] = {
             "1": _node("LoadImage", image=reference),
             "2": _node("LoadVideo", file=driving),
-            "3": _node("UNETLoader", unet_name=str(profile["model"]), weight_dtype="default"),
             "4": _node("CLIPLoader", clip_name=TEXT_ENCODER, type="wan", device="default"),
             "5": _node("CLIPTextEncode", clip=["4", 0], text=str(c.get("prompt", ""))),
             "6": _node("CLIPTextEncode", clip=["4", 0], text=str(c.get("negative_prompt", NEGATIVE))),
@@ -213,7 +212,14 @@ class Adapter(StudioAdapter):
             "14": _node("ImageFromBatch", image=["13", 0], batch_index=int(c.get("video_frame_offset", 0)), length=1),
             "15": _node("CLIPVisionEncode", clip_vision=["8", 0], image=["14", 0], crop="none"),
         }
-        model_ref: list[Any] = ["3", 0]
+        graph["32"] = _node(
+            "MMToolsGpuOnlyWanLoader",
+            unet_name=str(profile["model"]),
+            positive=["5", 0], negative=["6", 0], positive_pose=["7", 0],
+            clip_vision_output=["11", 0], clip_vision_output_pose=["15", 0],
+            text_encoder=["4", 0], vision_encoder=["8", 0],
+        )
+        model_ref: list[Any] = ["32", 0]
         if profile["lora"]:
             graph["31"] = _node(
                 "LoraLoaderModelOnly", model=model_ref,
@@ -243,11 +249,11 @@ class Adapter(StudioAdapter):
         graph["19"] = _node("ModelSamplingSD3", model=model_ref, shift=float(c.get("shift", 5)))
         graph["20"] = _node("KSamplerSelect", sampler_name=str(sampling["sampler"]))
         conditioning: dict[str, Any] = {
-            "positive": ["5", 0], "negative": ["6", 0], "vae": ["9", 0],
+            "positive": ["32", 1], "negative": ["32", 2], "vae": ["9", 0],
             "width": latent_width, "height": latent_height, "length": length, "batch_size": 1,
             "reference_image": ["10", 0], "pose_video": ["13", 0],
-            "clip_vision_output": ["11", 0], "positive_pose": ["7", 0],
-            "clip_vision_output_pose": ["15", 0],
+            "clip_vision_output": ["32", 4], "positive_pose": ["32", 3],
+            "clip_vision_output_pose": ["32", 5],
             "video_frame_offset": int(c.get("video_frame_offset", 0)),
             "pose_strength": float(c.get("pose_strength", 1)),
             "pose_start_percent": float(c.get("pose_start_percent", 0)),
@@ -357,7 +363,7 @@ class Adapter(StudioAdapter):
 
     def _run_active(self, request: dict[str, Any], context: StudioContext) -> list[StudioOutput]:
         controls = request.get("controls") or {}
-        custom = ["mmtools_wan_animate_preprocess"] if request["mode"] == "pose_lab" else []
+        custom = ["mmtools_wan_animate_preprocess"] if request["mode"] == "pose_lab" else ["mmtools_animate"]
         with ComfyRuntime(
             python=self.python, comfy_root=self.comfy, runtime_root=self.runtime_root,
             context=context, custom_node_allowlist=custom,

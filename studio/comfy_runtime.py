@@ -59,6 +59,7 @@ class ComfyRuntime:
             "DO_NOT_TRACK": "1",
             "TOKENIZERS_PARALLELISM": "false",
             "CUDA_VISIBLE_DEVICES": "0",
+            "CUDA_MODULE_LOADING": "LAZY",
             "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True",
         })
         if extra_env:
@@ -70,7 +71,7 @@ class ComfyRuntime:
             "--output-directory", str(self.output_dir),
             "--user-directory", str(self.user_dir),
             "--disable-auto-launch", "--disable-metadata", "--disable-api-nodes",
-            "--disable-all-custom-nodes", "--gpu-only",
+            "--disable-all-custom-nodes", "--gpu-only", "--disable-async-offload", "--cache-none",
         ]
         # Comfy's whitelist is folder-name based. Keeping the global disable
         # flag in place means a runtime-generated or user-installed node can
@@ -89,7 +90,11 @@ class ComfyRuntime:
             text=True,
         )
         self._log_offset = 0
-        self._wait_ready()
+        try:
+            self._wait_ready()
+        except BaseException:
+            self.close()
+            raise
 
     @property
     def base_url(self) -> str:
@@ -174,8 +179,9 @@ class ComfyRuntime:
         except OSError:
             lines = []
         useful = [line.strip() for line in lines[-120:] if line.strip()]
+        causes = [line for line in useful if "out of memory" in line.lower() or "cuda error:" in line.lower() or "what():" in line.lower()]
         assertions = [line for line in useful if "assert" in line.lower() or "cuda" in line.lower()]
-        detail = assertions[-1] if assertions else (useful[-1] if useful else "No runtime detail was logged.")
+        detail = causes[0] if causes else (assertions[-1] if assertions else (useful[-1] if useful else "No runtime detail was logged."))
         return f"The private GPU-only Comfy runtime exited with code {self.process.returncode}: {detail} (log: {self.log_path})"
 
     def output_files(self) -> list[Path]:
@@ -220,3 +226,9 @@ class ComfyRuntime:
 
     def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
         self.cleanup()
+
+    def __del__(self) -> None:
+        try:
+            self.close()
+        except Exception:
+            pass

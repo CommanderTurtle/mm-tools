@@ -11,6 +11,7 @@ import re
 import secrets
 import shutil
 import signal
+import subprocess
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -67,6 +68,74 @@ def _mime(path: Path, explicit: str | None = None) -> str:
     if explicit and explicit != "application/octet-stream":
         return explicit.split(";", 1)[0]
     return mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+
+
+def _ratio(value: Any) -> float:
+    text = str(value or "").strip()
+    if not text or text in {"0/0", "N/A"}:
+        return 0.0
+    if "/" in text:
+        numerator, denominator = text.split("/", 1)
+        return float(numerator) / float(denominator)
+    return float(text)
+
+
+def _probe_video(path: Path) -> dict[str, Any]:
+    """Read local container metadata without decoding or uploading anywhere."""
+
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe", "-v", "error", "-select_streams", "v:0",
+                "-show_entries",
+                "stream=width,height,avg_frame_rate,r_frame_rate,nb_frames,duration:stream_tags=rotate:stream_side_data=rotation:format=duration",
+                "-of", "json", str(path),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        payload = json.loads(result.stdout)
+        stream = (payload.get("streams") or [])[0]
+    except (FileNotFoundError, subprocess.SubprocessError, json.JSONDecodeError, IndexError) as exc:
+        raise ValueError("The video metadata could not be read with ffprobe.") from exc
+
+    fps = _ratio(stream.get("avg_frame_rate")) or _ratio(stream.get("r_frame_rate"))
+    duration = float(stream.get("duration") or (payload.get("format") or {}).get("duration") or 0)
+    raw_frames = str(stream.get("nb_frames") or "").strip()
+    source_frames = int(raw_frames) if raw_frames.isdigit() else int(round(duration * fps))
+    width, height = int(stream.get("width") or 0), int(stream.get("height") or 0)
+    side_data = stream.get("side_data_list") or []
+    rotation = next((item.get("rotation") for item in side_data if item.get("rotation") is not None), None)
+    if rotation is None:
+        rotation = (stream.get("tags") or {}).get("rotate", 0)
+    if abs(int(float(rotation or 0))) % 180 == 90:
+        width, height = height, width
+    if fps <= 0 or duration <= 0 or source_frames <= 0 or width <= 0 or height <= 0:
+        raise ValueError("The selected file does not expose a usable video duration and frame rate.")
+
+    # Preserve the source dimensions whenever Animate supports them. Larger or
+    # unusually small clips are fitted to the 256–2160 canvas while retaining
+    # their aspect ratio, then aligned to the model's eight-pixel contract.
+    scale = min(1.0, 2160 / width, 2160 / height)
+    if min(width * scale, height * scale) < 256:
+        scale = max(scale, 256 / min(width, height))
+    output_width = max(256, min(2160, int(round(width * scale / 8)) * 8))
+    output_height = max(256, min(2160, int(round(height * scale / 8)) * 8))
+    bounded = max(17, min(241, source_frames))
+    wan_frames = min(241, bounded + ((1 - bounded) % 4))
+    return {
+        "duration": duration,
+        "fps": fps,
+        "source_frames": source_frames,
+        "wan_frames": wan_frames,
+        "source_width": width,
+        "source_height": height,
+        "output_width": output_width,
+        "output_height": output_height,
+        "limited": source_frames > 241,
+    }
 
 
 def build_application(manifest: dict[str, Any], project_root: Path, adapter_path: Path) -> FastAPI:
@@ -239,6 +308,22 @@ def build_application(manifest: dict[str, Any], project_root: Path, adapter_path
         if not _within(runner.assets_dir, path) or not path.is_file():
             raise HTTPException(404, "Asset file is missing.")
         return FileResponse(path, media_type=asset["media_type"], filename=asset["name"])
+
+    @app.get("/api/assets/{asset_id}/probe")
+    async def probe_asset(asset_id: str) -> dict[str, Any]:
+        try:
+            asset = store.get_asset(asset_id)
+        except KeyError as exc:
+            raise HTTPException(404, "Asset not found.") from exc
+        path = runner.assets_dir / asset["stored_name"]
+        if not _within(runner.assets_dir, path) or not path.is_file():
+            raise HTTPException(404, "Asset file is missing.")
+        if not str(asset["media_type"]).startswith("video/"):
+            raise HTTPException(422, "Only video assets have frame metadata.")
+        try:
+            return await asyncio.to_thread(_probe_video, path)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
 
     @app.delete("/api/assets/{asset_id}")
     async def delete_asset(asset_id: str) -> dict[str, bool]:

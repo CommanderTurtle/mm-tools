@@ -521,6 +521,10 @@
 !/animate/ComfyUI-WanAnimatePreprocess/pose_utils/**
 !/animate/ComfyUI-WanAnimatePreprocess/example_workflows/
 !/animate/ComfyUI-WanAnimatePreprocess/example_workflows/**
+!/animate/ComfyUI-MMToolsAnimate/
+/animate/ComfyUI-MMToolsAnimate/*
+!/animate/ComfyUI-MMToolsAnimate/__init__.py
+!/animate/ComfyUI-MMToolsAnimate/nodes.py
 
 # NVIDIA ARDY, MotionCorrection, and SOMA-X code. SOMA-X model assets remain
 # ignored and are reconstructed directly by the nvidia-sim model bundle.

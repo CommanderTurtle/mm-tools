@@ -318,6 +318,38 @@ function renderInputField(field, value) {
   if (field.maxlength) input.maxLength = field.maxlength;
   input.addEventListener("input", () => setValue(field, field.type === "number" ? (input.value === "" ? "" : Number(input.value)) : input.value));
   wrapper.append(input);
+  if (field.auto_video_asset) {
+    const action = document.createElement("button");
+    action.type = "button";
+    action.className = "field-action";
+    action.textContent = field.auto_label || "Match input video";
+    action.onclick = async (event) => {
+      event.preventDefault();
+      const assetId = String(controlsForMode()[field.auto_video_asset] || "").trim();
+      if (!assetId) return toast("Add the driving video first.", "error");
+      action.disabled = true;
+      action.textContent = "Reading video…";
+      try {
+        const probe = await api(`/api/assets/${encodeURIComponent(assetId)}/probe`);
+        const controls = controlsForMode();
+        controls[field.id] = probe.wan_frames;
+        if (field.auto_fps_field && Number.isFinite(probe.fps)) {
+          controls[field.auto_fps_field] = Math.max(1, Math.min(60, Math.round(probe.fps)));
+        }
+        if (field.auto_width_field) controls[field.auto_width_field] = probe.output_width;
+        if (field.auto_height_field) controls[field.auto_height_field] = probe.output_height;
+        renderForm();
+        saveDraft();
+        const capped = probe.source_frames > probe.wan_frames ? " · capped to this workflow's limit" : "";
+        toast(`${probe.source_width}×${probe.source_height} at ${probe.fps.toFixed(3)} FPS → ${probe.output_width}×${probe.output_height}, ${probe.wan_frames} frames (4n+1)${capped}.`);
+      } catch (error) {
+        toast(error.message, "error");
+        action.disabled = false;
+        action.textContent = field.auto_label || "Match input video";
+      }
+    };
+    wrapper.append(action);
+  }
   const hint = fieldHint(field); if (hint) wrapper.append(hint);
   return wrapper;
 }
@@ -407,7 +439,7 @@ function uploadAsset(file, field, progress) {
   });
 }
 
-function previewAsset(container, field, asset, localUrl = null) {
+function previewAsset(container, field, asset, localUrl = null, input = null) {
   container.replaceChildren();
   const preview = document.createElement("div"); preview.className = "asset-preview";
   const url = localUrl || asset?.url;
@@ -426,10 +458,17 @@ function previewAsset(container, field, asset, localUrl = null) {
   const actions = document.createElement("div"); actions.className = "asset-actions";
   const replace = document.createElement("button"); replace.type = "button"; replace.textContent = "Replace";
   const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "Remove";
-  replace.onclick = () => container.querySelector("input")?.click();
+  replace.onclick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!input) return;
+    input.value = "";
+    input.click();
+  };
   remove.onclick = (event) => { event.preventDefault(); setValue(field, field.type === "multi_asset" ? [] : ""); renderForm(); };
   actions.append(replace, remove); preview.append(actions);
   container.append(preview);
+  if (input) container.append(input);
 }
 
 function renderAsset(field, value) {
@@ -444,7 +483,7 @@ function renderAsset(field, value) {
   drop.append(icon, title, detail, input);
   const existingId = field.type === "multi_asset" ? value?.[0] : value;
   const existing = assetById(existingId);
-  if (existing) previewAsset(drop, field, existing);
+  if (existing) previewAsset(drop, field, existing, null, input);
   const handle = async (files) => {
     const selected = [...files];
     if (!selected.length) return;
@@ -455,13 +494,28 @@ function renderAsset(field, value) {
       const uploaded = [];
       for (const file of selected) {
         const localUrl = URL.createObjectURL(file);
-        previewAsset(drop, field, { name: file.name, size: file.size, media_type: file.type }, localUrl);
+        previewAsset(drop, field, { name: file.name, size: file.size, media_type: file.type }, localUrl, input);
         drop.append(progress);
         const asset = await uploadAsset(file, field, (fraction) => { progress.firstElementChild.style.width = `${fraction * 100}%`; });
         uploaded.push(asset.id);
         URL.revokeObjectURL(localUrl);
       }
       setValue(field, field.type === "multi_asset" ? uploaded : uploaded[0]);
+      if (field.video_probe && uploaded.length === 1) {
+        try {
+          const probe = await api(`/api/assets/${encodeURIComponent(uploaded[0])}/probe`);
+          const controls = controlsForMode();
+          const targets = field.video_probe;
+          if (targets.frames_field) controls[targets.frames_field] = probe.wan_frames;
+          if (targets.fps_field) controls[targets.fps_field] = Math.max(1, Math.min(60, Math.round(probe.fps)));
+          if (targets.width_field) controls[targets.width_field] = probe.output_width;
+          if (targets.height_field) controls[targets.height_field] = probe.output_height;
+          saveDraft();
+          toast(`${probe.source_width}×${probe.source_height} · ${probe.source_frames} frames matched automatically.`);
+        } catch (error) {
+          toast(`Upload ready; automatic video matching failed: ${error.message}`, "error");
+        }
+      }
       renderForm();
       toast(`${selected.length === 1 ? selected[0].name : `${selected.length} files`} ready.`);
     } catch (error) {
