@@ -2,7 +2,6 @@
 set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT="$(basename -- "$ROOT")"
 cd "$ROOT"
 
 command -v uv >/dev/null 2>&1 || {
@@ -46,80 +45,25 @@ uv venv --python 3.12.10 --seed --managed-python
 # shellcheck disable=SC1091
 source .venv/bin/activate
 
-case "$PROJECT" in
-  ideogram)
-    uv pip install torch torchvision
-    uv pip install -e . -r requirements-local.txt
-    ;;
-  longcat)
-    uv pip install -r requirements-local.txt
-    ;;
-  muscriptor)
-    uv pip install -e .
-    if [[ -d web ]] && command -v bun >/dev/null 2>&1; then
-      (cd web && bun install && bun run build)
-    fi
-    ;;
-  musvit)
-    if ! command -v pdftoppm >/dev/null 2>&1; then
-      command -v apt-get >/dev/null 2>&1 || {
-        printf 'MuSViT requires pdftoppm. Install the Poppler utilities for this Linux distribution.\n' >&2
-        exit 1
-      }
-      apt_command=(apt-get)
-      if (( EUID != 0 )); then
-        command -v sudo >/dev/null 2>&1 || {
-          printf 'MuSViT requires poppler-utils; rerun setup as root or install it manually.\n' >&2
-          exit 1
-        }
-        apt_command=(sudo apt-get)
-      fi
-      "${apt_command[@]}" update
-      "${apt_command[@]}" install -y poppler-utils
-    fi
-    uv pip install -r requirements-local.txt
-    ;;
-  redesign)
-    uv pip install torch torchvision torchaudio
-    uv pip install -r requirements-workstation.txt
-    uv pip install paddlepaddle==3.1.0
-    uv pip install --no-deps 'diffusers @ git+https://github.com/huggingface/diffusers.git'
-    uv pip install 'sdnq>=0.1.5'
-    uv pip install --no-deps 'sam-2 @ git+https://github.com/facebookresearch/sam2.git'
-    if [[ -f modules/grounding_dino/setup.py ]]; then
-      uv pip install -e modules/grounding_dino --no-build-isolation ||
-        printf 'GroundingDINO CUDA extension was skipped; its Python fallback remains available.\n' >&2
-    fi
-    ;;
-  whisper)
-    uv pip install -e '.[transformers]' -r requirements-local.txt
-    ;;
-  video-compact|video-to-gif-avif)
-    uv pip install -r requirements.txt
-    ;;
-  img2svg)
-    command -v cargo >/dev/null 2>&1 || {
-      printf 'Rust/Cargo is required for img2svg.\n' >&2
+if ! command -v pdftoppm >/dev/null 2>&1; then
+  command -v apt-get >/dev/null 2>&1 || {
+    printf 'MuSViT requires pdftoppm. Install the Poppler utilities for this Linux distribution.\n' >&2
+    exit 1
+  }
+  apt_command=(apt-get)
+  if (( EUID != 0 )); then
+    command -v sudo >/dev/null 2>&1 || {
+      printf 'MuSViT requires poppler-utils; rerun setup as root or install it manually.\n' >&2
       exit 1
     }
-    cargo build --release
-    ;;
-  kijai-v2v)
-    printf 'Kijai V2V is a portable ComfyUI patch kit and has no Python dependencies.\n'
-    ;;
-  *)
-    if [[ -f requirements-local.txt ]]; then
-      uv pip install -r requirements-local.txt
-    elif [[ -f requirements.txt ]]; then
-      uv pip install -r requirements.txt
-    elif [[ -f pyproject.toml ]]; then
-      uv pip install -e .
-    else
-      printf 'No Python dependency manifest found; the isolated environment is ready.\n'
-    fi
-    ;;
-esac
+    apt_command=(sudo apt-get)
+  fi
+  "${apt_command[@]}" update
+  "${apt_command[@]}" install -y poppler-utils
+fi
 
-printf '\n%s is ready in %s/.venv (Python 3.12.10, torch backend: %s).\n' \
-  "$PROJECT" "$ROOT" "$torch_backend"
+uv pip install -r requirements-local.txt
+
+printf '\nMuSViT is ready in %s/.venv (Python 3.12.10, torch backend: %s).\n' \
+  "$ROOT" "$torch_backend"
 printf 'Start it with ./startwithuv.sh\n'
