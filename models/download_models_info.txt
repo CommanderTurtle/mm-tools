@@ -11,6 +11,8 @@ Hugging Face Hub client plus mm-tools' canonical hf_transfer backend:
   uv run download_models.py --list
   uv run download_models.py
 
+## NOTE: Workers == synonymous with "cpu cores". 16=safe worker count for Intel Ultra 9 285k. This downloader greatly improves HF download speed, utilizing the hf_transfer package.
+
 The first interactive question sets the parallel snapshot file workers.
 The next prompt selects numbered project bundles; Enter preserves the original
 "all" behavior. Examples:
@@ -69,3 +71,35 @@ See `which-ones.txt` for the exact artifact inventory, paths, manual gates,
 shared placements, and exclusions. Downloading a model binds the downloader
 to that repository's license and access terms. Model artifacts are not part
 of this AGPLv3 source tree.
+
+For further example of hf_transfer, see the below example script:
+
+```python
+import os
+# Enable hf_transfer for high-speed downloads
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+# Optional: Tune Tokio worker threads for your CPU cores
+os.environ["TOKIO_WORKER_THREADS"] = "16"
+
+from huggingface_hub import snapshot_download, logging
+
+# Enable maximum verbosity logging
+logging.set_verbosity_debug()
+
+# Download first entire model repository
+snapshot_download(
+    repo_id="orcarouter/Qwen3.8-27B-Uncensored-NVFP4",
+    local_dir="D:/Comfy/git clones/orcarouter--Qwen3.8-27B-Uncensored-NVFP4",
+    local_dir_use_symlinks=False,  # Copy files instead of symlinks
+    ignore_patterns=["*.gguf"]  # Showcase of ignorelist with wildcard
+)
+
+snapshot_download(
+    repo_id="DavidAU/Qwen3.8-27B-TURBO-Fable-Cold-Fusion-735-882-Heretic-Uncensored-NEO-CODER-MAX-MTP-GGUF",
+    local_dir="D:/Comfy/git clones/DavidAU--Qwen3.8-27B-TURBO-Fable-Cold-Fusion-735-882-Heretic-Uncensored-NEO-CODER-MAX-MTP-GGUF",
+    local_dir_use_symlinks=False,  # Copy files instead of symlinks
+    allow_patterns=["Qwen3.8-27B-TurboFCFusion-735-882-Here-Uncen-NEO-CODER-MAX-MTP-Q4_K_M.gguf"]
+)
+```
+
+`uv run above-script.py` will download with those explicit instructions.
