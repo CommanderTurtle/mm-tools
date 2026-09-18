@@ -2,42 +2,21 @@
 set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT="$(basename -- "$ROOT")"
 cd "$ROOT"
 
-[[ -x .venv/bin/python ]] || {
-  printf 'Missing .venv. Run ./setupwithuv.sh first.\n' >&2
-  exit 1
-}
-
+[[ -x .venv/bin/python ]] || { printf 'Run bash ./setupwithuv.sh first.\n' >&2; exit 1; }
+if [[ -f .env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
 # shellcheck disable=SC1091
 source .venv/bin/activate
 
-if [[ -x ./startwithuv.sh ]]; then
-  exec ./startwithuv.sh "$@"
-fi
+export HF_HUB_DISABLE_TELEMETRY=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 DO_NOT_TRACK=1
+export TOKENIZERS_PARALLELISM=false
 
-case "$PROJECT" in
-  ideogram)
-    exec ./start-object-remover.sh "$@"
-    ;;
-  img2svg)
-    exec cargo run --release -- serve \
-      --host "${IMG2SVG_HOST:-0.0.0.0}" \
-      --port "${IMG2SVG_PORT:-4170}" "$@"
-    ;;
-  musvit)
-    if [[ $# -eq 0 ]]; then
-      printf 'Usage: ./startwithuv.sh SCORE_IMAGE_OR_PDF [sheet_to_midi options]\n' >&2
-      exit 2
-    fi
-    exec uv run --active --no-sync python sheet_to_midi.py "$@"
-    ;;
-  kijai-v2v)
-    printf 'Kijai V2V is an installable ComfyUI patch kit, not a long-running service.\n'
-    printf 'Follow README.md to apply Install-KijaiV2V.ps1 to ComfyUI Portable.\n'
-    ;;
-  *)
-    printf 'This project has no persistent start command; see README.md for its CLI.\n'
-    ;;
-esac
+exec python -m uvicorn object_remover.server:app \
+  --host "${IDEOGRAM_HOST:-0.0.0.0}" \
+  --port "${IDEOGRAM_PORT:-8174}"

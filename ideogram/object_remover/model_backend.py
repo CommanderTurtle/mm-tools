@@ -12,7 +12,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 MODELS = Path(os.getenv("MULTIMEDIA_MODELS", "~/multimedia/models")).expanduser()
 OBJECTCLEAR_SOURCE = Path(
-    os.getenv("OBJECTCLEAR_SOURCE", str(ROOT / "vendor" / "ObjectClear"))
+    os.getenv("OBJECTCLEAR_SOURCE", str(ROOT))
 ).expanduser()
 OBJECTCLEAR_MODEL = Path(
     os.getenv("OBJECTCLEAR_MODEL", str(MODELS / "jixin0101--ObjectClear"))
@@ -124,7 +124,7 @@ class EditingModels:
             return
         if not OBJECTCLEAR_SOURCE.is_dir():
             raise ModelUnavailable(
-                f"ObjectClear source is missing at {OBJECTCLEAR_SOURCE}. Run ./setup-editing-sources.sh."
+                f"ObjectClear source is missing at {OBJECTCLEAR_SOURCE}. Run bash ./setupwithuv.sh."
             )
         if not _has_objectclear_model():
             raise ModelUnavailable(
