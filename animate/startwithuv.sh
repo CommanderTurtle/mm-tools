@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-VENV="$ROOT/../V2V/.venv"
+VENV="$ROOT/.venv"
 [[ -x "$VENV/bin/python" ]] || { printf 'Run bash ./setupwithuv.sh first.\n' >&2; exit 1; }
 # shellcheck disable=SC1090
 source "$VENV/bin/activate"
@@ -21,7 +21,7 @@ export MM_STUDIO_PORT="${ANIMATE_STUDIO_PORT:-${MM_STUDIO_PORT:-8264}}"
 unset MM_STUDIO_API_ONLY
 
 printf 'Wan Animate 2 Motion Studio: http://%s:%s\n' "$MM_STUDIO_HOST" "$MM_STUDIO_PORT"
-exec python "$ROOT/../studio/server.py" \
+exec python "$ROOT/local_app/server.py" \
   --project-root "$ROOT" \
   --manifest "$ROOT/local_app/studio.json" \
   --adapter "$ROOT/local_app/adapter.py" \

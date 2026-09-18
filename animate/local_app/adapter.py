@@ -116,7 +116,7 @@ class Adapter(StudioAdapter):
         self.repo_root = project_root.parent
         self.v2v = self.repo_root / "V2V"
         self.comfy = self.v2v / "ComfyUI"
-        self.python = self.v2v / ".venv" / "bin" / "python"
+        self.python = self.project_root / ".venv" / "bin" / "python"
         self.models = self.comfy / "models"
 
     def health(self) -> dict[str, Any]:
@@ -128,7 +128,7 @@ class Adapter(StudioAdapter):
             ("ViTPose ONNX", self.models / "detection" / "vitpose_h_wholebody_model.onnx"),
             ("ViTPose external data", self.models / "detection" / "vitpose_h_wholebody_data.bin"),
             ("YOLOv10m ONNX", self.models / "detection" / "yolov10m.onnx"),
-            ("Shared Python environment", self.python),
+            ("Animate Python environment", self.python),
         ]
         details = [{"label": label, "ready": path.is_file(), "required": True, "path": str(path)} for label, path in checks]
         optional = [

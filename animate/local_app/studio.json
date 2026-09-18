@@ -30,7 +30,7 @@
   ],
   "setup_steps": [
     "For LightX2V, run `cd ~/multimedia/models && uv run download_models.py animate`; native distilled mode remains available without the optional pair.",
-    "Run `cd ~/multimedia/animate && ./setupwithuv.sh` once. The command prepares the single shared V2V/Animate GPU environment.",
+    "Run `cd ~/multimedia/animate && ./setupwithuv.sh` once. The command prepares Animate's isolated GPU environment.",
     "Run `./startwithuv.sh` and open the printed loopback URL.",
     "Use Motion transfer for normal work. Use Pose & face lab only to inspect detection, retarget a skeleton, or diagnose unusual framing."
   ],
