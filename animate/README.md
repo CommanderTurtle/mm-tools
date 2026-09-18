@@ -16,11 +16,13 @@ Two production lanes plus a diagnostic:
 - Pose lab: inspectable skeleton movie, synchronized face crops, and body
   point JSON for difficult source material.
 
-Runs are automated the way the model expects: the input is probed and the
-run is sized natively at the 480p pixel budget, then delivered with a single
-resize to the requested resolution (up to 2160x1440). An optional LightX2V
-profile loads the base INT8 model plus the acceleration LoRA for
-four-step distilled inference.
+ Runs are automated the way the model expects: the input is probed, the
+ reference loads at its native resolution, and generation runs on a 720p-class
+ canvas (an opt-in 1080p-class canvas sharpens detail further; the LightX2V
+ lanes stay on their 480p distill canvas). Delivery matches the requested
+ resolution, capped at a 720p long edge. An optional LightX2V profile loads
+ the base INT8 model plus the acceleration LoRA for four-step distilled
+ inference.
 
 ## Install and start
 

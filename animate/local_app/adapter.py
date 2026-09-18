@@ -19,7 +19,10 @@ CLIP_VISION = "clip_vision_h.safetensors"
 VAE = "Wan2_1_VAE_bf16.safetensors"
 REPLACEMENT_MODEL = "wan2.2_animate_14B_int8_convrot.safetensors"
 MAX_MOTION_FRAMES = 1921
-NATIVE_PIXEL_BUDGET = 480 * 832
+PIXEL_BUDGET_480P = 480 * 832
+PIXEL_BUDGET_720P = 1280 * 720
+PIXEL_BUDGET_1080P = 1920 * 1080
+DELIVERY_MAX_LONG_EDGE = 1280
 PROFILES: dict[str, dict[str, Any]] = {
     "distilled": {
         "label": "native distilled INT8",
@@ -34,7 +37,7 @@ PROFILES: dict[str, dict[str, Any]] = {
         "label": "LightX2V official Comfy recipe",
         "model": BASE_MODEL,
         "lora": LIGHTX2V_LORA,
-        "pixel_budget": 480 * 832,
+        "pixel_budget": PIXEL_BUDGET_480P,
         "steps": 6,
         "sampler": "lcm",
         "scheduler": "simple",
@@ -44,7 +47,7 @@ PROFILES: dict[str, dict[str, Any]] = {
         "label": "LightX2V four-step speed",
         "model": BASE_MODEL,
         "lora": LIGHTX2V_LORA,
-        "pixel_budget": 480 * 832,
+        "pixel_budget": PIXEL_BUDGET_480P,
         "steps": 4,
         "sampler": "lcm",
         "scheduler": "simple",
@@ -118,21 +121,44 @@ def _video_probe(path: Path) -> dict[str, Any]:
     if fps <= 0 or frames <= 0 or width <= 0 or height <= 0:
         raise ValueError(f"Driving video does not expose usable frame metadata: {path.name}")
     return {"fps": fps, "frames": frames, "width": width, "height": height}
-def _native_inference_size(width: int, height: int, budget: int = NATIVE_PIXEL_BUDGET) -> tuple[int, int]:
-    """Fit the generation canvas to Animate's native pixel budget."""
+def _inference_canvas(width: int, height: int, budget: int = PIXEL_BUDGET_720P) -> tuple[int, int]:
+    """Fit the generation canvas to the selected Animate pixel budget."""
 
     scale = min(1.0, (budget / max(1, width * height)) ** 0.5)
-    native_width = max(256, int(width * scale) // 16 * 16)
-    native_height = max(256, int(height * scale) // 16 * 16)
-    while native_width * native_height > budget:
-        if native_width >= native_height and native_width > 256:
-            native_width -= 16
-        elif native_height > 256:
-            native_height -= 16
+    canvas_width = max(256, int(width * scale) // 16 * 16)
+    canvas_height = max(256, int(height * scale) // 16 * 16)
+    while canvas_width * canvas_height > budget:
+        if canvas_width >= canvas_height and canvas_width > 256:
+            canvas_width -= 16
+        elif canvas_height > 256:
+            canvas_height -= 16
         else:
             break
-    return native_width, native_height
+    return canvas_width, canvas_height
 
+
+def _delivery_size(width: int, height: int) -> tuple[int, int]:
+    """Cap the delivered video at the 720p long edge, preserving aspect."""
+
+    long_edge = max(width, height)
+    if long_edge <= DELIVERY_MAX_LONG_EDGE:
+        return width, height
+    scale = DELIVERY_MAX_LONG_EDGE / long_edge
+    return (
+        max(256, int(width * scale) // 16 * 16),
+        max(256, int(height * scale) // 16 * 16),
+    )
+
+
+def _profile_budget(controls: dict[str, Any], profile: dict[str, Any]) -> int:
+    """Resolve the inference budget; pinned lanes ignore the canvas choice."""
+
+    pinned = profile.get("pixel_budget")
+    if pinned:
+        return int(pinned)
+    if str(controls.get("inference_resolution", "720p")) == "1080p":
+        return PIXEL_BUDGET_1080P
+    return PIXEL_BUDGET_720P
 
 def _profile(controls: dict[str, Any]) -> dict[str, Any]:
     profile_id = str(controls.get("inference_profile", "distilled"))
@@ -362,7 +388,8 @@ class Adapter(StudioAdapter):
         driving = runtime.add_input(driving_path, f"driving-{driving_path.name}")
         width, height = int(c.get("width", 480)), int(c.get("height", 832))
         profile = _profile(c)
-        latent_width, latent_height = _native_inference_size(width, height, int(profile.get("pixel_budget") or NATIVE_PIXEL_BUDGET))
+        latent_width, latent_height = _inference_canvas(width, height, _profile_budget(c, profile))
+        delivery_width, delivery_height = _delivery_size(width, height)
         length = _wan_length(c.get("length", 81))
         source = _video_probe(driving_path)
         continuation = str(c.get("continue_motion_asset", "")).strip()
@@ -378,10 +405,10 @@ class Adapter(StudioAdapter):
             f"Input window: decoding {source_length} frame{'s' if source_length != 1 else ''} "
             f"from frame {source_start} of {source['frames']} before tensor materialization."
         )
-        if (latent_width, latent_height) != (width, height):
+        if (latent_width, latent_height) != (width, height) or (delivery_width, delivery_height) != (width, height):
             self._active_context.log(
-                f"Native Animate 2 inference: {latent_width}x{latent_height}; "
-                f"delivery scales once to {width}x{height}."
+                f"Inference canvas {latent_width}x{latent_height}; "
+                f"delivery {delivery_width}x{delivery_height} from the requested {width}x{height}."
             )
         sampling = _sampling(c, profile)
         graph: dict[str, Any] = {
@@ -475,10 +502,10 @@ class Adapter(StudioAdapter):
         if bool(c.get("trim_duplicate", False)):
             graph["27"] = _node("ImageFromBatch", image=image_ref, batch_index=1, length=4096)
             image_ref = ["27", 0]
-        if (latent_width, latent_height) != (width, height):
+        if (latent_width, latent_height) != (delivery_width, delivery_height):
             graph["30"] = _node(
                 "ImageScale", image=image_ref, upscale_method="lanczos",
-                width=width, height=height, crop="disabled",
+                width=delivery_width, height=delivery_height, crop="disabled",
             )
             image_ref = ["30", 0]
         graph["28"] = _node("CreateVideo", images=image_ref, fps=float(c.get("fps", 24)), bit_depth=int(c.get("bit_depth", 8)), color_space=str(c.get("color_space", "sRGB")), codec="none")
@@ -500,7 +527,8 @@ class Adapter(StudioAdapter):
         driving = runtime.add_input(driving_path, f"source-{driving_path.name}")
         mask = runtime.add_input(mask_path, f"mask-{mask_path.name}")
         width, height = int(c.get("width", 480)), int(c.get("height", 832))
-        latent_width, latent_height = _native_inference_size(width, height)
+        latent_width, latent_height = _inference_canvas(width, height, PIXEL_BUDGET_480P)
+        delivery_width, delivery_height = _delivery_size(width, height)
         length = min(77, _wan_length(c.get("length", 77)))
         source = _video_probe(driving_path)
         source_start = max(0, int(c.get("video_frame_offset", 0)))
@@ -514,10 +542,10 @@ class Adapter(StudioAdapter):
             f"Replacement window: decoding {length} frames from frame {source_start} "
             f"of {source['frames']} before tensor materialization."
         )
-        if (latent_width, latent_height) != (width, height):
+        if (latent_width, latent_height) != (width, height) or (delivery_width, delivery_height) != (width, height):
             self._active_context.log(
-                f"Native Animate inference: {latent_width}x{latent_height}; "
-                f"delivery scales once to {width}x{height}."
+                f"Inference canvas {latent_width}x{latent_height}; "
+                f"delivery {delivery_width}x{delivery_height} from the requested {width}x{height}."
             )
 
         graph: dict[str, Any] = {
@@ -601,10 +629,10 @@ class Adapter(StudioAdapter):
         graph["26"] = _node("TrimVideoLatent", samples=["25", 0], trim_amount=["22", 3])
         graph["27"] = _node("VAEDecode", samples=["26", 0], vae=["17", 0])
         image_ref: list[Any] = ["27", 0]
-        if (latent_width, latent_height) != (width, height):
+        if (latent_width, latent_height) != (delivery_width, delivery_height):
             graph["28"] = _node(
-                "ImageCrop", image=image_ref, width=width, height=height,
-                x=(latent_width - width) // 2, y=(latent_height - height) // 2,
+                "ImageScale", image=image_ref, upscale_method="lanczos",
+                width=delivery_width, height=delivery_height, crop="disabled",
             )
             image_ref = ["28", 0]
         graph["29"] = _node(
