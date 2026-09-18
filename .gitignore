@@ -241,6 +241,8 @@
 !/4d-ify/eigen-3.4.0/Eigen/**
 !/4d-ify/hmr4d/
 !/4d-ify/hmr4d/**
+!/4d-ify/smplx/
+!/4d-ify/smplx/**
 /4d-ify/hmr4d/utils/preproc/vitpose_pytorch/src/vitpose_infer/builder/backbones/test_torch.py
 /4d-ify/hmr4d/utils/preproc/vitpose_pytorch/src/vitpose_infer/pose_utils/inference_test.py
 
