@@ -34,6 +34,7 @@ PROFILES: dict[str, dict[str, Any]] = {
         "label": "LightX2V official Comfy recipe",
         "model": BASE_MODEL,
         "lora": LIGHTX2V_LORA,
+        "pixel_budget": 480 * 832,
         "steps": 6,
         "sampler": "lcm",
         "scheduler": "simple",
@@ -43,6 +44,7 @@ PROFILES: dict[str, dict[str, Any]] = {
         "label": "LightX2V four-step speed",
         "model": BASE_MODEL,
         "lora": LIGHTX2V_LORA,
+        "pixel_budget": 480 * 832,
         "steps": 4,
         "sampler": "lcm",
         "scheduler": "simple",
@@ -116,15 +118,13 @@ def _video_probe(path: Path) -> dict[str, Any]:
     if fps <= 0 or frames <= 0 or width <= 0 or height <= 0:
         raise ValueError(f"Driving video does not expose usable frame metadata: {path.name}")
     return {"fps": fps, "frames": frames, "width": width, "height": height}
+def _native_inference_size(width: int, height: int, budget: int = NATIVE_PIXEL_BUDGET) -> tuple[int, int]:
+    """Fit the generation canvas to Animate's native pixel budget."""
 
-
-def _native_inference_size(width: int, height: int) -> tuple[int, int]:
-    """Fit the generation canvas to Animate 2's native 480p budget."""
-
-    scale = min(1.0, (NATIVE_PIXEL_BUDGET / max(1, width * height)) ** 0.5)
+    scale = min(1.0, (budget / max(1, width * height)) ** 0.5)
     native_width = max(256, int(width * scale) // 16 * 16)
     native_height = max(256, int(height * scale) // 16 * 16)
-    while native_width * native_height > NATIVE_PIXEL_BUDGET:
+    while native_width * native_height > budget:
         if native_width >= native_height and native_width > 256:
             native_width -= 16
         elif native_height > 256:
@@ -361,7 +361,8 @@ class Adapter(StudioAdapter):
         driving_path = self._asset(c, "driving_video_asset")
         driving = runtime.add_input(driving_path, f"driving-{driving_path.name}")
         width, height = int(c.get("width", 480)), int(c.get("height", 832))
-        latent_width, latent_height = _native_inference_size(width, height)
+        profile = _profile(c)
+        latent_width, latent_height = _native_inference_size(width, height, int(profile.get("pixel_budget") or NATIVE_PIXEL_BUDGET))
         length = _wan_length(c.get("length", 81))
         source = _video_probe(driving_path)
         continuation = str(c.get("continue_motion_asset", "")).strip()
@@ -382,7 +383,6 @@ class Adapter(StudioAdapter):
                 f"Native Animate 2 inference: {latent_width}x{latent_height}; "
                 f"delivery scales once to {width}x{height}."
             )
-        profile = _profile(c)
         sampling = _sampling(c, profile)
         graph: dict[str, Any] = {
             "1": _node("LoadImage", image=reference),
@@ -500,7 +500,7 @@ class Adapter(StudioAdapter):
         driving = runtime.add_input(driving_path, f"source-{driving_path.name}")
         mask = runtime.add_input(mask_path, f"mask-{mask_path.name}")
         width, height = int(c.get("width", 480)), int(c.get("height", 832))
-        latent_width, latent_height = _latent_size(width), _latent_size(height)
+        latent_width, latent_height = _native_inference_size(width, height)
         length = min(77, _wan_length(c.get("length", 77)))
         source = _video_probe(driving_path)
         source_start = max(0, int(c.get("video_frame_offset", 0)))
@@ -514,6 +514,11 @@ class Adapter(StudioAdapter):
             f"Replacement window: decoding {length} frames from frame {source_start} "
             f"of {source['frames']} before tensor materialization."
         )
+        if (latent_width, latent_height) != (width, height):
+            self._active_context.log(
+                f"Native Animate inference: {latent_width}x{latent_height}; "
+                f"delivery scales once to {width}x{height}."
+            )
 
         graph: dict[str, Any] = {
             "1": _node("LoadImage", image=reference),
