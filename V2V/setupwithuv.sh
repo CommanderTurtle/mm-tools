@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-VENV="$ROOT/.venv"
+VENV="${V2V_VENV:-$ROOT/.venv}"
 COMFY="$ROOT/ComfyUI"
 ANIMATE_NODES="$ROOT/../animate/ComfyUI-WanAnimatePreprocess"
 NODE_LINK="$COMFY/custom_nodes/mmtools_wan_animate_preprocess"
@@ -74,4 +74,4 @@ assert "CUDAExecutionProvider" in ort.get_available_providers(), ort.get_availab
 print(f"Video runtime ready: torch={torch.__version__} GPU={torch.cuda.get_device_name(0)} ONNX=CUDA")
 PY
 
-printf '\nShared Animate / ID-V2V runtime is ready on %s (%s MiB).\n' "$GPU_NAME" "$GPU_MIB"
+printf '\nVideo runtime is ready in %s on %s (%s MiB).\n' "$VENV" "$GPU_NAME" "$GPU_MIB"
