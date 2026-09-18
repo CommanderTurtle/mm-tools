@@ -10,4 +10,4 @@ export HF_HUB_DISABLE_TELEMETRY=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 DO_NOT
 export MM_STUDIO_HOST="${LINGBOT_STUDIO_HOST:-${MM_STUDIO_HOST:-127.0.0.1}}"
 export MM_STUDIO_PORT="${LINGBOT_STUDIO_PORT:-${MM_STUDIO_PORT:-8267}}"
 printf 'LingBot World Studio: http://%s:%s\n' "$MM_STUDIO_HOST" "$MM_STUDIO_PORT"
-exec python "$ROOT/../../studio/server.py" --project-root "$ROOT" --manifest "$ROOT/local_app/studio.json" --adapter "$ROOT/local_app/adapter.py" --host "$MM_STUDIO_HOST" --port "$MM_STUDIO_PORT"
+exec python "$ROOT/local_app/server.py" --project-root "$ROOT" --manifest "$ROOT/local_app/studio.json" --adapter "$ROOT/local_app/adapter.py" --host "$MM_STUDIO_HOST" --port "$MM_STUDIO_PORT"
