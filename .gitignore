@@ -651,6 +651,28 @@
 !/models/download_models_info.txt
 !/models/which-ones.txt
 
+# Committed ComfyUI pipeline exports plus their standalone downloader. Model
+# artifacts and the downloader environment are reconstructed locally.
+!/workflows/
+/workflows/*
+/workflows/models/**
+/workflows/.venv/**
+!/workflows/README.md
+!/workflows/download_models.py
+!/workflows/LTX/
+/workflows/LTX/*
+!/workflows/LTX/README.md
+!/workflows/LTX/t2v.json
+!/workflows/LTX/i2v.json
+!/workflows/LTX/flf2v.json
+!/workflows/animate/
+/workflows/animate/*
+!/workflows/animate/README.md
+!/workflows/animate/motion-transfer-distilled.json
+!/workflows/animate/motion-transfer-lightx2v.json
+!/workflows/animate/character-replacement.json
+!/workflows/animate/pose-lab.json
+
 # Project-owned workbench runtimes.
 !/**/local_app/runtime.py
 !/**/local_app/comfy_runtime.py

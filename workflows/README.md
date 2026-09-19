@@ -1,7 +1,8 @@
 # ComfyUI Pipeline Exports
 
 Committed copies of the exact ComfyUI API graphs the in-repo video studios run
-against the shared pinned Comfy checkout. The studio adapters build these same
+against the shared pinned Comfy checkout, plus a standalone model downloader
+for the weights those graphs load. The studio adapters build these same
 graphs at request time; the exports here are the static, editable form of each
 recipe.
 
@@ -11,14 +12,17 @@ recipe.
 | --- | --- |
 | `LTX/` | LTX-2.5 distilled recipes: text to video, image to video, first + last frame |
 | `animate/` | Wan Animate 2 recipes: motion transfer (distilled + LightX2V), scene-preserving character replacement, pose & face lab |
+| `download_models.py` | Standalone downloader for the `ltx` and `animate` bundles |
+| `models/` | Download destination (gitignored) |
 
 ## Install and run
 
-From the repository root, pull the allowlisted weights with the central
-downloader:
+From this folder:
 
 ```bash
-cd models && uv run download_models.py ltx animate
+uv venv .venv --python 3.12 --seed --managed-python   # once
+uv pip install --python .venv/bin/python huggingface_hub hf_transfer
+.venv/bin/python download_models.py ltx animate       # resumable snapshot downloads
 ```
 
 Run any ComfyUI instance against these weights by pointing its models folder
