@@ -311,6 +311,9 @@ MAIN_MODEL_COMPONENTS = [
     "acestep-5Hz-lm-1.7B",     # Default LM model (1.7B)
 ]
 
+# Default DiT model (included in main model)
+DEFAULT_DIT_COMPONENT = "acestep-v15-turbo"
+
 # Default LM model (included in main model)
 DEFAULT_LM_MODEL = "acestep-5Hz-lm-1.7B"
 
@@ -383,19 +386,38 @@ def _contains_model_weights(model_path: Path) -> bool:
     return any((model_path / filename).exists() for filename in weight_filenames)
 
 
-def check_main_model_exists(checkpoints_dir: Optional[Path] = None) -> bool:
+def check_main_model_exists(
+    checkpoints_dir: Optional[Path] = None,
+    config_path: Optional[str] = None,
+) -> bool:
     """
     Check if the main model components exist in the checkpoints directory.
 
+    The main repository bundles the shared VAE and text encoder together with
+    the default DiT and the default 5Hz LM. When this run consumes a different
+    DiT (via *config_path*) or a different LM (via the ``ACESTEP_LM_MODEL_PATH``
+    environment variable), those default components are not required from the
+    main repository; the consumed checkpoints are validated separately by
+    their own ensure paths.
+
     Returns:
-        True if all main model components contain weights, False otherwise.
+        True if all consumed main model components contain weights, False otherwise.
     """
     if checkpoints_dir is None:
         checkpoints_dir = get_checkpoints_dir()
     elif isinstance(checkpoints_dir, str):
         checkpoints_dir = Path(checkpoints_dir)
 
+    selected_lm = (
+        os.environ.get("ACESTEP_LM_MODEL_PATH", "").strip()
+        or os.environ.get("ACESTEP_LM_MODEL", "").strip()
+        or DEFAULT_LM_MODEL
+    )
     for component in MAIN_MODEL_COMPONENTS:
+        if component == DEFAULT_DIT_COMPONENT and config_path not in (None, "", DEFAULT_DIT_COMPONENT):
+            continue
+        if component == DEFAULT_LM_MODEL and selected_lm != DEFAULT_LM_MODEL:
+            continue
         component_path = checkpoints_dir / component
         if not _contains_model_weights(component_path):
             return False
@@ -444,6 +466,7 @@ def download_main_model(
     force: bool = False,
     token: Optional[str] = None,
     prefer_source: Optional[str] = None,
+    config_path: Optional[str] = None,
 ) -> Tuple[bool, str]:
     """
     Download the main ACE-Step model from HuggingFace or ModelScope.
@@ -471,7 +494,7 @@ def download_main_model(
     # Ensure checkpoints directory exists
     checkpoints_dir.mkdir(parents=True, exist_ok=True)
 
-    if not force and check_main_model_exists(checkpoints_dir):
+    if not force and check_main_model_exists(checkpoints_dir, config_path):
         return True, f"Main model already exists at {checkpoints_dir}"
 
     print(f"Downloading main model from {MAIN_MODEL_REPO}...")
@@ -586,6 +609,7 @@ def ensure_main_model(
     checkpoints_dir: Optional[Path] = None,
     token: Optional[str] = None,
     prefer_source: Optional[str] = None,
+    config_path: Optional[str] = None,
 ) -> Tuple[bool, str]:
     """
     Ensure the main model is available, downloading if necessary.
@@ -604,14 +628,14 @@ def ensure_main_model(
     if checkpoints_dir is None:
         checkpoints_dir = get_checkpoints_dir()
 
-    if check_main_model_exists(checkpoints_dir):
+    if check_main_model_exists(checkpoints_dir, config_path):
         return True, "Main model is available"
 
     print("\n" + "=" * 60)
     print("Main model not found. Starting automatic download...")
     print("=" * 60 + "\n")
 
-    return download_main_model(checkpoints_dir, token=token, prefer_source=prefer_source)
+    return download_main_model(checkpoints_dir, token=token, prefer_source=prefer_source, config_path=config_path)
 
 
 def ensure_lm_model(
@@ -687,8 +711,8 @@ def ensure_dit_model(
         return True, f"DiT model '{model_name}' is available"
 
     # Check if this is the default turbo model (part of main)
-    if model_name == "acestep-v15-turbo":
-        return ensure_main_model(checkpoints_dir, token, prefer_source)
+    if model_name == DEFAULT_DIT_COMPONENT:
+        return ensure_main_model(checkpoints_dir, token, prefer_source, config_path=model_name)
 
     # Check if it's a known sub-model
     if model_name in SUBMODEL_REGISTRY:

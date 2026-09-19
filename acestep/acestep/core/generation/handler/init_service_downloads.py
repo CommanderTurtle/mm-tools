@@ -28,9 +28,11 @@ class InitServiceDownloadsMixin:
         vae_variant: Optional[str] = None,
     ) -> Optional[Tuple[str, bool]]:
         """Ensure required checkpoint assets exist locally, downloading when missing."""
-        if not check_main_model_exists(checkpoint_path):
+        if not check_main_model_exists(checkpoint_path, config_path):
             logger.info("[initialize_service] Main model not found, starting auto-download...")
-            success, msg = ensure_main_model(checkpoint_path, prefer_source=prefer_source)
+            success, msg = ensure_main_model(
+                checkpoint_path, prefer_source=prefer_source, config_path=config_path
+            )
             if not success:
                 return f"ERROR: Failed to download main model: {msg}", False
             logger.info(f"[initialize_service] {msg}")

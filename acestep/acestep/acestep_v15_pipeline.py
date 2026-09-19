@@ -448,6 +448,10 @@ def main():
             )
             args.lm_model_path = fallback
 
+    # Publish the selected LM so model prechecks validate the consumed layout.
+    if args.lm_model_path:
+        os.environ["ACESTEP_LM_MODEL_PATH"] = args.lm_model_path
+
     try:
         init_params = None
         dit_handler = None
