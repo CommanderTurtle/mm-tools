@@ -156,6 +156,13 @@ class ComfyRuntime:
             if self.process.poll() is not None:
                 self._flush_log()
                 raise RuntimeError(self._failure_message())
+            if self._prompt_worker_failed():
+                # Comfy can lose only its prompt worker while leaving the HTTP
+                # process alive.  Without this guard the Studio would poll an
+                # impossible history record forever and retain all VRAM.
+                time.sleep(0.25)
+                self._flush_log()
+                raise RuntimeError(self._failure_message())
             try:
                 history = self._request(f"/history/{prompt_id}", timeout=10)
             except (OSError, urllib.error.URLError) as error:
@@ -179,6 +186,14 @@ class ComfyRuntime:
             self._flush_log(limit=40)
             time.sleep(1.0)
 
+    def _prompt_worker_failed(self) -> bool:
+        self._log.flush()
+        try:
+            log = self.log_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return False
+        return "Exception in thread " in log and "(prompt_worker)" in log
+
     def _failure_message(self) -> str:
         try:
             lines = self.log_path.read_text(encoding="utf-8", errors="replace").splitlines()
@@ -187,7 +202,13 @@ class ComfyRuntime:
         useful = [line.strip() for line in lines[-120:] if line.strip()]
         causes = [line for line in useful if "out of memory" in line.lower() or "cuda error:" in line.lower() or "what():" in line.lower()]
         assertions = [line for line in useful if "assert" in line.lower() or "cuda" in line.lower()]
-        detail = causes[0] if causes else (assertions[-1] if assertions else (useful[-1] if useful else "No runtime detail was logged."))
+        if self.process.returncode == -signal.SIGKILL:
+            detail = (
+                "the operating system sent SIGKILL before Comfy could report a Python error "
+                "(on WSL this normally means the VM memory ceiling was reached)"
+            )
+        else:
+            detail = causes[0] if causes else (assertions[-1] if assertions else (useful[-1] if useful else "No runtime detail was logged."))
         return f"The private GPU-only Comfy runtime exited with code {self.process.returncode}: {detail} (log: {self.log_path})"
 
     def output_files(self) -> list[Path]:

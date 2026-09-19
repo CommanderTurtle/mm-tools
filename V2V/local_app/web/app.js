@@ -332,7 +332,8 @@ function renderInputField(field, value) {
       try {
         const probe = await api(`/api/assets/${encodeURIComponent(assetId)}/probe`);
         const controls = controlsForMode();
-        controls[field.id] = probe.wan_frames;
+        const matchedFrames = Math.min(probe.wan_frames, Number(field.max) || probe.wan_frames);
+        controls[field.id] = matchedFrames;
         if (field.auto_fps_field && Number.isFinite(probe.fps)) {
           controls[field.auto_fps_field] = Math.max(1, Math.min(60, Math.round(probe.fps)));
         }
@@ -340,8 +341,8 @@ function renderInputField(field, value) {
         if (field.auto_height_field) controls[field.auto_height_field] = probe.output_height;
         renderForm();
         saveDraft();
-        const capped = probe.source_frames > probe.wan_frames ? " · capped to this workflow's limit" : "";
-        toast(`${probe.source_width}×${probe.source_height} at ${probe.fps.toFixed(3)} FPS → ${probe.output_width}×${probe.output_height}, ${probe.wan_frames} frames (4n+1)${capped}.`);
+        const capped = probe.source_frames > matchedFrames ? " · capped to this workflow's limit" : "";
+        toast(`${probe.source_width}×${probe.source_height} at ${probe.fps.toFixed(3)} FPS → ${probe.output_width}×${probe.output_height}, ${matchedFrames} frames (4n+1)${capped}.`);
       } catch (error) {
         toast(error.message, "error");
         action.disabled = false;
@@ -506,7 +507,11 @@ function renderAsset(field, value) {
           const probe = await api(`/api/assets/${encodeURIComponent(uploaded[0])}/probe`);
           const controls = controlsForMode();
           const targets = field.video_probe;
-          if (targets.frames_field) controls[targets.frames_field] = probe.wan_frames;
+          if (targets.frames_field) {
+            const targetField = [...(state.mode?.fields || []), ...(state.mode?.advanced || [])]
+              .find((candidate) => candidate.id === targets.frames_field);
+            controls[targets.frames_field] = Math.min(probe.wan_frames, Number(targetField?.max) || probe.wan_frames);
+          }
           if (targets.fps_field) controls[targets.fps_field] = Math.max(1, Math.min(60, Math.round(probe.fps)));
           if (targets.width_field) controls[targets.width_field] = probe.output_width;
           if (targets.height_field) controls[targets.height_field] = probe.output_height;
