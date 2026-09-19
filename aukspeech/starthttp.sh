@@ -19,7 +19,7 @@ export AUK_STUDIO_PORT="${AUK_HTTP_PORT:-${AUK_STUDIO_PORT:-8260}}"
 
 VENV="$ROOT/.venv"
 [[ -x "$VENV/bin/python" ]] || { printf 'Run ./setupwithuv.sh first.\n' >&2; exit 1; }
-export PYTHONPATH="$ROOT/..:$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$ROOT/..:$ROOT:$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 export HF_HUB_DISABLE_TELEMETRY=1
 export DO_NOT_TRACK=1
 export TOKENIZERS_PARALLELISM=false

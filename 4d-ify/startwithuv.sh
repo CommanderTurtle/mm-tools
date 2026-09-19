@@ -8,7 +8,7 @@ source .venv/bin/activate
 set -a
 [[ ! -f .env.local ]] || source .env.local
 set +a
-export PYTHONPATH="$ROOT/..${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$ROOT/..:$ROOT${PYTHONPATH:+:$PYTHONPATH}"
 export HF_HUB_DISABLE_TELEMETRY=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 DO_NOT_TRACK=1
 export TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 exec python "$ROOT/local_app/server.py" \
