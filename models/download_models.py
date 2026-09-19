@@ -903,7 +903,9 @@ BUNDLES: tuple[Bundle, ...] = (
             # file tree; no Hub license acceptance or authentication is needed.
             # The weights remain under the LTX-2.x Community License (upstream
             # Lightricks/LTX-2.5). The Comfy int8/convrot files are the exact
-            # checkpoints ComfyUI's official LTX-2.5 templates name.
+            # checkpoints ComfyUI's official LTX-2.5 templates name. The mirror
+            # re-commits each file under its own SHAs, so this entry tracks main
+            # without a revision pin.
             A(
                 "comfyicu/LTX-2.5",
                 model_path("imports/comfyicu--LTX-2.5"),
@@ -917,7 +919,6 @@ BUNDLES: tuple[Bundle, ...] = (
                     "latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors",
                     "model_patches/ltx-2.5-duration-head-bf16.safetensors",
                 ),
-                revision="5e6e71018ee1756ed329b697a7b4aedc934dfce9",
                 placements=(
                     (
                         "diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",

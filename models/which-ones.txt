@@ -73,8 +73,10 @@ The inventory mirrors every active artifact definition in the downloader,
 numbered 1 through 72 with 22-23 intentionally reserved. Trees show files or
 major component directories expected from a fresh run; an ellipsis
 means the remainder of that approved snapshot subset is retained in the same
-folder. Every new artifact is pinned to an immutable Hub revision. Model use
-remains governed by each upstream model license and access agreement.
+folder. Every new artifact is pinned to an immutable Hub revision, except the
+ungated comfyicu LTX-2.5 mirror, whose re-committed files track main without a
+pin. Model use remains governed by each upstream model license and access
+agreement.
 
 1. ideogram-ai/ideogram-4-fp8
 Expected folder: models/ideogram-ai--ideogram-4-fp8
