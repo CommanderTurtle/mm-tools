@@ -20,7 +20,7 @@ the same bundle is a one-click switch that frees activation headroom on RTX
 From the project folder:
 
 ```bash
-../../models/download_models.py ltx   # gated repo: accept the LTX-2.x Community License once
+../../models/download_models.py ltx   # pulls the official LTX-2.5 checkpoints from the ungated comfyicu mirror
 ./setupwithuv.sh     # verifies weights, then builds the isolated venv
 ./startwithuv.sh     # serves http://127.0.0.1:8269
 ```
@@ -31,5 +31,5 @@ delivery rules.
 ## Upstream
 
 - Code: https://github.com/Comfy-Org/ComfyUI (official LTX-2.5 blueprints)
-- Weights: https://huggingface.co/Lightricks/LTX-2.5
+- Weights: https://huggingface.co/comfyicu/LTX-2.5 (ungated mirror of https://huggingface.co/Lightricks/LTX-2.5)
 - Model card: https://lightricks.github.io/ltx2/

@@ -31,7 +31,7 @@
     {"label": "E2B prompt enhancer encoder", "path": "../../V2V/ComfyUI/models/text_encoders/gemma4_e2b_it_int8_convrot.safetensors", "note": "Loaded only when prompt enhancement is enabled"}
   ],
   "setup_steps": [
-    "Run `cd ~/multimedia/models && uv run download_models.py ltx` to install the allowlisted LTX-2.5 bundle. The upstream repository is gated under the LTX-2.x Community License; accept it once on the Hugging Face page so the Hub client can pull the files.",
+    "Run `cd ~/multimedia/models && uv run download_models.py ltx` to install the allowlisted LTX-2.5 bundle from the ungated comfyicu mirror of Lightricks/LTX-2.5. The weights remain under the LTX-2.x Community License.",
     "Run `cd ~/multimedia/world-gen/ltx && ./setupwithuv.sh` once. The command prepares the isolated GPU environment against the shared Comfy checkout.",
     "Run `./startwithuv.sh` and open the printed loopback URL.",
     "Use Text to video for open prompts, Image to video to start from a still, and First + last frame to bracket a known beginning and ending."
