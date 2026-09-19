@@ -638,7 +638,7 @@ BUNDLES: tuple[Bundle, ...] = (
     Bundle(
         "animate",
         "Wan Animate 2 direct motion, Wan2.2 scene replacement, and local preprocessing",
-        "50-52",
+        "50-52, 69-70",
         (
             A(
                 "Comfy-Org/Wan-Animate-2",
@@ -688,6 +688,34 @@ BUNDLES: tuple[Bundle, ...] = (
                     "split_files/diffusion_models/wan2.2_animate_14B_int8_convrot.safetensors",
                     repo_path("V2V/ComfyUI/models/diffusion_models/wan2.2_animate_14B_int8_convrot.safetensors"),
                 ),),
+            ),
+            # Blackwell NVFP4 drop-ins for the INT8 ConvRot pair above: the
+            # same Wan 2.2 Animate 14B DiT and UMT5-XXL text encoder in
+            # fp16/NVFP4 mixed quantization. The animate studio offers them
+            # as an optional weights switch; the distilled lane stays INT8.
+            A(
+                "LHQAQ-Li/wan2.2_animate_14b_fp16_nvfp4_comfy_V2",
+                model_path("imports/LHQAQ-Li--wan2.2_animate_14b_fp16_nvfp4_comfy_V2"),
+                ("wan2.2_animate_14b_fp16_nvfp4_comfy_V2.safetensors",),
+                revision="955c2d9ade00382be464a4796a5ec2bee80fc8c0",
+                placements=(
+                    (
+                        "wan2.2_animate_14b_fp16_nvfp4_comfy_V2.safetensors",
+                        repo_path("V2V/ComfyUI/models/diffusion_models/wan2.2_animate_14b_fp16_nvfp4_comfy_V2.safetensors"),
+                    ),
+                ),
+            ),
+            A(
+                "rst220/UMT5_XXL_NVFP4",
+                model_path("imports/rst220--UMT5_XXL_NVFP4"),
+                ("UMT5_XXL_NVFP4.safetensors",),
+                revision="2ae584c8370d19190c56a00112c0360df34d8483",
+                placements=(
+                    (
+                        "UMT5_XXL_NVFP4.safetensors",
+                        repo_path("V2V/ComfyUI/models/text_encoders/UMT5_XXL_NVFP4.safetensors"),
+                    ),
+                ),
             ),
             A(
                 "Wan-AI/Wan2.2-Animate-14B",
@@ -862,6 +890,76 @@ BUNDLES: tuple[Bundle, ...] = (
                         repo_path("V2V/ComfyUI/models/checkpoints/yue2_3b_int8_convrot.safetensors"),
                     ),
                 ),
+            ),
+        ),
+    ),
+    Bundle(
+        "ltx",
+        "LTX-2.5 native video and audio generation with the Blackwell NVFP4 twin",
+        "71-72",
+        (
+            # Gated upstream repository: the owner accepts the LTX-2.x Community
+            # License once on the Hugging Face page; downloads then run through
+            # the usual Hub authentication. The Comfy int8/convrot files are
+            # the exact checkpoints ComfyUI's official LTX-2.5 templates name.
+            A(
+                "Lightricks/LTX-2.5",
+                model_path("imports/Lightricks--LTX-2.5"),
+                (
+                    "diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+                    "diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors",
+                    "text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+                    "vae/ltx-2.5-video-vae-bf16.safetensors",
+                    "vae/ltx-2.5-audio-vae-bf16.safetensors",
+                    "latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+                    "latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors",
+                    "model_patches/ltx-2.5-duration-head-bf16.safetensors",
+                ),
+                revision="5e6e71018ee1756ed329b697a7b4aedc934dfce9",
+                placements=(
+                    (
+                        "diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+                        repo_path("V2V/ComfyUI/models/diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors"),
+                    ),
+                    (
+                        "diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors",
+                        repo_path("V2V/ComfyUI/models/diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors"),
+                    ),
+                    (
+                        "text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+                        repo_path("V2V/ComfyUI/models/text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors"),
+                    ),
+                    (
+                        "vae/ltx-2.5-video-vae-bf16.safetensors",
+                        repo_path("V2V/ComfyUI/models/vae/ltx-2.5-video-vae-bf16.safetensors"),
+                    ),
+                    (
+                        "vae/ltx-2.5-audio-vae-bf16.safetensors",
+                        repo_path("V2V/ComfyUI/models/vae/ltx-2.5-audio-vae-bf16.safetensors"),
+                    ),
+                    (
+                        "latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+                        repo_path("V2V/ComfyUI/models/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"),
+                    ),
+                    (
+                        "latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors",
+                        repo_path("V2V/ComfyUI/models/latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors"),
+                    ),
+                    (
+                        "model_patches/ltx-2.5-duration-head-bf16.safetensors",
+                        repo_path("V2V/ComfyUI/models/model_patches/ltx-2.5-duration-head-bf16.safetensors"),
+                    ),
+                ),
+            ),
+            A(
+                "Comfy-Org/gemma-4",
+                model_path("imports/Comfy-Org--gemma-4"),
+                ("text_encoders/gemma4_e2b_it_int8_convrot.safetensors",),
+                revision="63d0f7c476756b88910170c1df75e2384ea1af31",
+                placements=((
+                    "text_encoders/gemma4_e2b_it_int8_convrot.safetensors",
+                    repo_path("V2V/ComfyUI/models/text_encoders/gemma4_e2b_it_int8_convrot.safetensors"),
+                ),),
             ),
         ),
     ),

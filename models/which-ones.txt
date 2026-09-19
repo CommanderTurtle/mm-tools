@@ -66,11 +66,12 @@ so older notes keep their meaning.
 21  animate      inventory 50-52
 22  nvidia-sim   inventory 53-58
 23  yue2         inventory 59-63
+24  ltx          inventory 71-72
 ```
 
-The inventory mirrors all 62 active artifact definitions in the downloader,
-numbered through 63 because 22-23 are intentionally reserved. Trees show
-files or major component directories expected from a fresh run; an ellipsis
+The inventory mirrors every active artifact definition in the downloader,
+numbered 1 through 72 with 22-23 intentionally reserved. Trees show files or
+major component directories expected from a fresh run; an ellipsis
 means the remainder of that approved snapshot subset is retained in the same
 folder. Every new artifact is pinned to an immutable Hub revision. Model use
 remains governed by each upstream model license and access agreement.
@@ -1016,3 +1017,65 @@ resumable `.partial` storage, exact 2,664,431-byte validation, and SHA-256
 `c096c1ab2217a5c3ac136365f721685e2201379cb69d509cfb0261183847c98f`.
 Runtime setup pins the matching NAF source revision separately; inference does
 not call Torch Hub.
+
+69. LHQAQ-Li/wan2.2_animate_14b_fp16_nvfp4_comfy_V2
+Snapshot folder: models/imports/LHQAQ-Li--wan2.2_animate_14b_fp16_nvfp4_comfy_V2
+
+```text
+models/imports/LHQAQ-Li--wan2.2_animate_14b_fp16_nvfp4_comfy_V2/
+└── wan2.2_animate_14b_fp16_nvfp4_comfy_V2.safetensors
+```
+
+Used by: the animate studio's optional Blackwell weights switch. The fp16/
+NVFP4 mixed-quantization twin of the Wan 2.2 Animate 14B INT8 ConvRot DiT is
+hard-linked into `V2V/ComfyUI/models/diffusion_models/` after download; the
+distilled profile stays INT8-only.
+
+70. rst220/UMT5_XXL_NVFP4
+Snapshot folder: models/imports/rst220--UMT5_XXL_NVFP4
+
+```text
+models/imports/rst220--UMT5_XXL_NVFP4/
+└── UMT5_XXL_NVFP4.safetensors
+```
+
+Used by: the same animate weights switch. The NVFP4 UMT5-XXL encoder is
+hard-linked into `V2V/ComfyUI/models/text_encoders/`; INT8/FP8 runs keep the
+published FP8 scaled encoder.
+
+71. Lightricks/LTX-2.5
+Snapshot folder: models/imports/Lightricks--LTX-2.5
+
+```text
+models/imports/Lightricks--LTX-2.5/
+├── diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors
+├── diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors
+├── text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors
+├── vae/ltx-2.5-video-vae-bf16.safetensors
+├── vae/ltx-2.5-audio-vae-bf16.safetensors
+├── latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors
+├── latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors
+└── model_patches/ltx-2.5-duration-head-bf16.safetensors
+```
+
+Gated upstream repository under the LTX-2.x Community License; accept it once
+on the Hugging Face page so the Hub client can pull the files. These are the
+exact checkpoints ComfyUI's official LTX-2.5 T2V/I2V/FLF2V templates name.
+After the snapshot completes they are hard-linked into matching
+`V2V/ComfyUI/models/*` folders for the native `world-gen/ltx` studio: the
+INT8 ConvRot distilled DiT plus its NVFP4 Blackwell twin, the Gemma 4 12B
+projection encoder, both VAEs, both x2 latent upscalers, and the duration
+predictor patch.
+
+72. Comfy-Org/gemma-4
+Snapshot folder: models/imports/Comfy-Org--gemma-4
+
+```text
+models/imports/Comfy-Org--gemma-4/
+└── text_encoders/gemma4_e2b_it_int8_convrot.safetensors
+```
+
+Used by: the LTX prompt enhancer, which the native LTX-2.5 lane keeps off by
+default like the official template. The E2B encoder is hard-linked into
+`V2V/ComfyUI/models/text_encoders/` and only loaded when the enhancer toggle
+is on.
