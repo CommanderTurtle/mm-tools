@@ -23,11 +23,14 @@ cropping, and encoded delivery.
  matching the LightX2V rank-64 distill LoRA's 480p training resolution), and
  the delivered video matches the requested resolution up to the 2160x1440
  delivery ceiling, scaled once with lanczos when needed.
-The LightX2V base-model lanes accept an optional Blackwell weights switch that
-swaps the base INT8 DiT and the UMT5 encoder for their NVFP4 twins from the
-animate bundle; the distilled profile stays INT8-only and rejects the switch
-with a precise error. Only the selected model pair loads, and execution still
-remains GPU-only.
+The studio exposes two independent Blackwell switches, each defaulting to the
+verified non-NVFP4 file and effective on its own. A DiT weights switch swaps
+the base INT8 ConvRot DiT, and the scene-replacement DiT, for LHQAQ-Li's
+fp16/NVFP4 twin; a text-encoder switch swaps the FP8-scaled UMT5-XXL for
+rst220's NVFP4 twin, so the lighter encoder can free VRAM while the DiT stays
+INT8. The distilled profile remains INT8-only for the DiT and rejects the DiT
+switch with a precise error, but accepts either encoder. Only the selected
+files load, and execution still remains GPU-only.
 
 `character_replace` preserves the source scene: the driving video supplies the
 stage, lighting, and camera while a replacement character performs inside it.

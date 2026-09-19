@@ -21,6 +21,7 @@ REPLACEMENT_MODEL = "wan2.2_animate_14B_int8_convrot.safetensors"
 NVFP4_BASE_MODEL = "wan2.2_animate_14b_fp16_nvfp4_comfy_V2.safetensors"
 NVFP4_TEXT_ENCODER = "UMT5_XXL_NVFP4.safetensors"
 WEIGHTS_VARIANTS = ("int8", "nvfp4")
+TEXT_ENCODER_VARIANTS = ("fp8", "nvfp4")
 MAX_MOTION_FRAMES = 1921
 PIXEL_BUDGET_480P = 480 * 832
 PIXEL_BUDGET_720P = 1280 * 720
@@ -191,9 +192,17 @@ def _base_model_for(profile: dict[str, Any], variant: str) -> str:
     return NVFP4_BASE_MODEL
 
 
-def _text_encoder_for(variant: str) -> str:
-    """Return the text-encoder filename for the selected weights variant."""
-    return NVFP4_TEXT_ENCODER if variant == "nvfp4" else TEXT_ENCODER
+def _text_encoder_variant(controls: dict[str, Any]) -> str:
+    """Resolve the Blackwell NVFP4 text-encoder switch."""
+    variant = str(controls.get("text_encoder_variant", "fp8")).strip() or "fp8"
+    if variant not in TEXT_ENCODER_VARIANTS:
+        raise ValueError(f"Unknown Animate text encoder variant: {variant}")
+    return variant
+
+
+def _text_encoder_for(encoder_variant: str) -> str:
+    """Return the UMT5 filename for the selected encoder variant."""
+    return NVFP4_TEXT_ENCODER if encoder_variant == "nvfp4" else TEXT_ENCODER
 
 
 def _sampling(controls: dict[str, Any], profile: dict[str, Any]) -> dict[str, Any]:
@@ -291,12 +300,12 @@ class Adapter(StudioAdapter):
                 )
         if mode == "motion_transfer":
             variant = _weights_variant(controls)
+            encoder = _text_encoder_variant(controls)
             profile = _profile(controls)
             profile_files = [self.models / "diffusion_models" / _base_model_for(profile, variant)]
             if profile["lora"]:
                 profile_files.append(self.models / "loras" / str(profile["lora"]))
-            if variant == "nvfp4":
-                profile_files.append(self.models / "text_encoders" / NVFP4_TEXT_ENCODER)
+            profile_files.append(self.models / "text_encoders" / _text_encoder_for(encoder))
             missing = [path.name for path in profile_files if not path.is_file()]
             if missing:
                 raise ValueError(
@@ -311,14 +320,14 @@ class Adapter(StudioAdapter):
                 resolve_asset(optional)
         elif mode == "character_replace":
             variant = _weights_variant(controls)
+            encoder = _text_encoder_variant(controls)
             required = [
                 self.models
                 / "diffusion_models"
                 / (NVFP4_BASE_MODEL if variant == "nvfp4" else REPLACEMENT_MODEL),
                 self.models / "loras" / LIGHTX2V_LORA,
+                self.models / "text_encoders" / _text_encoder_for(encoder),
             ]
-            if variant == "nvfp4":
-                required.append(self.models / "text_encoders" / NVFP4_TEXT_ENCODER)
             missing = [path.name for path in required if not path.is_file()]
             if missing:
                 raise ValueError(
@@ -427,6 +436,7 @@ class Adapter(StudioAdapter):
         width, height = int(c.get("width", 480)), int(c.get("height", 832))
         profile = _profile(c)
         variant = _weights_variant(c)
+        encoder = _text_encoder_variant(c)
         latent_width, latent_height = _inference_canvas(width, height, _profile_budget(c, profile))
         delivery_width, delivery_height = _delivery_size(width, height)
         length = _wan_length(c.get("length", 81))
@@ -457,7 +467,7 @@ class Adapter(StudioAdapter):
                 "Video Slice", video=["2", 0], start_time=source_start / source_fps,
                 duration=source_length / source_fps, strict_duration=False,
             ),
-            "4": _node("CLIPLoader", clip_name=_text_encoder_for(variant), type="wan", device="default"),
+            "4": _node("CLIPLoader", clip_name=_text_encoder_for(encoder), type="wan", device="default"),
             "5": _node("CLIPTextEncode", clip=["4", 0], text=str(c.get("prompt", ""))),
             "6": _node("CLIPTextEncode", clip=["4", 0], text=str(c.get("negative_prompt", NEGATIVE))),
             "7": _node("CLIPTextEncode", clip=["4", 0], text=str(c.get("pose_prompt", ""))),
@@ -567,6 +577,7 @@ class Adapter(StudioAdapter):
         mask = runtime.add_input(mask_path, f"mask-{mask_path.name}")
         width, height = int(c.get("width", 480)), int(c.get("height", 832))
         variant = _weights_variant(c)
+        encoder = _text_encoder_variant(c)
         latent_width, latent_height = _inference_canvas(width, height, PIXEL_BUDGET_480P)
         delivery_width, delivery_height = _delivery_size(width, height)
         length = min(77, _wan_length(c.get("length", 77)))
@@ -618,7 +629,7 @@ class Adapter(StudioAdapter):
                 body_stick_width=-1, hand_stick_width=-1, draw_head=True,
             ),
             "9": _node("LoadVideo", file=mask),
-            "14": _node("CLIPLoader", clip_name=_text_encoder_for(variant), type="wan", device="default"),
+            "14": _node("CLIPLoader", clip_name=_text_encoder_for(encoder), type="wan", device="default"),
             "15": _node("CLIPTextEncode", clip=["14", 0], text=str(c.get("prompt", ""))),
             "16": _node("ConditioningZeroOut", conditioning=["15", 0]),
             "17": _node("VAELoader", vae_name=VAE),
