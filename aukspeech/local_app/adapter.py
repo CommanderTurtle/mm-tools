@@ -23,7 +23,7 @@ for candidate in (MONOREPO_ROOT, PROJECT_ROOT / "src"):
     if value not in sys.path:
         sys.path.insert(0, value)
 
-from studio import StudioAdapter, StudioContext, StudioOutput  # noqa: E402
+from local_app.runtime import StudioAdapter, StudioContext, StudioOutput
 
 
 SUPPORTED_MODES = {
