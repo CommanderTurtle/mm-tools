@@ -104,7 +104,7 @@ def _load_diffusers_pipeline(offload_dir: str):
         except ImportError as exc:
             raise RuntimeError(
                 "This checkpoint is SDNQ-quantized, but sdnq is missing. "
-                "Run ./uvsetup.sh in the ReDesign directory."
+                "Run ./setupwithuv.sh in the redesign project directory."
             ) from exc
     default_dtype = "float16" if "sdnq" in quantization_methods else "bfloat16"
     dtype_name = os.environ.get("REDESIGN_QWEN_DTYPE", default_dtype).strip().lower()

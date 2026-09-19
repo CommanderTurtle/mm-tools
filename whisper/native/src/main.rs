@@ -71,7 +71,7 @@ fn main() -> ExitCode {
         Err(message) => { eprintln!("cw2: {message}"); return ExitCode::FAILURE; }
     };
     if !root.join(".venv/bin/python").is_file() {
-        eprintln!("cw2: missing isolated environment; run {}/uvsetup.sh", root.display());
+        eprintln!("cw2: missing isolated environment; run {}/setupwithuv.sh", root.display());
         return ExitCode::FAILURE;
     }
 
