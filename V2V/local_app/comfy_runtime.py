@@ -80,6 +80,11 @@ class ComfyRuntime:
             # on the RTX 5090. The native expandable allocator releases the
             # encoder blocks deterministically before WAN claims the device.
             "--disable-cuda-malloc",
+            # Disk-backed staging: the target host's RAM sits below the pinned
+            # ring budget dynamic VRAM would reserve (up to twice the selected
+            # checkpoint size), so staged weights stay mmap-backed behind the
+            # page cache instead of occupying a pinned host buffer.
+            "--fast-disk",
         ]
         # Comfy's whitelist is folder-name based. Keeping the global disable
         # flag in place means a runtime-generated or user-installed node can

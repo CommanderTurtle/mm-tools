@@ -8,7 +8,10 @@ Every diffusion job starts a job-scoped ComfyUI process on an ephemeral
 `127.0.0.1` port with API nodes and all custom nodes disabled.  The process is
 pinned to the PR #15139 checkout.  It loads the Kijai INT8 ConvRot checkpoint
 directly; inference runs on CUDA while Comfy's native memory management places
-idle weights between the GPU and host RAM.
+idle weights between the GPU and host RAM.  Weight staging is disk-backed
+(`--fast-disk`): staged checkpoints stay mmap-resident behind the page cache
+instead of a pinned host buffer, because the target host's RAM is below the
+pinned-ring budget dynamic VRAM would otherwise reserve.
 
 ## Conditioning contract
 

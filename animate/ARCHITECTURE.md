@@ -5,7 +5,10 @@ job-scoped instance of the PR-pinned Comfy runtime under `../V2V/ComfyUI`.
 Comfy listens on an ephemeral loopback port, its editor is never exposed, API
 nodes are disabled, metadata is disabled, and inference runs on CUDA while
 Comfy's native memory management places idle weights between the GPU and host
-RAM. Each lane whitelists exactly the repository-pinned packs it needs:
+RAM. Weight staging is disk-backed (`--fast-disk`): staged checkpoints stay
+mmap-resident behind the page cache instead of a pinned host buffer, because
+the target host's RAM is below the pinned-ring budget dynamic VRAM would
+otherwise reserve. Each lane whitelists exactly the repository-pinned packs it needs:
 `mmtools_animate` for the creation lanes, plus `ComfyUI-WanAnimatePreprocess`
 for the pose lab and character replacement.
 

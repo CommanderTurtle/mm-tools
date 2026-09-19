@@ -5,7 +5,10 @@ job-scoped instance of the PR-pinned Comfy runtime under `../../V2V/ComfyUI`.
 Comfy listens on an ephemeral loopback port, its editor is never exposed, API
 nodes are disabled, metadata is disabled, and inference runs on CUDA while
 Comfy's native memory management places idle weights between the GPU and host
-RAM. No custom node is loaded for this lane.
+RAM. Weight staging is disk-backed (`--fast-disk`): staged checkpoints stay
+mmap-resident behind the page cache instead of a pinned host buffer, because
+the target host's RAM is below the pinned-ring budget dynamic VRAM would
+otherwise reserve. No custom node is loaded for this lane.
 
 `local_app/adapter.py` builds the three official graphs directly instead of
 importing the blueprint JSON, so the studio pins every recipe constant by

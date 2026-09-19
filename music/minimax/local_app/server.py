@@ -349,6 +349,7 @@ class EngineManager:
                 "--disable-all-custom-nodes",
                 "--whitelist-custom-nodes",
                 "mmtools_minimax",
+                "--fast-disk",
             ]
             self.process = subprocess.Popen(
                 command,
@@ -626,6 +627,7 @@ class PromptGuideEngine:
                 "--disable-api-nodes",
                 "--disable-metadata",
                 "--disable-all-custom-nodes",
+                "--fast-disk",
             ]
             self.process = subprocess.Popen(
                 command,
