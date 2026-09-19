@@ -23,6 +23,21 @@ cropping, and encoded delivery.
  matching the LightX2V rank-64 distill LoRA's 480p training resolution), and
  the delivered video matches the requested resolution up to the 2160x1440
  delivery ceiling, scaled once with lanczos when needed.
+The LightX2V base-model lanes accept an optional Blackwell weights switch that
+swaps the base INT8 DiT and the UMT5 encoder for their NVFP4 twins from the
+animate bundle; the distilled profile stays INT8-only and rejects the switch
+with a precise error. Only the selected model pair loads, and execution still
+remains GPU-only.
+
+`character_replace` preserves the source scene: the driving video supplies the
+stage, lighting, and camera while a replacement character performs inside it.
+A local ViTPose pass tracks the original performer, the shared sculpting
+BiRefNet model isolates them frame by frame into a white-on-black matte, and
+the graph conditions the unmasked pixels of every frame back into the result.
+The lane runs the Wan 2.2 Animate Mix model on the official 77-frame
+single-pass window at the 480p LightX2V distill canvas and delivers at the
+source resolution up to the 2160x1440 ceiling. A prepared mask video can
+replace the automatic matte when it is already available.
 
 `pose_lab` is deliberately separate. Animate 2 can consume video end-to-end,
 but difficult source material benefits from an inspectable CUDA ViTPose/YOLO
