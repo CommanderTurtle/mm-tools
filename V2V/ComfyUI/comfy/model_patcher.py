@@ -1792,6 +1792,10 @@ class ModelPatcherDynamic(ModelPatcher):
         return True
 
     def set_in_use_by_current_prompt(self, in_use):
+        # load_device may be retargeted after construction (for example to
+        # meta by a job-scoped consumer); keep the per-device pin
+        # bookkeeping complete at the write site.
+        self.register_load_device(self.load_device)
         self.model.dynamic_pins[self.load_device]["current_prompt"] = in_use
 
     def _vbar_get(self, create=False):

@@ -12,7 +12,11 @@ import folder_paths
 
 
 def _discard_encoder(value: Any) -> None:
-    """Release a consumed encoder without moving any model to system RAM."""
+    """Release a consumed encoder without moving any model to system RAM.
+
+    The meta retarget registers its pin bookkeeping first: Comfy tracks
+    dynamic patchers per load_device and releases them at prompt end.
+    """
 
     patcher = getattr(value, "patcher", None)
     if patcher is not None:
@@ -25,8 +29,11 @@ def _discard_encoder(value: Any) -> None:
         model.to(torch.device("meta"))
 
     if patcher is not None:
-        patcher.load_device = torch.device("meta")
-        patcher.offload_device = torch.device("meta")
+        meta = torch.device("meta")
+        if hasattr(patcher, "register_load_device"):
+            patcher.register_load_device(meta)
+        patcher.load_device = meta
+        patcher.offload_device = meta
 
 
 def _use_ephemeral_lora_backups(patcher: Any) -> None:
