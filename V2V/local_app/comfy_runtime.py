@@ -217,7 +217,12 @@ class ComfyRuntime:
             )
         else:
             detail = causes[0] if causes else (assertions[-1] if assertions else (useful[-1] if useful else "No runtime detail was logged."))
-        return f"The private Comfy runtime exited with code {self.process.returncode}: {detail} (log: {self.log_path})"
+        code = self.process.returncode
+        if code is None:
+            outcome = "The private Comfy runtime had not exited when the failure was detected"
+        else:
+            outcome = f"The private Comfy runtime exited with code {code}"
+        return f"{outcome}: {detail} (log: {self.log_path})"
 
     def output_files(self) -> list[Path]:
         return sorted(path for path in self.output_dir.rglob("*") if path.is_file())
