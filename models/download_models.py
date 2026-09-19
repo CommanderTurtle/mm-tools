@@ -692,7 +692,8 @@ BUNDLES: tuple[Bundle, ...] = (
             # Blackwell NVFP4 drop-ins for the INT8 ConvRot pair above: the
             # same Wan 2.2 Animate 14B DiT and UMT5-XXL text encoder in
             # fp16/NVFP4 mixed quantization. The animate studio offers them
-            # as an optional weights switch; the distilled lane stays INT8.
+            # as two independent switches, one for the DiT and one for the
+            # text encoder; the distilled lane stays INT8 for the DiT.
             A(
                 "LHQAQ-Li/wan2.2_animate_14b_fp16_nvfp4_comfy_V2",
                 model_path("imports/LHQAQ-Li--wan2.2_animate_14b_fp16_nvfp4_comfy_V2"),

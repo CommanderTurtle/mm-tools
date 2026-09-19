@@ -1026,10 +1026,10 @@ models/imports/LHQAQ-Li--wan2.2_animate_14b_fp16_nvfp4_comfy_V2/
 └── wan2.2_animate_14b_fp16_nvfp4_comfy_V2.safetensors
 ```
 
-Used by: the animate studio's optional Blackwell weights switch. The fp16/
+Used by: the animate studio's independent DiT weights switch. The fp16/
 NVFP4 mixed-quantization twin of the Wan 2.2 Animate 14B INT8 ConvRot DiT is
 hard-linked into `V2V/ComfyUI/models/diffusion_models/` after download; the
-distilled profile stays INT8-only.
+distilled profile stays INT8-only for the DiT.
 
 70. rst220/UMT5_XXL_NVFP4
 Snapshot folder: models/imports/rst220--UMT5_XXL_NVFP4
@@ -1039,9 +1039,9 @@ models/imports/rst220--UMT5_XXL_NVFP4/
 └── UMT5_XXL_NVFP4.safetensors
 ```
 
-Used by: the same animate weights switch. The NVFP4 UMT5-XXL encoder is
-hard-linked into `V2V/ComfyUI/models/text_encoders/`; INT8/FP8 runs keep the
-published FP8 scaled encoder.
+Used by: the animate studio's independent text-encoder switch. The NVFP4
+UMT5-XXL encoder is hard-linked into `V2V/ComfyUI/models/text_encoders/`;
+FP8 runs keep the published FP8 scaled encoder.
 
 71. Lightricks/LTX-2.5
 Snapshot folder: models/imports/Lightricks--LTX-2.5
