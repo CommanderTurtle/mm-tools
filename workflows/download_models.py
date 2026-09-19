@@ -62,6 +62,12 @@ def model_path(relative: str) -> Path:
     return MODELS / relative
 
 
+def comfy_model_path(relative: str) -> Path:
+    # Runtime placement target: the shared pinned Comfy checkout's models
+    # directory, exactly where the video studios resolve their weights.
+    return ROOT / "V2V" / "ComfyUI" / "models" / relative
+
+
 A = Artifact
 
 # Inventory identifiers 1-8 are owned by this file alone (see the top of
@@ -83,27 +89,27 @@ WAN_ANIMATE_2 = A(
     placements=(
         (
             "clip_vision/clip_vision_h.safetensors",
-            model_path("clip_vision/clip_vision_h.safetensors"),
+            comfy_model_path("clip_vision/clip_vision_h.safetensors"),
         ),
         (
             "diffusion_models/wan_animate_2_int8_convrot.safetensors",
-            model_path("diffusion_models/wan_animate_2_int8_convrot.safetensors"),
+            comfy_model_path("diffusion_models/wan_animate_2_int8_convrot.safetensors"),
         ),
         (
             "diffusion_models/wan_animate_2_distill_int8_convrot.safetensors",
-            model_path("diffusion_models/wan_animate_2_distill_int8_convrot.safetensors"),
+            comfy_model_path("diffusion_models/wan_animate_2_distill_int8_convrot.safetensors"),
         ),
         (
             "loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
-            model_path("loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors"),
+            comfy_model_path("loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors"),
         ),
         (
             "text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
-            model_path("text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"),
+            comfy_model_path("text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"),
         ),
         (
             "vae/Wan2_1_VAE_bf16.safetensors",
-            model_path("vae/Wan2_1_VAE_bf16.safetensors"),
+            comfy_model_path("vae/Wan2_1_VAE_bf16.safetensors"),
         ),
     ),
 )
@@ -114,7 +120,7 @@ WAN22_REPLACE = A(
     revision="fb1388adc906ab39ffc26ee40e96b22886b56bc4",
     placements=((
         "split_files/diffusion_models/wan2.2_animate_14B_int8_convrot.safetensors",
-        model_path("diffusion_models/wan2.2_animate_14B_int8_convrot.safetensors"),
+        comfy_model_path("diffusion_models/wan2.2_animate_14B_int8_convrot.safetensors"),
     ),),
 )
 # Blackwell NVFP4 drop-ins for the INT8 ConvRot pair above: the same Wan 2.2
@@ -129,7 +135,7 @@ WAN22_NVFP4_DIT = A(
     placements=(
         (
             "wan2.2_animate_14b_fp16_nvfp4_comfy_V2.safetensors",
-            model_path("diffusion_models/wan2.2_animate_14b_fp16_nvfp4_comfy_V2.safetensors"),
+            comfy_model_path("diffusion_models/wan2.2_animate_14b_fp16_nvfp4_comfy_V2.safetensors"),
         ),
     ),
 )
@@ -141,7 +147,7 @@ WAN22_NVFP4_ENCODER = A(
     placements=(
         (
             "UMT5_XXL_NVFP4.safetensors",
-            model_path("text_encoders/UMT5_XXL_NVFP4.safetensors"),
+            comfy_model_path("text_encoders/UMT5_XXL_NVFP4.safetensors"),
         ),
     ),
 )
@@ -153,7 +159,7 @@ ANIMATE_YOLO = A(
     placements=(
         (
             "process_checkpoint/det/yolov10m.onnx",
-            model_path("detection/yolov10m.onnx"),
+            comfy_model_path("detection/yolov10m.onnx"),
         ),
     ),
 )
@@ -168,11 +174,11 @@ ANIMATE_VITPOSE = A(
     placements=(
         (
             "onnx/vitpose_h_wholebody_data.bin",
-            model_path("detection/vitpose_h_wholebody_data.bin"),
+            comfy_model_path("detection/vitpose_h_wholebody_data.bin"),
         ),
         (
             "onnx/vitpose_h_wholebody_model.onnx",
-            model_path("detection/vitpose_h_wholebody_model.onnx"),
+            comfy_model_path("detection/vitpose_h_wholebody_model.onnx"),
         ),
     ),
 )
@@ -199,35 +205,35 @@ LTX_25 = A(
     placements=(
         (
             "diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
-            model_path("diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors"),
+            comfy_model_path("diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors"),
         ),
         (
             "diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors",
-            model_path("diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors"),
+            comfy_model_path("diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors"),
         ),
         (
             "text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
-            model_path("text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors"),
+            comfy_model_path("text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors"),
         ),
         (
             "vae/ltx-2.5-video-vae-bf16.safetensors",
-            model_path("vae/ltx-2.5-video-vae-bf16.safetensors"),
+            comfy_model_path("vae/ltx-2.5-video-vae-bf16.safetensors"),
         ),
         (
             "vae/ltx-2.5-audio-vae-bf16.safetensors",
-            model_path("vae/ltx-2.5-audio-vae-bf16.safetensors"),
+            comfy_model_path("vae/ltx-2.5-audio-vae-bf16.safetensors"),
         ),
         (
             "latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
-            model_path("latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"),
+            comfy_model_path("latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"),
         ),
         (
             "latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors",
-            model_path("latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors"),
+            comfy_model_path("latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors"),
         ),
         (
             "model_patches/ltx-2.5-duration-head-bf16.safetensors",
-            model_path("model_patches/ltx-2.5-duration-head-bf16.safetensors"),
+            comfy_model_path("model_patches/ltx-2.5-duration-head-bf16.safetensors"),
         ),
     ),
 )
@@ -238,7 +244,7 @@ LTX_ENHANCER = A(
     revision="63d0f7c476756b88910170c1df75e2384ea1af31",
     placements=((
         "text_encoders/gemma4_e2b_it_int8_convrot.safetensors",
-        model_path("text_encoders/gemma4_e2b_it_int8_convrot.safetensors"),
+        comfy_model_path("text_encoders/gemma4_e2b_it_int8_convrot.safetensors"),
     ),),
 )
 

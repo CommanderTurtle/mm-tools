@@ -19,7 +19,10 @@ The next prompt selects numbered project bundles; Enter preserves the original
 
   uv run download_models.py 4d lingbot lingbot-5090 fire3d --workers 24
   uv run download_models.py aukspeech sculpting worldsculpt
-  uv run download_models.py animate v2v
+  uv run download_models.py v2v
+  # The former animate/ltx bundles now live in the standalone workflow
+  # downloader (workflows/README.md):
+  cd ../workflows && .venv/bin/python download_models.py ltx animate
   uv run download_models.py nvidia-sim
   uv run download_models.py yue2
   uv run download_models.py all --yes --workers 24

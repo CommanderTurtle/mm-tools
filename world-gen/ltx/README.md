@@ -20,7 +20,7 @@ the same bundle is a one-click switch that frees activation headroom on RTX
 From the project folder:
 
 ```bash
-../../models/download_models.py ltx   # pulls the official LTX-2.5 checkpoints from the ungated comfyicu mirror
+../../workflows/download_models.py ltx  # pulls the official LTX-2.5 checkpoints from the ungated comfyicu mirror
 ./setupwithuv.sh     # verifies weights, then builds the isolated venv
 ./startwithuv.sh     # serves http://127.0.0.1:8269
 ```

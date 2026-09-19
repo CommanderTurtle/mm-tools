@@ -29,7 +29,7 @@ Two production lanes plus a diagnostic:
 From the project folder:
 
 ```bash
-../models/download_models.py animate
+../workflows/download_models.py animate
 ./setupwithuv.sh     # delegates to the shared video-studio setup, then builds this venv
 ./startwithuv.sh     # serves http://127.0.0.1:8264
 ```

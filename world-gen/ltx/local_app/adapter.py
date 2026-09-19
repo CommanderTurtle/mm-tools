@@ -108,7 +108,7 @@ class Adapter(StudioAdapter):
         if str(controls.get("weights_variant", "int8")) == "nvfp4" and not (
             self.models / "diffusion_models" / MODEL_NVFP4
         ).is_file():
-            raise ValueError("The NVFP4 DiT is not installed. Run the model downloader's ltx bundle, then retry.")
+            raise ValueError("The NVFP4 DiT is not installed. Run workflows/download_models.py for the ltx bundle, then retry.")
         width = int(controls.get("width", 1280))
         height = int(controls.get("height", 720))
         if width % 8 or height % 8 or not 256 <= width <= 2160 or not 256 <= height <= 2160:
@@ -140,11 +140,11 @@ class Adapter(StudioAdapter):
         if bool(controls.get("prompt_enhance", False)) and not (
             self.models / "text_encoders" / ENHANCER_ENCODER
         ).is_file():
-            raise ValueError("Prompt enhancement needs the E2B enhancer encoder from the ltx bundle.")
+            raise ValueError("Prompt enhancement needs the E2B enhancer encoder from the workflows ltx bundle.")
         if mode in {"t2v", "i2v"} and not (
             self.models / "latent_upscale_models" / SPATIAL_UPSCALER
         ).is_file():
-            raise ValueError("Text/image generation needs the x2 spatial upscaler from the ltx bundle.")
+            raise ValueError("Text/image generation needs the x2 spatial upscaler from the workflows ltx bundle.")
         if mode == "i2v":
             resolve_asset(str(controls.get("first_frame_asset", "")))
         elif mode == "flf2v":

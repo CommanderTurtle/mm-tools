@@ -22,7 +22,7 @@ required=(
   "$COMFY/models/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"
 )
 for path in "${required[@]}"; do
-  [[ -s "$path" ]] || { printf 'Missing allowlisted artifact: %s\nRun ../../models/download_models.py for the ltx bundle first.\n' "$path" >&2; exit 1; }
+  [[ -s "$path" ]] || { printf 'Missing allowlisted artifact: %s\nRun ../../workflows/download_models.py for the ltx bundle first.\n' "$path" >&2; exit 1; }
 done
 
 export UV_LINK_MODE=hardlink

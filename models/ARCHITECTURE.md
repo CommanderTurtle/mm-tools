@@ -41,7 +41,7 @@ uv pip install -U huggingface_hub hf_transfer
 uv run download_models.py --list
 uv run download_models.py 4d lingbot lingbot-5090 fire3d
 uv run download_models.py aukspeech sculpting worldsculpt
-uv run download_models.py animate v2v
+uv run download_models.py v2v
 uv run download_models.py nvidia-sim
 uv run download_models.py yue2
 ```
@@ -50,6 +50,12 @@ Use `--workers N` to control Hugging Face snapshot file workers, and
 `--yes` only for noninteractive execution. Rerunning the same selection resumes
 it. The downloader creates missing parent directories, never prunes files, and
 refuses to replace a conflicting runtime placement.
+
+The former `animate` and `ltx` bundles are retired from this downloader.
+Those weights now come from `workflows/download_models.py`, which ships
+beside the committed ComfyUI pipeline exports; its snapshots land in
+`workflows/models/imports/` and hard-link into `V2V/ComfyUI/models/*`
+exactly as the retired entries did.
 
 ## Boundaries
 

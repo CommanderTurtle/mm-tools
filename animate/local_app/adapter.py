@@ -310,7 +310,7 @@ class Adapter(StudioAdapter):
             if missing:
                 raise ValueError(
                     f"{profile['label']} is not installed ({', '.join(missing)}). "
-                    "Run the model downloader's animate bundle, then retry."
+                    "Run workflows/download_models.py for the animate bundle, then retry."
                 )
             start, end = float(controls.get("pose_start_percent", 0)), float(controls.get("pose_end_percent", 1))
             if not 0 <= start <= end <= 1:
@@ -332,7 +332,7 @@ class Adapter(StudioAdapter):
             if missing:
                 raise ValueError(
                     f"Animate 2 replacement mode is not installed ({', '.join(missing)}). "
-                    "Run the model downloader's animate bundle, then retry."
+                    "Run workflows/download_models.py for the animate bundle, then retry."
                 )
             strategy = str(controls.get("mask_strategy", "automatic"))
             if strategy == "automatic":

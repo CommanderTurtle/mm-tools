@@ -30,7 +30,7 @@ required=(
   "$ROOT/../sculpting/pretrained/deps/ZhengPeng7--BiRefNet/model.safetensors"
 )
 for path in "${required[@]}"; do
-  [[ -s "$path" ]] || { printf 'Missing allowlisted artifact: %s\nRun ../models/download_models.py for V2V/animate first.\n' "$path" >&2; exit 1; }
+  [[ -s "$path" ]] || { printf 'Missing allowlisted artifact: %s\nRun ../models/download_models.py v2v and ../workflows/download_models.py animate first.\n' "$path" >&2; exit 1; }
 done
 
 export UV_LINK_MODE=hardlink

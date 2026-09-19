@@ -40,7 +40,10 @@ uv run download_models.py all --yes --workers 24
 Bundle selection numbers are deliberately separate from the stable inventory
 identifiers below. Each bundle includes every downloadable artifact needed by
 that runtime. Inventory identifiers 22-23 are retired rather than renumbered,
-so older notes keep their meaning.
+so older notes keep their meaning. Former bundles 21 (animate) and 24 (ltx)
+are retired as well: those weights now come from the standalone
+workflows/download_models.py, documented in the workflows section at the end
+of this file.
 
 ```text
  1  ideogram     inventory 1-3, 40
@@ -63,10 +66,8 @@ so older notes keep their meaning.
 18  aukspeech    inventory 45-46
 19  sculpting    inventory 47-48
 20  worldsculpt  inventory 48-49
-21  animate      inventory 50-52
-22  nvidia-sim   inventory 53-58
-23  yue2         inventory 59-63
-24  ltx          inventory 71-72
+21  nvidia-sim   inventory 53-58
+22  yue2         inventory 59-63
 ```
 
 The inventory mirrors every active artifact definition in the downloader,
@@ -812,49 +813,27 @@ Inventories 65-68 supply the shared, strictly local image encoder, background
 remover, camera calibration model, and feature upsampler used by the
 TRELLIS/Pixal pipelines.
 
-50. Comfy-Org/Wan-Animate-2
-Snapshot folder: models/imports/Comfy-Org--Wan-Animate-2
+50. Comfy-Org/Wan-Animate-2 (retired — workflow inventory 1)
+Snapshot folder: workflows/models/imports/Comfy-Org--Wan-Animate-2
 
-```text
-models/imports/Comfy-Org--Wan-Animate-2/
-├── clip_vision/clip_vision_h.safetensors
-├── diffusion_models/wan_animate_2_int8_convrot.safetensors
-├── diffusion_models/wan_animate_2_distill_int8_convrot.safetensors
-├── loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
-├── text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
-└── vae/Wan2_1_VAE_bf16.safetensors
-```
+Retired from this downloader; now supplied by workflows/download_models.py
+(bundle `animate`). The resumable snapshot lands in
+`workflows/models/imports/`, and the six files hard-link into matching
+`V2V/ComfyUI/models/*` folders exactly as before.
 
-Used by: the PR-pinned local Comfy runtime for Wan Animate 2. After the
-resumable snapshot completes, these six files are hard-linked into matching
-`V2V/ComfyUI/models/*` folders (copy fallback only across filesystems). Native
-distilled inference uses the distilled INT8 checkpoint alone at 10 Euler steps.
-The optional acceleration lane pairs the base INT8 checkpoint with the rank-64
-LightX2V LoRA for the official six-step LCM recipe or the explicit four-step
-speed profile. Both stay GPU-only.
+51. Wan-AI/Wan2.2-Animate-14B pose detector (retired — workflow inventory 5)
+Snapshot folder: workflows/models/imports/Wan-AI--Wan2.2-Animate-14B-preprocess
 
-51. Wan-AI/Wan2.2-Animate-14B pose detector
-Snapshot folder: models/imports/Wan-AI--Wan2.2-Animate-14B-preprocess
+Retired from this downloader; now supplied by workflows/download_models.py
+(bundle `animate`). The YOLOv10m ONNX detector hard-links into
+`V2V/ComfyUI/models/detection/yolov10m.onnx` as before.
 
-```text
-models/imports/Wan-AI--Wan2.2-Animate-14B-preprocess/
-└── process_checkpoint/det/yolov10m.onnx
-```
+52. Kijai/vitpose_comfy (retired — workflow inventory 6)
+Snapshot folder: workflows/models/imports/Kijai--vitpose_comfy
 
-Used by: `animate/ComfyUI-WanAnimatePreprocess`. The file is hard-linked into
-`V2V/ComfyUI/models/detection/yolov10m.onnx` after download.
-
-52. Kijai/vitpose_comfy
-Snapshot folder: models/imports/Kijai--vitpose_comfy
-
-```text
-models/imports/Kijai--vitpose_comfy/onnx/
-├── vitpose_h_wholebody_data.bin
-└── vitpose_h_wholebody_model.onnx
-```
-
-Used by: `animate/ComfyUI-WanAnimatePreprocess` for whole-body pose. Both ONNX
-parts are hard-linked into the local Comfy detection-model folder.
+Retired from this downloader; now supplied by workflows/download_models.py
+(bundle `animate`). Both ViTPose ONNX parts hard-link into the Comfy
+detection-model folder as before.
 
 53. nvidia/ARDY-Core-RP-20FPS-Horizon40
 Expected folder: nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon40
@@ -1020,65 +999,50 @@ resumable `.partial` storage, exact 2,664,431-byte validation, and SHA-256
 Runtime setup pins the matching NAF source revision separately; inference does
 not call Torch Hub.
 
-69. LHQAQ-Li/wan2.2_animate_14b_fp16_nvfp4_comfy_V2
-Snapshot folder: models/imports/LHQAQ-Li--wan2.2_animate_14b_fp16_nvfp4_comfy_V2
+69. LHQAQ-Li/wan2.2_animate_14b_fp16_nvfp4_comfy_V2 (retired — workflow inventory 3)
+Snapshot folder: workflows/models/imports/LHQAQ-Li--wan2.2_animate_14b_fp16_nvfp4_comfy_V2
+
+Retired from this downloader; now supplied by workflows/download_models.py
+(bundle `animate`). The NVFP4 DiT twin hard-links into
+`V2V/ComfyUI/models/diffusion_models/` as before.
+
+70. rst220/UMT5_XXL_NVFP4 (retired — workflow inventory 4)
+Snapshot folder: workflows/models/imports/rst220--UMT5_XXL_NVFP4
+
+Retired from this downloader; now supplied by workflows/download_models.py
+(bundle `animate`). The NVFP4 UMT5 encoder hard-links into
+`V2V/ComfyUI/models/text_encoders/` as before.
+
+71. comfyicu/LTX-2.5 (retired — workflow inventory 7)
+Snapshot folder: workflows/models/imports/comfyicu--LTX-2.5
+
+Retired from this downloader; now supplied by workflows/download_models.py
+(bundle `ltx`). The ungated mirror still tracks main without a revision pin;
+the eight files hard-link into matching `V2V/ComfyUI/models/*` folders for
+the native `world-gen/ltx` studio as before.
+
+72. Comfy-Org/gemma-4 (retired — workflow inventory 8)
+Snapshot folder: workflows/models/imports/Comfy-Org--gemma-4
+
+Retired from this downloader; now supplied by workflows/download_models.py
+(bundle `ltx`). The E2B enhancer encoder hard-links into
+`V2V/ComfyUI/models/text_encoders/` as before.
+
+Workflows section (workflows/download_models.py)
+------------------------------------------------
+The standalone workflow downloader keeps its own inventory numbering,
+separate from the identifiers above:
 
 ```text
-models/imports/LHQAQ-Li--wan2.2_animate_14b_fp16_nvfp4_comfy_V2/
-└── wan2.2_animate_14b_fp16_nvfp4_comfy_V2.safetensors
+ 1  Comfy-Org/Wan-Animate-2                    (bundle animate, inventory 1-6)
+ 2  Comfy-Org/Wan_2.2_ComfyUI_Repackaged       (replacement-mode DiT)
+ 3  LHQAQ-Li/wan2.2_animate_14b_fp16_nvfp4_comfy_V2
+ 4  rst220/UMT5_XXL_NVFP4
+ 5  Wan-AI/Wan2.2-Animate-14B pose detector
+ 6  Kijai/vitpose_comfy
+ 7  comfyicu/LTX-2.5                           (bundle ltx, inventory 7-8)
+ 8  Comfy-Org/gemma-4
 ```
 
-Used by: the animate studio's independent DiT weights switch. The fp16/
-NVFP4 mixed-quantization twin of the Wan 2.2 Animate 14B INT8 ConvRot DiT is
-hard-linked into `V2V/ComfyUI/models/diffusion_models/` after download; the
-distilled profile stays INT8-only for the DiT.
-
-70. rst220/UMT5_XXL_NVFP4
-Snapshot folder: models/imports/rst220--UMT5_XXL_NVFP4
-
-```text
-models/imports/rst220--UMT5_XXL_NVFP4/
-└── UMT5_XXL_NVFP4.safetensors
-```
-
-Used by: the animate studio's independent text-encoder switch. The NVFP4
-UMT5-XXL encoder is hard-linked into `V2V/ComfyUI/models/text_encoders/`;
-FP8 runs keep the published FP8 scaled encoder.
-
-71. comfyicu/LTX-2.5
-Snapshot folder: models/imports/comfyicu--LTX-2.5
-
-```text
-models/imports/comfyicu--LTX-2.5/
-├── diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors
-├── diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors
-├── text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors
-├── vae/ltx-2.5-video-vae-bf16.safetensors
-├── vae/ltx-2.5-audio-vae-bf16.safetensors
-├── latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors
-├── latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors
-└── model_patches/ltx-2.5-duration-head-bf16.safetensors
-```
-
-Ungated community mirror of the gated Lightricks/LTX-2.5 repository with the
-identical file tree; no Hub license acceptance is needed. The weights remain
-under the LTX-2.x Community License. These are the exact checkpoints
-ComfyUI's official LTX-2.5 T2V/I2V/FLF2V templates name.
-After the snapshot completes they are hard-linked into matching
-`V2V/ComfyUI/models/*` folders for the native `world-gen/ltx` studio: the
-INT8 ConvRot distilled DiT plus its NVFP4 Blackwell twin, the Gemma 4 12B
-projection encoder, both VAEs, both x2 latent upscalers, and the duration
-predictor patch.
-
-72. Comfy-Org/gemma-4
-Snapshot folder: models/imports/Comfy-Org--gemma-4
-
-```text
-models/imports/Comfy-Org--gemma-4/
-└── text_encoders/gemma4_e2b_it_int8_convrot.safetensors
-```
-
-Used by: the LTX prompt enhancer, which the native LTX-2.5 lane keeps off by
-default like the official template. The E2B encoder is hard-linked into
-`V2V/ComfyUI/models/text_encoders/` and only loaded when the enhancer toggle
-is on.
+Resumable snapshots land in `workflows/models/imports/`; selected files
+hard-link into `V2V/ComfyUI/models/*` exactly as the retired entries did.

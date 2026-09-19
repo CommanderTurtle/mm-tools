@@ -33,7 +33,7 @@
     {"label": "BiRefNet", "path": "../sculpting/pretrained/deps/ZhengPeng7--BiRefNet/model.safetensors", "note": "Shared local source-character matte"}
   ],
   "setup_steps": [
-    "Run `cd ~/multimedia/models && uv run download_models.py animate` to install the allowlisted direct-motion and scene-replacement models.",
+    "Run `cd ~/multimedia/workflows && .venv/bin/python download_models.py animate` to install the allowlisted direct-motion and scene-replacement models.",
     "Run `cd ~/multimedia/animate && ./setupwithuv.sh` once. The command prepares Animate's isolated GPU environment.",
     "Run `./startwithuv.sh` and open the printed loopback URL.",
     "Use Motion transfer for a new prompt-directed scene, Scene-preserving replacement to retain the driving video's stage, and Pose & face lab only for inspection."
