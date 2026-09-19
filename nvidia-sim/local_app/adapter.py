@@ -383,6 +383,7 @@ class Adapter(StudioAdapter):
         layer, identity, _values = self._body_layer(controls)
         layer.prepare_identity(identity, global_scale=float(controls.get("global_scale", 1.0)))
         rig_view = layer.public_rig_view()
+        bind_world = rig_view.bind_transforms_world[0]
         soma_names = [str(name) for name in rig_view.joint_names]
         correspondence = soma_correspondence(source_names, soma_names, source_rig=str(skeleton.name))
         mapped_source = [index for index, value in enumerate(correspondence) if value is not None]
@@ -391,7 +392,7 @@ class Adapter(StudioAdapter):
 
         # Absorb any unit/scale mismatch (centimeter ARDY clips vs meter SOMA rest)
         # through the hips-to-head span so translation stays in scene units.
-        rest_pos = rig_view.bind_transforms_world[:, :3, 3].detach().cpu().numpy()
+        rest_pos = bind_world[:, :3, 3].detach().cpu().numpy()
         head_target = soma_names.index("Head") if "Head" in soma_names else 8
         head_source = next((index for index, name in enumerate(source_names) if str(name) in {"Head", "Skull"}), None)
         if head_source is None:
@@ -405,7 +406,7 @@ class Adapter(StudioAdapter):
         context.update("Solving the native SOMA pose chain", 0.3)
         parent_ids = [int(value) for value in rig_view.joint_parent_ids.detach().cpu().tolist()]
         solved = solve_soma_pose(targets, correspondence,
-                                 rig_view.bind_transforms_world.detach().cpu().numpy(), parent_ids)
+                                 bind_world.detach().cpu().numpy(), parent_ids)
         poses_aa = solved["poses_aa"]
         transl = solved["transl"]
         frames = int(poses_aa.shape[0])
@@ -429,7 +430,7 @@ class Adapter(StudioAdapter):
         # animation channels fully define the hierarchy.
         inv_parent = np.linalg.inv(world[:, parent_ids, :])
         inv_parent[:, 0] = np.eye(4)[None]
-        local = np.einsum("fpab,fpc->fpac", inv_parent, world)
+        local = np.einsum("fpab,fpbc->fpac", inv_parent, world)
         anim_trans, anim_quat = decompose_trs_batch(local)
 
         context.update("Assembling the skinned GLB", 0.8)
@@ -450,7 +451,7 @@ class Adapter(StudioAdapter):
         glb.write_bytes(build_animated_glb(
             vertices=vertices, normals=normals, faces=faces,
             joint_indices=top_indices, joint_weights=top_weights,
-            joint_rest_world=rig_view.bind_transforms_world.detach().cpu().numpy().astype(np.float32),
+            joint_rest_world=bind_world.detach().cpu().numpy().astype(np.float32),
             anim_trans=anim_trans.astype(np.float32), anim_quat=anim_quat.astype(np.float32),
             times=times, parent_ids=parent_ids,
         ))
