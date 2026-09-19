@@ -1043,11 +1043,11 @@ Used by: the animate studio's independent text-encoder switch. The NVFP4
 UMT5-XXL encoder is hard-linked into `V2V/ComfyUI/models/text_encoders/`;
 FP8 runs keep the published FP8 scaled encoder.
 
-71. Lightricks/LTX-2.5
-Snapshot folder: models/imports/Lightricks--LTX-2.5
+71. comfyicu/LTX-2.5
+Snapshot folder: models/imports/comfyicu--LTX-2.5
 
 ```text
-models/imports/Lightricks--LTX-2.5/
+models/imports/comfyicu--LTX-2.5/
 ├── diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors
 ├── diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors
 ├── text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors
@@ -1058,9 +1058,10 @@ models/imports/Lightricks--LTX-2.5/
 └── model_patches/ltx-2.5-duration-head-bf16.safetensors
 ```
 
-Gated upstream repository under the LTX-2.x Community License; accept it once
-on the Hugging Face page so the Hub client can pull the files. These are the
-exact checkpoints ComfyUI's official LTX-2.5 T2V/I2V/FLF2V templates name.
+Ungated community mirror of the gated Lightricks/LTX-2.5 repository with the
+identical file tree; no Hub license acceptance is needed. The weights remain
+under the LTX-2.x Community License. These are the exact checkpoints
+ComfyUI's official LTX-2.5 T2V/I2V/FLF2V templates name.
 After the snapshot completes they are hard-linked into matching
 `V2V/ComfyUI/models/*` folders for the native `world-gen/ltx` studio: the
 INT8 ConvRot distilled DiT plus its NVFP4 Blackwell twin, the Gemma 4 12B

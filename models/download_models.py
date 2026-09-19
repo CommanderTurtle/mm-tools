@@ -899,13 +899,14 @@ BUNDLES: tuple[Bundle, ...] = (
         "LTX-2.5 native video and audio generation with the Blackwell NVFP4 twin",
         "71-72",
         (
-            # Gated upstream repository: the owner accepts the LTX-2.x Community
-            # License once on the Hugging Face page; downloads then run through
-            # the usual Hub authentication. The Comfy int8/convrot files are
-            # the exact checkpoints ComfyUI's official LTX-2.5 templates name.
+            # Ungated community mirror of Lightricks/LTX-2.5 with the identical
+            # file tree; no Hub license acceptance or authentication is needed.
+            # The weights remain under the LTX-2.x Community License (upstream
+            # Lightricks/LTX-2.5). The Comfy int8/convrot files are the exact
+            # checkpoints ComfyUI's official LTX-2.5 templates name.
             A(
-                "Lightricks/LTX-2.5",
-                model_path("imports/Lightricks--LTX-2.5"),
+                "comfyicu/LTX-2.5",
+                model_path("imports/comfyicu--LTX-2.5"),
                 (
                     "diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
                     "diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors",
