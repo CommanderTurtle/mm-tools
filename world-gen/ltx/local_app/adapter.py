@@ -105,6 +105,10 @@ class Adapter(StudioAdapter):
             raise ValueError(f"Unknown LTX-2.5 mode: {mode}")
         if str(controls.get("weights_variant", "int8")) not in WEIGHTS_VARIANTS:
             raise ValueError("Weights variant must be int8 or nvfp4.")
+        if str(controls.get("weights_variant", "int8")) == "nvfp4" and not (
+            self.models / "diffusion_models" / MODEL_NVFP4
+        ).is_file():
+            raise ValueError("The NVFP4 DiT is not installed. Run the model downloader's ltx bundle, then retry.")
         width = int(controls.get("width", 1280))
         height = int(controls.get("height", 720))
         if width % 8 or height % 8 or not 256 <= width <= 2160 or not 256 <= height <= 2160:
