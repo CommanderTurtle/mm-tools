@@ -1,0 +1,130 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {"unet_name": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors", "weight_dtype": "default"}
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {"clip_name": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors", "type": "ltxv"}
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {"vae_name": "ltx-2.5-video-vae-bf16.safetensors"}
+  },
+  "4": {
+    "class_type": "VAELoader",
+    "inputs": {"vae_name": "ltx-2.5-audio-vae-bf16.safetensors"}
+  },
+  "5": {
+    "class_type": "LoadImage",
+    "inputs": {"image": "first_frame.png"}
+  },
+  "6": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {"input": ["5", 0], "resize_type": "scale longer dimension", "resize_type.longer_size": 1536, "scale_method": "lanczos"}
+  },
+  "7": {
+    "class_type": "LTXVPreprocess",
+    "inputs": {"image": ["6", 0], "img_compression": 18}
+  },
+  "8": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {"clip": ["2", 0], "text": "The person from the first frame turns toward the camera and smiles."}
+  },
+  "9": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {"clip": ["2", 0], "text": "pc game, console game, video game, cartoon, childish, ugly"}
+  },
+  "10": {
+    "class_type": "LTXVConditioning",
+    "inputs": {"positive": ["8", 0], "negative": ["9", 0], "frame_rate": 24.0}
+  },
+  "11": {
+    "class_type": "EmptyLTXVLatentVideo",
+    "inputs": {"width": 640, "height": 360, "length": 121, "batch_size": 1}
+  },
+  "12": {
+    "class_type": "LTXVEmptyLatentAudio",
+    "inputs": {"frames_number": 121, "frame_rate": 24.0, "batch_size": 1, "audio_vae": ["4", 0]}
+  },
+  "13": {
+    "class_type": "LTXVDualCFGGuider",
+    "inputs": {"model": ["1", 0], "positive": ["10", 0], "negative": ["10", 1], "video_cfg": 1, "audio_cfg": 1}
+  },
+  "14": {
+    "class_type": "KSamplerSelect",
+    "inputs": {"sampler_name": "euler_ancestral"}
+  },
+  "15": {
+    "class_type": "LTXVImgToVideoInplace",
+    "inputs": {"vae": ["3", 0], "image": ["7", 0], "latent": ["11", 0], "strength": 0.7, "bypass": false}
+  },
+  "16": {
+    "class_type": "LTXVConcatAVLatent",
+    "inputs": {"video_latent": ["15", 0], "audio_latent": ["12", 0]}
+  },
+  "17": {
+    "class_type": "ManualSigmas",
+    "inputs": {"sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0"}
+  },
+  "18": {
+    "class_type": "RandomNoise",
+    "inputs": {"seed": 42}
+  },
+  "19": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {"noise": ["18", 0], "guider": ["13", 0], "sampler": ["14", 0], "sigmas": ["17", 0], "latent_image": ["16", 0]}
+  },
+  "20": {
+    "class_type": "LTXVSeparateAVLatent",
+    "inputs": {"av_latent": ["19", 0]}
+  },
+  "21": {
+    "class_type": "LatentUpscaleModelLoader",
+    "inputs": {"model_name": "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"}
+  },
+  "22": {
+    "class_type": "LTXVLatentUpsampler",
+    "inputs": {"samples": ["20", 0], "upscale_model": ["21", 0], "vae": ["3", 0]}
+  },
+  "23": {
+    "class_type": "LTXVImgToVideoInplace",
+    "inputs": {"vae": ["3", 0], "image": ["7", 0], "latent": ["22", 0], "strength": 1.0, "bypass": false}
+  },
+  "24": {
+    "class_type": "LTXVConcatAVLatent",
+    "inputs": {"video_latent": ["23", 0], "audio_latent": ["20", 1]}
+  },
+  "25": {
+    "class_type": "ManualSigmas",
+    "inputs": {"sigmas": "0.85, 0.7250, 0.4219, 0.0"}
+  },
+  "26": {
+    "class_type": "RandomNoise",
+    "inputs": {"seed": 42}
+  },
+  "27": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {"noise": ["26", 0], "guider": ["13", 0], "sampler": ["14", 0], "sigmas": ["25", 0], "latent_image": ["24", 0]}
+  },
+  "28": {
+    "class_type": "LTXVSeparateAVLatent",
+    "inputs": {"av_latent": ["27", 0]}
+  },
+  "29": {
+    "class_type": "VAEDecodeTiled",
+    "inputs": {"samples": ["28", 0], "vae": ["3", 0], "tile_size": 512, "overlap": 64, "temporal_size": 64, "temporal_overlap": 16}
+  },
+  "30": {
+    "class_type": "LTXVAudioVAEDecode",
+    "inputs": {"samples": ["28", 1], "audio_vae": ["4", 0]}
+  },
+  "31": {
+    "class_type": "CreateVideo",
+    "inputs": {"images": ["29", 0], "fps": 24.0, "audio": ["30", 0], "bit_depth": 8, "color_space": "sRGB"}
+  },
+  "32": {
+    "class_type": "SaveVideo",
+    "inputs": {"video": ["31", 0], "filename_prefix": "ltx/i2v", "format": "mp4", "format.codec": "h264", "format.codec.encoding": "re-encode", "format.codec.encoding.crf": 18}
+  }
+}
