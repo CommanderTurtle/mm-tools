@@ -72,7 +72,10 @@ class ComfyRuntime:
             "--output-directory", str(self.output_dir),
             "--user-directory", str(self.user_dir),
             "--disable-auto-launch", "--disable-metadata", "--disable-api-nodes",
-            "--disable-all-custom-nodes", "--gpu-only", "--disable-async-offload", "--cache-none",
+            "--disable-all-custom-nodes",
+            # Comfy's native weight management stays enabled: models load as
+            # each node calls for them, and idle weights leave VRAM through
+            # dynamic VRAM offload. Inference itself remains CUDA-only.
             # cudaMallocAsync aborts inside Comfy's staged model detach/load path
             # on the RTX 5090. The native expandable allocator releases the
             # encoder blocks deterministically before WAN claims the device.
@@ -127,7 +130,7 @@ class ComfyRuntime:
                 raise RuntimeError(f"The private Comfy runtime exited during startup ({self.process.returncode}).")
             try:
                 self._request("/system_stats", timeout=2)
-                self.context.log(f"Private GPU-only Comfy runtime ready on ephemeral loopback port {self.port}.")
+                self.context.log(f"Private Comfy runtime ready on ephemeral loopback port {self.port}.")
                 return
             except (OSError, urllib.error.URLError, json.JSONDecodeError):
                 time.sleep(0.5)
@@ -209,7 +212,7 @@ class ComfyRuntime:
             )
         else:
             detail = causes[0] if causes else (assertions[-1] if assertions else (useful[-1] if useful else "No runtime detail was logged."))
-        return f"The private GPU-only Comfy runtime exited with code {self.process.returncode}: {detail} (log: {self.log_path})"
+        return f"The private Comfy runtime exited with code {self.process.returncode}: {detail} (log: {self.log_path})"
 
     def output_files(self) -> list[Path]:
         return sorted(path for path in self.output_dir.rglob("*") if path.is_file())

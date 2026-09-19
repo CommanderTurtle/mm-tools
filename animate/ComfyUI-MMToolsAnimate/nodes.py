@@ -33,11 +33,11 @@ def _use_ephemeral_lora_backups(patcher: Any) -> None:
     """Keep LoRA rollback metadata storage-free in a job-scoped process.
 
     Comfy normally retains every pre-LoRA weight on ``offload_device`` so a
-    shared runtime can restore the base model.  Under ``--gpu-only`` that
-    device is CUDA, which temporarily duplicates the entire 16 GiB Animate 2
-    checkpoint.  This runtime exits after one job, so restoration is neither
-    useful nor reachable.  Meta tensors retain the shapes Comfy expects while
-    consuming no VRAM or system RAM.
+    shared runtime can restore the base model.  That copy would duplicate the
+    entire 16 GiB Animate 2 checkpoint in VRAM or system RAM.  This runtime
+    exits after one job, so restoration is neither useful nor reachable.  Meta
+    tensors retain the shapes Comfy expects while consuming no VRAM or system
+    RAM.
     """
 
     patcher.offload_device = torch.device("meta")
@@ -101,7 +101,7 @@ class MMToolsGpuOnlyWanLoader:
         _use_ephemeral_lora_backups(model)
         free_bytes, total_bytes = torch.cuda.mem_get_info()
         logging.info(
-            "GPU-only WAN staged with storage-free patch backups; %.2f/%.2f GiB free",
+            "WAN staged after encoders with storage-free patch backups; %.2f/%.2f GiB free",
             free_bytes / 1024**3,
             total_bytes / 1024**3,
         )
@@ -144,7 +144,7 @@ class MMToolsGpuOnlyWan22Loader:
         _use_ephemeral_lora_backups(model)
         free_bytes, total_bytes = torch.cuda.mem_get_info()
         logging.info(
-            "GPU-only WAN 2.2 staged with storage-free patch backups; %.2f/%.2f GiB free",
+            "WAN 2.2 staged after encoder with storage-free patch backups; %.2f/%.2f GiB free",
             free_bytes / 1024**3,
             total_bytes / 1024**3,
         )
@@ -156,6 +156,6 @@ NODE_CLASS_MAPPINGS = {
     "MMToolsGpuOnlyWan22Loader": MMToolsGpuOnlyWan22Loader,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "MMToolsGpuOnlyWanLoader": "WAN Loader · GPU-only staged",
-    "MMToolsGpuOnlyWan22Loader": "WAN 2.2 Loader · GPU-only staged",
+    "MMToolsGpuOnlyWanLoader": "WAN Loader · staged after encoders",
+    "MMToolsGpuOnlyWan22Loader": "WAN 2.2 Loader · staged after encoder",
 }

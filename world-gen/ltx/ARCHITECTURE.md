@@ -3,8 +3,9 @@
 The product surface is the shared mm-tools Studio; native inference is a
 job-scoped instance of the PR-pinned Comfy runtime under `../../V2V/ComfyUI`.
 Comfy listens on an ephemeral loopback port, its editor is never exposed, API
-nodes are disabled, metadata is disabled, and every model stays on CUDA. No
-custom node is loaded for this lane.
+nodes are disabled, metadata is disabled, and inference runs on CUDA while
+Comfy's native memory management places idle weights between the GPU and host
+RAM. No custom node is loaded for this lane.
 
 `local_app/adapter.py` builds the three official graphs directly instead of
 importing the blueprint JSON, so the studio pins every recipe constant by
@@ -35,7 +36,7 @@ Weights: the INT8 ConvRot distilled DiT is the verified default; the NVFP4
 twin from the same bundle swaps in when selected and needs the matching files
 from the ltx downloader bundle. The temporal upscaler and duration head ship
 in the bundle for the long-form lane but are unused by these distilled
-graphs. Only the selected model set loads, and execution remains GPU-only.
+graphs. Only the selected model set loads; inference stays on CUDA and idle weights follow Comfy's native placement.
 
 Uploads, queue state, logs, settings receipts, and outputs stay inside
 `world-gen/ltx/.runtime/studio`. The default listener is `127.0.0.1:8269`;

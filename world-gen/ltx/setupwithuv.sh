@@ -33,7 +33,8 @@ if [[ ! -x "$VENV/bin/python" ]]; then
 fi
 
 # The wheel contains its own CUDA runtime; the host driver provides forward
-# compatibility. No compiler or CPU model-offload lane is introduced here.
+# compatibility. No compiler is required; Comfy manages weight placement
+# between the GPU and host RAM natively.
 uv pip install --python "$VENV/bin/python" \
   --index-url https://download.pytorch.org/whl/cu130 \
   'torch==2.11.0+cu130' 'torchvision==0.26.0+cu130' 'torchaudio==2.11.0+cu130'

@@ -6,9 +6,9 @@ uploads, persistent run history, previews, output downloads, and its local API.
 
 Every diffusion job starts a job-scoped ComfyUI process on an ephemeral
 `127.0.0.1` port with API nodes and all custom nodes disabled.  The process is
-pinned to the PR #15139 checkout and is launched with `--gpu-only`.  It loads
-the Kijai INT8 ConvRot checkpoint directly; no model is staged in system RAM or
-offloaded to the CPU.
+pinned to the PR #15139 checkout.  It loads the Kijai INT8 ConvRot checkpoint
+directly; inference runs on CUDA while Comfy's native memory management places
+idle weights between the GPU and host RAM.
 
 ## Conditioning contract
 

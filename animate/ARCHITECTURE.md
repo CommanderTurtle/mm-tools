@@ -3,16 +3,18 @@
 The product surface is the shared mm-tools Studio; native inference is a
 job-scoped instance of the PR-pinned Comfy runtime under `../V2V/ComfyUI`.
 Comfy listens on an ephemeral loopback port, its editor is never exposed, API
-nodes are disabled, metadata is disabled, and every model stays on CUDA. The
-only optional custom node allowed to load is the repository-pinned
-`ComfyUI-WanAnimatePreprocess` pack used by the diagnostic mode.
+nodes are disabled, metadata is disabled, and inference runs on CUDA while
+Comfy's native memory management places idle weights between the GPU and host
+RAM. Each lane whitelists exactly the repository-pinned packs it needs:
+`mmtools_animate` for the creation lanes, plus `ComfyUI-WanAnimatePreprocess`
+for the pose lab and character replacement.
 
 `motion_transfer` constructs Wan Animate 2 directly and has two local INT8
 lanes. Native distilled inference uses the upstream 10-step Euler/no-CFG
 recipe. LightX2V loads the base INT8 model plus the rank-64 acceleration LoRA;
 its recommended profile mirrors Comfy's published six-step LCM graph, with a
-separate literal four-step speed profile. Only the selected model is loaded and
-all execution remains GPU-only. The graph retains the complete conditioning
+separate literal four-step speed profile. Only the selected model set loads;
+inference stays on CUDA and idle weights follow Comfy's native placement. The graph retains the complete conditioning
 surface: separate character and pose prompts, CLIP vision on both inputs,
 independent reference and motion strengths, denoising-time motion windows,
 continuation frames and offsets, manual context windows, FreeNoise/fusion
@@ -30,7 +32,7 @@ fp16/NVFP4 twin; a text-encoder switch swaps the FP8-scaled UMT5-XXL for
 rst220's NVFP4 twin, so the lighter encoder can free VRAM while the DiT stays
 INT8. The distilled profile remains INT8-only for the DiT and rejects the DiT
 switch with a precise error, but accepts either encoder. Only the selected
-files load, and execution still remains GPU-only.
+files load; inference stays on CUDA and idle weights follow Comfy's native placement.
 
 `character_replace` preserves the source scene: the driving video supplies the
 stage, lighting, and camera while a replacement character performs inside it.

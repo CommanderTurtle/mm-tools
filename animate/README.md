@@ -3,8 +3,8 @@
 Wan-Animate-2 turns a reference character image plus a driving video into a
 performance, and can replace a character inside an existing video while
 keeping its motion, lighting, and background intact. The studio runs the
-official Comfy workflow on the PR-pinned shared runtime as a job-scoped,
-GPU-only subprocess and owns its own `.venv`.
+official Comfy workflow on the PR-pinned shared runtime as a job-scoped
+subprocess that infers on the 5090 and owns its own `.venv`.
 
 Two production lanes plus a diagnostic:
 

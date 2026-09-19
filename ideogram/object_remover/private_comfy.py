@@ -84,7 +84,7 @@ class PrivateComfy:
                        "--base-directory", str(self.state),
                        "--extra-model-paths-config", str(config), "--disable-auto-launch", "--disable-api-nodes",
                        "--disable-metadata", "--disable-all-custom-nodes", "--whitelist-custom-nodes", "comfy_nodes",
-                       "--cache-none", "--database-url", f"sqlite:///{self.state / 'user/comfyui.db'}"]
+                       "--database-url", f"sqlite:///{self.state / 'user/comfyui.db'}"]
             if os.getenv("IDEOGRAM_COMFY_DEVICE", "auto") == "cpu":
                 command += ["--cpu"]
             for kind in ("input", "output", "temp", "user"):

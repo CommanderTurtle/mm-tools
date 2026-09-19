@@ -13,7 +13,7 @@ frames at full canvas resolution in a single stage. Frame counts follow the
 native `seconds x FPS + 1` rule and stay under the 1,000-frame audio latent
 ceiling. INT8 ConvRot is the verified default; the NVFP4 Blackwell twin from
 the same bundle is a one-click switch that frees activation headroom on RTX
-50-series GPUs. Everything stays local and GPU-only.
+50-series GPUs. Everything stays local, with inference on the 5090.
 
 ## Install and start
 
