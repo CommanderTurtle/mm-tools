@@ -937,17 +937,20 @@ function modelStudioNode(item) {
   const shell = document.createElement("div"); shell.className = "model-stage";
   const canvas = document.createElement("canvas"); canvas.className = "model-canvas"; canvas.setAttribute("aria-label", `Interactive 3D preview of ${item.label || item.name}`);
   const status = document.createElement("div"); status.className = "model-status"; status.textContent = "Loading local GLB…";
-  const toolbar = document.createElement("div"); toolbar.className = "model-toolbar";
+  const play = document.createElement("button"); play.type = "button"; play.textContent = "▶ Play"; play.style.display = "none";
+  const timeline = document.createElement("input"); timeline.type = "range"; timeline.min = "0"; timeline.max = "1"; timeline.step = "0.01"; timeline.value = "0"; timeline.style.display = "none"; timeline.setAttribute("aria-label", "Animation time");
   const orbit = document.createElement("button"); orbit.type = "button"; orbit.textContent = "↻ Auto orbit"; orbit.classList.add("active");
   const wire = document.createElement("button"); wire.type = "button"; wire.textContent = "⌗ Wire";
   const home = document.createElement("button"); home.type = "button"; home.textContent = "⌂ Reset";
   const fullscreen = document.createElement("button"); fullscreen.type = "button"; fullscreen.textContent = "⛶ Full";
-  toolbar.append(orbit, wire, home, fullscreen); shell.append(canvas, status, toolbar);
-  const state3d = { yaw: .65, pitch: -.24, distance: 2.7, auto: true, wire: false, drag: null, renderer: null };
+  toolbar.append(play, timeline, orbit, wire, home, fullscreen); shell.append(canvas, status, toolbar);
+  const state3d = { yaw: .65, pitch: -.24, distance: 2.7, auto: true, wire: false, drag: null, renderer: null, animTime: 0, animPlaying: false };
   orbit.onclick = () => { state3d.auto = !state3d.auto; orbit.classList.toggle("active", state3d.auto); };
   wire.onclick = () => { state3d.wire = !state3d.wire; wire.classList.toggle("active", state3d.wire); };
   home.onclick = () => Object.assign(state3d, { yaw: .65, pitch: -.24, distance: 2.7 });
   fullscreen.onclick = () => shell.requestFullscreen?.();
+  play.onclick = () => { state3d.animPlaying = !state3d.animPlaying; play.textContent = state3d.animPlaying ? "Ⅱ Pause" : "▶ Play"; play.classList.toggle("active", state3d.animPlaying); };
+  timeline.oninput = () => { state3d.animTime = Number(timeline.value); state3d.animPlaying = false; play.textContent = "▶ Play"; play.classList.remove("active"); };
   canvas.addEventListener("pointerdown", (event) => { state3d.drag = { x: event.clientX, y: event.clientY, yaw: state3d.yaw, pitch: state3d.pitch }; state3d.auto = false; orbit.classList.remove("active"); canvas.setPointerCapture(event.pointerId); });
   canvas.addEventListener("pointermove", (event) => { if (!state3d.drag) return; state3d.yaw = state3d.drag.yaw + (event.clientX - state3d.drag.x) * .009; state3d.pitch = Math.max(-1.45, Math.min(1.45, state3d.drag.pitch + (event.clientY - state3d.drag.y) * .009)); });
   canvas.addEventListener("pointerup", () => { state3d.drag = null; });
@@ -956,7 +959,15 @@ function modelStudioNode(item) {
   fetch(item.url).then((response) => {
     if (!response.ok) throw new Error(`GLB request failed (${response.status})`);
     return response.arrayBuffer();
-  }).then((buffer) => createGlbRenderer(canvas, buffer, state3d, status)).catch((error) => {
+  }).then((buffer) => createGlbRenderer(canvas, buffer, state3d, status, {
+    onReady: ({ duration }) => {
+      if (!(duration > 0)) return;
+      play.style.display = ""; timeline.style.display = "";
+      timeline.max = String(Math.max(duration, .01));
+      state3d.animPlaying = true; play.textContent = "Ⅱ Pause"; play.classList.add("active");
+    },
+    onTime: (time) => { timeline.value = String(time); },
+  })).catch((error) => {
     status.textContent = `Preview unavailable · ${error.message}`; status.classList.add("error");
   });
   return shell;
@@ -1032,16 +1043,110 @@ function shaderProgram(gl, vertexSource, fragmentSource) {
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program)); return program;
 }
 
-async function createGlbRenderer(canvas, source, controls, status) {
+const glbMatMulInto = (out, a, b) => {
+  for (let column = 0; column < 4; column += 1) for (let row = 0; row < 4; row += 1) out[column * 4 + row] = a[row] * b[column * 4] + a[4 + row] * b[column * 4 + 1] + a[8 + row] * b[column * 4 + 2] + a[12 + row] * b[column * 4 + 3];
+};
+
+const glbTrsInto = (out, tx, ty, tz, rx, ry, rz, rw, sx, sy, sz) => {
+  const xx = rx * rx, yy = ry * ry, zz = rz * rz, xy = rx * ry, xz = rx * rz, yz = ry * rz, wx = rw * rx, wy = rw * ry, wz = rw * rz;
+  out[0] = (1 - 2 * (yy + zz)) * sx; out[1] = 2 * (xy + wz) * sx; out[2] = 2 * (xz - wy) * sx;
+  out[4] = 2 * (xy - wz) * sy; out[5] = (1 - 2 * (xx + zz)) * sy; out[6] = 2 * (yz + wx) * sy;
+  out[8] = 2 * (xz + wy) * sz; out[9] = 2 * (yz - wx) * sz; out[10] = (1 - 2 * (xx + yy)) * sz;
+  out[3] = 0; out[7] = 0; out[11] = 0;
+  out[12] = tx; out[13] = ty; out[14] = tz; out[15] = 1;
+};
+
+function buildGlbSkeleton(doc, binary) {
+  if (!doc.skins?.length || !doc.animations?.length) return null;
+  const animation = doc.animations[0];
+  const channels = [];
+  for (const channel of animation.channels || []) {
+    if (channel.target?.path !== "translation" && channel.target?.path !== "rotation") continue;
+    const sampler = animation.samplers?.[channel.sampler]; if (!sampler) continue;
+    channels.push({ node: channel.target.node, path: channel.target.path, times: accessorData(doc, binary, sampler.input).array, values: accessorData(doc, binary, sampler.output).array });
+  }
+  if (!channels.length) return null;
+  const nodes = doc.nodes || []; const nodeCount = nodes.length;
+  const parent = new Int32Array(nodeCount).fill(-1); const children = Array.from({ length: nodeCount }, () => []);
+  nodes.forEach((node, index) => (node.children || []).forEach((child) => { if (Number.isInteger(child) && child >= 0 && child < nodeCount) { parent[child] = index; children[index].push(child); } }));
+  const roots = doc.scenes?.[doc.scene ?? 0]?.nodes || [0];
+  const order = []; const seen = new Uint8Array(nodeCount); const queue = [...roots];
+  while (queue.length) { const index = queue.shift(); if (!Number.isInteger(index) || index < 0 || index >= nodeCount || seen[index]) continue; seen[index] = 1; order.push(index); queue.push(...children[index]); }
+  for (let index = 0; index < nodeCount; index += 1) if (!seen[index]) order.push(index);
+  const baseT = new Float32Array(nodeCount * 3); const baseR = new Float32Array(nodeCount * 4); const baseS = new Float32Array(nodeCount * 3);
+  const animT = new Float32Array(nodeCount * 3); const animR = new Float32Array(nodeCount * 4);
+  for (let index = 0; index < nodeCount; index += 1) {
+    const node = nodes[index] || {};
+    const t = node.translation || [0, 0, 0]; const r = node.rotation || [0, 0, 0, 1]; const s = node.scale || [1, 1, 1];
+    baseT.set(t, index * 3); baseR.set(r, index * 4); baseS.set(s, index * 3);
+    animT.set(t, index * 3); animR.set(r, index * 4);
+  }
+  let duration = 0;
+  for (const channel of channels) duration = Math.max(duration, Number(channel.times[channel.times.length - 1] || 0));
+  const skinByIndex = new Map();
+  (doc.skins || []).forEach((skin, index) => {
+    const joints = skin.joints || [];
+    if (!joints.length || joints.length > 96) return;
+    skinByIndex.set(index, { joints: Int32Array.from(joints), ibm: accessorData(doc, binary, skin.inverseBindMatrices).array.slice(), matrices: new Float32Array(joints.length * 16) });
+  });
+  if (!skinByIndex.size) return null;
+  return { nodeCount, parent, order, baseT, baseR, baseS, animT, animR, channels, duration, skinByIndex, world: Array.from({ length: nodeCount }, () => new Float32Array(16)), local: Array.from({ length: nodeCount }, () => new Float32Array(16)) };
+}
+
+function updateGlbSkeleton(skeleton, time) {
+  const { nodeCount, parent, order, baseT, baseR, baseS, animT, animR, channels, world, local } = skeleton;
+  animT.set(baseT); animR.set(baseR);
+  for (const channel of channels) {
+    const times = channel.times; const count = times.length; if (!count) continue;
+    const values = channel.values; const stride = channel.path === "rotation" ? 4 : 3;
+    const target = channel.path === "rotation" ? animR : animT; const at = channel.node * stride;
+    let lo = 0, hi = 0, t = 0;
+    if (time > times[count - 1]) { lo = count - 1; hi = count - 1; }
+    else if (time > times[0]) {
+      let low = 0, high = count - 1;
+      while (high - low > 1) { const mid = (low + high) >> 1; if (times[mid] <= time) low = mid; else high = mid; }
+      lo = low; hi = high; t = (time - times[lo]) / ((times[hi] - times[lo]) || 1);
+    }
+    if (lo === hi) { for (let i = 0; i < stride; i += 1) target[at + i] = values[lo * stride + i]; continue; }
+    if (stride === 4) {
+      const ax = values[lo * 4], ay = values[lo * 4 + 1], az = values[lo * 4 + 2], aw = values[lo * 4 + 3];
+      let bx = values[hi * 4], by = values[hi * 4 + 1], bz = values[hi * 4 + 2], bw = values[hi * 4 + 3];
+      let dot = ax * bx + ay * by + az * bz + aw * bw;
+      if (dot < 0) { dot = -dot; bx = -bx; by = -by; bz = -bz; bw = -bw; }
+      if (dot > .9995) {
+        target[at] = ax + (bx - ax) * t; target[at + 1] = ay + (by - ay) * t; target[at + 2] = az + (bz - az) * t; target[at + 3] = aw + (bw - aw) * t;
+        const length = Math.hypot(target[at], target[at + 1], target[at + 2], target[at + 3]) || 1;
+        for (let i = 0; i < 4; i += 1) target[at + i] /= length;
+      } else {
+        const theta = Math.acos(Math.min(1, dot)); const sin = Math.sin(theta) || 1;
+        const wa = Math.sin((1 - t) * theta) / sin, wb = Math.sin(t * theta) / sin;
+        target[at] = ax * wa + bx * wb; target[at + 1] = ay * wa + by * wb; target[at + 2] = az * wa + bz * wb; target[at + 3] = aw * wa + bw * wb;
+      }
+    } else {
+      for (let i = 0; i < 3; i += 1) target[at + i] = values[lo * 3 + i] + (values[hi * 3 + i] - values[lo * 3 + i]) * t;
+    }
+  }
+  for (const index of order) {
+    const matrix = local[index];
+    glbTrsInto(matrix, animT[index * 3], animT[index * 3 + 1], animT[index * 3 + 2], animR[index * 4], animR[index * 4 + 1], animR[index * 4 + 2], animR[index * 4 + 3], baseS[index * 3], baseS[index * 3 + 1], baseS[index * 3 + 2]);
+    const parentIndex = parent[index];
+    if (parentIndex >= 0) glbMatMulInto(world[index], world[parentIndex], matrix);
+    else world[index].set(matrix);
+  }
+  for (const set of skeleton.skinByIndex.values()) {
+    for (let joint = 0; joint < set.joints.length; joint += 1) glbMatMulInto(set.matrices.subarray(joint * 16, joint * 16 + 16), world[set.joints[joint]], set.ibm.subarray(joint * 16, joint * 16 + 16));
+  }
+}
+async function createGlbRenderer(canvas, source, controls, status, hooks = {}) {
   const { json: doc, binary } = glbChunks(source); const gl = canvas.getContext("webgl2", { antialias: true, alpha: true }); if (!gl) throw new Error("WebGL 2 is unavailable");
   const vertexSource = `#version 300 es
-  in vec3 a_position; in vec3 a_normal; in vec2 a_uv; uniform mat4 u_view_projection; uniform vec3 u_center; uniform float u_scale; out vec3 v_normal; out vec2 v_uv;
-  void main(){ vec3 p=(a_position-u_center)*u_scale; gl_Position=u_view_projection*vec4(p,1.0); v_normal=normalize(a_normal); v_uv=a_uv; }`;
+  in vec3 a_position; in vec3 a_normal; in vec2 a_uv; in vec4 a_joint; in vec4 a_weight; uniform mat4 u_view_projection; uniform vec3 u_center; uniform float u_scale; uniform int u_joint_count; uniform highp mat4 u_skin[96]; out vec3 v_normal; out vec2 v_uv;
+  void main(){ vec3 p=a_position; vec3 n=a_normal; if (u_joint_count > 0) { vec4 sp=vec4(0.0); vec3 sn=vec3(0.0); for (int i = 0; i < 4; i++) { float w=a_weight[i]; if (w > 0.0001) { mat4 m=u_skin[int(a_joint[i])]; sp+=w*(m*vec4(p,1.0)); sn+=w*(m*vec4(n,0.0)).xyz; } } p=sp.xyz; n=sn; } vec3 q=(p-u_center)*u_scale; gl_Position=u_view_projection*vec4(q,1.0); v_normal=normalize(n); v_uv=a_uv; }`;
   const fragmentSource = `#version 300 es
   precision highp float; in vec3 v_normal; in vec2 v_uv; uniform vec4 u_color; uniform sampler2D u_texture; uniform bool u_has_texture; uniform bool u_wire; out vec4 color;
   void main(){ vec3 n=normalize(v_normal); float key=max(dot(n,normalize(vec3(.35,.78,.52))),0.0); float rim=pow(1.0-max(n.z,0.0),2.0); vec4 base=u_has_texture?texture(u_texture,v_uv)*u_color:u_color; vec3 lit=base.rgb*(.24+.74*key)+vec3(.22,.38,.31)*rim*.28; color=vec4(u_wire?mix(lit,vec3(.55,1.0,.79),.58):lit,base.a); }`;
   const program = shaderProgram(gl, vertexSource, fragmentSource); gl.useProgram(program);
-  const locations = Object.fromEntries(["a_position", "a_normal", "a_uv", "u_view_projection", "u_center", "u_scale", "u_color", "u_texture", "u_has_texture", "u_wire"].map((name) => [name, name.startsWith("a_") ? gl.getAttribLocation(program, name) : gl.getUniformLocation(program, name)]));
+  const locations = Object.fromEntries(["a_position", "a_normal", "a_uv", "a_joint", "a_weight", "u_view_projection", "u_center", "u_scale", "u_joint_count", "u_skin", "u_color", "u_texture", "u_has_texture", "u_wire"].map((name) => [name, name.startsWith("a_") ? gl.getAttribLocation(program, name) : gl.getUniformLocation(program, name)]));
   const textures = await Promise.all((doc.images || []).map(async (image) => {
     let bytes; let type = image.mimeType || "image/png";
     if (Number.isInteger(image.bufferView)) { const view = doc.bufferViews[image.bufferView]; bytes = binary.slice(view.byteOffset || 0, (view.byteOffset || 0) + view.byteLength); }
@@ -1049,6 +1154,7 @@ async function createGlbRenderer(canvas, source, controls, status) {
     else return null;
     const bitmap = await createImageBitmap(new Blob([bytes], { type })); const texture = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texture); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap); gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT); return texture;
   }));
+  const skeleton = buildGlbSkeleton(doc, binary);
   const primitives = []; const minimum = [Infinity, Infinity, Infinity]; const maximum = [-Infinity, -Infinity, -Infinity];
   for (const mesh of doc.meshes || []) for (const primitive of mesh.primitives || []) {
     if (primitive.mode != null && primitive.mode !== 4) continue;
@@ -1056,25 +1162,64 @@ async function createGlbRenderer(canvas, source, controls, status) {
     const normal = Number.isInteger(primitive.attributes.NORMAL) ? accessorData(doc, binary, primitive.attributes.NORMAL).array : computedNormals(position.array, indices?.array);
     const uv = Number.isInteger(primitive.attributes.TEXCOORD_0) ? accessorData(doc, binary, primitive.attributes.TEXCOORD_0).array : new Float32Array(position.count * 2);
     const makeBuffer = (target, data) => { const buffer = gl.createBuffer(); gl.bindBuffer(target, buffer); gl.bufferData(target, data, gl.STATIC_DRAW); return buffer; };
-    const item = { position: makeBuffer(gl.ARRAY_BUFFER, position.array), normal: makeBuffer(gl.ARRAY_BUFFER, normal), uv: makeBuffer(gl.ARRAY_BUFFER, uv), count: indices?.count || position.count, type: indices?.componentType || 0, indices: indices ? makeBuffer(gl.ELEMENT_ARRAY_BUFFER, indices.array) : null, material: doc.materials?.[primitive.material] || {} };
+    let skin = null; let jointBuffer = null; let weightBuffer = null;
+    if (skeleton && Number.isInteger(primitive.skin) && Number.isInteger(primitive.attributes.JOINTS_0) && Number.isInteger(primitive.attributes.WEIGHTS_0)) {
+      const set = skeleton.skinByIndex.get(primitive.skin);
+      if (set) {
+        const joints = accessorData(doc, binary, primitive.attributes.JOINTS_0); const weights = accessorData(doc, binary, primitive.attributes.WEIGHTS_0);
+        if (weights.componentType === 5126 && joints.array.length === position.count * 4 && weights.array.length === position.count * 4) {
+          skin = set; jointBuffer = makeBuffer(gl.ARRAY_BUFFER, new Float32Array(joints.array)); weightBuffer = makeBuffer(gl.ARRAY_BUFFER, weights.array);
+        }
+      }
+    }
+    const item = { position: makeBuffer(gl.ARRAY_BUFFER, position.array), normal: makeBuffer(gl.ARRAY_BUFFER, normal), uv: makeBuffer(gl.ARRAY_BUFFER, uv), count: indices?.count || position.count, type: indices?.componentType || 0, indices: indices ? makeBuffer(gl.ELEMENT_ARRAY_BUFFER, indices.array) : null, material: doc.materials?.[primitive.material] || {}, skin, jointBuffer, weightBuffer };
     const boundsMin = position.min || [0, 0, 0]; const boundsMax = position.max || [0, 0, 0]; for (let axis = 0; axis < 3; axis += 1) { minimum[axis] = Math.min(minimum[axis], boundsMin[axis]); maximum[axis] = Math.max(maximum[axis], boundsMax[axis]); }
     primitives.push(item);
   }
   if (!primitives.length) throw new Error("GLB contains no triangle meshes");
+  if (skeleton && skeleton.channels[0]?.times.length > 1) {
+    // Frame the whole clip: union the rest-pose bounds with the motion root's
+    // translation sampled at every keyframe so walking does not leave view.
+    const restMin = [...minimum]; const restMax = [...maximum]; const hipsIndex = skeleton.nodeCount > 1 ? 1 : 0;
+    const hipMin = [0, 0, 0]; const hipMax = [0, 0, 0];
+    for (let index = 0; index < skeleton.channels[0].times.length; index += 1) {
+      updateGlbSkeleton(skeleton, skeleton.channels[0].times[index]);
+      for (let axis = 0; axis < 3; axis += 1) {
+        const shift = skeleton.world[hipsIndex][12 + axis];
+        hipMin[axis] = Math.min(hipMin[axis], shift); hipMax[axis] = Math.max(hipMax[axis], shift);
+      }
+    }
+    for (let axis = 0; axis < 3; axis += 1) { minimum[axis] = restMin[axis] + Math.min(0, hipMin[axis]); maximum[axis] = restMax[axis] + Math.max(0, hipMax[axis]); }
+  }
   const center = minimum.map((value, axis) => (value + maximum[axis]) / 2); const extent = Math.max(...maximum.map((value, axis) => value - minimum[axis])) || 1; const scale = 1.65 / extent;
-  status.textContent = `${primitives.length} mesh${primitives.length === 1 ? "" : "es"} · ${Math.round(source.byteLength / 1048576)} MB · drag to orbit · wheel to zoom`;
+  const constantJoint = (() => { const buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 0, 1]), gl.STATIC_DRAW); return buffer; })();
+  const constantWeight = (() => { const buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(4), gl.STATIC_DRAW); return buffer; })();
+  status.textContent = `${primitives.length} mesh${primitives.length === 1 ? "" : "es"} · ${Math.round(source.byteLength / 1048576)} MB${skeleton ? ` · ${skeleton.duration.toFixed(2)} s clip` : ""} · drag to orbit · wheel to zoom`;
   const resize = () => { const ratio = Math.min(devicePixelRatio || 1, 2); const width = Math.max(canvas.clientWidth, 1); const height = Math.max(canvas.clientHeight, 1); const realWidth = Math.floor(width * ratio); const realHeight = Math.floor(height * ratio); if (canvas.width !== realWidth || canvas.height !== realHeight) { canvas.width = realWidth; canvas.height = realHeight; gl.viewport(0, 0, realWidth, realHeight); } return width / height; };
   const bindAttribute = (location, buffer, components) => { gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.enableVertexAttribArray(location); gl.vertexAttribPointer(location, components, gl.FLOAT, false, 0, 0); };
   gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.uniform1i(locations.u_texture, 0);
-  let previous = performance.now();
+  let previous = performance.now(); let reportedTime = NaN;
   const paint = (now) => {
     if (!canvas.isConnected) return;
     const elapsed = Math.min((now - previous) / 1000, .05); previous = now; if (controls.auto) controls.yaw += elapsed * .22;
     const aspect = resize(); const radius = controls.distance; const eye = [Math.sin(controls.yaw) * Math.cos(controls.pitch) * radius, Math.sin(controls.pitch) * radius, Math.cos(controls.yaw) * Math.cos(controls.pitch) * radius];
     const matrix = matrixMultiply(matrixPerspective(.67, aspect, .01, 100), matrixLookAt(eye, [0, 0, 0], [0, 1, 0]));
     const dark = document.documentElement.dataset.theme !== "light"; gl.clearColor(dark ? .025 : .91, dark ? .035 : .93, dark ? .03 : .91, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); gl.useProgram(program); gl.uniformMatrix4fv(locations.u_view_projection, false, matrix); gl.uniform3fv(locations.u_center, center); gl.uniform1f(locations.u_scale, scale); gl.uniform1i(locations.u_wire, controls.wire ? 1 : 0);
+    if (skeleton) {
+      if (controls.animPlaying && skeleton.duration > 0) controls.animTime = ((Number(controls.animTime) || 0) + elapsed) % skeleton.duration;
+      const time = Math.min(Math.max(Number(controls.animTime) || 0, 0), skeleton.duration || 0);
+      updateGlbSkeleton(skeleton, time);
+      if (hooks.onTime && time !== reportedTime) { hooks.onTime(time); reportedTime = time; }
+    }
     for (const primitive of primitives) {
       bindAttribute(locations.a_position, primitive.position, 3); bindAttribute(locations.a_normal, primitive.normal, 3); bindAttribute(locations.a_uv, primitive.uv, 2);
+      if (primitive.skin) {
+        gl.uniformMatrix4fv(locations.u_skin, false, primitive.skin.matrices); gl.uniform1i(locations.u_joint_count, primitive.skin.joints.length);
+        bindAttribute(locations.a_joint, primitive.jointBuffer, 4); bindAttribute(locations.a_weight, primitive.weightBuffer, 4);
+      } else {
+        gl.uniform1i(locations.u_joint_count, 0);
+        bindAttribute(locations.a_joint, constantJoint, 4); bindAttribute(locations.a_weight, constantWeight, 4);
+      }
       const pbr = primitive.material.pbrMetallicRoughness || {}; const factor = pbr.baseColorFactor || [1, 1, 1, 1]; gl.uniform4fv(locations.u_color, factor);
       const textureIndex = pbr.baseColorTexture?.index; const imageIndex = Number.isInteger(textureIndex) ? doc.textures?.[textureIndex]?.source : null; const texture = Number.isInteger(imageIndex) ? textures[imageIndex] : null; gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texture); gl.uniform1i(locations.u_has_texture, texture ? 1 : 0);
       if (primitive.indices) { gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, primitive.indices); gl.drawElements(controls.wire ? gl.LINE_STRIP : gl.TRIANGLES, primitive.count, primitive.type, 0); }
@@ -1083,6 +1228,7 @@ async function createGlbRenderer(canvas, source, controls, status) {
     requestAnimationFrame(paint);
   };
   requestAnimationFrame(paint);
+  hooks.onReady?.({ duration: skeleton ? skeleton.duration : 0 });
 }
 
 function audioStudioNode(item) {

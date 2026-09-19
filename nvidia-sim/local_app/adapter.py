@@ -119,7 +119,7 @@ class Adapter(StudioAdapter):
     def validate(self, request: dict[str, Any], resolve_asset: Callable[[str], Path]) -> None:
         mode = str(request.get("mode", ""))
         controls = request.get("controls") or {}
-        if mode not in {"text_motion", "inspect_motion", "soma_body", "soma_hand"}:
+        if mode not in {"text_motion", "inspect_motion", "soma_body", "soma_hand", "mesh_motion"}:
             raise ValueError(f"Unknown NVIDIA studio mode: {mode}")
         if mode == "text_motion":
             if not str(controls.get("prompt", "")).strip():
@@ -143,6 +143,10 @@ class Adapter(StudioAdapter):
             _floats(controls.get("identity_coefficients", []), 128)
             if str(controls.get("hand", "right")) not in {"left", "right"}:
                 raise ValueError("Hand side must be left or right.")
+        elif mode == "mesh_motion":
+            resolve_asset(str(controls.get("motion_asset", "")))
+            if str(controls.get("lod", "mid")) not in {"mid", "low", "xlo"}:
+                raise ValueError("Body LOD must be mid, low, or xlo.")
 
     @staticmethod
     def _progress(line: str) -> tuple[str, float] | None:
@@ -247,12 +251,11 @@ class Adapter(StudioAdapter):
         pose[0, 0, 1] = float(controls.get("body_yaw", 0)) * np.pi / 180.0
         return pose
 
-    def _body(self, controls: dict[str, Any], context: StudioContext) -> list[StudioOutput]:
+    def _body_layer(self, controls: dict[str, Any]):
+        """Build a SOMALayer + identity tensor from shared body controls."""
         import torch
-        import trimesh
         from soma.body import SOMALayer
 
-        context.update("Building native SOMA identity", 0.12)
         layer = SOMALayer(
             self.soma_assets, identity_model_type="soma", device="cuda",
             lod=str(controls.get("lod", "mid")), mode="warp",
@@ -263,6 +266,14 @@ class Adapter(StudioAdapter):
         identity = torch.zeros(1, int(layer.num_shape_components), device="cuda")
         if values:
             identity[0, : len(values)] = torch.tensor(values, device="cuda")
+        return layer, identity, values
+
+    def _body(self, controls: dict[str, Any], context: StudioContext) -> list[StudioOutput]:
+        import torch
+        import trimesh
+
+        context.update("Building native SOMA identity", 0.12)
+        layer, identity, values = self._body_layer(controls)
         pose = self._pose_body(layer, controls, torch)
         with torch.inference_mode():
             result = layer(
@@ -338,6 +349,138 @@ class Adapter(StudioAdapter):
             StudioOutput(npz, "data", f"SOMA {hand} hand · native arrays", "application/octet-stream"),
         ]
 
+    def _mesh_motion(self, controls: dict[str, Any], context: StudioContext) -> list[StudioOutput]:
+        import torch
+        import trimesh
+        from ardy.skeleton.registry import build_skeleton
+        from soma.body import SOMALayer
+
+        from local_app.mesh_motion import (
+            HUMANOID_JOINT_COUNTS,
+            build_animated_glb,
+            decompose_trs_batch,
+            solve_soma_pose,
+            soma_correspondence,
+        )
+
+        source = context.asset(str(controls.get("motion_asset", "")))
+        with np.load(source, allow_pickle=False) as archive:
+            joints_src = np.asarray(archive["posed_joints"], dtype=np.float32)
+            while joints_src.ndim > 3 and joints_src.shape[0] == 1:
+                joints_src = joints_src[0]
+            fps = float(np.asarray(archive["fps"]).reshape(-1)[0]) if "fps" in archive.files else 20.0
+        if joints_src.ndim != 3 or joints_src.shape[-1] != 3:
+            raise ValueError(f"Expected posed_joints as [frames,joints,3], found {joints_src.shape}.")
+        joint_count = int(joints_src.shape[1])
+        if joint_count not in HUMANOID_JOINT_COUNTS:
+            raise ValueError("Only humanoid ARDY motions (27, 30, or 77 joints) can drive the SOMA body.")
+        skeleton = build_skeleton(joint_count)
+        source_names = list(skeleton.bone_order_names)
+        stride = max(1, int(np.ceil(joints_src.shape[0] / 2400)))
+        joints_src = joints_src[::stride].astype(np.float32)
+
+        context.update("Building native SOMA identity", 0.1)
+        layer, identity, _values = self._body_layer(controls)
+        layer.prepare_identity(identity, global_scale=float(controls.get("global_scale", 1.0)))
+        rig_view = layer.public_rig_view()
+        soma_names = [str(name) for name in rig_view.joint_names]
+        correspondence = soma_correspondence(source_names, soma_names, source_rig=str(skeleton.name))
+        mapped_source = [index for index, value in enumerate(correspondence) if value is not None]
+        if len(mapped_source) < 15 or 1 not in correspondence:
+            raise ValueError("Motion skeleton is not a supported humanoid rig.")
+
+        # Absorb any unit/scale mismatch (centimeter ARDY clips vs meter SOMA rest)
+        # through the hips-to-head span so translation stays in scene units.
+        rest_pos = rig_view.bind_transforms_world[:, :3, 3].detach().cpu().numpy()
+        head_target = soma_names.index("Head") if "Head" in soma_names else 8
+        head_source = next((index for index, name in enumerate(source_names) if str(name) in {"Head", "Skull"}), None)
+        if head_source is None:
+            raise ValueError("Motion skeleton has no head joint for scale normalization.")
+        src_span = float(np.linalg.norm(
+            np.asarray(joints_src[:, 1]).mean(axis=0) - np.asarray(joints_src[:, head_source]).mean(axis=0)))
+        soma_span = float(np.linalg.norm(rest_pos[head_target] - rest_pos[1]))
+        scale = soma_span / src_span if src_span > 1e-6 else 1.0
+        targets = joints_src * scale
+
+        context.update("Solving the native SOMA pose chain", 0.3)
+        parent_ids = [int(value) for value in rig_view.joint_parent_ids.detach().cpu().tolist()]
+        solved = solve_soma_pose(targets, correspondence,
+                                 rig_view.bind_transforms_world.detach().cpu().numpy(), parent_ids)
+        poses_aa = solved["poses_aa"]
+        transl = solved["transl"]
+        frames = int(poses_aa.shape[0])
+
+        context.update("Running native forward kinematics", 0.5)
+        world = []
+        chunk = 96
+        for start in range(0, frames, chunk):
+            slice_ = slice(start, min(start + chunk, frames))
+            with torch.inference_mode():
+                result = layer.pose(
+                    torch.from_numpy(poses_aa[slice_]).to("cuda"),
+                    torch.from_numpy(transl[slice_]).to("cuda"),
+                    apply_correctives=bool(controls.get("correctives", True)),
+                )
+            world.append(result.transforms.detach().float().cpu().numpy())
+        world = np.concatenate(world, axis=0)  # [F, 78, 4, 4]
+
+        # Local node TRS per frame: Root carries its world transform; every other
+        # joint is parent-relative. Static node TRS is therefore omitted and the
+        # animation channels fully define the hierarchy.
+        inv_parent = np.linalg.inv(world[:, parent_ids, :])
+        inv_parent[:, 0] = np.eye(4)[None]
+        local = np.einsum("fpab,fpc->fpac", inv_parent, world)
+        anim_trans, anim_quat = decompose_trs_batch(local)
+
+        context.update("Assembling the skinned GLB", 0.8)
+        with torch.inference_mode():
+            rest = layer.pose(torch.zeros(1, 77, 3, device="cuda"), torch.zeros(1, 3, device="cuda"))
+        vertices = rest.vertices[0].float().cpu().numpy()
+        faces = layer.faces.detach().cpu().numpy()
+        mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+        normals = np.asarray(mesh.vertex_normals, dtype=np.float32)
+
+        weights = rig_view.skinning_weights.to(torch.float32)
+        top_indices = torch.topk(weights, 4, dim=-1).indices.to(torch.uint8).cpu().numpy()
+        top_weights = torch.gather(weights, 1, torch.topk(weights, 4, dim=-1).indices)
+        top_weights = (top_weights / top_weights.sum(dim=-1, keepdim=True)).cpu().numpy()
+
+        times = (np.arange(frames, dtype=np.float32)) / (fps / stride)
+        glb = context.output_dir / "mesh_motion.glb"
+        glb.write_bytes(build_animated_glb(
+            vertices=vertices, normals=normals, faces=faces,
+            joint_indices=top_indices, joint_weights=top_weights,
+            joint_rest_world=rig_view.bind_transforms_world.detach().cpu().numpy().astype(np.float32),
+            anim_trans=anim_trans.astype(np.float32), anim_quat=anim_quat.astype(np.float32),
+            times=times, parent_ids=parent_ids,
+        ))
+        npz = context.output_dir / "mesh_motion.npz"
+        np.savez_compressed(
+            npz, poses_aa=poses_aa, transl=transl, times=times,
+            joint_names=np.asarray(rig_view.joint_names),
+            joint_parent_ids=np.asarray(parent_ids),
+            source_names=np.asarray(source_names),
+            mapped_source_indices=np.asarray(mapped_source, dtype=np.int64),
+            unit_scale=np.float32(scale),
+        )
+        metadata = context.output_dir / "mesh_motion.json"
+        metadata.write_text(json.dumps({
+            "backend": "soma", "lod": str(controls.get("lod", "mid")),
+            "source": source.name, "source_fps": fps, "stride": stride,
+            "frames": frames, "mapped_joints": len(mapped_source),
+            "unit_scale": scale,
+            "vertices": int(vertices.shape[0]), "faces": int(faces.shape[0]),
+            "correctives": bool(controls.get("correctives", True)),
+        }, indent=2), encoding="utf-8")
+        del layer, rest, world, local
+        gc.collect(); torch.cuda.empty_cache()
+        context.update("Skinned motion ready", 1.0)
+        return [
+            StudioOutput(glb, "model", "Skinned motion · animated GLB", "model/gltf-binary"),
+            StudioOutput(npz, "data", "Native SOMA pose arrays", "application/octet-stream"),
+            StudioOutput(metadata, "text", "Build receipt", "application/json"),
+        ]
+
     def run(self, request: dict[str, Any], context: StudioContext) -> list[StudioOutput]:
         mode = str(request.get("mode", ""))
         controls = request.get("controls") or {}
@@ -349,4 +492,6 @@ class Adapter(StudioAdapter):
             return self._body(controls, context)
         if mode == "soma_hand":
             return self._hand(controls, context)
+        if mode == "mesh_motion":
+            return self._mesh_motion(controls, context)
         raise ValueError(f"Unknown NVIDIA studio mode: {mode}")

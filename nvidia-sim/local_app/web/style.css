@@ -276,6 +276,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .model-toolbar { position: absolute; right: 9px; bottom: 9px; display: flex; flex-wrap: wrap; justify-content: end; gap: 5px; }
 .model-toolbar button { padding: 6px 8px; border: 1px solid var(--line-strong); border-radius: 8px; background: color-mix(in srgb, var(--panel-strong) 88%, transparent); color: var(--muted); backdrop-filter: blur(10px); font-size: 8px; }
 .model-toolbar button:hover, .model-toolbar button.active { color: var(--accent); border-color: rgba(var(--accent-rgb), .48); background: rgba(var(--accent-rgb), .12); }
+.model-toolbar input[type="range"] { width: 150px; }
 .motion-stage { position: relative; width: 100%; min-height: 280px; overflow: hidden; border: 1px solid rgba(var(--accent-rgb), .16); border-radius: 13px; background: radial-gradient(circle at 50% 40%, rgba(var(--accent-rgb), .15), transparent 58%), linear-gradient(180deg, var(--bg-soft), var(--bg)); }
 .motion-stage:fullscreen { width: 100vw; height: 100vh; border: 0; border-radius: 0; }
 .motion-canvas { display: block; width: 100%; height: 280px; cursor: grab; touch-action: none; }

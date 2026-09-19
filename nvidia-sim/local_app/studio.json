@@ -15,7 +15,7 @@
   "default_mode": "text_motion",
   "max_upload_bytes": 8589934592,
   "theme": {"accent": "#78efa9", "secondary": "#a58c6c"},
-  "badges": ["4 ARDY variants", "INT8 semantic encoder", "Constraint tracks", "Interactive skeleton player", "SOMA body + hand", "GLB + native arrays"],
+  "badges": ["4 ARDY variants", "INT8 semantic encoder", "Constraint tracks", "Interactive skeleton player", "SOMA body + hand", "Skinned GLB motion", "GLB + native arrays"],
   "groups": [
     {"id": "motion", "title": "Motion"},
     {"id": "body", "title": "SOMA-X"}
@@ -35,7 +35,8 @@
     {"title": "Natural five-second action", "description": "High-continuity Core motion.", "mode": "text_motion", "controls": {"model": "core_long", "prompt": "A person takes three confident steps forward, turns naturally, and gives a friendly wave.", "duration": 5, "samples": 1, "seed": 42}},
     {"title": "Fast-reacting gesture", "description": "Short-horizon Core for prompt changes.", "mode": "text_motion", "controls": {"model": "core_fast", "prompt": "A person reacts with surprise, steps back, then points to the left.", "duration": 5, "samples": 2, "seed": 7}},
     {"title": "G1 locomotion", "description": "Robot motion plus MuJoCo qpos CSV.", "mode": "text_motion", "controls": {"model": "g1_long", "prompt": "The humanoid robot walks forward, pivots ninety degrees, and comes to a stable stop.", "duration": 8, "samples": 1, "seed": 19}},
-    {"title": "SOMA production body", "description": "Corrected mid-LOD neutral body.", "mode": "soma_body", "controls": {"lod": "mid", "pose": "a_pose", "correctives": true, "global_scale": 1}}
+    {"title": "SOMA production body", "description": "Corrected mid-LOD neutral body.", "mode": "soma_body", "controls": {"lod": "mid", "pose": "a_pose", "correctives": true, "global_scale": 1}},
+    {"title": "Motion-driven body", "description": "Mid-LOD corrected body replaying an uploaded Core motion.", "mode": "mesh_motion", "controls": {"lod": "mid", "correctives": true, "global_scale": 1}}
   ],
   "modes": [
     {
@@ -89,6 +90,22 @@
         {"id": "identity_coefficients", "type": "tags", "label": "Ordered SOMA identity coefficients", "default": [], "span": "full", "placeholder": "0.0, -0.2, 0.45, …", "hint": "Unspecified coefficients remain exactly zero."},
         {"id": "correctives", "type": "toggle", "label": "Pose correctives", "default": true, "span": "full", "toggle_label": "Apply released learned surface correctives"}
       ], "advanced": [], "preview_template": "SOMA {{lod}} · {{pose}} · scale {{global_scale}}"
+    },
+    {
+      "id": "mesh_motion", "group": "body", "title": "Motion-driven body", "short": "Drive the native SOMA-X body with any ARDY humanoid motion and export a skinned GLB.",
+      "description": "Re-solves every mapped ARDY joint target against the fitted SOMA topology, runs the native forward kinematics, and binds the rigged body skin so the exported GLB plays the full clip in this studio's canvas or any glTF viewer.",
+      "icon": "⌗", "badge": "MOTION -> SKINNED GLB", "engine": "SOMA-X + ARDY",
+      "input_label": "ARDY motion NPZ + body options", "output_label": "Skinned animated GLB + native pose arrays",
+      "recipe": "Upload the NPZ from a Direct ARDY motion job; G1 robot clips are rejected because they have no humanoid correspondence. The body is rebuilt at the chosen LOD and the clip stays solver-aligned to the native skeleton.",
+      "fields": [
+        {"type": "section", "label": "Motion"},
+        {"id": "motion_asset", "type": "asset", "label": "ARDY motion NPZ", "required": true, "span": "full", "accept": ".npz", "icon": "⌁", "drop_label": "Drop a motion archive", "hint": "Core 27-joint motions map fully; SOMA-native 30/77 joint motions map by exact names."},
+        {"type": "section", "label": "Body"},
+        {"id": "lod", "type": "choice", "label": "Mesh detail", "default": "mid", "span": "third", "options": [{"value": "mid", "label": "Mid · 18,056 vertices", "description": "Production surface."}, {"value": "low", "label": "Low · 4,505 vertices", "description": "Fast iteration."}, {"value": "xlo", "label": "XLO · 612 vertices", "description": "Proxy/simulation."}]},
+        {"id": "correctives", "type": "toggle", "label": "Pose correctives", "default": true, "span": "third", "toggle_label": "Apply released learned surface correctives"},
+        {"id": "global_scale", "type": "range", "label": "Global scale", "min": 0.5, "max": 1.5, "step": 0.01, "default": 1, "span": "third"},
+        {"id": "identity_coefficients", "type": "tags", "label": "Ordered SOMA identity coefficients", "default": [], "span": "full", "placeholder": "0.0, -0.2, 0.45, …", "hint": "Unspecified coefficients remain exactly zero."}
+      ], "advanced": [], "preview_template": "{{lod}} body · driven by {{motion_asset}}"
     },
     {
       "id": "soma_hand", "group": "body", "title": "SOMA-X hand lab", "short": "Shape and articulate the released 25-joint hand topology.",
