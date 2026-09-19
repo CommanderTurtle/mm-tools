@@ -1,0 +1,157 @@
+{
+  "id": "ltx-2-5",
+  "title": "LTX-2.5 Studio",
+  "short_name": "LTX",
+  "kind": "A+V VIDEO SYNTHESIS",
+  "port": 8269,
+  "kicker": "TEXT · IMAGE · FIRST + LAST FRAME · SYNCHRONIZED AUDIO · LOCAL GPU",
+  "hero": "Type it, frame it, or bracket it. The sound comes with.",
+  "description": "LTX-2.5 runs the official distilled two-stage recipe in one private Comfy runtime: text-to-video and image-to-video generate at half resolution, run the x2 latent spatial upscaler, refine with the second sigma stage, and decode video plus synchronized audio in one pass. First + last frame brackets both endpoints natively at full resolution.",
+  "guide": "Choose Text to video for an open prompt, Image to video when one still should begin the clip, or First + last frame when both endpoints are known and the middle must be invented. Every mode emits one MP4-class file with its audio track attached; nothing leaves the machine.",
+  "engine": "LTX-2.5 22B Distilled · INT8 ConvRot / NVFP4 · Gemma 4 12B projection encoder · x2 latent upscale",
+  "vram": "32 GiB GPU-only profile",
+  "runtime_contract": "RTX 5090 · local Comfy graph · no CPU model offload",
+  "residency": "Private per-job runtime",
+  "default_mode": "t2v",
+  "max_upload_bytes": 25769803776,
+  "theme": {"accent": "#6fc3df", "secondary": "#8a7f6a"},
+  "badges": ["T2V + I2V + FLF2V", "Synchronized audio", "Official distilled recipe", "INT8 ConvRot", "NVFP4 switch", "x2 latent upscale", "No telemetry"],
+  "groups": [
+    {"id": "create", "title": "Create"}
+  ],
+  "models": [
+    {"label": "LTX-2.5 22B Distilled DiT", "path": "../../V2V/ComfyUI/models/diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors", "note": "INT8 ConvRot · default lane"},
+    {"label": "LTX-2.5 22B Distilled DiT · NVFP4", "path": "../../V2V/ComfyUI/models/diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors", "note": "Blackwell NVFP4 twin of the distilled DiT"},
+    {"label": "Gemma 4 12B projection encoder", "path": "../../V2V/ComfyUI/models/text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors", "note": "Prompt conditioning encoder"},
+    {"label": "LTX video VAE BF16", "path": "../../V2V/ComfyUI/models/vae/ltx-2.5-video-vae-bf16.safetensors"},
+    {"label": "LTX audio VAE BF16", "path": "../../V2V/ComfyUI/models/vae/ltx-2.5-audio-vae-bf16.safetensors"},
+    {"label": "x2 latent spatial upscaler", "path": "../../V2V/ComfyUI/models/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors", "note": "Half-resolution generation path"},
+    {"label": "x2 latent temporal upscaler", "path": "../../V2V/ComfyUI/models/latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors", "note": "Bundled for the long-form lane; unused by the distilled studio graph"},
+    {"label": "Duration head patch", "path": "../../V2V/ComfyUI/models/model_patches/ltx-2.5-duration-head-bf16.safetensors", "note": "Bundled for the long-form lane; unused by the distilled studio graph"},
+    {"label": "E2B prompt enhancer encoder", "path": "../../V2V/ComfyUI/models/text_encoders/gemma4_e2b_it_int8_convrot.safetensors", "note": "Loaded only when prompt enhancement is enabled"}
+  ],
+  "setup_steps": [
+    "Run `cd ~/multimedia/models && uv run download_models.py ltx` to install the allowlisted LTX-2.5 bundle. The upstream repository is gated under the LTX-2.x Community License; accept it once on the Hugging Face page so the Hub client can pull the files.",
+    "Run `cd ~/multimedia/world-gen/ltx && ./setupwithuv.sh` once. The command prepares the isolated GPU environment against the shared Comfy checkout.",
+    "Run `./startwithuv.sh` and open the printed loopback URL.",
+    "Use Text to video for open prompts, Image to video to start from a still, and First + last frame to bracket a known beginning and ending."
+  ],
+  "presets": [
+    {"title": "Official five-second demo", "mode": "t2v", "controls": {"width": 1280, "height": 720, "duration": 5, "fps": 24, "seed": 0}},
+    {"title": "Twelve-second i2v", "mode": "i2v", "controls": {"width": 1280, "height": 720, "duration": 12, "fps": 24}},
+    {"title": "FLF2V eight-second bracket", "mode": "flf2v", "controls": {"width": 1280, "height": 720, "duration": 8, "fps": 24}},
+    {"title": "NVFP4 t2v", "mode": "t2v", "controls": {"weights_variant": "nvfp4", "width": 1280, "height": 720, "duration": 5, "fps": 24}}
+  ],
+  "modes": [
+    {
+      "id": "t2v",
+      "group": "create",
+      "title": "Text to video",
+      "short": "Describe a clip with synchronized sound; the distilled recipe samples it in two stages.",
+      "description": "The official T2V template: half-resolution sampling with the distilled DiT, the x2 latent spatial upscaler between stages, the second sigma schedule, tiled decode, and one CreateVideo pass that attaches the decoded audio track.",
+      "icon": "✎",
+      "badge": "LTX-2.5 T2V",
+      "engine": "Distilled 22B · two-stage sigmas · euler ancestral",
+      "input_label": "Prompt",
+      "output_label": "Video + audio clip + run settings",
+      "recipe": "Write what should happen, how it looks, and what sounds it makes. The enhancer toggle rewrites the prompt through the small E2B encoder first, exactly like the official template's optional path.",
+      "fields": [
+        {"type": "section", "label": "Prompt"},
+        {"id": "prompt", "type": "textarea", "label": "Clip description", "default": "A cinematic close-up of a candle flame in a dark room. The flame sways gently as a draft passes; warm light moves across the wall behind it. Soft ambient room tone with a faint crackle.", "rows": 4, "span": "full", "hint": "Describe visuals and sound together; the model generates both in one pass."},
+        {"id": "prompt_enhance", "type": "toggle", "label": "Prompt enhancement", "default": false, "span": "half", "toggle_label": "Rewrite the prompt with the E2B enhancer", "hint": "Off by default, like the official template. Loads a second small encoder when on."},
+        {"type": "section", "label": "Frame & timeline"},
+        {"id": "width", "type": "number", "label": "Width", "min": 256, "max": 2160, "step": 8, "default": 1280, "suffix": " px", "span": "third"},
+        {"id": "height", "type": "number", "label": "Height", "min": 256, "max": 2160, "step": 8, "default": 720, "suffix": " px", "span": "third"},
+        {"id": "duration", "type": "number", "label": "Duration", "min": 1, "max": 40, "step": 1, "default": 5, "suffix": " s", "span": "third", "hint": "Frames = seconds × FPS + 1, capped at 1,000 by the audio latent ceiling."},
+        {"id": "fps", "type": "range", "label": "Output FPS", "min": 1, "max": 60, "step": 1, "default": 24, "span": "half"},
+        {"id": "seed", "type": "number", "label": "Seed", "min": 0, "max": 18446744073709551615, "step": 1, "default": 42, "span": "half"},
+        {"type": "section", "label": "Model"},
+        {"id": "weights_variant", "type": "choice", "label": "Weights variant", "default": "int8", "span": "full", "options": [{"value": "int8", "label": "INT8 ConvRot · verified default", "description": "Comfy-Org's published INT8 repack of the distilled transformer."}, {"value": "nvfp4", "label": "NVFP4 · Blackwell · ~10 GiB lighter", "description": "NVFP4 distilled twin from the same bundle; frees activation headroom on RTX 50-series GPUs."}]}
+      ],
+      "advanced": [
+        {"type": "section", "label": "Delivery"},
+        {"id": "container", "type": "select", "label": "Container", "default": "mp4", "span": "third", "options": [{"value": "mp4", "label": "MP4"}, {"value": "mkv", "label": "MKV"}, {"value": "webm", "label": "WebM"}]},
+        {"id": "codec", "type": "select", "label": "Codec", "default": "h264", "span": "third", "options": [{"value": "h264", "label": "H.264"}, {"value": "av1", "label": "AV1"}, {"value": "auto", "label": "Auto"}]},
+        {"id": "crf", "type": "range", "label": "Delivery CRF", "min": 0, "max": 51, "step": 1, "default": 18, "span": "third"},
+        {"id": "bit_depth", "type": "select", "label": "Bit depth", "default": 8, "span": "half", "options": [{"value": 8, "label": "8-bit"}, {"value": 10, "label": "10-bit"}]},
+        {"id": "color_space", "type": "select", "label": "Color space", "default": "sRGB", "span": "half", "options": [{"value": "sRGB", "label": "sRGB"}, {"value": "HDR", "label": "BT.2020 HLG"}, {"value": "HDR PQ", "label": "BT.2020 PQ"}]}
+      ],
+      "preview_template": "{{width}}×{{height}} canvas · {{duration}}s @ {{fps}} FPS · {{weights_variant}}"
+    },
+    {
+      "id": "i2v",
+      "group": "create",
+      "title": "Image to video",
+      "short": "Start from a still and let the model direct the rest, sound included.",
+      "description": "The official I2V template: the first frame is resized to a 1536 longer side, compressed with LTXVPreprocess, pinned into the latent at stage strength 0.7, sampled through the same two-stage distilled recipe, and re-pinned at strength 1.0 after the x2 upsample before decode.",
+      "icon": "▣",
+      "badge": "LTX-2.5 I2V",
+      "engine": "Distilled 22B · first-frame pinning · two-stage sigmas",
+      "input_label": "First frame + prompt",
+      "output_label": "Video + audio clip + run settings",
+      "recipe": "Drop the exact opening frame you want. The model keeps it fixed while inventing motion and sound; describe the movement and audio you expect next.",
+      "fields": [
+        {"type": "section", "label": "Opening frame"},
+        {"id": "first_frame_asset", "type": "asset", "label": "First frame", "required": true, "span": "half", "accept": "image/*", "icon": "◎", "drop_label": "Drop the opening still", "hint": "Resized to a 1536 longer side internally, matching the official template."},
+        {"type": "section", "label": "Prompt"},
+        {"id": "prompt", "type": "textarea", "label": "What happens next", "default": "The camera drifts slowly forward while the subject moves naturally; lighting stays coherent. Ambient sound matches the scene.", "rows": 4, "span": "full"},
+        {"id": "prompt_enhance", "type": "toggle", "label": "Prompt enhancement", "default": false, "span": "half", "toggle_label": "Rewrite the prompt with the E2B enhancer", "hint": "Conditioned on the first frame when on, like the official template."},
+        {"type": "section", "label": "Frame & timeline"},
+        {"id": "width", "type": "number", "label": "Width", "min": 256, "max": 2160, "step": 8, "default": 1280, "suffix": " px", "span": "third"},
+        {"id": "height", "type": "number", "label": "Height", "min": 256, "max": 2160, "step": 8, "default": 720, "suffix": " px", "span": "third"},
+        {"id": "duration", "type": "number", "label": "Duration", "min": 1, "max": 40, "step": 1, "default": 5, "suffix": " s", "span": "third", "hint": "Frames = seconds × FPS + 1, capped at 1,000 by the audio latent ceiling."},
+        {"id": "fps", "type": "range", "label": "Output FPS", "min": 1, "max": 60, "step": 1, "default": 24, "span": "half"},
+        {"id": "seed", "type": "number", "label": "Seed", "min": 0, "max": 18446744073709551615, "step": 1, "default": 42, "span": "half"},
+        {"type": "section", "label": "Model"},
+        {"id": "weights_variant", "type": "choice", "label": "Weights variant", "default": "int8", "span": "full", "options": [{"value": "int8", "label": "INT8 ConvRot · verified default", "description": "Comfy-Org's published INT8 repack of the distilled transformer."}, {"value": "nvfp4", "label": "NVFP4 · Blackwell · ~10 GiB lighter", "description": "NVFP4 distilled twin from the same bundle; frees activation headroom on RTX 50-series GPUs."}]}
+      ],
+      "advanced": [
+        {"type": "section", "label": "Delivery"},
+        {"id": "container", "type": "select", "label": "Container", "default": "mp4", "span": "third", "options": [{"value": "mp4", "label": "MP4"}, {"value": "mkv", "label": "MKV"}, {"value": "webm", "label": "WebM"}]},
+        {"id": "codec", "type": "select", "label": "Codec", "default": "h264", "span": "third", "options": [{"value": "h264", "label": "H.264"}, {"value": "av1", "label": "AV1"}, {"value": "auto", "label": "Auto"}]},
+        {"id": "crf", "type": "range", "label": "Delivery CRF", "min": 0, "max": 51, "step": 1, "default": 18, "span": "third"},
+        {"id": "bit_depth", "type": "select", "label": "Bit depth", "default": 8, "span": "half", "options": [{"value": 8, "label": "8-bit"}, {"value": 10, "label": "10-bit"}]},
+        {"id": "color_space", "type": "select", "label": "Color space", "default": "sRGB", "span": "half", "options": [{"value": "sRGB", "label": "sRGB"}, {"value": "HDR", "label": "BT.2020 HLG"}, {"value": "HDR PQ", "label": "BT.2020 PQ"}]}
+      ],
+      "preview_template": "first frame → {{width}}×{{height}} canvas · {{duration}}s @ {{fps}} FPS"
+    },
+    {
+      "id": "flf2v",
+      "group": "create",
+      "title": "First + last frame",
+      "short": "Bracket a known beginning and ending; the model invents the middle.",
+      "description": "The official FLF2V template: both frames are resized to the exact canvas, compressed with LTXVPreprocess, and pinned through LTXVAddGuide at strength 0.7 (frame 0 and frame -1). Sampling runs the single-stage schedule with Euler ancestral, then crops the guides and decodes video plus audio.",
+      "icon": "⧉",
+      "badge": "LTX-2.5 FLF2V",
+      "engine": "Distilled 22B · dual frame pinning · single-stage sigmas",
+      "input_label": "First + last frame + prompt",
+      "output_label": "Video + audio clip + run settings",
+      "recipe": "Drop the exact opening and closing frames. Use them for transitions, product loops, and anything where both endpoints are already decided.",
+      "fields": [
+        {"type": "section", "label": "Endpoint frames"},
+        {"id": "first_frame_asset", "type": "asset", "label": "First frame", "required": true, "span": "half", "accept": "image/*", "icon": "◎", "drop_label": "Drop the opening still", "hint": "Resized to the exact canvas with center crop, matching the official template."},
+        {"id": "last_frame_asset", "type": "asset", "label": "Last frame", "required": true, "span": "half", "accept": "image/*", "icon": "◎", "drop_label": "Drop the closing still"},
+        {"type": "section", "label": "Prompt"},
+        {"id": "prompt", "type": "textarea", "label": "What happens in between", "default": "A smooth continuous transition between the two frames with coherent motion and stable lighting; ambient sound follows the action.", "rows": 4, "span": "full"},
+        {"id": "prompt_enhance", "type": "toggle", "label": "Prompt enhancement", "default": false, "span": "half", "toggle_label": "Rewrite the prompt with the E2B enhancer", "hint": "Conditioned on the first frame when on, like the official template."},
+        {"type": "section", "label": "Frame & timeline"},
+        {"id": "width", "type": "number", "label": "Width", "min": 256, "max": 2160, "step": 8, "default": 1280, "suffix": " px", "span": "third"},
+        {"id": "height", "type": "number", "label": "Height", "min": 256, "max": 2160, "step": 8, "default": 720, "suffix": " px", "span": "third"},
+        {"id": "duration", "type": "number", "label": "Duration", "min": 1, "max": 40, "step": 1, "default": 5, "suffix": " s", "span": "third", "hint": "Frames = seconds × FPS + 1, capped at 1,000 by the audio latent ceiling."},
+        {"id": "fps", "type": "range", "label": "Output FPS", "min": 1, "max": 60, "step": 1, "default": 24, "span": "half"},
+        {"id": "seed", "type": "number", "label": "Seed", "min": 0, "max": 18446744073709551615, "step": 1, "default": 42, "span": "half"},
+        {"type": "section", "label": "Model"},
+        {"id": "weights_variant", "type": "choice", "label": "Weights variant", "default": "int8", "span": "full", "options": [{"value": "int8", "label": "INT8 ConvRot · verified default", "description": "Comfy-Org's published INT8 repack of the distilled transformer."}, {"value": "nvfp4", "label": "NVFP4 · Blackwell · ~10 GiB lighter", "description": "NVFP4 distilled twin from the same bundle; frees activation headroom on RTX 50-series GPUs."}]}
+      ],
+      "advanced": [
+        {"type": "section", "label": "Delivery"},
+        {"id": "container", "type": "select", "label": "Container", "default": "mp4", "span": "third", "options": [{"value": "mp4", "label": "MP4"}, {"value": "mkv", "label": "MKV"}, {"value": "webm", "label": "WebM"}]},
+        {"id": "codec", "type": "select", "label": "Codec", "default": "h264", "span": "third", "options": [{"value": "h264", "label": "H.264"}, {"value": "av1", "label": "AV1"}, {"value": "auto", "label": "Auto"}]},
+        {"id": "crf", "type": "range", "label": "Delivery CRF", "min": 0, "max": 51, "step": 1, "default": 18, "span": "third"},
+        {"id": "bit_depth", "type": "select", "label": "Bit depth", "default": 8, "span": "half", "options": [{"value": 8, "label": "8-bit"}, {"value": 10, "label": "10-bit"}]},
+        {"id": "color_space", "type": "select", "label": "Color space", "default": "sRGB", "span": "half", "options": [{"value": "sRGB", "label": "sRGB"}, {"value": "HDR", "label": "BT.2020 HLG"}, {"value": "HDR PQ", "label": "BT.2020 PQ"}]}
+      ],
+      "preview_template": "bracketed {{width}}×{{height}} canvas · {{duration}}s @ {{fps}} FPS"
+    }
+  ]
+}

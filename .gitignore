@@ -261,6 +261,15 @@
 !/world-gen/lingbot/local_app/**
 !/world-gen/lingbot/wan/
 !/world-gen/lingbot/wan/**
+!/world-gen/ltx/
+/world-gen/ltx/*
+!/world-gen/ltx/README.md
+!/world-gen/ltx/ARCHITECTURE.md
+!/world-gen/ltx/requirements-local.txt
+!/world-gen/ltx/setupwithuv.sh
+!/world-gen/ltx/startwithuv.sh
+!/world-gen/ltx/local_app/
+!/world-gen/ltx/local_app/**
 !/world-gen/fire3d/
 /world-gen/fire3d/*
 !/world-gen/fire3d/README.md

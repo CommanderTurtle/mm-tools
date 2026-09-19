@@ -1,0 +1,2 @@
+# Product/API surface. The pinned Comfy requirements are installed separately.
+-r local_app/requirements.txt
