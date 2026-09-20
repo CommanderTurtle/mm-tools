@@ -400,6 +400,16 @@ class Adapter(StudioAdapter):
         if len(mapped_source) < 15 or 1 not in correspondence:
             raise ValueError("Motion skeleton is not a supported humanoid rig.")
 
+        # Gait-locked arm synthesis wiring: SOMA public indices of the knee
+        # joints (thigh pitch signal) and the upper-arm/forearm pairs.
+        index_of = {name: i for i, name in enumerate(soma_names)}
+        thighs = (index_of.get("LeftShin"), index_of.get("RightShin"))
+        arms = ((index_of.get("LeftArm"), index_of.get("LeftForeArm"), index_of.get("LeftHand")),
+                (index_of.get("RightArm"), index_of.get("RightForeArm"), index_of.get("RightHand")))
+        swing = None
+        if all(index is not None for index in (*thighs, *arms)):
+            swing = {"thighs": thighs, "arms": arms}
+
         # Absorb any unit/scale mismatch (centimeter ARDY clips vs meter SOMA rest)
         # through the hips-to-head span so translation stays in scene units.
         rest_pos = eval_rest[:, :3, 3]
@@ -416,7 +426,7 @@ class Adapter(StudioAdapter):
         context.update("Solving the native SOMA pose chain", 0.3)
         parent_ids = [int(value) for value in rig_view.joint_parent_ids.detach().cpu().tolist()]
         solved = solve_soma_pose(targets, correspondence,
-                                 eval_rest, parent_ids)
+                                 eval_rest, parent_ids, swing=swing)
         poses_aa = solved["poses_aa"]
         transl = solved["transl"]
         frames = int(poses_aa.shape[0])

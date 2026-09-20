@@ -10,9 +10,11 @@ Two pure-numpy pieces, both GPU-free so they stay unit-testable off-box:
   rotation from the rest local direction to the current local direction, so
   differing rest shapes and units are absorbed per bone. Unmapped joints
   (fingers, jaw, eyes, ...) hold their rest articulation and simply follow
-  their nearest mapped ancestor. This is visualization-grade IK-lite: the
-  twist gauge around each bone axis is the minimum solution, not a
-  constrained solve.
+    their nearest mapped ancestor. This is visualization-grade IK-lite: the
+    twist gauge around each bone axis is the minimum solution, not a
+    constrained solve. Sources whose arm chains stay at rest while the legs
+    walk get a gait-locked procedural arm swing instead of a frozen V-pose;
+    see ``swing`` on ``solve_soma_pose``.
 
 - ``build_animated_glb`` writes a minimal standard glTF 2.0 binary: one
   static mesh (rest vertices, normals, top-4 skin weights), one skin over
@@ -54,6 +56,21 @@ HUMANOID_JOINT_COUNTS = (27, 30, 77)
 _TRUNK_RANGE = range(2, 7)
 
 _IDENTITY3 = np.eye(3, dtype=np.float64)
+
+# Gait-locked arm synthesis. ARDY Core walking output keeps the arm chain
+# at its rest articulation, so sources where the arms are static while the
+# legs walk get a procedural swing instead of a frozen V: the upper arm
+# pitches in antiphase to the ipsilateral thigh, and the forearm carries a
+# constant flexion plus a small follow-through. The effect fades as the
+# source arms move on their own, so clips with real arm motion are solved
+# bit-for-bit identically to before.
+_ARM_SWING_GAIN = 0.55    # fraction of the ipsilateral thigh pitch
+_ARM_SWING_LIMIT = 0.6    # rad clamp on the synthesized upper-arm pitch
+_FOREARM_FOLLOW = 0.30    # fraction of the upper-arm pitch carried by the forearm
+_FOREARM_FLEXION = 0.30   # rad constant elbow bend added when the forearm is static
+_ARM_STATIC_DEG = 4.0     # below this RMS direction variation the arm counts as static
+_ARM_FADE_DEG = 10.0      # fully faded out at this RMS variation
+_LEG_ACTIVE_DEG = 8.0     # minimum thigh pitch amplitude (deg) before any synthesis
 
 def soma_correspondence(source_names, soma_names, source_rig=""):
     """Map each source joint name to a SOMA public joint index (or None).
@@ -171,7 +188,115 @@ def _mat_to_quat(r):
     return out
 
 
-def solve_soma_pose(targets, correspondence, rest_world, parent_ids):
+def _rot_about(axis, angle):
+    """Batched Rodrigues rotations: [3] unit axis + [F] radians -> [F, 3, 3]."""
+    axis = _unit(np.asarray(axis, dtype=np.float64))
+    k = _skew(axis)
+    c = np.cos(angle)[:, None, None]
+    s = np.sin(angle)[:, None, None]
+    return c * _IDENTITY3 + s * k + (1.0 - c) * (k @ k)
+
+
+def _direction_rms_deg(directions):
+    """RMS deviation (degrees) of a [F, 3] direction field from its mean.
+
+    Returns ``inf`` when the directions cancel out (no stable mean), which
+    callers treat as "not static".
+    """
+    directions = _unit(np.asarray(directions, dtype=np.float64))
+    mean = directions.mean(axis=0)
+    if float(np.linalg.norm(mean)) < 1e-6:
+        return float("inf")
+    cosines = np.clip((directions * _unit(mean)).sum(axis=-1), -1.0, 1.0)
+    angles = np.degrees(np.arccos(cosines))
+    return float(np.sqrt(np.mean(angles ** 2)))
+
+
+def _apply_gait_swing(local_rot, targets, pos_cur, rot_cur, mapped, rest_pos,
+                      rest_rot, parent, trunk, swing):
+    """Compose a gait-locked arm swing into solved local rotations in place.
+
+    The pelvis rest frame supplies the body axes: up follows the rest trunk
+    direction, sagittal is the horizontal pelvis axis along which the knees
+    vary most, and the swing rotates about the pelvis lateral axis expressed
+    in each arm joint's parent bind frame, so it stays body-locked while the
+    torso turns. Sides whose source arms already move (or whose legs do not)
+    are skipped entirely, keeping those outputs bit-identical.
+    """
+    required = set(int(i) for i in swing["thighs"])
+    for pair in swing["arms"]:
+        required.update(int(i) for i in pair)
+    if not all(joint in mapped for joint in required):
+        return
+    f = int(local_rot.shape[0])
+    if f == 0:
+        return
+    pelvis_rot = rest_rot[1]
+    up_dir = _unit(rest_pos[trunk] - rest_pos[1]) if trunk > 1 else _unit(rest_pos[7] - rest_pos[1])
+    # The knee offsets below live in pelvis-frame coordinates, so the body
+    # basis must be expressed there too: the trunk direction in pelvis
+    # coordinates picks the up axis and fixes its sign. Taking the world
+    # coordinate axes instead only coincides when the pelvis frame is
+    # axis-aligned with the world, which SOMA's canonical rest pose is not
+    # (its local X is world up); the mixed-frame dot products then make the
+    # pitch gauge wind through the atan2 branch cut every stride.
+    up_local = pelvis_rot.T @ up_dir
+    up_axis = int(np.argmax(np.abs(up_local)))
+    horiz = [i for i in range(3) if i != up_axis]
+    up_f = np.eye(3)[up_axis]
+    up_f *= 1.0 if float(up_local[up_axis]) >= 0.0 else -1.0
+    hips_target = targets[:, mapped[1]]
+    offsets = {
+        "left": np.einsum("fji,fj->fi", rot_cur[:, 1],
+                          targets[:, mapped[int(swing["thighs"][0])]] - hips_target),
+        "right": np.einsum("fji,fj->fi", rot_cur[:, 1],
+                           targets[:, mapped[int(swing["thighs"][1])]] - hips_target),
+    }
+    # Sagittal = horizontal axis with the largest knee variance; the other
+    # horizontal axis is the lateral swing rotation axis.
+    sag_axis = max(horiz, key=lambda h: offsets["left"][:, h].var() + offsets["right"][:, h].var())
+    sag_f = np.eye(3)[sag_axis]
+    lat_f = np.cross(sag_f, up_f)
+
+    def pitch(v):
+        return np.arctan2(v @ sag_f, v @ (-up_f))
+
+    theta_leg = {"left": pitch(offsets["left"]), "right": pitch(offsets["right"])}
+    leg_amp_deg = float(np.degrees(np.ptp(theta_leg["left"]) + np.ptp(theta_leg["right"])) / 4.0)
+    axis_world = pelvis_rot @ lat_f
+
+    for side, (upper, fore, wrist) in zip(("left", "right"), swing["arms"]):
+        upper_i, fore_i, wrist_i = int(upper), int(fore), int(wrist)
+        if upper_i not in mapped or fore_i not in mapped or wrist_i not in mapped:
+            continue
+        parent_u = int(parent[upper_i])
+        # Fade gauges: the upper-arm bone (elbow about the shoulder-end joint)
+        # and the forearm bone (wrist about the elbow), measured on the
+        # pre-swing pose. A source arm that moves on its own fades the
+        # synthesis out bit-for-bit; a resting arm stays fully synthesized.
+        dir_u = np.einsum("fji,fj->fi", rot_cur[:, upper_i],
+                          targets[:, mapped[fore_i]] - pos_cur[:, upper_i])
+        w = float(np.clip((_ARM_FADE_DEG - _direction_rms_deg(dir_u)) /
+                          (_ARM_FADE_DEG - _ARM_STATIC_DEG), 0.0, 1.0))
+        w *= float(np.clip(leg_amp_deg / _LEG_ACTIVE_DEG, 0.0, 1.0))
+        if w <= 0.0:
+            continue
+        theta_arm = np.clip(-_ARM_SWING_GAIN * theta_leg[side],
+                           -_ARM_SWING_LIMIT, _ARM_SWING_LIMIT) * w
+        axis_u = rest_rot[parent_u].T @ axis_world
+        local_rot[:, upper_i] = _rot_about(axis_u, theta_arm) @ local_rot[:, upper_i]
+        dir_f = np.einsum("fji,fj->fi", rot_cur[:, fore_i],
+                          targets[:, mapped[wrist_i]] - pos_cur[:, fore_i])
+        fore_w = w * float(np.clip((_ARM_FADE_DEG - _direction_rms_deg(dir_f)) /
+                                   (_ARM_FADE_DEG - _ARM_STATIC_DEG), 0.0, 1.0))
+        if fore_w <= 0.0:
+            continue
+        theta_fore = _FOREARM_FOLLOW * theta_arm + _FOREARM_FLEXION * fore_w
+        axis_f = rest_rot[upper_i].T @ axis_world
+        local_rot[:, fore_i] = _rot_about(axis_f, theta_fore) @ local_rot[:, fore_i]
+
+
+def solve_soma_pose(targets, correspondence, rest_world, parent_ids, swing=None):
     """Convert ARDY world joint positions into SOMA pose parameters.
 
     Args:
@@ -186,6 +311,13 @@ def solve_soma_pose(targets, correspondence, rest_world, parent_ids):
             be used here.
         parent_ids: [78] public joint parents (SOMA convention: the virtual
             Root points at itself, index 0; -1 is tolerated).
+        swing: optional dict wiring the gait-locked arm synthesis to SOMA
+            public indices: ``{"thighs": (left_knee, right_knee), "arms":
+            ((left_upper, left_fore, left_wrist), (right_upper, right_fore,
+            right_wrist))}`` -- the shoulder-end/elbow/wrist triples per side.
+            When given, clips whose arms stay at rest while the legs walk
+            get a procedural gait-coherent arm swing; anything that moves
+            already solves exactly as before. ``None`` disables it.
 
     Returns:
         dict with ``poses_aa`` [F, 77, 3], ``transl`` [F, 3],
@@ -257,6 +389,10 @@ def solve_soma_pose(targets, correspondence, rest_world, parent_ids):
         pos_cur[:, joint] = pos_cur[:, parent] + np.einsum("fij,fj->fi", rot_cur[:, parent], local_offset)
         local_trans[:, joint] = np.einsum("fij,fj->fi", rot_cur[:, parent],
                                           pos_cur[:, joint] - pos_cur[:, parent])
+
+    if swing is not None:
+        _apply_gait_swing(local_rot, targets, pos_cur, rot_cur, mapped,
+                          rest_pos, rest_rot, pc, trunk, swing)
 
     # Emission contract: SOMALayer.pose composes O_p^-1 @ P_j @ O_j per joint
     # (apply_joint_orient_local), so emitting P_j = O_p L_j O_j^-1 makes the
