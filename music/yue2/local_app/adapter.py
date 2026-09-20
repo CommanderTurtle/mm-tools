@@ -334,6 +334,10 @@ class Adapter(StudioAdapter):
         from local_app.krea import CHECKPOINT_NAME, KreaPlanner
 
         planner = KreaPlanner(self.project_root)
+        sampling = {key: controls.get(f"krea_{key}") for key in (
+            "temperature", "top_k", "top_p", "min_p", "repetition_penalty",
+            "presence_penalty", "seed", "max_length",
+        ) if controls.get(f"krea_{key}") is not None}
         result = planner.plan(
             mode=str(controls.get("krea_mode", "brief")),
             direction=str(controls.get("krea_brief", "")),
@@ -341,6 +345,7 @@ class Adapter(StudioAdapter):
             constraints=str(controls.get("krea_constraints", "")),
             web_search=bool(controls.get("krea_research", False)),
             search_query=str(controls.get("krea_research_query", "")),
+            sampling=sampling or None,
             context=context,
         )
         context.check_cancelled()
@@ -575,13 +580,41 @@ class Adapter(StudioAdapter):
         outputs: list[StudioOutput] = []
         lyrics = str(controls.get("lyrics", ""))
         style = str(controls.get("style", ""))
-        for path in sorted(directory.rglob("*")):
-            if not path.is_file() or path.name == "manifest.json":
-                continue
+        scanned = [path for path in sorted(directory.rglob("*")) if path.is_file() and path.name != "manifest.json"]
+        timestamps = self._vocal_timestamps(directory, scanned, lyrics)
+        for path in scanned:
             kind, media_type = _media_kind(path)
             relative = path.relative_to(directory).as_posix()
             metadata: dict[str, Any] = {"workflow": label, "relative": relative}
             if kind == "audio":
                 metadata.update({"lyrics": lyrics, "style": style, "sample_rate": 48000})
+                if timestamps:
+                    metadata["lyric_timestamps"] = timestamps
             outputs.append(StudioOutput(path, kind, f"{label} · {relative}", media_type, metadata))
         return outputs
+
+    def _vocal_timestamps(self, directory: Path, files: list[Path], lyrics: str) -> list[dict[str, Any]] | None:
+        """StemKit post-pass: align lyric lines to real vocal activity in the
+        rendered take. Any failure keeps the visualizer's uniform spread."""
+        lines = [line.strip() for line in lyrics.splitlines() if line.strip()]
+        if len(lines) < 2:
+            return None
+        audio = next((path for path in files if path.suffix.lower() == ".wav"), None)
+        if audio is None:
+            source = next((path for path in files if path.suffix.lower() in {".flac", ".mp3"}), None)
+            if source is None:
+                return None
+            audio = directory / "vocal-sync.wav"
+            try:
+                data, rate = sf.read(source, always_2d=True)
+                sf.write(audio, data.T, int(rate), subtype="PCM_16")
+            except Exception:
+                return None
+        try:
+            from stemkit import studio_api
+        except Exception:
+            return None
+        try:
+            return studio_api.vocal_timestamps_for_lyrics(audio, lines, directory / "vocal-sync-work")
+        except Exception:
+            return None
