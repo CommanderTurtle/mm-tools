@@ -778,6 +778,18 @@ BUNDLES: tuple[Bundle, ...] = (
             ),
         ),
     ),
+    Bundle(
+        "stemkit",
+        "StemKit studio-quality Roformer vocals checkpoint",
+        "73",
+        (
+            A(
+                "KimberleyJSN/melbandroformer",
+                model_path("stemkit/roformer"),
+                ("MelBandRoformer.ckpt",),
+            ),
+        ),
+    ),
 )
 
 

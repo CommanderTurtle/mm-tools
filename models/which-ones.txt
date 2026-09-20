@@ -1028,6 +1028,16 @@ Retired from this downloader; now supplied by workflows/download_models.py
 (bundle `ltx`). The E2B enhancer encoder hard-links into
 `V2V/ComfyUI/models/text_encoders/` as before.
 
+73. KimberleyJSN/melbandroformer
+Expected file: models/stemkit/roformer/MelBandRoformer.ckpt
+
+The ~913 MB Mel-Band Roformer vocal checkpoint behind the shared StemKit
+runtime (music/src/stemkit). The YuE2 and MiniMax studios both resolve it
+from this one canonical location through stemkit.studio_api; acapella-only
+splits use it, while the default demucs htdemucs weights (~80 MB) are fetched
+by demucs itself on the first split into models/stemkit/torch-hub/checkpoints
+(the pinned TORCH_HOME), so they stay out of this inventory.
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,
