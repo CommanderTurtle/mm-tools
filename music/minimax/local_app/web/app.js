@@ -693,7 +693,7 @@ function slugify(value) {
   return slug || "track";
 }
 
-function buildMinimaxPlayerHtml({ title, source, lyrics, metadata, vocals, arrangement }) {
+function buildMinimaxPlayerHtml({ title, source, lyrics, metadata, vocals, arrangement, timestamps }) {
   const caption = (label, value) => `<small>${label}</small><p>${escapeText(value || "—")}</p>`;
   const rows = lyrics
     .map((line) => `<p${/^\s*\[.*\]\s*$/.test(line) ? ' class="tag" data-tag="1"' : ""}>${escapeText(line)}</p>`)
@@ -751,6 +751,11 @@ footer{display:flex;justify-content:space-between;gap:12px;margin-top:10px;color
   var context = null;
   var analyser = null;
   var activeIndex = -1;
+  var times = {};
+  var timeData = ${JSON.stringify(Array.isArray(timestamps) ? timestamps : [])};
+  for (var t = 0; t < timeData.length; t += 1) {
+    if (timeData[t] && isFinite(Number(timeData[t].start))) times[Number(timeData[t].line)] = Number(timeData[t].start);
+  }
   function formatTime(seconds) {
     if (!isFinite(seconds)) return "00:00";
     var whole = Math.max(0, Math.floor(seconds));
@@ -780,12 +785,21 @@ footer{display:flex;justify-content:space-between;gap:12px;margin-top:10px;color
     }
     clock.textContent = formatTime(audio.currentTime) + " / " + formatTime(audio.duration);
     if (!audio.paused && Number.isFinite(audio.duration) && audio.duration > 0 && rows.length) {
-      var index = Math.min(rows.length - 1, Math.floor((audio.currentTime / audio.duration) * rows.length));
+      var index = -1;
+      if (Object.keys(times).length > 0) {
+        for (var k = 0; k < rows.length; k += 1) {
+          if (rows[k].dataset.tag !== "1" && times[k] != null && times[k] <= audio.currentTime + 0.15) index = k;
+        }
+      } else {
+        index = Math.min(rows.length - 1, Math.floor((audio.currentTime / audio.duration) * rows.length));
+      }
       if (index !== activeIndex) {
         activeIndex = index;
         rows.forEach(function (row, j) { row.classList.toggle("active", j === index); });
-        var panel = rows[index].parentElement;
-        panel.scrollTo({ top: Math.max(0, rows[index].offsetTop - panel.clientHeight / 2 + rows[index].clientHeight / 2), behavior: "smooth" });
+        if (index >= 0) {
+          var panel = rows[index].parentElement;
+          panel.scrollTo({ top: Math.max(0, rows[index].offsetTop - panel.clientHeight / 2 + rows[index].clientHeight / 2), behavior: "smooth" });
+        }
       }
     }
     requestAnimationFrame(drawSpectrum);
@@ -825,6 +839,7 @@ function exportCurrentPlayer() {
     title,
     source: audio.src,
     lyrics,
+    timestamps: job?.lyric_timestamps,
     metadata: $("performanceMetadata").textContent.trim(),
     vocals: $("performanceVocals").textContent.trim(),
     arrangement: $("performanceArrangement").textContent.trim(),
