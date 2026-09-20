@@ -15,7 +15,7 @@ if [[ -f "$ROOT/.env.local" ]]; then
   set +a
 fi
 
-export PYTHONPATH="$ROOT/../..:$ROOT:$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$ROOT/../..:$ROOT:$ROOT/src:$ROOT/../src${PYTHONPATH:+:$PYTHONPATH}"
 export HF_HUB_DISABLE_TELEMETRY=1
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1

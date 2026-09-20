@@ -39,7 +39,7 @@ if [[ ! -x "$VENV/bin/python" ]]; then
 fi
 uv pip install --python "$VENV/bin/python" \
   --index-url https://download.pytorch.org/whl/cu128 \
-  'torch==2.10.0'
+  'torch==2.10.0' 'torchaudio==2.10.0'
 uv pip install --python "$VENV/bin/python" \
   'transformers==4.57.6' 'huggingface-hub==0.36.2' 'safetensors==0.7.0' \
   'tiktoken==0.12.0' 'numpy==2.2.6' 'soundfile==0.13.1' 'accelerate==1.13.0' \
@@ -56,10 +56,11 @@ uv pip install --python "$SHEET_VENV/bin/python" -r "$ROOT/models/SheetSage2/req
 
 mkdir -p "$ROOT/.runtime/studio/assets" "$ROOT/.runtime/studio/outputs"
 
-PYTHONPATH="$ROOT/../..:$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" "$VENV/bin/python" - <<'PY'
+PYTHONPATH="$ROOT/../..:$ROOT/../src:$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" "$VENV/bin/python" - <<'PY'
 import torch
 from yue2 import YuE2Pipeline, SymbolicPlan
 from local_app.server import build_application
+import stemkit
 
 assert torch.cuda.is_available(), "CUDA is not visible inside the YuE2 environment"
 assert torch.cuda.is_bf16_supported(), "YuE2 requires BF16 support"
