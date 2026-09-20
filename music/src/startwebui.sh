@@ -2,9 +2,9 @@
 set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd -- "$ROOT/../../.." && pwd)"
+REPO_ROOT="$(cd -- "$ROOT/../.." && pwd)"
 
-# The StemKit runtime has no environment of its own: it runs inside an
+# The stem runtime has no environment of its own: it runs inside an
 # existing music-studio venv that already carries torch.  Honour an explicit
 # STEMKIT_VENV first, then prefer the YuE2 environment (its torch pin matches
 # the demucs/torchaudio pair installed by the studio setups), then MiniMax.
@@ -20,7 +20,7 @@ pick_venv() {
     candidate=""
   fi
   if [[ -n "$candidate" && ! -x "$candidate/bin/python" ]]; then
-    printf 'StemKit venv not found: %s\nRun a music studio setup first.\n' "$candidate" >&2
+    printf 'Stem venv not found: %s\nRun a music studio setup first.\n' "$candidate" >&2
     return 1
   fi
   printf '%s' "$candidate"
@@ -28,7 +28,7 @@ pick_venv() {
 
 VENV="$(pick_venv)"
 if [[ -z "$VENV" ]]; then
-  printf 'No usable StemKit environment. Set STEMKIT_VENV or run\n' >&2
+  printf 'No usable stem environment. Set STEMKIT_VENV or run\n' >&2
   printf 'music/yue2/setupwithuv.sh / music/minimax/setupwithuv.sh first.\n' >&2
   exit 1
 fi
@@ -44,5 +44,5 @@ PORT="${STEMKIT_STUDIO_PORT:-8271}"
 export HF_HUB_DISABLE_TELEMETRY=1
 export DO_NOT_TRACK=1
 
-printf 'StemKit Studio: http://%s:%s (running in %s)\n' "$HOST" "$PORT" "$VENV"
-exec "$VENV/bin/python" "$ROOT/local_app/server.py" --host "$HOST" --port "$PORT"
+printf 'Stem Studio: http://%s:%s (running in %s)\n' "$HOST" "$PORT" "$VENV"
+exec "$VENV/bin/python" "$ROOT/stem_server.py" --host "$HOST" --port "$PORT"

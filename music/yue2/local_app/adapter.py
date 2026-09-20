@@ -594,7 +594,7 @@ class Adapter(StudioAdapter):
         return outputs
 
     def _vocal_timestamps(self, directory: Path, files: list[Path], lyrics: str) -> list[dict[str, Any]] | None:
-        """StemKit post-pass: align lyric lines to real vocal activity in the
+        """Stem post-pass: align lyric lines to real vocal activity in the
         rendered take. Any failure keeps the visualizer's uniform spread."""
         lines = [line.strip() for line in lyrics.splitlines() if line.strip()]
         if len(lines) < 2:
@@ -611,7 +611,7 @@ class Adapter(StudioAdapter):
             except Exception:
                 return None
         try:
-            from stemkit import studio_api
+            import studio_api
         except Exception:
             return None
         try:

@@ -1125,7 +1125,7 @@ async function copyGuideText(elementId, button) {
   await writeClipboard(text, button);
 }
 
-/* ---------------- StemKit pane ---------------- */
+/* ---------------- Stem pane ---------------- */
 
 const STEM_PRESETS = [
   { id: "all", label: "All", note: "demucs htdemucs", stems: ["vocals", "drums", "bass", "other"] },

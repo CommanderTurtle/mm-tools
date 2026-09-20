@@ -1,5 +1,5 @@
-// StemKit studio player — vanilla ES module, no build step.
-// Mirrors the vendored app's intent: pick instruments, split locally,
+// Stem studio player — vanilla ES module, no build step.
+// Pick instruments, split locally,
 // play every stem on its own fader against one master clock.
 
 const $ = (id) => document.getElementById(id);

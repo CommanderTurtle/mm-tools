@@ -588,44 +588,36 @@
 !/music/yue2/skills/
 !/music/yue2/skills/**
 
-# Shared StemKit stem-separation runtime, vendored from danielravina/stemkit
-# (MIT; attribution and the telemetry drop are recorded in
-# music/src/stemkit/README.md, history in .git-archives/stemkit.git.tar).
-# Only the Python runtime surface and the standalone web studio are tracked;
-# the rest of the vendored Electron reference tree stays ignored. The runtime
-# runs inside the YuE2 and MiniMax project environments.
+# Shared stem-separation runtime for the YuE2 and MiniMax studios (upstream
+# history in .git-archives/stemkit.git.tar). Only the Python runtime surface
+# and the standalone web studio are tracked; the rest of the reference tree
+# stays ignored. The runtime runs inside the YuE2 and MiniMax project
+# environments.
 !/music/src/
 /music/src/*
-!/music/src/stemkit/
-/music/src/stemkit/*
-!/music/src/stemkit/README.md
-!/music/src/stemkit/__init__.py
-!/music/src/stemkit/studio_api.py
-!/music/src/stemkit/startwebui.sh
-!/music/src/stemkit/python/
-/music/src/stemkit/python/*
-!/music/src/stemkit/python/separate.py
-!/music/src/stemkit/python/roformer.py
-!/music/src/stemkit/python/vendor/
-/music/src/stemkit/python/vendor/*
-!/music/src/stemkit/python/vendor/README.md
-!/music/src/stemkit/python/vendor/mel_bank_44100_2048_60.npy
-!/music/src/stemkit/python/vendor/models/
-/music/src/stemkit/python/vendor/models/*
-!/music/src/stemkit/python/vendor/models/bs_roformer/
-/music/src/stemkit/python/vendor/models/bs_roformer/*
-!/music/src/stemkit/python/vendor/models/bs_roformer/__init__.py
-!/music/src/stemkit/python/vendor/models/bs_roformer/attend.py
-!/music/src/stemkit/python/vendor/models/bs_roformer/mel_band_roformer.py
-!/music/src/stemkit/local_app/
-/music/src/stemkit/local_app/*
-!/music/src/stemkit/local_app/server.py
-!/music/src/stemkit/local_app/__init__.py
-!/music/src/stemkit/local_app/web/
-/music/src/stemkit/local_app/web/*
-!/music/src/stemkit/local_app/web/index.html
-!/music/src/stemkit/local_app/web/app.js
-!/music/src/stemkit/local_app/web/style.css
+!/music/src/studio_api.py
+!/music/src/stem_api.py
+!/music/src/stem_server.py
+!/music/src/startwebui.sh
+!/music/src/python/
+/music/src/python/*
+!/music/src/python/separate.py
+!/music/src/python/roformer.py
+!/music/src/python/vendor/
+/music/src/python/vendor/*
+!/music/src/python/vendor/mel_bank_44100_2048_60.npy
+!/music/src/python/vendor/models/
+/music/src/python/vendor/models/*
+!/music/src/python/vendor/models/bs_roformer/
+/music/src/python/vendor/models/bs_roformer/*
+!/music/src/python/vendor/models/bs_roformer/__init__.py
+!/music/src/python/vendor/models/bs_roformer/attend.py
+!/music/src/python/vendor/models/bs_roformer/mel_band_roformer.py
+!/music/src/web/
+/music/src/web/*
+!/music/src/web/index.html
+!/music/src/web/app.js
+!/music/src/web/style.css
 
 # Models are always reconstructed locally. These are the only tracked files
 # beneath models/.

@@ -1031,9 +1031,9 @@ Retired from this downloader; now supplied by workflows/download_models.py
 73. KimberleyJSN/melbandroformer
 Expected file: models/stemkit/roformer/MelBandRoformer.ckpt
 
-The ~913 MB Mel-Band Roformer vocal checkpoint behind the shared StemKit
-runtime (music/src/stemkit). The YuE2 and MiniMax studios both resolve it
-from this one canonical location through stemkit.studio_api; acapella-only
+The ~913 MB Mel-Band Roformer vocal checkpoint behind the shared stem
+runtime (music/src). The YuE2 and MiniMax studios both resolve it
+from this one canonical location through studio_api; acapella-only
 splits use it, while the default demucs htdemucs weights (~80 MB) are fetched
 by demucs itself on the first split into models/stemkit/torch-hub/checkpoints
 (the pinned TORCH_HOME), so they stay out of this inventory.

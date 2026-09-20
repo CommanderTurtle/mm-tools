@@ -60,7 +60,7 @@ PYTHONPATH="$ROOT/../..:$ROOT/../src:$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" "$VEN
 import torch
 from yue2 import YuE2Pipeline, SymbolicPlan
 from local_app.server import build_application
-import stemkit
+import studio_api
 
 assert torch.cuda.is_available(), "CUDA is not visible inside the YuE2 environment"
 assert torch.cuda.is_bf16_supported(), "YuE2 requires BF16 support"

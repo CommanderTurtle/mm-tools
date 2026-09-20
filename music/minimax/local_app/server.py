@@ -31,7 +31,7 @@ _SHARED_SRC = ROOT.parents[1] / "music" / "src"
 if _SHARED_SRC.is_dir() and str(_SHARED_SRC) not in sys.path:
     sys.path.insert(0, str(_SHARED_SRC))
 
-from stemkit.local_app.api import StemService, install_stem_routes  # noqa: E402
+from stem_api import StemService, install_stem_routes  # noqa: E402
 
 
 def _path_from_env(name: str, default: Path) -> Path:
@@ -956,7 +956,7 @@ def _vocal_sync_lines(lyrics_text: str) -> list[str]:
 
 
 async def _vocal_sync(job: dict[str, Any], request: GenerationRequest) -> list[dict[str, Any]] | None:
-    """StemKit post-pass: isolate the vocals on the rendered take and align
+    """Stem post-pass: isolate the vocals on the rendered take and align
     every lyric line to real vocal activity, so the performance view scrolls
     where the singing actually happens. Returns None when lyrics are absent
     or the pass fails; visualizers then keep their uniform spread."""
@@ -965,7 +965,7 @@ async def _vocal_sync(job: dict[str, Any], request: GenerationRequest) -> list[d
     if len(lines) < 2 or not paths:
         return None
     try:
-        from stemkit import studio_api
+        import studio_api
     except Exception:
         return None
     work_dir = STATE_ROOT / "stems" / f"sync-{job['id']}"

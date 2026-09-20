@@ -1,16 +1,14 @@
-"""Standalone StemKit studio: split local tracks into stems, one port away.
+"""Standalone stem studio: split local tracks into stems, one port away.
 
-Serves the loopback-only web player (``local_app/web``) and drives the
-vendored separation scripts through ``stemkit.studio_api``. Everything stays
-on this machine: uploads land under ``.runtime/uploads``, splits under
-``.runtime/splits``. No telemetry — the vendor copy has the anonymous
-install ping removed (see the vendored README).
+Serves the loopback-only web player (``web``) and drives the separation
+scripts through ``studio_api``. Everything stays on this machine: uploads
+land under ``.runtime/uploads``, splits under ``.runtime/splits``. No
+telemetry.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import shutil
 import sys
 import threading
@@ -26,16 +24,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = ROOT.parents[2]
-sys.path.insert(0, str(REPO_ROOT / "music" / "src"))
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-from stemkit import studio_api  # noqa: E402
+import studio_api  # noqa: E402
 
 RUNTIME_ROOT = ROOT / ".runtime"
 UPLOAD_DIR = RUNTIME_ROOT / "uploads"
 SPLIT_DIR = RUNTIME_ROOT / "splits"
-WEB_DIR = ROOT / "local_app" / "web"
+WEB_DIR = ROOT / "web"
 
 MAX_CONCURRENT_SPLITS = 2
 _split_sem = threading.Semaphore(MAX_CONCURRENT_SPLITS)
@@ -120,7 +118,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="StemKit Studio", lifespan=lifespan)
+app = FastAPI(title="Stem Studio", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -230,15 +228,14 @@ app.mount("/assets", StaticFiles(directory=WEB_DIR), name="assets")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the private StemKit studio.")
+    parser = argparse.ArgumentParser(description="Run the private stem studio.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8271)
     args = parser.parse_args()
     import uvicorn
 
-    print(f"StemKit Studio: http://{args.host}:{args.port}")
-    print("Separation runs locally (demucs / Mel-Band Roformer). "
-          "No telemetry: the vendor copy never pings.")
+    print(f"Stem Studio: http://{args.host}:{args.port}")
+    print("Separation runs locally (demucs / Mel-Band Roformer). No telemetry.")
     uvicorn.run(app, host=args.host, port=args.port, log_level="info",
                 access_log=False)
 

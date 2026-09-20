@@ -266,7 +266,7 @@ button:disabled { opacity: .45; cursor: wait; }
 .export-player { padding: 3px 9px; border: 1px solid #272725; border-radius: 3px; background: transparent; color: #686762; font: inherit; letter-spacing: inherit; cursor: pointer; transition: color .15s ease, border-color .15s ease; }
 .export-player:hover { color: #f4f2eb; border-color: rgba(244, 242, 235, .55); }
 
-/* ---------------- StemKit pane ---------------- */
+/* ---------------- Stem pane ---------------- */
 .panel-hero { padding: 34px 0 8px; }
 .panel-hero .kicker { color: var(--accent); margin: 0 0 14px; font-size: 10px; font-weight: 750; letter-spacing: .22em; }
 .panel-hero h1 { font-size: clamp(34px, 5vw, 58px); margin: 0; }

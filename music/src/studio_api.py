@@ -1,6 +1,6 @@
-"""Shared StemKit runtime for the mm-tools music studios.
+"""Shared stem-separation runtime for the YuE2 and MiniMax studios.
 
-Drives the vendored separation scripts (``python/separate.py`` = demucs,
+Drives the separation scripts (``python/separate.py`` = demucs,
 ``python/roformer.py`` = Mel-Band Roformer vocals) as subprocesses of the
 calling interpreter and parses their line-oriented JSON progress protocol:
 
@@ -16,8 +16,10 @@ demucs (``htdemucs`` by default). Checkpoints resolve to the canonical
 download_models.py``, bundle ``stemkit``) keeps them pinned; the scripts'
 own one-time downloads remain the fallback when the tree is empty.
 
-No telemetry: the vendor copy has ``src/main/telemetry.ts`` removed and the
-subprocess scripts never touch the network except model fetches.
+No telemetry: the subprocess scripts never touch the network except model
+fetches. Upstream history (danielravina/stemkit at
+2d44bc006e8f98170403ec131353aa7f66b49540) is preserved in
+.git-archives/stemkit.git.tar.
 """
 
 from __future__ import annotations
@@ -37,7 +39,7 @@ SEPARATE_SCRIPT = PYTHON_DIR / "separate.py"
 ROFORMER_SCRIPT = PYTHON_DIR / "roformer.py"
 
 # Canonical checkpoint locations (models/download_models.py bundle "stemkit").
-MODELS_ROOT = ROOT.parents[2] / "models" / "stemkit"
+MODELS_ROOT = ROOT.parents[1] / "models" / "stemkit"
 ROFORMER_CKPT = MODELS_ROOT / "roformer" / "MelBandRoformer.ckpt"
 DEMUCS_CACHE_ROOT = MODELS_ROOT / "torch-hub"
 
@@ -317,7 +319,7 @@ def vocal_timestamps_for_lyrics(
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="StemKit studio runtime CLI")
+    parser = argparse.ArgumentParser(description="stem runtime CLI")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_split = sub.add_parser("split", help="separate a local wav into stems")

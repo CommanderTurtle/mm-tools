@@ -33,7 +33,7 @@ _SHARED_SRC = ROOT.parents[1] / "music" / "src"
 if _SHARED_SRC.is_dir() and str(_SHARED_SRC) not in sys.path:
     sys.path.insert(0, str(_SHARED_SRC))
 
-from stemkit.local_app.api import StemService, install_stem_routes  # noqa: E402
+from stem_api import StemService, install_stem_routes  # noqa: E402
 SAFE_NAME = re.compile(r"[^A-Za-z0-9._()\[\] -]+")
 
 
