@@ -4,11 +4,12 @@ const $ = (id) => document.getElementById(id);
 const qsa = (selector, root = document) => [...root.querySelectorAll(selector)];
 const ACTIVE = new Set(["queued", "running", "cancelling"]);
 const TERMINAL = new Set(["complete", "failed", "cancelled", "interrupted"]);
-const pages = ["create", "queue", "library", "compare", "presets", "help"];
+const pages = ["create", "prompt", "queue", "library", "compare", "presets", "help", "stems"];
 
 const state = {
   meta: null,
   manifest: null,
+  promptLoadedFor: null,
   mode: null,
   group: "all",
   values: {},
@@ -120,6 +121,8 @@ function setPage(name, push = true) {
   if (name === "library") renderLibrary();
   if (name === "compare") renderCompare();
   if (name === "presets") renderPresets();
+  if (name === "prompt") renderPromptStudio();
+  if (name === "stems") renderStemsPage();
 }
 
 function modeById(id) {
@@ -841,7 +844,7 @@ function settleRender() {
 }
 
 async function refreshJobs() {
-  try { state.jobs = await api("/api/jobs?limit=200"); renderCounts(); refreshVisiblePages(); }
+  try { state.jobs = await api("/api/jobs?limit=200"); renderCounts(); refreshVisiblePages(); updatePromptResult(); }
   catch (error) { toast(error.message, "error"); }
 }
 
@@ -1138,7 +1141,7 @@ function trackLyrics(item) {
   return String(item.metadata?.lyrics || item.job?.request?.controls?.lyrics || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 }
 
-function buildAudioPlayerHtml({ title, source, accent, lyrics }) {
+function buildAudioPlayerHtml({ title, source, accent, lyrics, timestamps }) {
   const accentRgb = hexToRgb(accent);
   const rows = lyrics.map((line) => '<p' + (/^\[.+\]$/.test(line) ? ' class="section" data-section="1"' : "") + ">" + escapeHtml(line) + "</p>").join("\n    ");
   const css = [
@@ -1170,6 +1173,14 @@ function buildAudioPlayerHtml({ title, source, accent, lyrics }) {
     "  var clock = $(\"clock\");",
     "  var rows = Array.prototype.slice.call(document.querySelectorAll(\".lyrics p\"));",
     "  var candidates = rows.filter(function (row) { return row.dataset.section !== \"1\"; });",
+    "  var times = (function () {",
+    "    var map = {};",
+    "    var data = " + JSON.stringify(Array.isArray(timestamps) ? timestamps : []) + ";",
+    "    for (var i = 0; i < data.length; i += 1) {",
+    "      if (data[i] && isFinite(Number(data[i].start))) map[Number(data[i].line)] = Number(data[i].start);",
+    "    }",
+    "    return map;",
+    "  })();",
     "  var context = null;",
     "  var analyser = null;",
     "  var animation = 0;",
@@ -1217,7 +1228,17 @@ function buildAudioPlayerHtml({ title, source, accent, lyrics }) {
     "  }",
     "  function syncLyrics() {",
     "    if (!candidates.length || !isFinite(audio.duration) || audio.duration <= 0) return;",
-    "    var selected = candidates[Math.min(candidates.length - 1, Math.floor((audio.currentTime / audio.duration) * candidates.length))];",
+    "    var known = Object.keys(times).length > 0;",
+    "    var selected = null;",
+    "    if (known) {",
+    "      for (var k = 0; k < candidates.length; k += 1) {",
+    "        var rowIndex = rows.indexOf(candidates[k]);",
+    "        if (times[rowIndex] != null && times[rowIndex] <= audio.currentTime + 0.15) selected = candidates[k];",
+    "      }",
+    "    } else {",
+    "      selected = candidates[Math.min(candidates.length - 1, Math.floor((audio.currentTime / audio.duration) * candidates.length))];",
+    "    }",
+    "    if (!selected) return;",
     "    var index = rows.indexOf(selected);",
     "    if (index === activeIndex) return;",
     "    activeIndex = index;",
@@ -1283,7 +1304,7 @@ function exportAudioPlayer(item) {
   const accentRaw = state.manifest?.theme?.accent;
   const accent = /^#[0-9a-fA-F]{6}$/.test(String(accentRaw || "")) ? accentRaw : "#90efb8";
   const title = item.label || item.mode?.title || "Track";
-  const html = buildAudioPlayerHtml({ title, source, accent, lyrics: trackLyrics(item) });
+  const html = buildAudioPlayerHtml({ title, source, accent, lyrics: trackLyrics(item), timestamps: item.metadata?.lyric_timestamps });
   downloadBlob(`${slugify(title)}-player.html`, new Blob([html], { type: "text/html" }));
   toast("Self-contained player downloaded.", "info", 3200);
 }
@@ -1303,8 +1324,8 @@ function audioStudioNode(item) {
   }
   const audio = mediaNode(item, false); audio.classList.add("studio-audio");
   const toolbar = document.createElement("div"); toolbar.className = "audio-toolbar";
-  const big = document.createElement("button"); big.type = "button"; big.textContent = "⛶ Big";
-  big.onclick = () => { if (document.fullscreenElement === shell) document.exitFullscreen?.(); else shell.requestFullscreen?.(); };
+  const big = document.createElement("button"); big.type = "button"; big.textContent = "⛶ Performance";
+  big.onclick = () => openPerformance(item);
   const exportButton = document.createElement("button"); exportButton.type = "button"; exportButton.textContent = "⤓ Export"; exportButton.title = "Download a self-contained player (.html) for this track";
   exportButton.onclick = () => exportAudioPlayer(item);
   toolbar.append(big, exportButton);
@@ -1324,11 +1345,22 @@ function audioStudioNode(item) {
     }
     if (!audio.paused && !audio.ended) animation = requestAnimationFrame(paint);
   };
+  const times = lyricTimes(lyrics, item.metadata?.lyric_timestamps);
   const syncLyrics = () => {
-    if (!lyricRows.length || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
+    if (!lyricRows.length) return;
     const candidates = lyricRows.map((row, index) => ({ row, index })).filter(({ row }) => !row.classList.contains("section"));
     if (!candidates.length) return;
-    const selected = candidates[Math.min(candidates.length - 1, Math.floor((audio.currentTime / audio.duration) * candidates.length))];
+    const known = times && candidates.some(({ index }) => times[index] != null);
+    let selected;
+    if (known && Number.isFinite(audio.currentTime)) {
+      selected = null;
+      for (const candidate of candidates) {
+        if (times[candidate.index] != null && times[candidate.index] <= audio.currentTime + 0.15) selected = candidate;
+      }
+    } else if (Number.isFinite(audio.duration) && audio.duration > 0) {
+      selected = candidates[Math.min(candidates.length - 1, Math.floor((audio.currentTime / audio.duration) * candidates.length))];
+    }
+    if (!selected) return;
     lyricRows.forEach((row) => row.classList.toggle("active", row === selected.row));
     lyricsPanel?.scrollTo({ top: Math.max(0, selected.row.offsetTop - lyricsPanel.clientHeight / 2), behavior: "smooth" });
   };
@@ -1493,9 +1525,10 @@ function bindEvents() {
   $("railCollapse").onclick = () => document.body.classList.toggle("rail-folded");
   $("taskSearch").oninput = renderTaskCards;
   $("generationForm").onsubmit = queueCurrent;
+  $("promptForm").onsubmit = runPromptPlan;
+  $("perfClose").onclick = () => { if ($("perfAudio").paused) $("perfAudio").pause(); $("performanceDialog").close(); };
   $("resetMode").onclick = () => { if (!state.mode) return; state.values[state.mode.id] = defaultsForMode(state.mode); renderForm(); saveDraft(); toast("Workflow controls reset."); };
   $("runtimeRefresh").onclick = refreshHealth;
-  $("queueRefresh").onclick = refreshJobs;
   $("loadModels").onclick = () => modelAction("load");
   $("unloadModels").onclick = () => modelAction("unload");
   $("librarySearch").oninput = renderLibrary;
@@ -1516,9 +1549,619 @@ function bindEvents() {
   document.addEventListener("ended", settleRender);
   window.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && state.page === "create") queueCurrent(event);
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && state.page === "prompt") runPromptPlan(event);
     if (event.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { event.preventDefault(); setPage("create"); $("taskSearch").focus(); }
     if (!event.ctrlKey && !event.metaKey && !event.altKey && /^[1-6]$/.test(event.key) && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) setPage(pages[Number(event.key) - 1]);
   });
+}
+
+/* ---------------- Prompt Studio (Krea2 lane) ---------------- */
+
+const PROMPT_MODES = [
+  { value: "brief", icon: "✒", title: "Refine brief", note: "Turn the brief into the three caption sections; any lyrics you supply stay context only." },
+  { value: "keep_lyrics", icon: "𝄞", title: "Keep my lyrics", note: "Finish the captions around your finished lyrics, quoted verbatim." },
+  { value: "song", icon: "♪", title: "Draft song", note: "Caption sections plus an original lyric draft with section tags." },
+  { value: "ask", icon: "?", title: "Ask the model", note: "Direct music questions — concise answers, no caption headings." },
+];
+
+const PROMPT_SAMPLING_FIELDS = [
+  { id: "krea_temperature", label: "Temperature", type: "range", min: 0, max: 2, step: 0.01, value: 0.7 },
+  { id: "krea_top_p", label: "Top-p", type: "range", min: 0.01, max: 1, step: 0.01, value: 0.95 },
+  { id: "krea_top_k", label: "Top-k", type: "number", min: 1, max: 4096, step: 1, value: 64 },
+  { id: "krea_min_p", label: "Min-p", type: "range", min: 0, max: 0.5, step: 0.01, value: 0.05 },
+  { id: "krea_repetition_penalty", label: "Repetition penalty", type: "range", min: 1, max: 2, step: 0.01, value: 1.05 },
+  { id: "krea_presence_penalty", label: "Presence penalty", type: "range", min: -2, max: 2, step: 0.01, value: 0 },
+  { id: "krea_seed", label: "Seed", type: "number", min: 0, max: 1000000000, step: 1, value: 0 },
+  { id: "krea_max_length", label: "Max tokens", type: "number", min: 64, max: 8192, step: 1, value: 1024 },
+];
+
+async function rawFile(url) {
+  const headers = {};
+  if (state.token) headers.Authorization = `Bearer ${state.token}`;
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  return response.text();
+}
+
+function renderPromptStudio() {
+  const modes = $("promptModes");
+  if (!modes.childElementCount) {
+    modes.replaceChildren(...PROMPT_MODES.map((mode) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "chip" + (mode.value === "brief" ? " active" : "");
+      button.dataset.value = mode.value;
+      button.innerHTML = `<span>${mode.icon}</span><b>${mode.title}</b><small>${escapeHtml(mode.note)}</small>`;
+      button.onclick = () => qsa("#promptModes .chip").forEach((item) => item.classList.toggle("active", item === button));
+      return button;
+    }));
+  }
+  const sampling = $("promptSampling");
+  if (!sampling.childElementCount) {
+    sampling.replaceChildren(...PROMPT_SAMPLING_FIELDS.map((field) => {
+      const wrap = document.createElement("label");
+      wrap.className = "field";
+      wrap.innerHTML = `<span>${field.label}</span><input id="${field.id}" type="${field.type}" min="${field.min}" max="${field.max}" step="${field.step}" value="${field.value}">`;
+      return wrap;
+    }));
+  }
+  updatePromptResult();
+}
+
+async function runPromptPlan(event) {
+  event?.preventDefault();
+  const brief = $("promptBrief").value.trim();
+  if (!brief) { $("promptStatus").textContent = "Describe the musical direction first."; return; }
+  const mode = document.querySelector("#promptModes .chip.active")?.dataset.value || "brief";
+  const lyrics = $("promptLyrics").value;
+  if (mode === "keep_lyrics" && !lyrics.trim()) { toast("“Keep my lyrics” planning needs the finished lyrics.", "error"); return; }
+  const controls = {
+    krea_mode: mode,
+    krea_brief: brief,
+    krea_lyrics: lyrics,
+    krea_constraints: $("promptConstraints").value,
+    krea_research: $("promptResearch").checked,
+    krea_research_query: $("promptResearchQuery").value.trim(),
+  };
+  for (const field of PROMPT_SAMPLING_FIELDS) {
+    const raw = $(field.id).value;
+    if (raw === "") continue;
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) controls[field.id] = parsed;
+  }
+  state.promptJobId = null;
+  const button = $("runPromptPlan");
+  button.disabled = true; button.querySelector("span").textContent = "Planning…";
+  $("promptStatus").textContent = "Queued on the private GPU queue — shared Krea2 lane.";
+  try {
+    const job = await api("/api/jobs", { method: "POST", body: JSON.stringify({ mode: "krea_plan", controls, client: { source: "mm-tools-studio", schema: 1, queued_at: new Date().toISOString() } }) });
+    state.promptJobId = job.id;
+    state.jobs.unshift(job);
+    renderCounts(); refreshVisiblePages(); updatePromptResult();
+  } catch (error) {
+    toast(error.message, "error");
+    button.disabled = false; button.querySelector("span").textContent = "Run Krea plan";
+  }
+}
+
+function promptJob() {
+  if (!state.promptJobId) return null;
+  return state.jobs.find((job) => job.id === state.promptJobId) || null;
+}
+
+function updatePromptResult() {
+  const job = promptJob();
+  const status = $("promptStatus");
+  const dot = $("promptDot");
+  if (!job) return;
+  if (ACTIVE.has(job.status)) {
+    dot.className = "validation-dot busy";
+    status.textContent = `Planning · ${Math.round((job.progress || 0) * 100)}% — ${job.stage || "queued"}`;
+    return;
+  }
+  if (!TERMINAL.has(job.status)) return;
+  dot.className = job.status === "complete" ? "validation-dot ok" : "validation-dot bad";
+  if (job.status !== "complete") {
+    status.textContent = job.error || "The plan failed — adjust the brief and retry.";
+    return;
+  }
+  status.textContent = "Plan complete — copy a section or carry it into Create.";
+  loadPromptPlan(job);
+}
+
+async function loadPromptPlan(job) {
+  if (state.promptLoadedFor === job.id) return;
+  state.promptLoadedFor = job.id;
+  const outputs = job.outputs || [];
+  const planOutput = outputs.find((item) => item.relative === "krea_plan.json");
+  const direction = outputs.find((item) => item.metadata?.krea);
+  const meta = { style: direction?.metadata?.style || "", lyrics: direction?.metadata?.lyrics || "" };
+  if (!planOutput) {
+    $("promptResults").innerHTML = "<p class='muted'>The plan text is missing from this job.</p>";
+    return;
+  }
+  try {
+    const payload = { ...JSON.parse(await rawFile(planOutput.url)), ...meta };
+    if (direction) {
+      try { payload.raw = await rawFile(direction.url); } catch (_) { /* metadata only */ }
+    }
+    renderPromptResults(payload);
+  } catch (error) {
+    $("promptResults").innerHTML = `<p class="muted">Could not read the plan: ${escapeHtml(error.message)}</p>`;
+  }
+}
+
+function renderPromptResults(payload) {
+  const grid = $("promptResults");
+  const rawSections = payload.sections;
+  const sections = Array.isArray(rawSections)
+    ? rawSections
+    : rawSections && typeof rawSections === "object"
+      ? Object.entries(rawSections).map(([heading, text]) => ({ heading, text: String(text) }))
+      : [];
+  $("promptResultMode").textContent = payload.mode || "";
+  const hasSections = sections.length > 0;
+  grid.replaceChildren();
+  if (!hasSections) {
+    const card = document.createElement("article");
+    card.className = "prompt-section-card";
+    const text = typeof payload.raw === "string" && payload.raw.trim() ? payload.raw : JSON.stringify(payload, null, 2);
+    card.innerHTML = `<small>ANSWER</small><pre class="prompt-raw">${escapeHtml(text)}</pre>`;
+    grid.append(card);
+  } else {
+    for (const section of sections) {
+      const card = document.createElement("article");
+      card.className = "prompt-section-card";
+      const copy = document.createElement("button");
+      copy.type = "button"; copy.textContent = "⧉ Copy";
+      copy.onclick = async () => { await navigator.clipboard.writeText(String(section.text || "")); toast(`${section.heading} copied.`); };
+      card.innerHTML = `<div class="recipe-head"><small>${escapeHtml(section.heading || "SECTION")}</small></div><p>${escapeHtml(section.text || "")}</p>`;
+      card.append(copy);
+      grid.append(card);
+    }
+    if (Array.isArray(payload.sources) && payload.sources.length) {
+      const sources = document.createElement("article");
+      sources.className = "prompt-section-card prompt-sources";
+      sources.innerHTML = `<div class="recipe-head"><small>SOURCES</small></div><ul>${payload.sources.map((source) => `<li>${escapeHtml(source)}</li>`).join("")}</ul>`;
+      grid.append(sources);
+    }
+    if (typeof payload.raw === "string" && payload.raw.trim()) {
+      const rawCard = document.createElement("details");
+      rawCard.className = "prompt-raw-wrap";
+      rawCard.innerHTML = `<summary>Raw response</summary><pre class="prompt-raw">${escapeHtml(payload.raw)}</pre>`;
+      grid.append(rawCard);
+    }
+  }
+  $("useInCreate").hidden = !(typeof payload.style === "string" && payload.style.trim());
+  $("copyRawPrompt").hidden = !(typeof payload.raw === "string" && payload.raw.trim());
+  $("useInCreate").onclick = () => {
+    const mode = modeById("compose_full");
+    if (!mode) return toast("The Create workflow is not available.", "error");
+    const values = state.values[mode.id] || defaultsForMode(mode);
+    state.values[mode.id] = values;
+    values.style = payload.style;
+    if (payload.lyrics) values.lyrics = payload.lyrics;
+    selectMode(mode.id, false); setPage("create"); toast("Krea direction carried into Create.");
+  };
+  $("copyRawPrompt").onclick = async () => { await navigator.clipboard.writeText(payload.raw); toast("Raw response copied."); };
+}
+
+/* ---------------- Performance view ---------------- */
+
+const performanceGraph = { ctx: null, source: null, analyser: null };
+
+function ensurePerformanceGraph() {
+  if (!performanceGraph.ctx) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    performanceGraph.ctx = new Ctx();
+    performanceGraph.source = performanceGraph.ctx.createMediaElementSource($("perfAudio"));
+    performanceGraph.analyser = performanceGraph.ctx.createAnalyser();
+    performanceGraph.analyser.fftSize = 256;
+    performanceGraph.analyser.smoothingTimeConstant = 0.82;
+    performanceGraph.source.connect(performanceGraph.analyser);
+    performanceGraph.analyser.connect(performanceGraph.ctx.destination);
+  }
+  return performanceGraph;
+}
+
+function openPerformance(item) {
+  const dialog = $("performanceDialog");
+  const audio = $("perfAudio");
+  const rows = trackLyrics(item);
+  const times = lyricTimes(rows, item.metadata?.lyric_timestamps);
+  $("perfStyle").textContent = item.metadata?.style || item.job?.request?.controls?.style || "—";
+  $("perfEngine").textContent = jobMode(item.job)?.title || "YuE2";
+  const lyricsBox = $("perfLyrics");
+  lyricsBox.replaceChildren();
+  if (!rows.length) lyricsBox.innerHTML = "<p class='muted'>No lyrics attached to this take.</p>";
+  rows.forEach((line, index) => {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = line;
+    paragraph.dataset.index = index;
+    if (/^\[.+\]$/.test(line)) paragraph.className = "section";
+    lyricsBox.append(paragraph);
+  });
+  audio.src = item.url;
+  const candidates = [...lyricsBox.querySelectorAll("p:not(.section)")];
+  const candidateTime = candidates.map((node) => {
+    const rowIndex = Number(node.dataset.index);
+    return times && times[rowIndex] != null ? times[rowIndex] : null;
+  });
+  const known = candidateTime.some((value) => value != null);
+  const graph = ensurePerformanceGraph();
+  const canvas = $("perfSpectrum");
+  const ctx = canvas.getContext("2d");
+  let perfRaf = 0;
+  const paint = () => {
+    const dpr = window.devicePixelRatio || 1;
+    const width = Math.max(320, canvas.clientWidth || 900);
+    if (canvas.width !== width * dpr) { canvas.width = width * dpr; canvas.height = 220 * dpr; }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (graph?.analyser) {
+      const data = new Uint8Array(graph.analyser.frequencyBinCount);
+      graph.analyser.getByteFrequencyData(data);
+      const bars = 96;
+      const step = Math.max(1, Math.floor(data.length / bars));
+      const barWidth = canvas.width / bars;
+      for (let bar = 0; bar < bars; bar += 1) {
+        const value = data[bar * step] / 255;
+        const height = Math.max(3, value * canvas.height * 0.92);
+        const hue = 150 + value * 90;
+        ctx.fillStyle = `hsla(${hue}, 62%, ${34 + value * 30}%, ${0.55 + value * 0.4})`;
+        const x = bar * barWidth + 1;
+        ctx.fillRect(x, canvas.height - height, Math.max(2, barWidth - 2), height);
+      }
+    }
+    if (!audio.paused) {
+      const current = audio.currentTime;
+      $("perfClock").textContent = `${formatClock(current)} / ${formatClock(Number.isFinite(audio.duration) ? audio.duration : 0)}`;
+      let selected = -1;
+      if (known) {
+        candidates.forEach((node, index) => { if (candidateTime[index] != null && candidateTime[index] <= current + 0.15) selected = index; });
+      } else if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        selected = Math.min(candidates.length - 1, Math.floor((current / audio.duration) * candidates.length));
+      }
+      candidates.forEach((node, index) => node.classList.toggle("active", index === selected));
+      const activeNode = candidates[selected];
+      if (activeNode) {
+        const offset = activeNode.offsetTop - lyricsBox.clientHeight / 2 + activeNode.clientHeight / 2;
+        if (Math.abs(lyricsBox.scrollTop - offset) > 4) lyricsBox.scrollTo({ top: offset, behavior: "smooth" });
+      }
+    }
+    perfRaf = requestAnimationFrame(paint);
+  };
+  const stop = () => {
+    cancelAnimationFrame(perfRaf);
+    if (performanceGraph.ctx && performanceGraph.ctx.state === "running") performanceGraph.ctx.suspend().catch(() => {});
+  };
+  audio.onended = stop;
+  dialog.addEventListener("close", stop, { once: true });
+  if (performanceGraph.ctx && performanceGraph.ctx.state === "suspended") performanceGraph.ctx.resume().catch(() => {});
+  audio.play().catch(() => {});
+  paint();
+  dialog.showModal();
+}
+
+function formatClock(seconds) {
+  const safe = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+  const minutes = Math.floor(safe / 60);
+  const rest = Math.floor(safe % 60);
+  return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
+}
+
+function lyricTimes(lyricLines, timestamps) {
+  if (!Array.isArray(timestamps) || !timestamps.length) return null;
+  const byLine = new Map();
+  for (const row of timestamps) {
+    if (row && Number.isFinite(Number(row.start))) byLine.set(Number(row.line), Number(row.start));
+  }
+  if (!byLine.size) return null;
+  return lyricLines.map((_, index) => (byLine.has(index) ? byLine.get(index) : null));
+}
+
+/* ---------------- Stems page ---------------- */
+
+const stemKit = {
+  sourceInput: null,
+  lanes: [],
+  audio: null,
+  graph: null,
+  raf: 0,
+};
+
+const STEM_PRESETS = [
+  { id: "all", label: "Full 4-stem", note: "demucs htdemucs", stems: ["vocals", "drums", "bass", "other"] },
+  { id: "acapella", label: "Acapella", note: "Mel-Band Roformer", stems: ["vocals"] },
+  { id: "karaoke", label: "Instrumental", note: "no-vocals mix", stems: ["drums", "bass", "other"] },
+  { id: "drums_bass", label: "Drums + Bass", note: "two stems", stems: ["drums", "bass"] },
+];
+
+function stemTracks() {
+  return outputs().filter((item) => item.kind === "audio").slice(0, 24);
+}
+
+function renderStemsPage() {
+  const pick = $("stemTrackPick");
+  if (!pick.childElementCount) {
+    const tracks = stemTracks();
+    if (!tracks.length) {
+      pick.innerHTML = "<p class='muted'>No rendered tracks yet — create one, or upload below.</p>";
+    } else {
+      tracks.forEach((item, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "stem-track" + (index === 0 ? " active" : "");
+        button.innerHTML = `<span>♫</span><div><b>${escapeHtml(item.label || item.name)}</b><small>${escapeHtml(formatBytes(item.size))}</small></div>`;
+        button.onclick = () => {
+          qsa(".stem-track").forEach((other) => other.classList.toggle("active", other === button));
+          stemKit.sourceInput = { job: item.job?.id, output: item.relative };
+          $("stemStatus").textContent = "Selected — choose a preset and split.";
+        };
+        pick.append(button);
+      });
+      const first = pick.querySelector(".stem-track");
+      if (first) first.click();
+    }
+  }
+  const presets = $("stemPresets");
+  if (!presets.childElementCount) {
+    presets.replaceChildren(...STEM_PRESETS.map((preset) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "chip" + (preset.id === "all" ? " active" : "");
+      button.dataset.preset = preset.id;
+      button.innerHTML = `<span>${preset.label}</span><small>${preset.note}</small>`;
+      button.onclick = () => {
+        qsa("#stemPresets .chip").forEach((item) => item.classList.toggle("active", item === button));
+        applyPresetToChecks(preset.stems);
+      };
+      return button;
+    }));
+    applyPresetToChecks(STEM_PRESETS[0].stems);
+  }
+  const toggles = $("stemToggles");
+  if (!toggles.childElementCount) {
+    [["vocals", "Vocals"], ["drums", "Drums"], ["bass", "Bass"], ["other", "Other"]].forEach(([key, label]) => {
+      const wrap = document.createElement("label");
+      wrap.className = "switch-row";
+      wrap.innerHTML = `<input type="checkbox" value="${key}" ${key === "vocals" ? "checked" : ""}><span>${label}</span>`;
+      toggles.append(wrap);
+    });
+  }
+  if (!stemKit.bound) {
+    stemKit.bound = true;
+    $("stemSplit").onclick = runStemSplit;
+    $("stemFile").onchange = () => { if ($("stemFile").files[0]) uploadStemSource($("stemFile").files[0]); };
+    $("stemPlay").onclick = toggleStemPlayback;
+    $("stemMaster").oninput = applyStemGains;
+    $("stemSeek").oninput = seekStems;
+  }
+}
+
+function applyPresetToChecks(stems) {
+  qsa("#stemToggles input").forEach((item) => { item.checked = stems.includes(item.value); });
+}
+
+async function uploadStemSource(file) {
+  try {
+    const form = new FormData();
+    form.append("file", file, file.name);
+    const asset = await api("/api/stems/upload", { method: "POST", body: form });
+    stemKit.sourceInput = asset.asset_id;
+    $("stemStatus").textContent = `Uploaded ${file.name} — choose a preset and split.`;
+    qsa(".stem-track").forEach((item) => item.classList.remove("active"));
+  } catch (error) {
+    toast(error.message, "error");
+  }
+}
+
+async function runStemSplit() {
+  if (!stemKit.sourceInput) { $("stemStatus").textContent = "Pick a track or upload one first."; return; }
+  const stems = [...$("stemToggles").querySelectorAll("input:checked")].map((item) => item.value);
+  if (!stems.length) { $("stemStatus").textContent = "Select at least one stem."; return; }
+  const payload = { input: stemKit.sourceInput, stems };
+  const button = $("stemSplit");
+  button.disabled = true; button.querySelector("span").textContent = "Splitting…";
+  $("stemProgressWrap").hidden = false;
+  try {
+    const result = await api("/api/stems/split", { method: "POST", body: JSON.stringify(payload) });
+    pollStemJob(result.job_id);
+  } catch (error) {
+    toast(error.message, "error");
+    $("stemStatus").textContent = error.message;
+    $("stemProgressWrap").hidden = true;
+  } finally {
+    button.disabled = false; button.querySelector("span").textContent = "Split stems";
+  }
+}
+
+function pollStemJob(id) {
+  const timer = setInterval(async () => {
+    try {
+      const job = await api(`/api/stems/jobs/${id}`);
+      $("stemProgressFill").style.width = `${Math.round(job.pct || 0)}%`;
+      $("stemProgressText").textContent = `${job.stage || job.status || "working"} · ${Math.round(job.pct || 0)}%${job.message ? ` — ${job.message}` : ""}`;
+      if (job.status === "failed") {
+        clearInterval(timer);
+        $("stemStatus").textContent = job.error || job.message || "The split failed.";
+        $("stemProgressWrap").hidden = true;
+        return;
+      }
+      if (job.status === "done") {
+        clearInterval(timer);
+        renderStemLanes(job);
+      }
+    } catch (error) {
+      clearInterval(timer);
+      $("stemStatus").textContent = error.message;
+      $("stemProgressWrap").hidden = true;
+    }
+  }, 1500);
+}
+
+function renderStemLanes(job) {
+  const lanes = $("stemLanes");
+  stopStemPlayback();
+  stemKit.lanes = [];
+  lanes.replaceChildren();
+  const names = Array.isArray(job.stems) && job.stems.length ? job.stems : ["vocals", "drums", "bass", "other"];
+  for (const name of names) {
+    const lane = document.createElement("div");
+    lane.className = "stem-lane";
+    lane.innerHTML = `<span class="lane-name">${escapeHtml(name)}</span><input type="range" min="0" max="100" value="100" aria-label="volume"><span class="lane-bpm"></span>`;
+    const fader = lane.querySelector("input");
+    const entry = { name, url: `/api/stems/jobs/${job.id}/${name}`, gain: 1, element: fader };
+    fader.oninput = () => { entry.gain = Number(fader.value) / 100; applyStemGains(); };
+    const exportLink = document.createElement("a");
+    exportLink.href = entry.url;
+    exportLink.download = `${name}.wav`;
+    exportLink.className = "lane-export";
+    exportLink.textContent = "⤓";
+    exportLink.title = "Download this stem";
+    lane.append(exportLink);
+    stemKit.lanes.push(entry);
+    lanes.append(lane);
+  }
+  if (!stemKit.lanes.length) {
+    lanes.innerHTML = "<p class='muted'>No stems found on that job.</p>";
+    return;
+  }
+  buildStemMix();
+  $("stemStatus").textContent = `${stemKit.lanes.length} lanes live (${job.engine || "local engine"}) — drag the faders, watch the spectrum.`;
+}
+
+async function buildStemMix() {
+  // Fetch every lane, align lengths, and render an offline mixed master so the
+  // transport plays all lanes in lockstep without N parallel <audio> elements.
+  const decoded = await Promise.all(stemKit.lanes.map(async (lane) => {
+    const arrayBuffer = await (await fetch(lane.url, { headers: authHeaders() })).arrayBuffer();
+    const audioCtx = new OfflineAudioContext(2, 1, 44100);
+    return audioCtx.decodeAudioData(arrayBuffer.slice(0));
+  }));
+  const length = Math.max(...decoded.map((buffer) => buffer.length));
+  const mix = new OfflineAudioContext(2, length, 44100);
+  decoded.forEach((buffer, index) => {
+    const source = mix.createBufferSource();
+    source.buffer = buffer;
+    const gain = mix.createGain();
+    gain.gain.value = stemKit.lanes[index].gain;
+    source.connect(gain); gain.connect(mix.destination);
+    source.start(0);
+  });
+  const rendered = await mix.startRendering();
+  const wav = audioBufferToWav(rendered);
+  const blob = new Blob([wav], { type: "audio/wav" });
+  if (stemKit.audio) URL.revokeObjectURL(stemKit.audio.src);
+  stemKit.audio = new Audio(URL.createObjectURL(blob));
+  stemKit.audio.volume = Number($("stemMaster").value) / 100;
+  stemKit.audio.ontimeupdate = paintStemTransport;
+  stemKit.audio.onended = () => { $("stemPlay").textContent = "▶ Play"; };
+  startStemTransport();
+}
+
+function audioBufferToWav(buffer) {
+  const channels = Math.min(2, buffer.numberOfChannels);
+  const frames = buffer.length;
+  const bytesPerSample = 2;
+  const dataSize = frames * channels * bytesPerSample;
+  const arrayBuffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(arrayBuffer);
+  const writeString = (offset, text) => { for (let i = 0; i < text.length; i += 1) view.setUint8(offset + i, text.charCodeAt(i)); };
+  writeString(0, "RIFF"); view.setUint32(4, 36 + dataSize, true); writeString(8, "WAVE");
+  writeString(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true); view.setUint32(24, buffer.sampleRate, true);
+  view.setUint32(28, buffer.sampleRate * channels * bytesPerSample, true);
+  view.setUint16(32, channels * bytesPerSample, true); view.setUint16(34, 16, true);
+  writeString(36, "data"); view.setUint32(40, dataSize, true);
+  let offset = 44;
+  const channelData = [...Array(channels)].map((_, channel) => buffer.getChannelData(channel));
+  for (let frame = 0; frame < frames; frame += 1) {
+    for (let channel = 0; channel < channels; channel += 1) {
+      const sample = Math.max(-1, Math.min(1, channelData[channel][frame]));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      offset += 2;
+    }
+  }
+  return new Uint8Array(arrayBuffer);
+}
+
+function authHeaders() {
+  const headers = {};
+  if (state.token) headers.Authorization = `Bearer ${state.token}`;
+  return headers;
+}
+
+function startStemTransport() {
+  if (!stemKit.audio) return;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (Ctx) {
+    const actx = new Ctx();
+    const source = actx.createMediaElementSource(stemKit.audio);
+    const analyser = actx.createAnalyser();
+    analyser.fftSize = 256; analyser.smoothingTimeConstant = 0.8;
+    source.connect(analyser); analyser.connect(actx.destination);
+    stemKit.graph = { actx, analyser };
+  }
+  const paint = () => {
+    paintStemTransport();
+    const lane = document.querySelector(".stem-lane .lane-bpm");
+    if (stemKit.graph?.analyser && lane) {
+      const data = new Uint8Array(stemKit.graph.analyser.frequencyBinCount);
+      stemKit.graph.analyser.getByteFrequencyData(data);
+      const energy = data.reduce((sum, value) => sum + value, 0) / data.length / 255;
+      lane.style.setProperty("--pulse", energy.toFixed(3));
+    }
+    stemKit.raf = requestAnimationFrame(paint);
+  };
+  cancelAnimationFrame(stemKit.raf);
+  stemKit.raf = requestAnimationFrame(paint);
+}
+
+function paintStemTransport() {
+  if (!stemKit.audio) return;
+  const duration = Number.isFinite(stemKit.audio.duration) ? stemKit.audio.duration : 0;
+  $("stemClock").textContent = `${formatClock(stemKit.audio.currentTime)} / ${formatClock(duration)}`;
+  if (duration > 0) $("stemSeek").value = String(Math.round((stemKit.audio.currentTime / duration) * 1000));
+}
+
+function toggleStemPlayback() {
+  if (!stemKit.audio) return;
+  if (stemKit.audio.paused) {
+    stemKit.audio.play();
+    $("stemPlay").textContent = "❚❚ Pause";
+  } else {
+    stemKit.audio.pause();
+    $("stemPlay").textContent = "▶ Play";
+  }
+}
+
+function stopStemPlayback() {
+  if (stemKit.audio) { stemKit.audio.pause(); stemKit.audio.src = ""; }
+  stemKit.audio = null;
+  if (stemKit.graph?.actx) stemKit.graph.actx.close().catch(() => {});
+  stemKit.graph = null;
+  cancelAnimationFrame(stemKit.raf);
+  stemKit.raf = 0;
+}
+
+function seekStems() {
+  if (!stemKit.audio) return;
+  const duration = Number.isFinite(stemKit.audio.duration) ? stemKit.audio.duration : 0;
+  if (duration <= 0) return;
+  stemKit.audio.currentTime = (Number($("stemSeek").value) / 1000) * duration;
+}
+
+function applyStemGains() {
+  const master = Number($("stemMaster").value) / 100;
+  stemKit.lanes.forEach((lane) => {
+    lane.element.style.setProperty("--level", String(lane.gain * master));
+  });
+  if (stemKit.audio) stemKit.audio.volume = master;
+  // A full offline re-mix is expensive; rebuild when playback pauses.
+  if (stemKit.audio && !stemKit.audio.paused) {
+    stemKit.audio.onpause = () => buildStemMix().catch(() => {});
+  }
 }
 
 async function initialize() {

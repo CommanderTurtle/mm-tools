@@ -50,6 +50,50 @@ GUIDE_MODES = {
     "ask": "Answer the user's music question directly and concisely. No compulsory caption headings or tuning advice. Do not claim to have heard the recording or checked sources unless supplied. Distinguish documented facts, inference and uncertainty. Do not reproduce lyrics from existing songs.",
 }
 
+SAMPLING_DEFAULTS: dict[str, Any] = {
+    "temperature": 0.7,
+    "top_k": 64,
+    "top_p": 0.95,
+    "min_p": 0.05,
+    "repetition_penalty": 1.05,
+    "presence_penalty": 0.0,
+    "max_length": 1024,
+    "seed": 0,
+}
+
+
+def coerce_sampling(raw: Any) -> dict[str, Any]:
+    """Clamp UI-supplied sampling knobs into the Krea2 node's accepted ranges."""
+    if not isinstance(raw, dict):
+        return {}
+
+    def number(key: str, lo: float, hi: float) -> float:
+        value = raw.get(key)
+        try:
+            return min(hi, max(lo, float(value)))
+        except (TypeError, ValueError):
+            return float(SAMPLING_DEFAULTS[key])
+
+    result = {key: number(key, lo, hi) for key, lo, hi in (
+        ("temperature", 0.0, 2.0),
+        ("top_p", 0.01, 1.0),
+        ("min_p", 0.0, 0.5),
+        ("repetition_penalty", 1.0, 2.0),
+        ("presence_penalty", -2.0, 2.0),
+    )}
+    for key in ("top_k", "seed"):
+        try:
+            value = int(raw.get(key, SAMPLING_DEFAULTS[key]))
+        except (TypeError, ValueError):
+            value = int(SAMPLING_DEFAULTS[key])
+        result[key] = max(1, min(4096, value)) if key == "top_k" else value
+    try:
+        value = int(raw.get("max_length", SAMPLING_DEFAULTS["max_length"]))
+    except (TypeError, ValueError):
+        value = int(SAMPLING_DEFAULTS["max_length"])
+    result["max_length"] = max(64, min(8192, value))
+    return result
+
 
 def _research_sources(payload: Any) -> list[dict[str, Any]]:
     if not isinstance(payload, dict) or payload.get("success") is False:
@@ -174,17 +218,28 @@ def guide_sections(text: str) -> dict[str, str]:
     return sections
 
 
-def krea_graph(prompt: str, *, max_length: int = 1024) -> dict[str, Any]:
+def krea_graph(
+    prompt: str,
+    *,
+    max_length: int = 1024,
+    temperature: float = 0.7,
+    top_k: int = 64,
+    top_p: float = 0.95,
+    min_p: float = 0.05,
+    repetition_penalty: float = 1.05,
+    presence_penalty: float = 0.0,
+    seed: int = 0,
+) -> dict[str, Any]:
     """Two-stage Krea2 sigma schedule plus one text node, as the MiniMax guide uses."""
     sampling: dict[str, Any] = {
         "sampling_mode": "on",
-        "sampling_mode.temperature": 0.7,
-        "sampling_mode.top_k": 64,
-        "sampling_mode.top_p": 0.95,
-        "sampling_mode.min_p": 0.05,
-        "sampling_mode.repetition_penalty": 1.05,
-        "sampling_mode.seed": 0,
-        "sampling_mode.presence_penalty": 0.0,
+        "sampling_mode.temperature": temperature,
+        "sampling_mode.top_k": top_k,
+        "sampling_mode.top_p": top_p,
+        "sampling_mode.min_p": min_p,
+        "sampling_mode.repetition_penalty": repetition_penalty,
+        "sampling_mode.seed": seed,
+        "sampling_mode.presence_penalty": presence_penalty,
     }
     text_inputs: dict[str, Any] = {
         "clip": ["1", 0],
@@ -239,12 +294,14 @@ class KreaPlanner:
         constraints: str = "",
         web_search: bool = False,
         search_query: str = "",
+        sampling: dict[str, Any] | None = None,
         context: StudioContext,
     ) -> dict[str, Any]:
         if mode not in GUIDE_MODES:
             raise ValueError(f"Unknown Krea planning lane: {mode}")
         self.preflight()
         context.check_cancelled()
+        sampling = coerce_sampling(sampling)
         research_context = ""
         sources: list[dict[str, Any]] = []
         if web_search:
@@ -267,7 +324,8 @@ class KreaPlanner:
             },
         ) as runtime:
             record = runtime.execute(
-                krea_graph(prompt), stage="Planning direction with Krea2 (Qwen3-VL-4B)",
+                krea_graph(prompt, **dict(SAMPLING_DEFAULTS, **(sampling or {}))),
+                stage="Planning direction with Krea2 (Qwen3-VL-4B)",
             )
         text = history_text(record)
         sections = guide_sections(text)

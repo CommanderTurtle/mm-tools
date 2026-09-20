@@ -18,8 +18,10 @@
         </a>
         <nav class="primary-nav" aria-label="Workspace">
           <button class="nav-item active" data-page="create"><span>✦</span><b>Create</b><small>Native workflows</small></button>
+          <button class="nav-item" data-page="prompt"><span>✒</span><b>Prompt</b><small>Krea2 writing lane</small></button>
           <button class="nav-item" data-page="queue"><span>◫</span><b>Queue</b><small id="queueNavCount">0 active</small></button>
           <button class="nav-item" data-page="library"><span>▤</span><b>Library</b><small id="libraryNavCount">0 outputs</small></button>
+          <button class="nav-item" data-page="stems"><span>♬</span><b>Stems</b><small>Split &amp; mix</small></button>
           <button class="nav-item" data-page="compare"><span>◒</span><b>Compare</b><small>A/B listening</small></button>
           <button class="nav-item" data-page="presets"><span>⌁</span><b>Presets</b><small>Your recipes</small></button>
           <button class="nav-item" data-page="help"><span>?</span><b>Guide & API</b><small>Exact setup</small></button>
@@ -107,6 +109,38 @@
             </section>
           </section>
 
+          <section id="page-prompt" class="page">
+            <header class="page-hero"><div><p class="kicker">KREA2 · QWEN3-VL-4B · LOCAL LANE</p><h1>Prompt Studio.</h1><p>Write the song before rendering it — structured caption sections, optional local web research, and full sampling control on the shared Krea2 lane.</p></div></header>
+            <div class="prompt-grid">
+              <form id="promptForm" class="prompt-form">
+                <div id="promptModes" class="chip-row"></div>
+                <label class="field"><span>Brief or question</span><textarea id="promptBrief" rows="6" required placeholder="Genre, mood, tempo, instrumentation, vocal character, what to exclude…"></textarea></label>
+                <label class="field"><span>Lyrics <i>finished, or notes for the draft</i></span><textarea id="promptLyrics" rows="8" placeholder="[Verse]&#10;…"></textarea></label>
+                <label class="field"><span>Constraints <i>optional</i></span><textarea id="promptConstraints" rows="2" placeholder="No autotune. Keep the bridge instrumental. …"></textarea></label>
+                <div class="prompt-research">
+                  <label class="switch-row"><input id="promptResearch" type="checkbox"><span>Local web research</span></label>
+                  <label class="field"><span>Research query <i>only this leaves the machine</i></span><input id="promptResearchQuery" type="text" placeholder="e.g. 90s trip-hop reference tracks"></label>
+                </div>
+                <details class="advanced-panel">
+                  <summary><span>Advanced · Krea2 sampling</span><small>Temperature, top-k/p, penalties, seed, max tokens</small></summary>
+                  <div id="promptSampling" class="control-grid"></div>
+                </details>
+                <div class="submit-dock">
+                  <div><span id="promptDot" class="validation-dot"></span><p id="promptStatus" role="status">Ready when you are.</p><small>Ctrl/⌘ + Enter runs the plan</small></div>
+                  <button id="runPromptPlan" class="primary-button" type="submit"><span>Run Krea plan</span><b>↗</b></button>
+                </div>
+              </form>
+              <aside class="prompt-results">
+                <div class="recipe-head"><small>RESULT</small><span id="promptResultMode"></span></div>
+                <div id="promptResults" class="prompt-result-grid"><p class="muted">No plan yet. The three caption sections land here with per-section copy, sources, and the raw response.</p></div>
+                <div class="prompt-result-actions">
+                  <button id="useInCreate" class="secondary-button" type="button" hidden>Use in Create ↗</button>
+                  <button id="copyRawPrompt" class="secondary-button" type="button" hidden>⧉ Copy raw</button>
+                </div>
+              </aside>
+            </div>
+          </section>
+
           <section id="page-queue" class="page">
             <header class="page-hero"><div><p class="kicker">SINGLE-GPU DISCIPLINE</p><h1>Every job has a place.</h1><p>First in, first out. Models remain reusable; outputs and logs remain inspectable.</p></div><button id="queueRefresh" class="secondary-button">Refresh queue</button></header>
             <div id="queueSummary" class="stat-row"></div>
@@ -117,6 +151,32 @@
             <header class="page-hero"><div><p class="kicker">DURABLE ARTIFACT LEDGER</p><h1>Your local output room.</h1><p>Preview, inspect metadata, download, compare, or reopen the exact recipe.</p></div><label class="library-search"><span>⌕</span><input id="librarySearch" type="search" placeholder="Filter outputs, modes, seeds…"></label></header>
             <div id="libraryFilters" class="filter-pills"></div>
             <div id="libraryGrid" class="library-grid"></div>
+          </section>
+
+          <section id="page-stems" class="page">
+            <header class="page-hero"><div><p class="kicker">STEMKIT · LOCAL SEPARATION</p><h1>Split a track into stems.</h1><p>Vocals, drums, bass and other — separated locally with demucs (or Mel-Band Roformer for acapella), played back on faders, exported as WAV.</p></div></header>
+            <div class="stems-grid">
+              <section class="stems-source">
+                <small>TRACK</small>
+                <div id="stemTrackPick" class="stem-track-pick"></div>
+                <label class="file-drop" for="stemFile"><input id="stemFile" type="file" accept="audio/*" hidden><span>⇪ Upload another audio file</span></label>
+                <small>PRESET</small>
+                <div id="stemPresets" class="chip-row"></div>
+                <small>STEMS</small>
+                <div id="stemToggles" class="stem-toggles"></div>
+                <button id="stemSplit" class="primary-button" type="button"><span>Split stems</span><b>↗</b></button>
+                <p id="stemStatus" role="status" class="muted">Pick a track, then split.</p>
+                <div id="stemProgressWrap" hidden><div class="progress-bar"><i id="stemProgressFill"></i></div><small id="stemProgressText"></small></div>
+              </section>
+                <div class="transport">
+                  <button id="stemPlay" type="button">▶ Play</button>
+                  <input id="stemSeek" type="range" min="0" max="1000" value="0" aria-label="seek">
+                  <time id="stemClock">00:00 / 00:00</time>
+                  <label class="master"><span>Master</span><input id="stemMaster" type="range" min="0" max="100" value="90"></label>
+                </div>
+                <div id="stemLanes" class="stem-lanes"><p class="muted">Faders appear after a split.</p></div>
+              </section>
+            </div>
           </section>
 
           <section id="page-compare" class="page">
@@ -141,7 +201,7 @@
               <article class="guide-card"><small>START CONTRACT</small><h2>One setup, one start</h2><ol id="setupSteps" class="setup-steps"></ol></article>
               <article class="guide-card span-two"><small>LOCAL API</small><h2>Queue the same native workflow</h2><div class="api-tabs"><button class="active" data-code="curl">curl</button><button data-code="python">Python</button><button data-code="js">Browser JS</button></div><pre id="apiExample" class="api-example"></pre><button id="copyApi" class="copy-button">Copy example</button></article>
               <article class="guide-card"><small>PRIVACY CONTRACT</small><h2>Observable boundaries</h2><ul class="privacy-list"><li>Loopback listener by default</li><li>No analytics or remote UI assets</li><li>CORS limited to media delivery</li><li>Single local GPU queue</li><li>Explicit LAN bearer token option</li></ul></article>
-              <article class="guide-card"><small>KEYBOARD</small><h2>Fast hands</h2><dl class="shortcut-list"><div><dt>Ctrl/⌘ Enter</dt><dd>Queue render</dd></div><div><dt>/</dt><dd>Search workflows</dd></div><div><dt>1–6</dt><dd>Switch workspace</dd></div><div><dt>Esc</dt><dd>Close dialog</dd></div></dl></article>
+              <article class="guide-card"><small>KEYBOARD</small><h2>Fast hands</h2><dl class="shortcut-list"><div><dt>Ctrl/⌘ Enter</dt><dd>Queue render</dd></div><div><dt>/</dt><dd>Search workflows</dd></div><div><dt>1–8</dt><dd>Switch workspace</dd></div><div><dt>Esc</dt><dd>Close dialog</dd></div></dl></article>
             </div>
           </section>
         </main>
@@ -162,6 +222,19 @@
         <div class="dialog-head"><div><small id="jobDialogMode">JOB</small><h2 id="jobDialogTitle">Render details</h2></div><button value="cancel" aria-label="Close">×</button></div>
         <div id="jobDialogBody"></div>
       </form>
+    </dialog>
+
+    <dialog id="performanceDialog" class="studio-dialog performance-dialog">
+      <div class="performance-shell">
+        <div class="performance-copy">
+          <article><small>STYLE</small><p id="perfStyle">—</p><small>ENGINE</small><p id="perfEngine">—</p></article>
+          <div id="perfLyrics" class="performance-lyrics"><p class="active">Lyrics scroll with playback.</p></div>
+        </div>
+        <div class="performance-viz"><canvas id="perfSpectrum" aria-label="Live audio spectrum"></canvas></div>
+        <audio id="perfAudio" controls preload="metadata"></audio>
+        <div class="performance-footer"><span id="perfNowPlaying">—</span><time id="perfClock">00:00 / 00:00</time></div>
+      </div>
+      <button id="perfClose" class="dialog-close" aria-label="Close">×</button>
     </dialog>
 
     <div id="toastRegion" class="toast-region" aria-live="polite"></div>
