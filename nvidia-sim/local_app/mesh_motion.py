@@ -178,8 +178,12 @@ def solve_soma_pose(targets, correspondence, rest_world, parent_ids):
         targets: [F, Jm, 3] world positions of the mapped source joints only,
             ordered like the non-None entries of ``correspondence``.
         correspondence: [Jsrc] int | None, source joint -> SOMA public index.
-        rest_world: [78, 4, 4] fitted T-pose world transforms (0 = virtual
-            Root, 1 = Hips).
+        rest_world: [78, 4, 4] world transforms of the layer's zero-input
+            evaluation state (0 = virtual Root, 1 = Hips), e.g.
+            ``SOMALayer.pose(zeros, zeros).transforms[0]``. The solved poses
+            are only consumed correctly when evaluated against this exact
+            rest; the fitted reposed bind is a different frame and must not
+            be used here.
         parent_ids: [78] public joint parents (SOMA convention: the virtual
             Root points at itself, index 0; -1 is tolerated).
 
