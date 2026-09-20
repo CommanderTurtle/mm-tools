@@ -38,7 +38,7 @@ Read [models-and-setup.md](references/models-and-setup.md). Install the YuE2 run
 from the official GitHub repository source. Use a separate environment
 for SheetSage2 because dependency pins differ. Download the public model snapshots and
 record their revisions. This skill's original instructions, helpers, and templates are
-licensed under [Apache 2.0](LICENSE). Copyright (c) 2026 the YuE2 authors.
+licensed under the Apache License, Version 2.0. Copyright (c) 2026 the YuE2 authors.
 Model weights and third-party dependencies retain their applicable licenses.
 
 Use the supported baseline: one request at a time, BF16-capable NVIDIA GPU with 24 GB
