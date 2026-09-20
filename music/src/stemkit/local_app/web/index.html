@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" dark light">
+  <title>StemKit · mm-tools</title>
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="brand">
+      <span class="brand-mark"><i></i><i></i><i></i><i></i></span>
+      <div><strong>STEMKIT</strong><small>local stem splitter · mm-tools</small></div>
+    </div>
+    <div class="engines" id="engines">Checking local engines…</div>
+  </header>
+
+  <main>
+    <section class="source-card">
+      <div class="source-head">
+        <small>01 · SOURCE</small>
+        <h2>Load a track.</h2>
+        <p>Any audio file the browser can decode. It is converted locally to WAV and never leaves this machine.</p>
+      </div>
+      <label class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept="audio/*,.wav,.mp3,.flac,.m4a,.ogg,.opus" hidden>
+        <span class="dz-icon">♫</span>
+        <span class="dz-copy"><b>Choose an audio file</b><small>or drop it here</small></span>
+      </label>
+      <div class="track-row" id="trackRow" hidden>
+        <div class="track-meta">
+          <b id="trackName">—</b>
+          <small id="trackFacts">—</small>
+        </div>
+        <canvas id="overview" class="waveform overview-wave" aria-label="Track overview"></canvas>
+        <button class="quiet-button" id="clearTrack" type="button">Remove</button>
+      </div>
+    </section>
+
+    <section class="split-card">
+      <div class="source-head">
+        <small>02 · SPLIT</small>
+        <h2>Pick what to keep.</h2>
+        <p>Vocals-only requests use the Mel-Band Roformer engine when its checkpoint is present; everything else runs demucs.</p>
+      </div>
+      <div class="preset-chips" id="presets">
+        <button class="chip active" data-preset="all" type="button">All</button>
+        <button class="chip" data-preset="karaoke" type="button">Karaoke</button>
+        <button class="chip" data-preset="acapella" type="button">Acapella</button>
+        <button class="chip" data-preset="drums_bass" type="button">Drums + Bass</button>
+      </div>
+      <div class="stem-toggles" id="stemToggles"></div>
+      <div class="split-actions">
+        <button class="primary-button" id="splitButton" type="button" disabled><span>Split stems</span><b>↗</b></button>
+        <p id="splitStatus" role="status">Load a track, then split.</p>
+      </div>
+      <div class="progress-wrap" id="progressWrap" hidden>
+        <div class="progress-bar"><i id="progressFill"></i></div>
+        <small id="progressText">Starting…</small>
+      </div>
+    </section>
+
+    <section class="daudio" id="daudio" hidden>
+      <div class="transport">
+        <button class="transport-button" id="playButton" type="button">▶ Play</button>
+        <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek">
+        <time id="clock">00:00 / 00:00</time>
+        <div class="transport-right">
+          <label class="master"><span>Master</span><input type="range" id="masterVol" min="0" max="100" value="90"></label>
+          <button class="quiet-button" id="exportAll" type="button">⤓ Export all</button>
+        </div>
+      </div>
+      <div id="lanes" class="lanes"></div>
+    </section>
+  </main>
+
+  <footer class="privacy">
+    <span>100% local · separation on your GPU/CPU</span>
+    <span>No telemetry — the vendored copy sends nothing</span>
+  </footer>
+
+  <script src="/assets/app.js" type="module"></script>
+</body>
+</html>
