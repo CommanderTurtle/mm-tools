@@ -1348,4 +1348,10 @@ def job_audio(job_id: str, index: int) -> FileResponse:
     path = _archived_audio(paths[index].relative_to(OUTPUT_ROOT).as_posix())
     if not path.is_file():
         raise HTTPException(404, "This audio file is no longer available")
-    return FileResponse(path, filename=path.name)
+    return FileResponse(
+        path,
+        filename=path.name,
+        # Cross-origin media access so the exported self-contained player can
+        # analyse this take through Web Audio from a downloaded page.
+        headers={"Access-Control-Allow-Origin": "*"},
+    )

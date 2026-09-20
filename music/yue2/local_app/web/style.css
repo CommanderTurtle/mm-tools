@@ -293,6 +293,16 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .audio-lyrics p { margin: 3px 0; color: var(--faint); font: 9px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; transition: color .2s ease, transform .2s ease, font-size .2s ease; }
 .audio-lyrics p.section { margin-top: 9px; color: rgba(var(--accent-rgb), .58); font-size: 7px; letter-spacing: .12em; text-transform: uppercase; }
 .audio-lyrics p.active { color: var(--text); font-size: 10px; transform: translateX(8px); }
+.audio-toolbar { position: absolute; top: 9px; right: 9px; z-index: 2; display: flex; gap: 5px; }
+.audio-toolbar button { padding: 5px 8px; border: 1px solid var(--line-strong); border-radius: 8px; background: color-mix(in srgb, var(--panel-strong) 88%, transparent); color: var(--muted); backdrop-filter: blur(10px); font-size: 8px; }
+.audio-toolbar button:hover { color: var(--accent); border-color: rgba(var(--accent-rgb), .48); background: rgba(var(--accent-rgb), .12); }
+.audio-stage:fullscreen { width: 100vw; height: 100vh; min-height: 0; border-radius: 0; grid-template-rows: minmax(0, 22vh) minmax(0, 1fr) auto; }
+.audio-stage:fullscreen .audio-spectrum { height: 100%; align-self: stretch; }
+.audio-stage:fullscreen .audio-orbit { top: -10%; left: 10%; width: 80%; }
+.audio-stage:fullscreen .audio-lyrics { max-height: 22vh; padding: 28px 32px 8px; }
+.audio-stage:fullscreen .audio-lyrics p { font-size: 13px; }
+.audio-stage:fullscreen .audio-lyrics p.section { font-size: 10px; }
+.audio-stage:fullscreen .audio-lyrics p.active { font-size: 16px; }
 .file-glyph { font-size: 42px; color: var(--accent); }
 .output-copy { padding: 15px; }
 .output-copy header { display: flex; justify-content: space-between; gap: 10px; }

@@ -816,8 +816,32 @@ function renderQueue() {
   }));
 }
 
+function mediaPlaying() {
+  return [...document.querySelectorAll("audio, video")].some((element) => !element.paused && !element.ended);
+}
+
+function renderVisiblePages() {
+  if (state.page === "queue") renderQueue();
+  if (state.page === "library") renderLibrary();
+  if (state.page === "compare") renderCompare();
+}
+
+function refreshVisiblePages() {
+  // A re-rendered page replaces live <audio> nodes and drops playback position;
+  // hold the refresh until the user pauses or the track ends.
+  if (mediaPlaying()) { state.pendingRender = true; return; }
+  state.pendingRender = false;
+  renderVisiblePages();
+}
+
+function settleRender() {
+  if (!state.pendingRender || mediaPlaying()) return;
+  state.pendingRender = false;
+  renderVisiblePages();
+}
+
 async function refreshJobs() {
-  try { state.jobs = await api("/api/jobs?limit=200"); renderCounts(); if (state.page === "queue") renderQueue(); if (state.page === "library") renderLibrary(); if (state.page === "compare") renderCompare(); }
+  try { state.jobs = await api("/api/jobs?limit=200"); renderCounts(); refreshVisiblePages(); }
   catch (error) { toast(error.message, "error"); }
 }
 
@@ -1097,11 +1121,178 @@ async function createGlbRenderer(canvas, source, controls, status) {
   requestAnimationFrame(paint);
 }
 
+function slugify(value) {
+  const slug = String(value || "track").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return slug || "track";
+}
+
+function downloadBlob(filename, blob) {
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+function trackLyrics(item) {
+  return String(item.metadata?.lyrics || item.job?.request?.controls?.lyrics || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+}
+
+function buildAudioPlayerHtml({ title, source, accent, lyrics }) {
+  const accentRgb = hexToRgb(accent);
+  const rows = lyrics.map((line) => '<p' + (/^\[.+\]$/.test(line) ? ' class="section" data-section="1"' : "") + ">" + escapeHtml(line) + "</p>").join("\n    ");
+  const css = [
+    ":root{--accent:" + accent + ";--pulse:0}",
+    "*{box-sizing:border-box}",
+    "html,body{margin:0;min-height:100%}",
+    "body{display:grid;place-items:center;padding:28px 20px;background:radial-gradient(120% 90% at 50% 0%,#101513 0%,#070908 60%);color:#e9eeeb;font:14px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif}",
+    "main{position:relative;width:min(880px,100%);border:1px solid rgba(" + accentRgb + ",.16);border-radius:16px;background:linear-gradient(150deg,rgba(" + accentRgb + ",.07),transparent 52%),#0e1110;padding:26px 26px 16px;overflow:hidden}",
+    "h1{margin:0;font-size:19px;font-weight:650;letter-spacing:-.01em}",
+    ".source{margin:6px 0 0}",
+    ".source a{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#98a29c;font:11px ui-monospace,SFMono-Regular,Menlo,monospace;text-decoration:none;border-bottom:1px dotted rgba(152,162,156,.4)}",
+    ".source a:hover{color:var(--accent)}",
+    ".stage{position:relative;margin-top:20px}",
+    ".orbit{position:absolute;top:-42%;left:12%;width:76%;aspect-ratio:1;border:1px solid rgba(" + accentRgb + ",.18);border-radius:50%;box-shadow:0 0 70px rgba(" + accentRgb + ",calc(.1 + var(--pulse) * .22)),inset 0 0 50px rgba(" + accentRgb + ",calc(.05 + var(--pulse) * .08));opacity:calc(.5 + var(--pulse) * .5);transform:scale(calc(1 + var(--pulse) * .05));pointer-events:none}",
+    "canvas{display:block;width:100%;height:170px;opacity:.92}",
+    ".lyrics{position:relative;max-height:190px;overflow:auto;margin-top:14px;padding:14px 4px 6px;-webkit-mask-image:linear-gradient(transparent,black 14%,black 86%,transparent);mask-image:linear-gradient(transparent,black 14%,black 86%,transparent);scrollbar-width:thin;scrollbar-color:rgba(" + accentRgb + ",.35) transparent;text-align:center}",
+    ".lyrics p{margin:4px 0;color:#98a29c;font:12px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;transition:color .2s ease,transform .2s ease,font-size .2s ease}",
+    ".lyrics p.section{margin-top:12px;color:rgba(" + accentRgb + ",.6);font-size:10px;letter-spacing:.14em;text-transform:uppercase}",
+    ".lyrics p.active{color:#e9eeeb;font-size:14px;transform:translateX(10px)}",
+    "audio{display:block;width:100%;margin-top:16px}",
+    "footer{display:flex;justify-content:space-between;gap:12px;margin-top:10px;color:#98a29c;font:10px ui-monospace,monospace;letter-spacing:.1em}",
+  ].join("\n");
+  const script = [
+    '"use strict";',
+    "(() => {",
+    "  var $ = function (id) { return document.getElementById(id); };",
+    "  var audio = $(\"player\");",
+    "  var canvas = $(\"spectrum\");",
+    "  var clock = $(\"clock\");",
+    "  var rows = Array.prototype.slice.call(document.querySelectorAll(\".lyrics p\"));",
+    "  var candidates = rows.filter(function (row) { return row.dataset.section !== \"1\"; });",
+    "  var context = null;",
+    "  var analyser = null;",
+    "  var animation = 0;",
+    "  var activeIndex = -1;",
+    "  var ACCENT = \"" + accent + "\";",
+    "  function formatTime(seconds) {",
+    "    if (!isFinite(seconds)) return \"00:00\";",
+    "    var whole = Math.max(0, Math.floor(seconds));",
+    "    var m = Math.floor(whole / 60);",
+    "    var s = whole % 60;",
+    "    return (m < 10 ? \"0\" + m : m) + \":\" + (s < 10 ? \"0\" + s : s);",
+    "  }",
+    "  function paint() {",
+    "    var ratio = Math.min(window.devicePixelRatio || 1, 2);",
+    "    var width = Math.max(canvas.clientWidth, 1);",
+    "    var height = Math.max(canvas.clientHeight, 1);",
+    "    if (canvas.width !== Math.floor(width * ratio) || canvas.height !== Math.floor(height * ratio)) { canvas.width = Math.floor(width * ratio); canvas.height = Math.floor(height * ratio); }",
+    "    var draw = canvas.getContext(\"2d\");",
+    "    draw.setTransform(ratio, 0, 0, ratio, 0, 0);",
+    "    draw.clearRect(0, 0, width, height);",
+    "    var bins = new Uint8Array(analyser ? analyser.frequencyBinCount : 64);",
+    "    if (analyser) analyser.getByteFrequencyData(bins);",
+    "    var lowCount = Math.min(8, bins.length);",
+    "    var low = 0;",
+    "    for (var i = 0; i < lowCount; i += 1) low += bins[i];",
+    "    low = lowCount ? low / lowCount : 0;",
+    "    document.documentElement.style.setProperty(\"--pulse\", String(Math.min(1, low / 80)));",
+    "    var count = 46;",
+    "    var gap = 3;",
+    "    var bar = Math.max(2, (width - gap * (count - 1)) / count);",
+    "    for (var index = 0; index < count; index += 1) {",
+    "      var sample = bins[Math.floor((index / count) * bins.length)] || (audio.paused ? 18 + Math.sin(index * 0.65) * 9 : 0);",
+    "      var level = Math.max(3, (sample / 255) * (height - 8));",
+    "      var x = index * (bar + gap);",
+    "      var y = height - level;",
+    "      var gradient = draw.createLinearGradient(0, y, 0, height);",
+    "      gradient.addColorStop(0, ACCENT);",
+    "      gradient.addColorStop(1, ACCENT + \"33\");",
+    "      draw.fillStyle = gradient;",
+    "      draw.beginPath();",
+    "      if (draw.roundRect) draw.roundRect(x, y, bar, level, Math.min(bar / 2, 3)); else draw.rect(x, y, bar, level);",
+    "      draw.fill();",
+    "    }",
+    "    if (!audio.paused && !audio.ended) animation = requestAnimationFrame(paint);",
+    "  }",
+    "  function syncLyrics() {",
+    "    if (!candidates.length || !isFinite(audio.duration) || audio.duration <= 0) return;",
+    "    var selected = candidates[Math.min(candidates.length - 1, Math.floor((audio.currentTime / audio.duration) * candidates.length))];",
+    "    var index = rows.indexOf(selected);",
+    "    if (index === activeIndex) return;",
+    "    activeIndex = index;",
+    "    rows.forEach(function (row, i) { row.classList.toggle(\"active\", i === index); });",
+    "    var panel = selected.parentElement;",
+    "    panel.scrollTo({ top: Math.max(0, selected.offsetTop - panel.clientHeight / 2), behavior: \"smooth\" });",
+    "  }",
+    "  audio.addEventListener(\"play\", async function () {",
+    "    var AudioContextType = window.AudioContext || window.webkitAudioContext;",
+    "    if (!AudioContextType) return;",
+    "    if (!context) {",
+    "      context = new AudioContextType();",
+    "      analyser = context.createAnalyser();",
+    "      analyser.fftSize = 256;",
+    "      analyser.smoothingTimeConstant = 0.84;",
+    "      var node = context.createMediaElementSource(audio);",
+    "      node.connect(analyser);",
+    "      analyser.connect(context.destination);",
+    "    }",
+    "    await context.resume();",
+    "    cancelAnimationFrame(animation);",
+    "    paint();",
+    "  });",
+    "  audio.addEventListener(\"pause\", function () { cancelAnimationFrame(animation); paint(); });",
+    "  audio.addEventListener(\"ended\", function () { cancelAnimationFrame(animation); paint(); });",
+    "  audio.addEventListener(\"timeupdate\", function () {",
+    "    clock.textContent = formatTime(audio.currentTime) + \" / \" + formatTime(audio.duration);",
+    "    syncLyrics();",
+    "  });",
+    "  requestAnimationFrame(paint);",
+    "})();",
+  ].join("\n");
+  return [
+    "<!doctype html>",
+    '<html lang="en">',
+    "<head>",
+    '<meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    "<title>" + escapeHtml(title) + "</title>",
+    "<style>",
+    css,
+    "</style>",
+    "</head>",
+    "<body>",
+    "<main>",
+    "<h1>" + escapeHtml(title) + "</h1>",
+    '<p class="source"><a href="' + escapeHtml(source) + '" target="_blank" rel="noopener">' + escapeHtml(source) + "</a></p>",
+    '<div class="stage"><div class="orbit"></div><canvas id="spectrum" aria-label="Live audio spectrum"></canvas></div>',
+    (lyrics.length ? '<section class="lyrics">\n    ' + rows + "\n</section>" : ""),
+    '<audio id="player" src="' + escapeHtml(source) + '" crossorigin="anonymous" controls preload="metadata"></audio>',
+    '<footer><span>SELF-CONTAINED PLAYER &middot; MM-TOOLS</span><time id="clock">00:00 / 00:00</time></footer>',
+    "</main>",
+    "<script>",
+    script,
+    "</scr" + "ipt>",
+    "</body>",
+    "</html>",
+  ].join("\n");
+}
+
+function exportAudioPlayer(item) {
+  const source = new URL(item.url, location.origin).href;
+  const accentRaw = state.manifest?.theme?.accent;
+  const accent = /^#[0-9a-fA-F]{6}$/.test(String(accentRaw || "")) ? accentRaw : "#90efb8";
+  const title = item.label || item.mode?.title || "Track";
+  const html = buildAudioPlayerHtml({ title, source, accent, lyrics: trackLyrics(item) });
+  downloadBlob(`${slugify(title)}-player.html`, new Blob([html], { type: "text/html" }));
+  toast("Self-contained player downloaded.", "info", 3200);
+}
+
 function audioStudioNode(item) {
   const shell = document.createElement("div"); shell.className = "audio-stage";
   const canvas = document.createElement("canvas"); canvas.className = "audio-spectrum"; canvas.setAttribute("aria-label", "Live audio spectrum");
   const glow = document.createElement("div"); glow.className = "audio-orbit";
-  const lyrics = String(item.metadata?.lyrics || item.job?.request?.controls?.lyrics || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const lyrics = trackLyrics(item);
   let lyricRows = []; let lyricsPanel = null;
   if (lyrics.length) {
     const panel = document.createElement("div"); panel.className = "audio-lyrics"; lyricsPanel = panel;
@@ -1111,6 +1302,13 @@ function audioStudioNode(item) {
     shell.append(panel);
   }
   const audio = mediaNode(item, false); audio.classList.add("studio-audio");
+  const toolbar = document.createElement("div"); toolbar.className = "audio-toolbar";
+  const big = document.createElement("button"); big.type = "button"; big.textContent = "⛶ Big";
+  big.onclick = () => { if (document.fullscreenElement === shell) document.exitFullscreen?.(); else shell.requestFullscreen?.(); };
+  const exportButton = document.createElement("button"); exportButton.type = "button"; exportButton.textContent = "⤓ Export"; exportButton.title = "Download a self-contained player (.html) for this track";
+  exportButton.onclick = () => exportAudioPlayer(item);
+  toolbar.append(big, exportButton);
+  document.addEventListener("fullscreenchange", () => { if (document.fullscreenElement === shell && shell.isConnected) paint(); });
   let context; let analyser; let animation = 0; let source;
   const paint = () => {
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -1145,7 +1343,7 @@ function audioStudioNode(item) {
   audio.addEventListener("pause", () => { cancelAnimationFrame(animation); paint(); });
   audio.addEventListener("ended", () => { cancelAnimationFrame(animation); paint(); });
   audio.addEventListener("timeupdate", syncLyrics);
-  shell.append(glow, canvas, audio); requestAnimationFrame(paint); return shell;
+  shell.append(glow, canvas, audio, toolbar); requestAnimationFrame(paint); return shell;
 }
 
 function reopenJob(job) {
@@ -1283,7 +1481,7 @@ function connectEvents() {
   const source = new EventSource("/api/events"); state.eventSource = source;
   source.addEventListener("jobs", (event) => {
     const payload = JSON.parse(event.data); state.jobs = payload.jobs || []; renderCounts();
-    if (state.page === "queue") renderQueue(); if (state.page === "library") renderLibrary(); if (state.page === "compare") renderCompare();
+    refreshVisiblePages();
     refreshHealth();
   });
   source.onerror = () => { source.close(); clearInterval(state.pollTimer); state.pollTimer = setInterval(refreshJobs, 2000); };
@@ -1314,6 +1512,8 @@ function bindEvents() {
   qsa(".api-tabs button").forEach((button) => button.onclick = () => { state.apiCode = button.dataset.code; qsa(".api-tabs button").forEach((item) => item.classList.toggle("active", item === button)); updateApiExample(); });
   $("copyApi").onclick = async () => { await navigator.clipboard.writeText($("apiExample").textContent); toast("API example copied."); };
   window.addEventListener("hashchange", () => setPage(location.hash.slice(1), false));
+  document.addEventListener("pause", settleRender);
+  document.addEventListener("ended", settleRender);
   window.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && state.page === "create") queueCurrent(event);
     if (event.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { event.preventDefault(); setPage("create"); $("taskSearch").focus(); }

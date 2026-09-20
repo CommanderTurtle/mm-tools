@@ -392,6 +392,9 @@ def build_application(manifest: dict[str, Any], project_root: Path, adapter_path
             path,
             media_type=output.get("media_type") or _mime(path),
             filename=path.name if download else None,
+            # Cross-origin media access so the exported self-contained player can
+            # analyse this track through Web Audio from a downloaded page.
+            headers={"Access-Control-Allow-Origin": "*"},
         )
 
     @app.get("/api/events")

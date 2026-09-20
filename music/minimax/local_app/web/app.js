@@ -666,6 +666,165 @@ function drawSpectrum() {
   animationFrame = requestAnimationFrame(drawSpectrum);
 }
 
+function escapeText(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function slugify(value) {
+  const slug = String(value || "track").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return slug || "track";
+}
+
+function buildMinimaxPlayerHtml({ title, source, lyrics, metadata, vocals, arrangement }) {
+  const caption = (label, value) => `<small>${label}</small><p>${escapeText(value || "—")}</p>`;
+  const rows = lyrics
+    .map((line) => `<p${/^\s*\[.*\]\s*$/.test(line) ? ' class="tag" data-tag="1"' : ""}>${escapeText(line)}</p>`)
+    .join("\n    ");
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeText(title)}</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{display:grid;place-items:center;padding:34px 22px;background:#f4f2eb;color:#1d1d1b;font:14px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace}
+main{width:min(980px,100%);border:1px solid #272725;background:#020202;box-shadow:0 28px 80px rgba(0,0,0,.35);padding:28px 30px 14px;display:flex;flex-direction:column}
+h1{margin:0;font-size:17px;font-weight:650;letter-spacing:-.01em;color:#e8e6df}
+.source{margin-top:6px}
+.source a{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#686762;font:11px ui-monospace,monospace;text-decoration:none;border-bottom:1px dotted rgba(104,103,98,.5)}
+.source a:hover{color:#e8e6df}
+.copy{display:grid;grid-template-columns:.9fr 1.1fr;gap:36px;padding:22px 0 0;min-height:280px}
+.copy article{border-right:1px solid #1d1d1c;padding-right:24px}
+.copy small{display:block;color:#8f8e89;font-size:10px;letter-spacing:.16em;margin-top:14px}
+.copy small:first-child{margin-top:0}
+.copy p{color:#e8e6df;font-size:12px;line-height:1.7;margin:8px 0 0;white-space:pre-wrap}
+.lyrics{align-self:center;max-height:300px;overflow:auto;-webkit-mask-image:linear-gradient(transparent,black 12%,black 88%,transparent);mask-image:linear-gradient(transparent,black 12%,black 88%,transparent);scrollbar-width:thin;scrollbar-color:#3a3a37 transparent}
+.lyrics p{color:#454542;margin:3px 0;transition:color .2s,transform .2s,font-size .2s}
+.lyrics p.tag{color:#77756f;margin-top:14px;font-size:11px;letter-spacing:.12em}
+.lyrics p.active{color:#fff;transform:translateX(8px)}
+canvas{display:block;width:100%;height:110px;margin-top:18px}
+audio{display:block;width:100%;margin-top:14px}
+footer{display:flex;justify-content:space-between;gap:12px;margin-top:10px;color:#686762;font-size:9px;letter-spacing:.13em}
+@media (max-width:700px){.copy{grid-template-columns:1fr}.copy article{border-right:0;border-bottom:1px solid #1d1d1c;padding-right:0;padding-bottom:18px}}
+</style>
+</head>
+<body>
+<main>
+<h1>${escapeText(title)}</h1>
+<p class="source"><a href="${escapeText(source)}" target="_blank" rel="noopener">${escapeText(source)}</a></p>
+<div class="copy">
+<article>${caption("GLOBAL METADATA", metadata)}${caption("VOCAL DETAILS", vocals)}${caption("ARRANGEMENT", arrangement)}</article>
+<section class="lyrics">${rows || '<p>Your lyrics will move with playback.</p>'}</section>
+</div>
+<canvas id="spectrum" aria-label="Animated audio spectrum"></canvas>
+<audio id="player" src="${escapeText(source)}" crossorigin="anonymous" controls preload="metadata"></audio>
+<footer><span>SELF-CONTAINED PLAYER &middot; MINIMAX MUSIC STUDIO</span><time id="playTime">00:00 / 00:00</time></footer>
+</main>
+<script>
+"use strict";
+(() => {
+  var $ = function (id) { return document.getElementById(id); };
+  var audio = $("player");
+  var canvas = $("spectrum");
+  var clock = $("playTime");
+  var rows = Array.prototype.slice.call(document.querySelectorAll(".lyrics p"));
+  var context = null;
+  var analyser = null;
+  var activeIndex = -1;
+  function formatTime(seconds) {
+    if (!isFinite(seconds)) return "00:00";
+    var whole = Math.max(0, Math.floor(seconds));
+    var m = Math.floor(whole / 60);
+    var s = whole % 60;
+    return (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+  }
+  function drawSpectrum() {
+    var ratio = Math.min(window.devicePixelRatio || 1, 2);
+    var width = Math.max(1, canvas.clientWidth);
+    var height = Math.max(1, canvas.clientHeight);
+    if (canvas.width !== Math.floor(width * ratio) || canvas.height !== Math.floor(height * ratio)) { canvas.width = Math.floor(width * ratio); canvas.height = Math.floor(height * ratio); }
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    var values = new Uint8Array(analyser ? analyser.frequencyBinCount : 64);
+    if (analyser && !audio.paused) analyser.getByteFrequencyData(values);
+    var bars = 72;
+    var gap = 3;
+    var barWidth = Math.max(2, (width - gap * (bars - 1)) / bars);
+    for (var i = 0; i < bars; i += 1) {
+      var sample = values[Math.floor((i / bars) * values.length)] || (3 + 5 * Math.sin(i * 0.7));
+      var barHeight = Math.max(2, (sample / 255) * (height - 6));
+      var x = i * (barWidth + gap);
+      ctx.fillStyle = "rgba(244, 242, 235, " + (0.38 + (sample / 255) * 0.62) + ")";
+      ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+    }
+    clock.textContent = formatTime(audio.currentTime) + " / " + formatTime(audio.duration);
+    if (!audio.paused && Number.isFinite(audio.duration) && audio.duration > 0 && rows.length) {
+      var index = Math.min(rows.length - 1, Math.floor((audio.currentTime / audio.duration) * rows.length));
+      if (index !== activeIndex) {
+        activeIndex = index;
+        rows.forEach(function (row, j) { row.classList.toggle("active", j === index); });
+        var panel = rows[index].parentElement;
+        panel.scrollTo({ top: Math.max(0, rows[index].offsetTop - panel.clientHeight / 2 + rows[index].clientHeight / 2), behavior: "smooth" });
+      }
+    }
+    requestAnimationFrame(drawSpectrum);
+  }
+  audio.addEventListener("play", async function () {
+    var AudioContextType = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextType) return;
+    if (!context) {
+      context = new AudioContextType();
+      analyser = context.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.82;
+      var node = context.createMediaElementSource(audio);
+      node.connect(analyser);
+      analyser.connect(context.destination);
+    }
+    await context.resume();
+  });
+  requestAnimationFrame(drawSpectrum);
+})();
+</script>
+</body>
+</html>`;
+}
+
+function exportCurrentPlayer() {
+  const audio = currentAudio;
+  if (!audio || !audio.src) {
+    setStatus("", "Play a take first, then export its self-contained player.");
+    return;
+  }
+  const nowPlaying = $("nowPlaying").textContent.replace(/\s*·\s*MINIMAX MUSIC 3$/i, "").trim();
+  const job = selectedJobId ? jobsById.get(selectedJobId) : null;
+  const title = nowPlaying || (job ? takeName(job) : "Take");
+  const lyrics = lyricRows.map((row) => row.textContent).filter(Boolean);
+  const html = buildMinimaxPlayerHtml({
+    title,
+    source: audio.src,
+    lyrics,
+    metadata: $("performanceMetadata").textContent.trim(),
+    vocals: $("performanceVocals").textContent.trim(),
+    arrangement: $("performanceArrangement").textContent.trim(),
+  });
+  const blob = new Blob([html], { type: "text/html" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `${slugify(title)}-player.html`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+  setStatus("", "Self-contained player downloaded.");
+}
+
 function randomSeedFor(inputId) {
   const values = new Uint32Array(2);
   crypto.getRandomValues(values);
@@ -981,6 +1140,7 @@ $("loadModel").addEventListener("click", loadModels);
 $("unloadModel").addEventListener("click", unloadModels);
 $("interrupt").addEventListener("click", interrupt);
 $("clearFinishedTakes").addEventListener("click", clearFinishedTakes);
+$("exportPlayer").addEventListener("click", exportCurrentPlayer);
 $("composer").addEventListener("submit", generate);
 $("guideEnabled").addEventListener("change", toggleGuide);
 $("browseGuideModels").addEventListener("click", async () => {

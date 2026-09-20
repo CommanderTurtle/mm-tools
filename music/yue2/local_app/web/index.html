@@ -26,7 +26,7 @@
         </nav>
         <div class="privacy-seal">
           <span class="seal-dot"></span>
-          <div><b>Private by default</b><small>No telemetry · no CORS</small></div>
+          <div><b>Private by default</b><small>No telemetry · CORS on media only</small></div>
         </div>
         <button id="railCollapse" class="rail-collapse" type="button" title="Fold navigation">‹</button>
       </aside>
@@ -140,7 +140,7 @@
               <article class="guide-card"><small>MODEL READINESS</small><h2>Expected local artifacts</h2><div id="modelChecklist" class="checklist"></div></article>
               <article class="guide-card"><small>START CONTRACT</small><h2>One setup, one start</h2><ol id="setupSteps" class="setup-steps"></ol></article>
               <article class="guide-card span-two"><small>LOCAL API</small><h2>Queue the same native workflow</h2><div class="api-tabs"><button class="active" data-code="curl">curl</button><button data-code="python">Python</button><button data-code="js">Browser JS</button></div><pre id="apiExample" class="api-example"></pre><button id="copyApi" class="copy-button">Copy example</button></article>
-              <article class="guide-card"><small>PRIVACY CONTRACT</small><h2>Observable boundaries</h2><ul class="privacy-list"><li>Loopback listener by default</li><li>No analytics or remote UI assets</li><li>No permissive CORS response</li><li>Single local GPU queue</li><li>Explicit LAN bearer token option</li></ul></article>
+              <article class="guide-card"><small>PRIVACY CONTRACT</small><h2>Observable boundaries</h2><ul class="privacy-list"><li>Loopback listener by default</li><li>No analytics or remote UI assets</li><li>CORS limited to media delivery</li><li>Single local GPU queue</li><li>Explicit LAN bearer token option</li></ul></article>
               <article class="guide-card"><small>KEYBOARD</small><h2>Fast hands</h2><dl class="shortcut-list"><div><dt>Ctrl/⌘ Enter</dt><dd>Queue render</dd></div><div><dt>/</dt><dd>Search workflows</dd></div><div><dt>1–6</dt><dd>Switch workspace</dd></div><div><dt>Esc</dt><dd>Close dialog</dd></div></dl></article>
             </div>
           </section>

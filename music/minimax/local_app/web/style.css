@@ -261,3 +261,7 @@ button:disabled { opacity: .45; cursor: wait; }
   .guide-runtime-card, .model-picker, .guide-result-head { display: flex; flex-direction: column; align-items: stretch; }
   .guide-power { min-width: 0; }.guide-control-grid { grid-template-columns: repeat(2, 1fr); }.advanced-switches { flex-wrap: wrap; }.guide-output-grid { grid-template-columns: 1fr; }
 }
+
+.performance-footer .footer-right { display: inline-flex; align-items: center; gap: 10px; }
+.export-player { padding: 3px 9px; border: 1px solid #272725; border-radius: 3px; background: transparent; color: #686762; font: inherit; letter-spacing: inherit; cursor: pointer; transition: color .15s ease, border-color .15s ease; }
+.export-player:hover { color: #f4f2eb; border-color: rgba(244, 242, 235, .55); }

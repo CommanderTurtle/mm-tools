@@ -76,8 +76,10 @@ edited score against an original for exact sounding-note/meter invariants.
 
 The shared output room adds a live spectrum and lyric-follow view to every
 audio render, synchronized A/B playback with an equal-power crossfade, durable
-recipes, metadata, downloads, and exact recipe reopening.  The visualization
-uses only browser Web Audio against the local output URL.
+recipes, metadata, downloads, and exact recipe reopening. The visualization
+uses only browser Web Audio against the local output URL. A fullscreen mode
+scales the same spectrum/lyric pair, and queue/library re-renders hold while
+a track is playing so playback position survives job events.
 
 ## Privacy boundary
 
