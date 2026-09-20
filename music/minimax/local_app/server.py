@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import atexit
 import json
 import os
 import re
@@ -871,6 +872,36 @@ take_numbers = count(1)
 LIVE_SESSION_ID = uuid.uuid4().hex
 ACTIVE_JOB_STATUSES = frozenset({"queued", "waiting", "generating"})
 TERMINAL_JOB_STATUSES = frozenset({"complete", "error", "cancelled"})
+
+
+def _reap_engines() -> None:
+    """Final backstop for exits that skip the lifespan shutdown (uvicorn's
+    force-exit path does): neither loopback engine may outlive the studio with
+    weights resident. No-op when the lifespan already stopped both engines."""
+    for manager in (engine, guide_engine):
+        process = None
+        try:
+            process = manager.process
+            if process is None or process.poll() is not None:
+                continue
+            try:
+                if os.name == "posix":
+                    os.killpg(process.pid, signal.SIGINT)
+                else:
+                    process.send_signal(signal.SIGINT)
+                process.wait(timeout=10)
+            except Exception:
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except Exception:
+                    process.kill()
+                    process.wait(timeout=5)
+        except Exception:
+            pass
+
+
+atexit.register(_reap_engines)
 
 
 def _public_job(job: dict[str, Any]) -> dict[str, Any]:
