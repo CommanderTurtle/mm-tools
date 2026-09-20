@@ -13,6 +13,7 @@ import shutil
 import signal
 import subprocess
 import time
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,11 @@ from local_app.runtime import ACTIVE_STATES, TERMINAL_STATES, JobRunner, JobStor
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB = Path(__file__).resolve().parent / "web"
+_SHARED_SRC = ROOT.parents[1] / "music" / "src"
+if _SHARED_SRC.is_dir() and str(_SHARED_SRC) not in sys.path:
+    sys.path.insert(0, str(_SHARED_SRC))
+
+from stemkit.local_app.api import StemService, install_stem_routes  # noqa: E402
 SAFE_NAME = re.compile(r"[^A-Za-z0-9._()\[\] -]+")
 
 
@@ -145,6 +151,33 @@ def build_application(manifest: dict[str, Any], project_root: Path, adapter_path
     store = JobStore(runtime_root / "studio.sqlite3")
     adapter = _load_adapter(adapter_path, project_root, runtime_root)
     runner = JobRunner(store, adapter, runtime_root)
+
+
+    def resolve_stem_input(ref: Any) -> Path:
+        """Resolve a pane reference to a readable local audio file."""
+        target = ref.get("input") if isinstance(ref, dict) else ref
+        if isinstance(target, str) and target:
+            try:
+                return stem_service.upload_path(target)
+            except FileNotFoundError as exc:
+                raise ValueError("Unknown uploaded track; upload it again.") from exc
+        if isinstance(target, dict):
+            job_id = str(target.get("job") or "").strip()
+            relative = str(target.get("output") or "").strip()
+            if job_id and relative:
+                try:
+                    store.get_job(job_id)
+                except KeyError as exc:
+                    raise ValueError("Unknown output job.") from exc
+                root = runner.outputs_dir / job_id
+                path = root / relative
+                if not _within(root, path) or not path.is_file():
+                    raise FileNotFoundError("That output file is missing on disk.")
+                return path
+        raise ValueError("Select an uploaded track or a finished output.")
+
+
+    stem_service = StemService(runtime_root / "stems", resolve_stem_input)
     token = os.getenv("MM_STUDIO_TOKEN", "").strip()
     api_only = os.getenv("MM_STUDIO_API_ONLY", "0").strip() == "1"
     max_upload = int(manifest.get("max_upload_bytes", 8 * 1024**3))
@@ -443,6 +476,7 @@ def build_application(manifest: dict[str, Any], project_root: Path, adapter_path
         path = runner.outputs_dir / job["id"] / audio["relative"]
         return FileResponse(path, media_type=audio.get("media_type") or _mime(path), filename=path.name)
 
+    install_stem_routes(app, stem_service)
     app.mount("/assets", StaticFiles(directory=WEB), name="assets")
     return app
 
