@@ -25,6 +25,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Streamin
 from fastapi.staticfiles import StaticFiles
 
 from local_app.runtime import ACTIVE_STATES, TERMINAL_STATES, JobRunner, JobStore, StudioAdapter, gpu_snapshot
+from local_app import crisper_refine
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -142,6 +143,24 @@ def _probe_video(path: Path) -> dict[str, Any]:
         "output_height": output_height,
         "limited": source_frames > 241,
     }
+
+
+def _vocal_sync_lines(audio: Path, lines: list[str], work_dir: Path) -> list[dict[str, Any]]:
+    """On-demand v1 pass: isolate vocals, then place lines on the activity envelope."""
+    try:
+        import soundfile as sf
+        import studio_api
+    except ImportError as exc:
+        raise RuntimeError(f"Missing local dependency: {exc.name}") from exc
+    work_dir = Path(work_dir)
+    work_dir.mkdir(parents=True, exist_ok=True)
+    if audio.suffix.lower() != ".wav":
+        wav = work_dir / "source.wav"
+        data, rate = sf.read(audio, always_2d=True)
+        sf.write(wav, data.T, int(rate), subtype="PCM_16")
+    else:
+        wav = audio
+    return studio_api.vocal_timestamps_for_lyrics(wav, lines, work_dir / "sync-work")
 
 
 def build_application(manifest: dict[str, Any], project_root: Path, adapter_path: Path) -> FastAPI:
@@ -429,6 +448,101 @@ def build_application(manifest: dict[str, Any], project_root: Path, adapter_path
             # analyse this track through Web Audio from a downloaded page.
             headers={"Access-Control-Allow-Origin": "*"},
         )
+
+    def _resolve_job_output(job_id: str, relative: str) -> tuple[dict[str, Any], Path]:
+        try:
+            job = store.get_job(job_id)
+        except KeyError as exc:
+            raise HTTPException(404, "Job not found.") from exc
+        if not relative:
+            raise HTTPException(404, "Output not found in this job.")
+        output = next((item for item in job.get("outputs", []) if item.get("relative") == relative), None)
+        if output is None:
+            raise HTTPException(404, "Output not found in this job.")
+        root = runner.outputs_dir / job_id
+        path = root / relative
+        if not _within(root, path) or not path.is_file():
+            raise HTTPException(404, "Output file is missing.")
+        return job, path
+
+    def _job_lyrics(job: dict[str, Any]) -> list[str]:
+        request = job.get("request") or {}
+        controls = request.get("controls") if isinstance(request, dict) else None
+        lyrics = str((controls or {}).get("lyrics") or "").strip()
+        if not lyrics:
+            for item in job.get("outputs", []):
+                candidate = str((item.get("metadata") or {}).get("lyrics") or "").strip()
+                if candidate:
+                    lyrics = candidate
+                    break
+        return [line.strip() for line in lyrics.splitlines() if line.strip()]
+
+    @app.get("/api/chrisper/status")
+    def chrisper_status() -> dict[str, Any]:
+        return crisper_refine.status()
+
+    @app.post("/api/performance/vocal-sync")
+    async def performance_vocal_sync(request: Request) -> dict[str, Any]:
+        try:
+            payload = await request.json()
+        except Exception as exc:
+            raise HTTPException(422, "Request body must be JSON.") from exc
+        if not isinstance(payload, dict):
+            raise HTTPException(422, "Request body must be a JSON object.")
+        job_id = str(payload.get("job_id") or "")
+        relative = str(payload.get("relative") or "")
+        job, path = _resolve_job_output(job_id, relative)
+        lines = _job_lyrics(job)
+        if len(lines) < 2:
+            raise HTTPException(422, "This take has no lyrics to sync.")
+        try:
+            rows = await asyncio.to_thread(_vocal_sync_lines, path, lines, runtime_root / "vocal-sync" / job_id)
+        except Exception as exc:
+            raise HTTPException(500, f"Vocal sync failed: {exc}") from exc
+        return {"rows": rows}
+
+    @app.post("/api/performance/chrisper")
+    async def performance_chrisper(request: Request) -> dict[str, Any]:
+        try:
+            payload = await request.json()
+        except Exception as exc:
+            raise HTTPException(422, "Request body must be JSON.") from exc
+        if not isinstance(payload, dict):
+            raise HTTPException(422, "Request body must be a JSON object.")
+        job_id = str(payload.get("job_id") or "")
+        relative = str(payload.get("relative") or "")
+        language = str(payload.get("language") or "auto")
+        job, path = _resolve_job_output(job_id, relative)
+        lines = _job_lyrics(job)
+        if len(lines) < 2:
+            raise HTTPException(422, "This take has no lyrics to refine.")
+        health = crisper_refine.status()
+        if not health["up"]:
+            raise HTTPException(503, "CrisperWhisper is offline. Start it with whisper/starthttp.sh.")
+        baseline = ((next((item for item in job.get("outputs", []) if item.get("relative") == relative), {}) or {}).get("metadata") or {}).get("lyric_timestamps") or []
+        try:
+            import soundfile as sf
+
+            duration = float(sf.info(path).duration)
+        except Exception as exc:
+            raise HTTPException(422, f"Cannot read audio duration: {exc}") from exc
+        hotwords = "\n".join(lines)[:4000]
+        try:
+            result = await asyncio.to_thread(
+                crisper_refine.refine,
+                path,
+                duration,
+                lines,
+                baseline,
+                hotwords,
+                language,
+                runtime_root / "crisper" / job_id,
+            )
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(502, f"CrisperWhisper request failed: {exc}") from exc
+        return result
 
     @app.get("/api/events")
     async def events(request: Request) -> StreamingResponse:

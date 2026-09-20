@@ -1528,6 +1528,9 @@ function bindEvents() {
   $("generationForm").onsubmit = queueCurrent;
   $("promptForm").onsubmit = runPromptPlan;
   $("perfClose").onclick = () => { if ($("perfAudio").paused) $("perfAudio").pause(); $("performanceDialog").close(); };
+  $("perfSyncV1").onclick = () => runPerformanceSync(false);
+  $("perfSyncV2").onclick = () => runPerformanceSync(true);
+  $("perfExportPlayer").onclick = () => { if (currentPerfItem) exportAudioPlayer(currentPerfItem); };
   $("resetMode").onclick = () => { if (!state.mode) return; state.values[state.mode.id] = defaultsForMode(state.mode); renderForm(); saveDraft(); toast("Workflow controls reset."); };
   $("runtimeRefresh").onclick = refreshHealth;
   $("loadModels").onclick = () => modelAction("load");
@@ -1766,30 +1769,19 @@ function ensurePerformanceGraph() {
   return performanceGraph;
 }
 
+const perfLyricState = { candidates: [], times: [] };
+let currentPerfItem = null;
+let chrisperTimer = 0;
+
 function openPerformance(item) {
   const dialog = $("performanceDialog");
   const audio = $("perfAudio");
-  const rows = trackLyrics(item);
-  const times = lyricTimes(rows, item.metadata?.lyric_timestamps);
+  currentPerfItem = item;
   $("perfStyle").textContent = item.metadata?.style || item.job?.request?.controls?.style || "—";
   $("perfEngine").textContent = jobMode(item.job)?.title || "YuE2";
-  const lyricsBox = $("perfLyrics");
-  lyricsBox.replaceChildren();
-  if (!rows.length) lyricsBox.innerHTML = "<p class='muted'>No lyrics attached to this take.</p>";
-  rows.forEach((line, index) => {
-    const paragraph = document.createElement("p");
-    paragraph.textContent = line;
-    paragraph.dataset.index = index;
-    if (/^\[.+\]$/.test(line)) paragraph.className = "section";
-    lyricsBox.append(paragraph);
-  });
+  $("perfNowPlaying").textContent = item.label || item.mode?.title || "Take";
+  renderPerformanceLyrics(item);
   audio.src = item.url;
-  const candidates = [...lyricsBox.querySelectorAll("p:not(.section)")];
-  const candidateTime = candidates.map((node) => {
-    const rowIndex = Number(node.dataset.index);
-    return times && times[rowIndex] != null ? times[rowIndex] : null;
-  });
-  const known = candidateTime.some((value) => value != null);
   const graph = ensurePerformanceGraph();
   const canvas = $("perfSpectrum");
   const ctx = canvas.getContext("2d");
@@ -1816,6 +1808,9 @@ function openPerformance(item) {
     }
     if (!audio.paused) {
       const current = audio.currentTime;
+      const candidates = perfLyricState.candidates;
+      const candidateTime = perfLyricState.times;
+      const known = candidateTime.some((value) => value != null);
       $("perfClock").textContent = `${formatClock(current)} / ${formatClock(Number.isFinite(audio.duration) ? audio.duration : 0)}`;
       let selected = -1;
       if (known) {
@@ -1834,6 +1829,8 @@ function openPerformance(item) {
   };
   const stop = () => {
     cancelAnimationFrame(perfRaf);
+    clearInterval(chrisperTimer);
+    chrisperTimer = 0;
     if (performanceGraph.ctx && performanceGraph.ctx.state === "running") performanceGraph.ctx.suspend().catch(() => {});
   };
   audio.onended = stop;
@@ -1841,7 +1838,74 @@ function openPerformance(item) {
   if (performanceGraph.ctx && performanceGraph.ctx.state === "suspended") performanceGraph.ctx.resume().catch(() => {});
   audio.play().catch(() => {});
   paint();
+  refreshChrisperStatus();
+  chrisperTimer = setInterval(refreshChrisperStatus, 4000);
   dialog.showModal();
+}
+
+function renderPerformanceLyrics(item) {
+  const rows = trackLyrics(item);
+  const times = lyricTimes(rows, item.metadata?.lyric_timestamps);
+  const lyricsBox = $("perfLyrics");
+  lyricsBox.replaceChildren();
+  if (!rows.length) {
+    lyricsBox.innerHTML = "<p class='muted'>No lyrics attached to this take.</p>";
+    perfLyricState.candidates = [];
+    perfLyricState.times = [];
+    return;
+  }
+  rows.forEach((line, index) => {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = line;
+    paragraph.dataset.index = index;
+    if (/^\[.+\]$/.test(line)) paragraph.className = "section";
+    lyricsBox.append(paragraph);
+  });
+  perfLyricState.candidates = [...lyricsBox.querySelectorAll("p:not(.section)")];
+  perfLyricState.times = perfLyricState.candidates.map((node) => {
+    const rowIndex = Number(node.dataset.index);
+    return times && times[rowIndex] != null ? times[rowIndex] : null;
+  });
+}
+
+async function refreshChrisperStatus() {
+  const node = $("chrisperStatus");
+  if (!node) return;
+  const label = node.querySelector("span");
+  try {
+    const data = await api("/api/chrisper/status");
+    node.classList.toggle("ready", Boolean(data.up && data.loaded));
+    node.classList.toggle("warm", Boolean(data.up && !data.loaded));
+    node.classList.toggle("offline", !data.up);
+    label.textContent = !data.up ? `CRISPER OFFLINE · :${data.port}` : data.loaded ? "CRISPER READY" : "CRISPER LOADING";
+  } catch (_) {
+    node.classList.add("offline");
+    node.classList.remove("ready", "warm");
+    label.textContent = "CRISPER OFFLINE";
+  }
+}
+
+async function runPerformanceSync(chrisper) {
+  const item = currentPerfItem;
+  if (!item || !item.job?.id || !item.relative) { toast("No take selected.", "error"); return; }
+  const button = $(chrisper ? "perfSyncV2" : "perfSyncV1");
+  const idle = button.textContent;
+  button.disabled = true;
+  button.textContent = chrisper ? "Refining…" : "Syncing…";
+  try {
+    const payload = { job_id: item.job.id, relative: item.relative };
+    if (chrisper) payload.language = $("chrisperLanguage").value || "auto";
+    const data = await api(chrisper ? "/api/performance/chrisper" : "/api/performance/vocal-sync", { method: "POST", body: JSON.stringify(payload) });
+    item.metadata = { ...(item.metadata || {}), lyric_timestamps: data.rows };
+    renderPerformanceLyrics(item);
+    if (chrisper) toast(`Chrisper v2: ${data.matched}/${data.total} lines re-timed (${data.language}, ${data.snippets} passes).`, "info", 4200);
+    else toast("Vocal sync applied.", "info", 3200);
+  } catch (error) {
+    toast(error.message, "error", 4200);
+  } finally {
+    button.disabled = false;
+    button.textContent = idle;
+  }
 }
 
 function formatClock(seconds) {
