@@ -155,7 +155,7 @@ def build_application(manifest: dict[str, Any], project_root: Path, adapter_path
 
     def resolve_stem_input(ref: Any) -> Path:
         """Resolve a pane reference to a readable local audio file."""
-        target = ref.get("input") if isinstance(ref, dict) else ref
+        target = ref.get("input") if isinstance(ref, dict) and "input" in ref else ref
         if isinstance(target, str) and target:
             try:
                 return stem_service.upload_path(target)

@@ -1062,7 +1062,7 @@ stem_service = StemService(
 
 def _resolve_stem_input(service: StemService, ref: Any) -> Path:
     """Resolve the pane reference to a readable local audio file."""
-    target = ref.get("input") if isinstance(ref, dict) else ref
+    target = ref.get("input") if isinstance(ref, dict) and "input" in ref else ref
     if isinstance(target, str) and target:
         return service.upload_path(target)
     if isinstance(target, dict):

@@ -64,7 +64,7 @@ function relativeTime(value) {
 function toast(message, kind = "info", duration = 4200) {
   const item = document.createElement("div");
   item.className = `toast ${kind}`;
-  item.textContent = message;
+  item.textContent = String(message ?? "");
   $("toastRegion").append(item);
   setTimeout(() => item.remove(), duration);
 }
@@ -72,7 +72,7 @@ function toast(message, kind = "info", duration = 4200) {
 async function api(path, options = {}, retry = true) {
   const headers = new Headers(options.headers || {});
   if (state.token) headers.set("Authorization", `Bearer ${state.token}`);
-  if (options.body && !(options.body instanceof Blob) && !(options.body instanceof ArrayBuffer) && !headers.has("Content-Type")) {
+  if (options.body && !(options.body instanceof Blob) && !(options.body instanceof ArrayBuffer) && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
   const response = await fetch(path, { ...options, headers });
@@ -87,6 +87,7 @@ async function api(path, options = {}, retry = true) {
   if (!response.ok) {
     let detail = `${response.status} ${response.statusText}`;
     try { detail = (await response.json()).detail || detail; } catch (_) { /* response is not JSON */ }
+    if (typeof detail !== "string") detail = JSON.stringify(detail);
     throw new Error(detail);
   }
   const contentType = response.headers.get("content-type") || "";
