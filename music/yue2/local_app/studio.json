@@ -21,6 +21,7 @@
     {"label": "YuE2-Vae", "path": "models/YuE2-Vae", "note": "Default 48 kHz stereo listening decoder"},
     {"label": "SheetSage2", "path": "models/SheetSage2", "note": "Audio-to-ABC/MIDI/event transcription"},
     {"label": "MERT-v2-FullSong", "path": "models/MERT-v2-FullSong", "note": "Pinned local SheetSage2 encoder"},
+    {"label": "Krea planner (Qwen3-VL-4B)", "path": "../../models/qwen/text-encoder-vl-nvfp4/qwen3_vl_4b_nvfp4_full.safetensors", "optional": true, "note": "Native Krea2 writing/planning checkpoint shared with the MiniMax studio; runs in its pinned runtime"},
     {"label": "Comfy YuE2 INT8", "path": "../../models/imports/Comfy-Org--YuE2/checkpoints/yue2_3b_int8_convrot.safetensors", "optional": true, "note": "Preserved for the pinned Comfy workflow; native BF16 remains this studio's quality path"}
   ],
   "setup_steps": [
@@ -124,6 +125,24 @@
       "description": "YuE2 writes a native two-voice ABC composition, generates semantic music, flow-matches acoustics, and decodes a 48 kHz stereo recording. Every intermediate survives.",
       "fields_refs": ["song_identity", "candidate_controls"], "advanced_refs": ["runtime", "sampling"],
       "preview_template": "Full symbolic composition · {{project_name}}\nDirection: {{style}}\nLanguage: {{language}} · Tempo: {{bpm}} BPM · Candidates: {{takes}} · Seed: {{seed}}"
+    },
+    {
+      "id": "krea_plan", "group": "compose", "title": "Plan direction (Krea)", "icon": "✒", "badge": "KREA2 · QWEN3-VL-4B", "engine": "Krea planner", "input_label": "Brief (+ finished lyrics)", "output_label": "Structured direction + lyrics", "short": "Write the musical direction first with the shared Krea2 writing model, then carry it into Create.",
+      "description": "Plans a song in the native Krea2 lane: structured Global Metadata / Vocal Details / Arrangement captions plus optional original or preserved lyrics. Runs job-scoped in the MiniMax studio's pinned Comfy runtime, identical to that studio's Prompt Guide, and hands the result back to Create.",
+      "fields": [
+        {"id": "krea_mode", "type": "choice", "label": "Planning lane", "default": "brief", "span": "full", "options": [
+          {"value": "brief", "label": "Refine brief", "icon": "✒", "description": "Turn the brief into the three caption sections; supplied lyrics stay context only."},
+          {"value": "keep_lyrics", "label": "Keep my lyrics", "icon": "𝄞", "description": "Finish the captions around your finished lyrics, quoted verbatim and unchanged."},
+          {"value": "song", "label": "Draft song", "icon": "♪", "description": "Caption sections plus an original lyric draft with bracketed section tags."},
+          {"value": "ask", "label": "Ask", "icon": "?", "description": "Answer a music question directly; no caption headings required."}
+        ]},
+        {"id": "krea_brief", "type": "textarea", "label": "Brief or question", "required": true, "span": "full", "rows": 6, "hint": "Genre, mood, tempo, instruments, vocal character, exclusions, and section intent."},
+        {"id": "krea_lyrics", "type": "code", "label": "Lyrics (finished or notes)", "default": "", "span": "full", "rows": 10, "hint": "Required for Keep my lyrics; otherwise treated as data, never instructions."},
+        {"id": "krea_constraints", "type": "textarea", "label": "Constraints", "default": "", "span": "full", "rows": 2},
+        {"id": "krea_research", "type": "toggle", "label": "Local web research", "default": false, "span": "half", "toggle_label": "Query the local Firecrawl service"},
+        {"id": "krea_research_query", "type": "text", "label": "Research query", "default": "", "span": "half", "show_if": {"field": "krea_research", "truthy": true}, "hint": "Only the query leaves the machine; lyrics never do."}
+      ],
+      "preview_template": "Krea plan · {{krea_mode}} · {{krea_brief}}"
     },
     {
       "id": "compose_melody", "group": "compose", "title": "Melody-first composition", "icon": "𝄞", "badge": "FREE HARMONY", "engine": "YuE2 melody CoT", "input_label": "Style + lyrics", "output_label": "Song + melody plan", "short": "Plan the vocal/instrumental melody while leaving accompaniment freer.",

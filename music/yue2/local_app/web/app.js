@@ -869,7 +869,19 @@ function outputCard(item) {
   const download = document.createElement("a"); download.href = `${item.url}?download=true`; download.textContent = "Download";
   const details = document.createElement("button"); details.textContent = "Recipe"; details.onclick = () => showJob(item.job.id);
   const reopen = document.createElement("button"); reopen.textContent = "Reopen"; reopen.onclick = () => reopenJob(item.job);
-  actions.append(download, details, reopen); copy.append(actions); card.append(preview, copy); return card;
+  actions.append(download, details, reopen);
+  if (item.metadata?.krea) {
+    const useInCreate = document.createElement("button"); useInCreate.textContent = "Use in Create";
+    useInCreate.onclick = () => {
+      const mode = modeById("compose_full"); if (!mode) return toast("The Create workflow is not available.", "error");
+      const values = state.values[mode.id] || defaultsForMode(mode); state.values[mode.id] = values;
+      if (item.metadata.style) values.style = item.metadata.style;
+      if (item.metadata.lyrics) values.lyrics = item.metadata.lyrics;
+      selectMode(mode.id, false); setPage("create"); toast("Krea direction carried into Create.");
+    };
+    actions.append(useInCreate);
+  }
+  copy.append(actions); card.append(preview, copy); return card;
 }
 
 function mediaNode(item, autoplay = false) {

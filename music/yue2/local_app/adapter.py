@@ -88,7 +88,7 @@ class Adapter(StudioAdapter):
     def validate(self, request: dict[str, Any], resolve_asset: Callable[[str], Path]) -> None:
         mode = str(request.get("mode", ""))
         controls = request.get("controls")
-        if mode not in {*GENERATION_MODES, "plan_only", "transcribe", "score_lab", "decode_latent"}:
+        if mode not in {*GENERATION_MODES, "plan_only", "transcribe", "score_lab", "decode_latent", "krea_plan"}:
             raise ValueError(f"Unsupported YuE2 workflow: {mode}")
         if not isinstance(controls, dict):
             raise ValueError("YuE2 controls must be an object.")
@@ -113,6 +113,14 @@ class Adapter(StudioAdapter):
             raise ValueError("Upload a latent.npy artifact.")
         if mode == "resume_plan" and not controls.get("plan_bundle_asset"):
             raise ValueError("Upload a plan-bundle.zip created by this studio.")
+        if mode == "krea_plan":
+            if not str(controls.get("krea_brief", "")).strip():
+                raise ValueError("Describe the musical direction to plan.")
+            lane = str(controls.get("krea_mode", "brief"))
+            if lane not in {"brief", "keep_lyrics", "song", "ask"}:
+                raise ValueError("Unknown Krea planning lane.")
+            if lane == "keep_lyrics" and not str(controls.get("krea_lyrics", "")).strip():
+                raise ValueError("Keep-lyrics planning requires the finished lyrics.")
         gpu = torch.cuda.is_available() and torch.cuda.get_device_properties(0).total_memory >= 24 * 1024**3
         if mode != "score_lab" and not gpu:
             raise RuntimeError("YuE2 Studio requires a BF16-capable CUDA GPU with at least 24 GiB VRAM.")
@@ -145,6 +153,9 @@ class Adapter(StudioAdapter):
             return self._transcribe(controls, context, context.output_dir)
         if mode == "score_lab":
             return self._score_lab(controls, context)
+        if mode == "krea_plan":
+            self._release_pipe()
+            return self._run_krea(controls, context)
         if mode == "decode_latent":
             return self._decode_latent(controls, context)
         if mode == "cover_audio":
@@ -317,6 +328,53 @@ class Adapter(StudioAdapter):
                 context.log(f"Candidate {index + 1} reached a native token limit; artifacts were retained.", "warning")
             outputs.extend(self._collect(destination, controls, f"Candidate {index + 1}"))
         context.update("YuE2 artifacts ready", 0.99)
+        return outputs
+
+    def _run_krea(self, controls: dict[str, Any], context: StudioContext) -> list[StudioOutput]:
+        from local_app.krea import CHECKPOINT_NAME, KreaPlanner
+
+        planner = KreaPlanner(self.project_root)
+        result = planner.plan(
+            mode=str(controls.get("krea_mode", "brief")),
+            direction=str(controls.get("krea_brief", "")),
+            lyrics=str(controls.get("krea_lyrics", "")),
+            constraints=str(controls.get("krea_constraints", "")),
+            web_search=bool(controls.get("krea_research", False)),
+            search_query=str(controls.get("krea_research_query", "")),
+            context=context,
+        )
+        context.check_cancelled()
+        destination = context.output_dir
+        (destination / "direction.md").write_text(result["text"] + "\n", encoding="utf-8")
+        manifest = {
+            "planner": "krea2",
+            "mode": result["mode"],
+            "checkpoint": CHECKPOINT_NAME,
+            "sections": result["sections"],
+            "sources": result["sources"],
+        }
+        (destination / "krea_plan.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        caption_style = "\n\n".join(
+            result["sections"][name] for name in ("Global Metadata", "Vocal Details", "Arrangement") if result["sections"].get(name)
+        )
+        outputs = [
+            StudioOutput(
+                destination / "direction.md",
+                kind="text",
+                label="Krea direction",
+                metadata={
+                    "krea": True,
+                    "krea_mode": result["mode"],
+                    "style": caption_style,
+                    "lyrics": result["sections"].get("Lyrics", ""),
+                },
+            ),
+            StudioOutput(destination / "krea_plan.json", kind="text", label="Krea plan manifest"),
+        ]
+        if result["sections"].get("Lyrics"):
+            (destination / "lyrics.txt").write_text(result["sections"]["Lyrics"] + "\n", encoding="utf-8")
+            outputs.append(StudioOutput(destination / "lyrics.txt", kind="text", label="Drafted lyrics"))
+        context.update("Krea plan ready", 0.99)
         return outputs
 
     def _token_progress(self, context: StudioContext, base: float, span: float, config: Any) -> Callable[[str, int], None]:

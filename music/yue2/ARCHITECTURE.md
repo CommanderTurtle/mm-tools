@@ -51,6 +51,22 @@ that process, then loads YuE2.  The default melody-only route preserves both
 Vocal and Ins melodies while freeing accompaniment; enabling source harmony
 uses full-score mode.
 
+## Krea planning lane
+
+`krea_plan` writes a song's musical direction before any YuE2 stage runs. It
+executes the shared `Qwen3-VL-4B` NVFP4 writing checkpoint through the exact
+two-node Krea2 graph the MiniMax studio's Prompt Guide uses, inside a
+job-scoped, loopback-only Comfy subprocess built from the MiniMax studio's
+pinned runtime (`music/minimax/runtime`) under that studio's own venv; the
+YuE2 venv gains no dependencies. The prompt contract, sampling defaults,
+section parser, keep-lyrics guarantee, and local Firecrawl research flow are
+ports of that guide engine, so both studios plan identically. The YuE2 pipe is
+released for the duration of the job and the subprocess is torn down when the
+plan completes. Outputs are `direction.md`, `krea_plan.json`, and
+`lyrics.txt` when lyrics were drafted or preserved; the library card offers
+`Use in Create`, which carries the caption sections into `compose_full`'s
+style and the lyrics verbatim.
+
 ## Score lab and listening room
 
 The repository's pinned strict ABC implementation validates the exact two-voice

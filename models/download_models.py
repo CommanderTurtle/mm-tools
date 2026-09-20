@@ -756,6 +756,7 @@ BUNDLES: tuple[Bundle, ...] = (
                 ),
                 revision="d8ba1c745e733b3908ce6ad16ebeb17ac7600a42",
             ),
+            QWEN_GUIDE,
             A(
                 "Comfy-Org/YuE2",
                 model_path("imports/Comfy-Org--YuE2"),
