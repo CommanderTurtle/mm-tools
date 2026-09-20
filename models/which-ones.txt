@@ -1019,7 +1019,7 @@ Snapshot folder: workflows/models/imports/comfyicu--LTX-2.5
 Retired from this downloader; now supplied by workflows/download_models.py
 (bundle `ltx`). The ungated mirror still tracks main without a revision pin;
 the eight files hard-link into matching `V2V/ComfyUI/models/*` folders for
-the native `world-gen/ltx` studio as before.
+the native `workflows/ltx` studio as before.
 
 72. Comfy-Org/gemma-4 (retired — workflow inventory 8)
 Snapshot folder: workflows/models/imports/Comfy-Org--gemma-4

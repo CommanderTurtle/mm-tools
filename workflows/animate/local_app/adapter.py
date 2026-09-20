@@ -244,7 +244,7 @@ def _save_video(video_ref: list[Any], prefix: str, container: str, codec: str, c
 class Adapter(StudioAdapter):
     def __init__(self, project_root: Path, runtime_root: Path) -> None:
         super().__init__(project_root, runtime_root)
-        self.repo_root = project_root.parent
+        self.repo_root = project_root.parent.parent
         self.v2v = self.repo_root / "V2V"
         self.comfy = self.v2v / "ComfyUI"
         self.python = self.project_root / ".venv" / "bin" / "python"

@@ -1,4 +1,4 @@
-# ComfyUI Pipeline Exports
+# ComfyUI Pipeline Exports and Native Video Studios
 
 Committed copies of the exact ComfyUI API graphs the in-repo video studios run
 against the shared pinned Comfy checkout, plus a standalone model downloader
@@ -10,10 +10,15 @@ recipe.
 
 | Folder | Contents |
 | --- | --- |
-| `LTX/` | LTX-2.5 distilled recipes: text to video, image to video, first + last frame |
-| `animate/` | Wan Animate 2 recipes: motion transfer (distilled + LightX2V), scene-preserving character replacement, pose & face lab |
+| `animate/` | Wan Animate 2 motion studio plus its exported recipes: motion transfer (distilled + LightX2V), scene-preserving character replacement, pose & face lab |
+| `ltx/` | LTX-2.5 audio-and-video studio plus its distilled recipes: text to video, image to video, first + last frame |
 | `download_models.py` | Standalone downloader for the `ltx` and `animate` bundles |
 | `models/` | Download destination (gitignored) |
+
+Why the studios live here: both prefer running directly against native
+ComfyUI; the mm-tools studios are an optional convenience layer on top. They
+were moved under this lane because the full project trees were too bulky for
+the current linux box - the owner will work on these lanes in ComfyUI proper.
 
 ## Install and run
 

@@ -261,15 +261,6 @@
 !/world-gen/lingbot/local_app/**
 !/world-gen/lingbot/wan/
 !/world-gen/lingbot/wan/**
-!/world-gen/ltx/
-/world-gen/ltx/*
-!/world-gen/ltx/README.md
-!/world-gen/ltx/ARCHITECTURE.md
-!/world-gen/ltx/requirements-local.txt
-!/world-gen/ltx/setupwithuv.sh
-!/world-gen/ltx/startwithuv.sh
-!/world-gen/ltx/local_app/
-!/world-gen/ltx/local_app/**
 !/world-gen/fire3d/
 /world-gen/fire3d/*
 !/world-gen/fire3d/README.md
@@ -453,54 +444,6 @@
 !/sculpting/world/pixal3d_multiview/
 !/sculpting/world/pixal3d_multiview/**
 
-# Wan Animate 2 and its local pose-preprocessing Comfy extension.
-!/animate/
-/animate/*
-!/animate/README.md
-!/animate/requirements.txt
-!/animate/setup.py
-!/animate/.env.local.example
-!/animate/ARCHITECTURE.md
-!/animate/requirements-local.txt
-!/animate/setupwithuv.sh
-!/animate/startwithuv.sh
-!/animate/local_app/
-/animate/local_app/*
-!/animate/local_app/__init__.py
-!/animate/local_app/adapter.py
-!/animate/local_app/server.py
-!/animate/local_app/studio.json
-!/animate/core/
-!/animate/core/**
-!/animate/pipelines/
-!/animate/pipelines/**
-!/animate/wanxiang/
-!/animate/wanxiang/**
-!/animate/infer/
-/animate/infer/*
-!/animate/infer/*.py
-!/animate/infer/*.yaml
-!/animate/ComfyUI-WanAnimatePreprocess/
-/animate/ComfyUI-WanAnimatePreprocess/*
-!/animate/ComfyUI-WanAnimatePreprocess/readme.md
-!/animate/ComfyUI-WanAnimatePreprocess/__init__.py
-!/animate/ComfyUI-WanAnimatePreprocess/nodes.py
-!/animate/ComfyUI-WanAnimatePreprocess/pyproject.toml
-!/animate/ComfyUI-WanAnimatePreprocess/requirements.txt
-!/animate/ComfyUI-WanAnimatePreprocess/retarget_pose.py
-!/animate/ComfyUI-WanAnimatePreprocess/utils.py
-!/animate/ComfyUI-WanAnimatePreprocess/models/
-!/animate/ComfyUI-WanAnimatePreprocess/models/**
-!/animate/ComfyUI-WanAnimatePreprocess/onetoall/
-!/animate/ComfyUI-WanAnimatePreprocess/onetoall/**
-!/animate/ComfyUI-WanAnimatePreprocess/pose_utils/
-!/animate/ComfyUI-WanAnimatePreprocess/pose_utils/**
-!/animate/ComfyUI-WanAnimatePreprocess/example_workflows/
-!/animate/ComfyUI-WanAnimatePreprocess/example_workflows/**
-!/animate/ComfyUI-MMToolsAnimate/
-/animate/ComfyUI-MMToolsAnimate/*
-!/animate/ComfyUI-MMToolsAnimate/__init__.py
-!/animate/ComfyUI-MMToolsAnimate/nodes.py
 
 # NVIDIA ARDY, MotionCorrection, and SOMA-X code. SOMA-X model assets remain
 # ignored and are reconstructed directly by the nvidia-sim model bundle.
@@ -653,27 +596,84 @@
 !/models/download_models_info.txt
 !/models/which-ones.txt
 
-# Committed ComfyUI pipeline exports plus their standalone downloader. Model
-# artifacts and the downloader environment are reconstructed locally.
+# Committed ComfyUI pipeline exports, the standalone downloader, and the two
+# native video studios moved under this lane. Model artifacts, studio runtime
+# state, and the downloader environment are reconstructed locally.
 !/workflows/
 /workflows/*
 /workflows/models/**
 /workflows/.venv/**
 !/workflows/README.md
 !/workflows/download_models.py
-!/workflows/LTX/
-/workflows/LTX/*
-!/workflows/LTX/README.md
-!/workflows/LTX/t2v.json
-!/workflows/LTX/i2v.json
-!/workflows/LTX/flf2v.json
+!/workflows/ltx/
+/workflows/ltx/*
+!/workflows/ltx/README.md
+!/workflows/ltx/pipelines.md
+!/workflows/ltx/ARCHITECTURE.md
+!/workflows/ltx/requirements-local.txt
+!/workflows/ltx/setupwithuv.sh
+!/workflows/ltx/startwithuv.sh
+!/workflows/ltx/t2v.json
+!/workflows/ltx/i2v.json
+!/workflows/ltx/flf2v.json
+!/workflows/ltx/local_app/
+/workflows/ltx/local_app/*
+!/workflows/ltx/local_app/__init__.py
+!/workflows/ltx/local_app/adapter.py
+!/workflows/ltx/local_app/server.py
+!/workflows/ltx/local_app/studio.json
 !/workflows/animate/
 /workflows/animate/*
 !/workflows/animate/README.md
+!/workflows/animate/pipelines.md
+!/workflows/animate/requirements.txt
+!/workflows/animate/setup.py
+!/workflows/animate/.env.local.example
+!/workflows/animate/ARCHITECTURE.md
+!/workflows/animate/requirements-local.txt
+!/workflows/animate/setupwithuv.sh
+!/workflows/animate/startwithuv.sh
 !/workflows/animate/motion-transfer-distilled.json
 !/workflows/animate/motion-transfer-lightx2v.json
 !/workflows/animate/character-replacement.json
 !/workflows/animate/pose-lab.json
+!/workflows/animate/local_app/
+/workflows/animate/local_app/*
+!/workflows/animate/local_app/__init__.py
+!/workflows/animate/local_app/adapter.py
+!/workflows/animate/local_app/server.py
+!/workflows/animate/local_app/studio.json
+!/workflows/animate/core/
+!/workflows/animate/core/**
+!/workflows/animate/pipelines/
+!/workflows/animate/pipelines/**
+!/workflows/animate/wanxiang/
+!/workflows/animate/wanxiang/**
+!/workflows/animate/infer/
+/workflows/animate/infer/*
+!/workflows/animate/infer/*.py
+!/workflows/animate/infer/*.yaml
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/
+/workflows/animate/ComfyUI-WanAnimatePreprocess/*
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/readme.md
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/__init__.py
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/nodes.py
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/pyproject.toml
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/requirements.txt
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/retarget_pose.py
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/utils.py
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/models/
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/models/**
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/onetoall/
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/onetoall/**
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/pose_utils/
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/pose_utils/**
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/example_workflows/
+!/workflows/animate/ComfyUI-WanAnimatePreprocess/example_workflows/**
+!/workflows/animate/ComfyUI-MMToolsAnimate/
+/workflows/animate/ComfyUI-MMToolsAnimate/*
+!/workflows/animate/ComfyUI-MMToolsAnimate/__init__.py
+!/workflows/animate/ComfyUI-MMToolsAnimate/nodes.py
 
 # Project-owned workbench runtimes.
 !/**/local_app/runtime.py

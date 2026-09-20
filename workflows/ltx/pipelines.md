@@ -1,7 +1,7 @@
 # LTX-2.5 Pipelines
 
 Distilled 22B audio-and-video recipes, exported from the studio adapter in
-`world-gen/ltx/local_app/adapter.py` (the graphs it builds at request time).
+`./local_app/adapter.py` (the graphs it builds at request time).
 Each file pins the official two-stage sampling schedule; node ids mirror the
 adapter's creation order so the exports diff cleanly against the source.
 

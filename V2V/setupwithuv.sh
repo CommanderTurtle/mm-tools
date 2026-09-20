@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 VENV="${V2V_VENV:-$ROOT/.venv}"
 COMFY="$ROOT/ComfyUI"
-ANIMATE_NODES="$ROOT/../animate/ComfyUI-WanAnimatePreprocess"
+ANIMATE_NODES="$ROOT/../workflows/animate/ComfyUI-WanAnimatePreprocess"
 NODE_LINK="$COMFY/custom_nodes/mmtools_wan_animate_preprocess"
 
 command -v uv >/dev/null 2>&1 || { printf 'uv is required. Install uv, then rerun this script.\n' >&2; exit 1; }

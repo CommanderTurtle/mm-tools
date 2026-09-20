@@ -42,5 +42,5 @@ in the bundle for the long-form lane but are unused by these distilled
 graphs. Only the selected model set loads; inference stays on CUDA and idle weights follow Comfy's native placement.
 
 Uploads, queue state, logs, settings receipts, and outputs stay inside
-`world-gen/ltx/.runtime/studio`. The default listener is `127.0.0.1:8269`;
+`workflows/ltx/.runtime/studio`. The default listener is `127.0.0.1:8269`;
 no telemetry, cloud API, remote asset, or CORS policy is enabled.
