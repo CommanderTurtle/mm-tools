@@ -937,6 +937,7 @@ function modelStudioNode(item) {
   const shell = document.createElement("div"); shell.className = "model-stage";
   const canvas = document.createElement("canvas"); canvas.className = "model-canvas"; canvas.setAttribute("aria-label", `Interactive 3D preview of ${item.label || item.name}`);
   const status = document.createElement("div"); status.className = "model-status"; status.textContent = "Loading local GLB…";
+  const toolbar = document.createElement("div"); toolbar.className = "model-toolbar";
   const play = document.createElement("button"); play.type = "button"; play.textContent = "▶ Play"; play.style.display = "none";
   const timeline = document.createElement("input"); timeline.type = "range"; timeline.min = "0"; timeline.max = "1"; timeline.step = "0.01"; timeline.value = "0"; timeline.style.display = "none"; timeline.setAttribute("aria-label", "Animation time");
   const orbit = document.createElement("button"); orbit.type = "button"; orbit.textContent = "↻ Auto orbit"; orbit.classList.add("active");
