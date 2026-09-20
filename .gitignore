@@ -641,6 +641,8 @@
 !/music/yue2/local_app/studio.json
 !/music/yue2/src/
 !/music/yue2/src/**
+!/music/yue2/skills/
+!/music/yue2/skills/**
 
 # Models are always reconstructed locally. These are the only tracked files
 # beneath models/.
