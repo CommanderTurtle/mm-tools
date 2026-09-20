@@ -27,6 +27,7 @@
     <nav class="workspace-tabs" aria-label="Studio workspace">
       <button class="workspace-tab active" type="button" data-tab="songStudio">Song Studio <small>MiniMax Music 3</small></button>
       <button class="workspace-tab" type="button" data-tab="promptGuide">Prompt Enhance <small>Local writing room</small></button>
+      <button class="workspace-tab" type="button" data-tab="stemKit">Stems <small>Split &amp; mix</small></button>
     </nav>
 
     <main>
@@ -267,6 +268,33 @@ Where the blue turns into gold
           <ol id="guideSources" aria-label="Research sources" hidden></ol>
           <details id="guideRawDetails" class="raw-output"><summary>Full response</summary><pre id="guideRawOutput"></pre></details>
         </section>
+      </section>
+
+      <section id="stemKit" class="workspace-panel" hidden>
+        <header class="panel-hero"><div><p class="kicker">STEMKIT · LOCAL SEPARATION</p><h1>Split a take into stems.</h1><p>Vocals, drums, bass and other — separated locally with demucs (or Mel-Band Roformer for acapella), played back on faders, exported as WAV.</p></div></header>
+        <div class="stems-grid">
+          <section class="stems-source">
+            <small>TRACK</small>
+            <div id="stemTrackPick" class="stem-track-pick"></div>
+            <label class="file-drop" for="stemFile"><input id="stemFile" type="file" accept="audio/*" hidden><span>⇪ Upload another audio file</span></label>
+            <small>PRESET</small>
+            <div id="stemPresets" class="chip-row"></div>
+            <small>STEMS</small>
+            <div id="stemToggles" class="stem-toggles"></div>
+            <button id="stemSplit" class="primary-button" type="button"><span>Split stems</span><b>↗</b></button>
+            <p id="stemStatus" role="status" class="muted">Pick a take, then split.</p>
+            <div id="stemProgressWrap" hidden><div class="progress-bar"><i id="stemProgressFill"></i></div><small id="stemProgressText"></small></div>
+          </section>
+          <section class="stems-player">
+            <div class="transport">
+              <button id="stemPlay" type="button">▶ Play</button>
+              <input id="stemSeek" type="range" min="0" max="1000" value="0" aria-label="seek">
+              <time id="stemClock">00:00 / 00:00</time>
+              <label class="master"><span>Master</span><input id="stemMaster" type="range" min="0" max="100" value="90"></label>
+            </div>
+            <div id="stemLanes" class="stem-lanes"><p class="muted">Faders appear after a split.</p></div>
+          </section>
+        </div>
       </section>
     </main>
 

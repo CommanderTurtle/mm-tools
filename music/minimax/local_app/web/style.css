@@ -265,3 +265,53 @@ button:disabled { opacity: .45; cursor: wait; }
 .performance-footer .footer-right { display: inline-flex; align-items: center; gap: 10px; }
 .export-player { padding: 3px 9px; border: 1px solid #272725; border-radius: 3px; background: transparent; color: #686762; font: inherit; letter-spacing: inherit; cursor: pointer; transition: color .15s ease, border-color .15s ease; }
 .export-player:hover { color: #f4f2eb; border-color: rgba(244, 242, 235, .55); }
+
+/* ---------------- StemKit pane ---------------- */
+.panel-hero { padding: 34px 0 8px; }
+.panel-hero .kicker { color: var(--accent); margin: 0 0 14px; font-size: 10px; font-weight: 750; letter-spacing: .22em; }
+.panel-hero h1 { font-size: clamp(34px, 5vw, 58px); margin: 0; }
+.panel-hero p { max-width: 690px; color: var(--muted); line-height: 1.6; margin-top: 12px; }
+.muted { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.stems-grid { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 22px; margin-top: 26px; align-items: start; }
+.stems-source { display: grid; gap: 10px; padding: 18px; border: 1px solid var(--line); background: var(--panel); }
+.stems-source > small { color: var(--dim); font-size: 9px; font-weight: 750; letter-spacing: .16em; }
+.stem-track-pick { display: grid; gap: 7px; max-height: 240px; overflow: auto; }
+.stem-track { display: grid; grid-template-columns: 26px 1fr; gap: 4px 10px; align-items: center; text-align: left; padding: 9px 11px; border: 1px solid var(--line); background: #111110; color: var(--ink); cursor: pointer; font: inherit; }
+.stem-track span { grid-row: span 2; font-size: 15px; color: var(--accent); }
+.stem-track b { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stem-track small { color: var(--dim); font-size: 9px; }
+.stem-track:hover { border-color: var(--muted); }
+.stem-track.active { border-color: var(--accent); background: rgba(214, 255, 115, .07); }
+.file-drop { display: block; padding: 11px; border: 1px dashed var(--line); text-align: center; color: var(--muted); font-size: 11px; cursor: pointer; }
+.file-drop:hover { color: var(--ink); border-color: var(--accent); }
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; transition: .16s ease; font: inherit; }
+.chip span { font-size: 14px; color: var(--accent); }
+.chip b { font-size: 12px; color: var(--ink); }
+.chip small { font-size: 9px; letter-spacing: .04em; max-width: 200px; color: var(--dim); }
+.chip:hover { border-color: var(--muted); transform: translateY(-1px); }
+.chip.active { border-color: var(--accent); background: rgba(214, 255, 115, .09); }
+.stem-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+.switch-row { display: inline-flex; gap: 9px; align-items: center; color: var(--ink); font-size: 12px; }
+.switch-row input { accent-color: var(--accent); }
+.progress-bar { height: 8px; border-radius: 6px; background: #111110; border: 1px solid var(--line); overflow: hidden; }
+.progress-bar i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), rgba(214, 255, 115, .5)); transition: width .4s ease; }
+#stemProgressWrap small { display: block; margin-top: 6px; color: var(--dim); font-size: 10px; }
+.stems-player { padding: 18px; border: 1px solid var(--line); background: var(--panel); }
+.transport { display: grid; grid-template-columns: auto 1fr auto auto; gap: 14px; align-items: center; margin-bottom: 16px; }
+.transport button { border: 1px solid var(--line); background: #111110; color: var(--ink); padding: 9px 14px; font-size: 12px; cursor: pointer; }
+.transport button:hover { border-color: var(--accent); }
+.transport input[type="range"] { width: 100%; accent-color: var(--accent); }
+.transport time { color: var(--dim); font: 10px ui-monospace, monospace; white-space: nowrap; }
+.master { display: grid; grid-template-columns: 60px 110px; gap: 8px; align-items: center; }
+.master span { color: var(--dim); font-size: 9px; letter-spacing: .12em; }
+.stem-lanes { display: grid; gap: 10px; }
+.stem-lane { display: grid; grid-template-columns: 110px 1fr 90px 34px; gap: 14px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); background: #111110; }
+.stem-lane input[type="range"] { accent-color: var(--accent); }
+.lane-name { font-size: 12px; color: var(--ink); text-transform: capitalize; }
+.lane-bpm { justify-self: end; width: 10px; height: 34px; border-radius: 5px; background: linear-gradient(to top, var(--accent), transparent); opacity: calc(.15 + var(--pulse, 0)); }
+.lane-export { justify-self: center; color: var(--muted); text-decoration: none; font-size: 14px; }
+.lane-export:hover { color: var(--accent); }
+@media (max-width: 900px) {
+  .stems-grid { grid-template-columns: 1fr; }
+}

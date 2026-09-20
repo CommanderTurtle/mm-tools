@@ -610,7 +610,20 @@ function formatTime(seconds) {
 
 function updateLyrics(audio) {
   if (!lyricRows.length || !audio.duration) return;
-  const index = Math.min(lyricRows.length - 1, Math.floor((audio.currentTime / audio.duration) * lyricRows.length));
+  const job = jobsById.get(selectedJobId);
+  const byLine = new Map();
+  for (const row of Array.isArray(job?.lyric_timestamps) ? job.lyric_timestamps : []) {
+    if (row && Number.isFinite(Number(row.start))) byLine.set(Number(row.line), Number(row.start));
+  }
+  let index = -1;
+  if (byLine.size) {
+    lyricRows.forEach((row, rowIndex) => {
+      if (row.classList.contains("tag")) return;
+      const start = byLine.get(rowIndex);
+      if (start != null && start <= audio.currentTime + 0.15) index = rowIndex;
+    });
+  }
+  if (index === -1) index = Math.min(lyricRows.length - 1, Math.floor((audio.currentTime / audio.duration) * lyricRows.length));
   if (index !== activeLyricIndex) {
     lyricRows.forEach((row, i) => row.classList.toggle("active", i === index));
     const container = $("performanceLyrics");
@@ -1111,6 +1124,301 @@ async function copyGuideText(elementId, button) {
   const text = $(elementId).textContent;
   await writeClipboard(text, button);
 }
+
+/* ---------------- StemKit pane ---------------- */
+
+const STEM_PRESETS = [
+  { id: "all", label: "All", note: "demucs htdemucs", stems: ["vocals", "drums", "bass", "other"] },
+  { id: "karaoke", label: "Karaoke", note: "no-vocals mix", stems: ["drums", "bass", "other"] },
+  { id: "acapella", label: "Acapella", note: "Mel-Band Roformer", stems: ["vocals"] },
+  { id: "drums_bass", label: "Drums + Bass", note: "two stems", stems: ["drums", "bass"] },
+];
+
+function stemTrackChoices() {
+  return orderedJobs()
+    .filter((job) => job.status === "complete" && (job.audio || []).length)
+    .slice(0, 24)
+    .flatMap((job) => (job.audio || []).map((url, index) => ({ jobId: job.id, index, label: takeName(job), url })));
+}
+
+function renderStemPane() {
+  const pick = $("stemTrackPick");
+  const staleEmpty = !pick.querySelector(".stem-track") && !!pick.querySelector(".muted");
+  if (!pick.childElementCount || (staleEmpty && stemTrackChoices().length)) pick.replaceChildren();
+  if (!pick.childElementCount) {
+    const choices = stemTrackChoices();
+    if (!choices.length) {
+      pick.innerHTML = "<p class='muted'>No finished takes yet — render one, or upload below.</p>";
+    } else {
+      choices.forEach((choice, position) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "stem-track" + (position === 0 ? " active" : "");
+        button.innerHTML = `<span>♫</span><div><b>${escapeHtml(choice.label)}</b><small>${escapeHtml(new URL(choice.url, location.origin).pathname.split("/").at(-1) || choice.url)}</small></div>`;
+        button.addEventListener("click", () => {
+          document.querySelectorAll(".stem-track").forEach((other) => other.classList.toggle("active", other === button));
+          stemKit.source = { take: choice.jobId, index: choice.index };
+          $("stemStatus").textContent = "Selected — choose a preset and split.";
+        });
+        pick.append(button);
+      });
+      const first = pick.querySelector(".stem-track");
+      if (first) first.click();
+    }
+  }
+  const presets = $("stemPresets");
+  if (!presets.childElementCount) {
+    STEM_PRESETS.forEach((preset) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "chip" + (preset.id === "all" ? " active" : "");
+      button.dataset.preset = preset.id;
+      button.innerHTML = `<span>${preset.label}</span><small>${preset.note}</small>`;
+      button.addEventListener("click", () => {
+        document.querySelectorAll("#stemPresets .chip").forEach((item) => item.classList.toggle("active", item === button));
+        applyStemPreset(preset.stems);
+      });
+      presets.append(button);
+    });
+    applyStemPreset(STEM_PRESETS[0].stems);
+  }
+  const toggles = $("stemToggles");
+  if (!toggles.childElementCount) {
+    [["vocals", "Vocals"], ["drums", "Drums"], ["bass", "Bass"], ["other", "Other"]].forEach(([key, label]) => {
+      const wrap = document.createElement("label");
+      wrap.className = "switch-row";
+      wrap.innerHTML = `<input type="checkbox" value="${key}" ${key === "vocals" ? "checked" : ""}><span>${label}</span>`;
+      toggles.append(wrap);
+    });
+  }
+  if (!stemKit.bound) {
+    stemKit.bound = true;
+    $("stemSplit").addEventListener("click", runStemSplit);
+    $("stemFile").addEventListener("change", () => { if ($("stemFile").files[0]) uploadStemSource($("stemFile").files[0]); });
+    $("stemPlay").addEventListener("click", toggleStemPlayback);
+    $("stemMaster").addEventListener("input", applyStemGains);
+    $("stemSeek").addEventListener("input", seekStems);
+  }
+}
+
+function applyStemPreset(stems) {
+  document.querySelectorAll("#stemToggles input").forEach((item) => { item.checked = stems.includes(item.value); });
+}
+
+async function uploadStemSource(file) {
+  try {
+    const form = new FormData();
+    form.append("file", file, file.name);
+    const asset = await api("/api/stems/upload", { method: "POST", body: form });
+    stemKit.source = asset.asset_id;
+    $("stemStatus").textContent = `Uploaded ${file.name} — choose a preset and split.`;
+    document.querySelectorAll(".stem-track").forEach((item) => item.classList.remove("active"));
+  } catch (error) {
+    $("stemStatus").textContent = error.message;
+  }
+}
+
+async function runStemSplit() {
+  if (!stemKit.source) { $("stemStatus").textContent = "Pick a take or upload one first."; return; }
+  const stems = [...document.querySelectorAll("#stemToggles input:checked")].map((item) => item.value);
+  if (!stems.length) { $("stemStatus").textContent = "Select at least one stem."; return; }
+  const payload = { input: stemKit.source, stems };
+  const button = $("stemSplit");
+  button.disabled = true; button.firstChild.textContent = "Splitting…";
+  $("stemProgressWrap").hidden = false;
+  try {
+    const result = await api("/api/stems/split", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    pollStemJob(result.job_id);
+  } catch (error) {
+    $("stemStatus").textContent = error.message;
+    $("stemProgressWrap").hidden = true;
+  } finally {
+    button.disabled = false; button.firstChild.textContent = "Split stems";
+  }
+}
+
+function pollStemJob(id) {
+  const timer = setInterval(async () => {
+    try {
+      const job = await api(`/api/stems/jobs/${id}`);
+      $("stemProgressFill").style.width = `${Math.round(job.pct || 0)}%`;
+      $("stemProgressText").textContent = `${job.stage || job.status || "working"} · ${Math.round(job.pct || 0)}%${job.message ? ` — ${job.message}` : ""}`;
+      if (job.status === "failed") {
+        clearInterval(timer);
+        $("stemStatus").textContent = job.error || job.message || "The split failed.";
+        $("stemProgressWrap").hidden = true;
+        return;
+      }
+      if (job.status === "done") {
+        clearInterval(timer);
+        renderStemLanes(job);
+      }
+    } catch (error) {
+      clearInterval(timer);
+      $("stemStatus").textContent = error.message;
+      $("stemProgressWrap").hidden = true;
+    }
+  }, 1500);
+}
+
+function renderStemLanes(job) {
+  const lanes = $("stemLanes");
+  stopStemPlayback();
+  stemKit.lanes = [];
+  lanes.replaceChildren();
+  const names = Array.isArray(job.stems) && job.stems.length ? job.stems : ["vocals", "drums", "bass", "other"];
+  for (const name of names) {
+    const lane = document.createElement("div");
+    lane.className = "stem-lane";
+    lane.innerHTML = `<span class="lane-name">${escapeHtml(name)}</span><input type="range" min="0" max="100" value="100" aria-label="volume"><span class="lane-bpm"></span>`;
+    const fader = lane.querySelector("input");
+    const entry = { name, url: `/api/stems/jobs/${job.id}/${name}`, gain: 1, element: fader };
+    fader.addEventListener("input", () => { entry.gain = Number(fader.value) / 100; applyStemGains(); });
+    const exportLink = document.createElement("a");
+    exportLink.href = entry.url;
+    exportLink.download = `${name}.wav`;
+    exportLink.className = "lane-export";
+    exportLink.textContent = "⤓";
+    exportLink.title = "Download this stem";
+    lane.append(exportLink);
+    stemKit.lanes.push(entry);
+    lanes.append(lane);
+  }
+  if (!stemKit.lanes.length) {
+    lanes.innerHTML = "<p class='muted'>No stems found on that job.</p>";
+    return;
+  }
+  buildStemMix();
+  $("stemStatus").textContent = `${stemKit.lanes.length} lanes live (${job.engine || "local engine"}) — drag the faders, watch the spectrum.`;
+}
+
+async function buildStemMix() {
+  // Fetch every lane, align lengths, and render an offline mixed master so the
+  // transport plays all lanes in lockstep without N parallel <audio> elements.
+  const decoded = await Promise.all(stemKit.lanes.map(async (lane) => {
+    const arrayBuffer = await (await fetch(lane.url)).arrayBuffer();
+    const audioCtx = new OfflineAudioContext(2, 1, 44100);
+    return audioCtx.decodeAudioData(arrayBuffer.slice(0));
+  }));
+  const length = Math.max(...decoded.map((buffer) => buffer.length));
+  const mix = new OfflineAudioContext(2, length, 44100);
+  decoded.forEach((buffer, index) => {
+    const source = mix.createBufferSource();
+    source.buffer = buffer;
+    const gain = mix.createGain();
+    gain.gain.value = stemKit.lanes[index].gain;
+    source.connect(gain); gain.connect(mix.destination);
+    source.start(0);
+  });
+  const rendered = await mix.startRendering();
+  const wav = audioBufferToWav(rendered);
+  const blob = new Blob([wav], { type: "audio/wav" });
+  if (stemKit.audio) URL.revokeObjectURL(stemKit.audio.src);
+  stemKit.audio = new Audio(URL.createObjectURL(blob));
+  stemKit.audio.volume = Number($("stemMaster").value) / 100;
+  stemKit.audio.ontimeupdate = paintStemTransport;
+  stemKit.audio.onended = () => { $("stemPlay").textContent = "▶ Play"; };
+  startStemTransport();
+}
+
+function audioBufferToWav(buffer) {
+  const channels = Math.min(2, buffer.numberOfChannels);
+  const frames = buffer.length;
+  const bytesPerSample = 2;
+  const dataSize = frames * channels * bytesPerSample;
+  const arrayBuffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(arrayBuffer);
+  const writeString = (offset, text) => { for (let i = 0; i < text.length; i += 1) view.setUint8(offset + i, text.charCodeAt(i)); };
+  writeString(0, "RIFF"); view.setUint32(4, 36 + dataSize, true); writeString(8, "WAVE");
+  writeString(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true); view.setUint32(24, buffer.sampleRate, true);
+  view.setUint32(28, buffer.sampleRate * channels * bytesPerSample, true);
+  view.setUint16(32, channels * bytesPerSample, true); view.setUint16(34, 16, true);
+  writeString(36, "data"); view.setUint32(40, dataSize, true);
+  let offset = 44;
+  const channelData = [...Array(channels)].map((_, channel) => buffer.getChannelData(channel));
+  for (let frame = 0; frame < frames; frame += 1) {
+    for (let channel = 0; channel < channels; channel += 1) {
+      const sample = Math.max(-1, Math.min(1, channelData[channel][frame]));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      offset += 2;
+    }
+  }
+  return new Uint8Array(arrayBuffer);
+}
+
+function startStemTransport() {
+  if (!stemKit.audio) return;
+  if (window.AudioContext) {
+    const actx = new AudioContext();
+    const source = actx.createMediaElementSource(stemKit.audio);
+    const analyser = actx.createAnalyser();
+    analyser.fftSize = 256; analyser.smoothingTimeConstant = 0.8;
+    source.connect(analyser); analyser.connect(actx.destination);
+    stemKit.graph = { actx, analyser };
+  }
+  const paint = () => {
+    paintStemTransport();
+    const lane = document.querySelector(".stem-lane .lane-bpm");
+    if (stemKit.graph?.analyser && lane) {
+      const data = new Uint8Array(stemKit.graph.analyser.frequencyBinCount);
+      stemKit.graph.analyser.getByteFrequencyData(data);
+      const energy = data.reduce((sum, value) => sum + value, 0) / data.length / 255;
+      lane.style.setProperty("--pulse", energy.toFixed(3));
+    }
+    stemKit.raf = requestAnimationFrame(paint);
+  };
+  cancelAnimationFrame(stemKit.raf);
+  stemKit.raf = requestAnimationFrame(paint);
+}
+
+function paintStemTransport() {
+  if (!stemKit.audio) return;
+  const duration = Number.isFinite(stemKit.audio.duration) ? stemKit.audio.duration : 0;
+  $("stemClock").textContent = `${formatTime(stemKit.audio.currentTime)} / ${formatTime(duration)}`;
+  if (duration > 0) $("stemSeek").value = String(Math.round((stemKit.audio.currentTime / duration) * 1000));
+}
+
+function toggleStemPlayback() {
+  if (!stemKit.audio) return;
+  if (stemKit.audio.paused) {
+    stemKit.audio.play();
+    $("stemPlay").textContent = "❚❚ Pause";
+  } else {
+    stemKit.audio.pause();
+    $("stemPlay").textContent = "▶ Play";
+  }
+}
+
+function stopStemPlayback() {
+  if (stemKit.audio) { stemKit.audio.pause(); stemKit.audio.src = ""; }
+  stemKit.audio = null;
+  if (stemKit.graph?.actx) stemKit.graph.actx.close().catch(() => {});
+  stemKit.graph = null;
+  cancelAnimationFrame(stemKit.raf);
+  stemKit.raf = 0;
+}
+
+function seekStems() {
+  if (!stemKit.audio) return;
+  const duration = Number.isFinite(stemKit.audio.duration) ? stemKit.audio.duration : 0;
+  if (duration <= 0) return;
+  stemKit.audio.currentTime = (Number($("stemSeek").value) / 1000) * duration;
+}
+
+function applyStemGains() {
+  const master = Number($("stemMaster").value) / 100;
+  stemKit.lanes.forEach((lane) => {
+    lane.element.style.setProperty("--level", String(lane.gain * master));
+  });
+  if (stemKit.audio) stemKit.audio.volume = master;
+  // A full offline re-mix is expensive; rebuild when playback pauses.
+  if (stemKit.audio && !stemKit.audio.paused) {
+    stemKit.audio.onpause = () => buildStemMix().catch(() => {});
+  }
+}
+
+renderStemPane();
 
 async function initializeApplication() {
   drawSpectrum();

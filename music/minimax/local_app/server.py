@@ -27,6 +27,11 @@ from pydantic import BaseModel, Field
 ROOT = Path(__file__).resolve().parents[1]
 WEB = Path(__file__).resolve().parent / "web"
 RUNTIME = ROOT / "runtime"
+_SHARED_SRC = ROOT.parents[1] / "music" / "src"
+if _SHARED_SRC.is_dir() and str(_SHARED_SRC) not in sys.path:
+    sys.path.insert(0, str(_SHARED_SRC))
+
+from stemkit.local_app.api import StemService, install_stem_routes  # noqa: E402
 
 
 def _path_from_env(name: str, default: Path) -> Path:
@@ -946,6 +951,34 @@ def _check_session_idle() -> None:
         raise HTTPException(409, "Finish or cancel active takes before importing or resetting state.")
 
 
+def _vocal_sync_lines(lyrics_text: str) -> list[str]:
+    return [line.strip() for line in lyrics_text.splitlines() if line.strip()]
+
+
+async def _vocal_sync(job: dict[str, Any], request: GenerationRequest) -> list[dict[str, Any]] | None:
+    """StemKit post-pass: isolate the vocals on the rendered take and align
+    every lyric line to real vocal activity, so the performance view scrolls
+    where the singing actually happens. Returns None when lyrics are absent
+    or the pass fails; visualizers then keep their uniform spread."""
+    lines = _vocal_sync_lines(request.lyrics or "")
+    paths = job.get("paths") or []
+    if len(lines) < 2 or not paths:
+        return None
+    try:
+        from stemkit import studio_api
+    except Exception:
+        return None
+    work_dir = STATE_ROOT / "stems" / f"sync-{job['id']}"
+
+    def run() -> list[dict[str, Any]]:
+        return studio_api.vocal_timestamps_for_lyrics(Path(paths[0]), lines, work_dir)
+
+    try:
+        return await asyncio.to_thread(run)
+    except Exception:
+        return None
+
+
 async def _run_generation(job: dict[str, Any], request: GenerationRequest) -> None:
     job["status"] = "waiting"
     try:
@@ -962,6 +995,7 @@ async def _run_generation(job: dict[str, Any], request: GenerationRequest) -> No
             job["status"] = "complete"
             job["completed_at"] = time.time()
             engine.model_loaded = True
+            job["lyric_timestamps"] = await _vocal_sync(job, request)
     except asyncio.CancelledError:
         job["status"] = "cancelled"
         job["completed_at"] = time.time()
@@ -1019,6 +1053,37 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="MiniMax Music Studio", lifespan=lifespan)
 app.mount("/assets", StaticFiles(directory=WEB), name="assets")
+
+stem_service = StemService(
+    STATE_ROOT / "stems",
+    lambda ref: _resolve_stem_input(stem_service, ref),
+)
+
+
+def _resolve_stem_input(service: StemService, ref: Any) -> Path:
+    """Resolve the pane reference to a readable local audio file."""
+    target = ref.get("input") if isinstance(ref, dict) else ref
+    if isinstance(target, str) and target:
+        return service.upload_path(target)
+    if isinstance(target, dict):
+        upload = str(target.get("upload") or "").strip()
+        if upload:
+            return service.upload_path(upload)
+        job_id = str(target.get("take") or "").strip()
+        try:
+            index = int(target.get("index", 0))
+        except (TypeError, ValueError):
+            raise ValueError("Invalid take index.")
+        job = jobs.get(job_id)
+        if job is None:
+            raise ValueError("Unknown take; it may have been cleared.")
+        paths = job.get("paths") or []
+        if not 0 <= index < len(paths):
+            raise FileNotFoundError("That output file is missing on disk.")
+        return Path(paths[index])
+    raise ValueError("Select a take or an uploaded track.")
+
+install_stem_routes(app, stem_service)
 
 
 @app.get("/")
