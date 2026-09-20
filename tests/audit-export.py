@@ -16,6 +16,12 @@ def tracked(root: Path) -> list[str]:
     return subprocess.check_output(["git", "ls-files", "-z"], cwd=root).decode().rstrip("\0").split("\0")
 
 
+# Vendored library assets that must stay tracked: loaded relative to the
+# module path by the code itself, with no model-downloader source upstream.
+VENDORED_ASSETS = {
+    "sculpting/native/nvdiffrec/nvdiffrec_render/bsdf_256_256.bin",
+}
+
 def audit(root: Path, files: list[str]) -> dict:
     problems = []
     sizes = defaultdict(lambda: [0, 0])
@@ -27,9 +33,10 @@ def audit(root: Path, files: list[str]) -> dict:
             continue
         if any(p in {".venv", "node_modules", "__pycache__", ".git", "outputs"} for p in path.relative_to(root).parts):
             problems.append(f"Runtime artifact is tracked: {name}")
-        if path.name in {".env", "id_rsa", "id_ed25519"} or path.suffix in {
-            ".pyc", ".safetensors", ".gguf", ".pt", ".pth", ".ckpt", ".onnx", ".bin"
-        }:
+        if name not in VENDORED_ASSETS and (
+            path.name in {".env", "id_rsa", "id_ed25519"}
+            or path.suffix in {".pyc", ".safetensors", ".gguf", ".pt", ".pth", ".ckpt", ".onnx", ".bin"}
+        ):
             problems.append(f"Local configuration/checkpoint is tracked: {name}")
         entry = sizes[name.split('/')[0]]
         entry[0] += 1
