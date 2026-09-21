@@ -1,6 +1,7 @@
 aiohttp>=3.11.8
 alembic
 av>=16
+beartype>=0.20
 blake3
 comfy-aimdo==0.4.13
 comfy-angle
@@ -22,6 +23,7 @@ pydantic-settings~=2.0
 PyOpenGL>=3.1.8
 pyyaml
 requests
+rotary-embedding-torch>=0.8
 safetensors>=0.4.2
 scipy
 sentencepiece
