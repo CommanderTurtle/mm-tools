@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import struct
 import subprocess
 import sys
 import wave
@@ -111,6 +112,39 @@ def _run_json_script(
     return done
 
 
+
+def is_riff_wav(path: Path) -> bool:
+    """True when ``path`` carries a RIFF header (the only layout the
+    stdlib wave readers in the separation scripts accept)."""
+    try:
+        with open(path, "rb") as handle:
+            return handle.read(4) == b"RIFF"
+    except OSError:
+        return False
+
+
+def write_pcm16_wav(path: Path, data, rate: int) -> None:
+    """Hand-write ``data`` (frames, channels) float samples as a little-endian
+    PCM_16 RIFF wav, without libsndfile.
+
+    The libsndfile builds bundled with some soundfile wheels reject every
+    write-open with "Format not recognised." while their readers work fine,
+    so the stem pipeline must not depend on the writer side.
+    """
+    import numpy as np
+
+    samples = np.asarray(data, dtype="<f8")
+    if samples.ndim == 1:
+        samples = samples[:, None]
+    pcm = np.clip(samples, -1.0, 1.0) * 32767.0
+    payload = pcm.astype("<i2").tobytes()
+    channels = int(samples.shape[1])
+    block_align = channels * 2
+    header = b"RIFF" + struct.pack("<I", 36 + len(payload)) + b"WAVE"
+    header += b"fmt " + struct.pack("<IHHIIHH", 16, 1, channels, int(rate), int(rate) * block_align, block_align, 16)
+    header += b"data" + struct.pack("<I", len(payload))
+    Path(path).write_bytes(header + payload)
+
 def split_wav(
     input_path: Path,
     out_dir: Path,
@@ -135,6 +169,14 @@ def split_wav(
         raise ValueError(f"unknown stems requested: {', '.join(unknown)}")
     if not wanted:
         raise ValueError("no stems requested")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    if not is_riff_wav(input_path):
+        # Take outputs land as FLAC; the separation scripts read RIFF only.
+        import soundfile as sf
+
+        decoded, decoded_rate = sf.read(str(input_path), always_2d=True)
+        write_pcm16_wav(out_dir / "__input.wav", decoded, int(decoded_rate))
+        input_path = out_dir / "__input.wav"
 
     use_roformer = wanted == ["vocals"] and ROFORMER_CKPT.is_file()
     if use_roformer:

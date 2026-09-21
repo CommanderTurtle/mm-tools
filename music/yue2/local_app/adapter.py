@@ -7,6 +7,7 @@ import math
 import os
 import re
 import shutil
+import struct
 import sys
 import time
 import zipfile
@@ -49,6 +50,32 @@ def _media_kind(path: Path) -> tuple[str, str | None]:
     if suffix in {".png", ".jpg", ".jpeg", ".webp", ".svg"}:
         return "image", "image/svg+xml" if suffix == ".svg" else f"image/{'jpeg' if suffix in {'.jpg', '.jpeg'} else suffix[1:]}"
     return "data", "application/octet-stream"
+
+
+def _write_audio_fallback(path: Path, audio: np.ndarray, rate: int) -> None:
+    """Persist ``audio`` (channels, frames) floats as best-effort PCM_24.
+
+    Prefers libsndfile FLAC; when the bundled libsndfile cannot open a writer
+    (its "Format not recognised." gap), falls back to a hand-rolled RIFF so a
+    take still lands under its documented artifact name.
+    """
+    try:
+        sf.write(path, audio, rate, subtype="PCM_24")
+        return
+    except Exception:
+        pass
+    samples = np.asarray(audio)
+    if samples.ndim == 1:
+        samples = samples[None, :]
+    channels, frames = samples.shape
+    packed = (np.clip(samples.T, -1.0, 1.0) * 8388607.0).astype("<i4")
+    planes = [((packed >> shift) & 0xFF).astype(np.uint8) for shift in (0, 8, 16)]
+    payload = np.ascontiguousarray(np.stack(planes, axis=-1)).tobytes()
+    block_align = channels * 3
+    header = b"RIFF" + struct.pack("<I", 36 + len(payload)) + b"WAVE"
+    header += b"fmt " + struct.pack("<IHHIIHH", 16, 1, channels, rate, rate * block_align, block_align, 24)
+    header += b"data" + struct.pack("<I", len(payload))
+    path.write_bytes(header + payload)
 
 
 class Adapter(StudioAdapter):
@@ -446,7 +473,7 @@ class Adapter(StudioAdapter):
         from yue2.storage import collect_hashes, identity, write_json
 
         plan.save(destination)
-        sf.write(destination / "audio.flac", audio, 48000, subtype="PCM_24")
+        _write_audio_fallback(destination / "audio.flac", audio, 48000)
         np.save(destination / "semantic.npy", np.asarray(semantic.tokens, dtype=np.int32))
         np.save(destination / "latent.npy", latents.astype(np.float32))
         write_json(destination / "request.json", request.to_dict())
@@ -559,7 +586,7 @@ class Adapter(StudioAdapter):
         context.update("Decoding saved acoustic latents on CUDA", 0.15)
         audio = self._decode_gpu_only(latents, int(controls.get("vae_core_frames", 1024)), context)
         target = context.output_dir / "decoded.flac"
-        sf.write(target, audio, 48000, subtype="PCM_24")
+        _write_audio_fallback(target, audio, 48000)
         metadata = {"sample_rate": 48000, "audio_seconds": len(audio) / 48000, "source": source.name}
         (context.output_dir / "decode.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
         return self._collect(context.output_dir, controls, "Decoded latents")
@@ -596,6 +623,10 @@ class Adapter(StudioAdapter):
     def _vocal_timestamps(self, directory: Path, files: list[Path], lyrics: str) -> list[dict[str, Any]] | None:
         """Stem post-pass: align lyric lines to real vocal activity in the
         rendered take. Any failure keeps the visualizer's uniform spread."""
+        try:
+            import studio_api
+        except Exception:
+            return None
         lines = [line.strip() for line in lyrics.splitlines() if line.strip()]
         if len(lines) < 2:
             return None
@@ -607,13 +638,9 @@ class Adapter(StudioAdapter):
             audio = directory / "vocal-sync.wav"
             try:
                 data, rate = sf.read(source, always_2d=True)
-                sf.write(audio, data.T, int(rate), subtype="PCM_16")
+                studio_api.write_pcm16_wav(audio, data, int(rate))
             except Exception:
                 return None
-        try:
-            import studio_api
-        except Exception:
-            return None
         try:
             return studio_api.vocal_timestamps_for_lyrics(audio, lines, directory / "vocal-sync-work")
         except Exception:

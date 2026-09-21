@@ -83,7 +83,9 @@ def slice_wav(source: Path, start: float, end: float, dest: Path) -> None:
     frame_start = max(0, int(round(start * info.samplerate)))
     frames = max(1, int(round(end * info.samplerate)) - frame_start)
     data, _ = sf.read(source, start=frame_start, frames=frames, always_2d=True)
-    sf.write(dest, data.T, int(info.samplerate), subtype="PCM_16")
+    from studio_api import write_pcm16_wav
+
+    write_pcm16_wav(dest, data, int(info.samplerate))
 
 
 def _post_multipart(url: str, fields: dict[str, str], filename: str, payload: bytes, timeout: float = 120.0) -> dict[str, Any]:
