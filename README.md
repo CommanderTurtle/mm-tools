@@ -427,7 +427,6 @@ The only Yue2 frontend with stem splitting!
 
 - (Share with Friends via app.shel.sh/make & a.shel.sh superlinks, entirely local)
 
-<audio controls>
-  <source src="https://huggingface.co/sHEL1562/shelling/resolve/main/src/audio.flac" type="audio/mpeg">
-  Your browser does not support the audio element.
-</audio>
+Another:
+
+https://a.shel.sh/#media:rZ9jBas~g*mK]Q-()SB$IFDo]Xl-b5y[P,/@f/FwenhdLmh~Aaw
