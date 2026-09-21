@@ -415,7 +415,7 @@ model downloads at runtime.
 
 ### Trellis & Pixal3D - 3d modeling/scuplting pipelines
 
-![feelssculptingman](https://huggingface.co/sHEL1562/shelling/resolve/main/src/sculpting-1.avif)
+https://github.com/user-attachments/assets/513e5f2e-09d8-4823-9799-5d73c494842c
 
 ### YuE2
 
@@ -426,3 +426,8 @@ The only Yue2 frontend with stem splitting!
 <a href="https://a.shel.sh/#ss:~9h=@:aQCb685#]:[a@)a;YaCeHZ[[K4([v)*p&OJB274p;Qifr" title="a.shel.sh superlink">Live Viewer Exporting</a>
 
 - (Share with Friends via app.shel.sh/make & a.shel.sh superlinks, entirely local)
+
+<audio controls>
+  <source src="https://huggingface.co/sHEL1562/shelling/resolve/main/src/audio.flac" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
