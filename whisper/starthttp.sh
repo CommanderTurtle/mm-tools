@@ -67,6 +67,7 @@ fi
 # shellcheck disable=SC1091
 source .venv/bin/activate
 export CW2_APP_ROLE=http
+export CW2_SERVICE_PORT="$PORT"
 exec uv run --active --no-sync python -m uvicorn local_app.server:app \
   --host "$HOST" \
   --port "$PORT" \

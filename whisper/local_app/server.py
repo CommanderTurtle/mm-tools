@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import tempfile
 from contextlib import asynccontextmanager
@@ -26,17 +27,47 @@ SECONDARY_SCHEME = (
     else "http"
 )
 
+
+def _bind_port() -> int:
+    """The port this process actually binds, as chosen by its launcher."""
+    explicit = os.getenv("CW2_SERVICE_PORT", "").strip()
+    if explicit.isdigit():
+        return int(explicit)
+    raw = os.getenv("CW2_UI_PORT" if APP_ROLE == "ui" else "CW2_PORT", "").strip()
+    if raw.isdigit():
+        return int(raw)
+    return 8173 if APP_ROLE == "ui" else 8172
+
+
+def _discovery_path() -> Path:
+    base = os.getenv("XDG_RUNTIME_DIR") or "/tmp"
+    role = "ui" if APP_ROLE == "ui" else "http"
+    return Path(base) / f"crisperwhisper-{role}-{os.getuid()}.json"
+
+
 def _autoload_enabled() -> bool:
     return os.getenv("CW2_AUTOLOAD", "1").strip().lower() not in {"0", "false", "no"}
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    try:
+        _discovery_path().write_text(json.dumps({
+            "url": f"{SECONDARY_SCHEME}://127.0.0.1:{_bind_port()}",
+            "scheme": SECONDARY_SCHEME,
+            "port": _bind_port(),
+            "role": APP_ROLE,
+            "pid": os.getpid(),
+            "version": __version__,
+        }), encoding="utf-8")
+    except OSError:
+        pass
     if _autoload_enabled():
         await run_in_threadpool(manager.load)
     try:
         yield
     finally:
+        _discovery_path().unlink(missing_ok=True)
         await run_in_threadpool(manager.unload)
 
 

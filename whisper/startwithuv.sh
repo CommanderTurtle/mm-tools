@@ -67,6 +67,7 @@ export CW2_APP_ROLE=ui
 export CW2_AUTOLOAD=0
 # shellcheck disable=SC1091
 source .venv/bin/activate
+export CW2_SERVICE_PORT="$PORT"
 printf 'CrisperWhisper browser workbench: %s\n' "$LOCAL_URL"
 exec uv run --active --no-sync python -m uvicorn local_app.server:app \
   --host "$HOST" \
