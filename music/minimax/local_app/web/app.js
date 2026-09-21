@@ -2,6 +2,15 @@ import { STATE_FORMAT, MAX_STATE_BYTES, readControls, validateControls, validate
 
 const $ = (id) => document.getElementById(id);
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 let currentAudio = null;
 let audioContext = null;
 let analyser = null;
@@ -885,6 +894,7 @@ function switchWorkspace(panelId, smooth = true) {
     panel.classList.toggle("active", active);
     panel.hidden = !active;
   });
+  if (panelId === "stemKit") renderStemPane();
   saveSessionState();
   if (smooth) window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -1142,6 +1152,13 @@ async function copyGuideText(elementId, button) {
 
 /* ---------------- Stem pane ---------------- */
 
+const stemKit = {
+  source: null,
+  lanes: [],
+  graph: null,
+  raf: 0,
+};
+
 const STEM_PRESETS = [
   { id: "all", label: "All", note: "demucs htdemucs", stems: ["vocals", "drums", "bass", "other"] },
   { id: "karaoke", label: "Karaoke", note: "no-vocals mix", stems: ["drums", "bass", "other"] },
@@ -1213,7 +1230,7 @@ function renderStemPane() {
     $("stemPlay").addEventListener("click", toggleStemPlayback);
     $("stemMaster").addEventListener("input", applyStemGains);
     $("stemSeek").addEventListener("input", seekStems);
-    $("stemMixDownload").addEventListener("click", (event) => { event.preventDefault(); downloadStemMix().catch((error) => toast(error.message, "error")); });
+    $("stemMixDownload").addEventListener("click", (event) => { event.preventDefault(); downloadStemMix().catch((error) => { $("stemStatus").textContent = error.message; }); });
   }
 }
 
