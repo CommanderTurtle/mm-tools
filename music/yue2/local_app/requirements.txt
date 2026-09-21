@@ -2,4 +2,7 @@ fastapi>=0.135,<1
 uvicorn[standard]>=0.41,<1
 demucs==4.0.1
 soundfile>=0.13
+# mel-band roformer vocals engine (music/src/python/vendor) imports these directly
+beartype>=0.20
+rotary-embedding-torch>=0.8
 python-multipart>=0.0.9
