@@ -1769,7 +1769,7 @@ function ensurePerformanceGraph() {
   return performanceGraph;
 }
 
-const perfLyricState = { candidates: [], times: [] };
+const perfLyricState = { candidates: [], times: [], activeIndex: -1 };
 let currentPerfItem = null;
 let chrisperTimer = 0;
 
@@ -1785,44 +1785,50 @@ function openPerformance(item) {
   const graph = ensurePerformanceGraph();
   const canvas = $("perfSpectrum");
   const ctx = canvas.getContext("2d");
+  const lyricsBox = $("perfLyrics");
   let perfRaf = 0;
   const paint = () => {
-    const dpr = window.devicePixelRatio || 1;
-    const width = Math.max(320, canvas.clientWidth || 900);
-    if (canvas.width !== width * dpr) { canvas.width = width * dpr; canvas.height = 220 * dpr; }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (graph?.analyser) {
-      const data = new Uint8Array(graph.analyser.frequencyBinCount);
-      graph.analyser.getByteFrequencyData(data);
-      const bars = 96;
-      const step = Math.max(1, Math.floor(data.length / bars));
-      const barWidth = canvas.width / bars;
-      for (let bar = 0; bar < bars; bar += 1) {
-        const value = data[bar * step] / 255;
-        const height = Math.max(3, value * canvas.height * 0.92);
-        const hue = 150 + value * 90;
-        ctx.fillStyle = `hsla(${hue}, 62%, ${34 + value * 30}%, ${0.55 + value * 0.4})`;
-        const x = bar * barWidth + 1;
-        ctx.fillRect(x, canvas.height - height, Math.max(2, barWidth - 2), height);
-      }
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const width = Math.max(1, canvas.clientWidth);
+    const height = Math.max(1, canvas.clientHeight);
+    if (canvas.width !== Math.floor(width * ratio) || canvas.height !== Math.floor(height * ratio)) {
+      canvas.width = Math.floor(width * ratio);
+      canvas.height = Math.floor(height * ratio);
+    }
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    const values = new Uint8Array(graph?.analyser ? graph.analyser.frequencyBinCount : 64);
+    if (graph?.analyser && !audio.paused) graph.analyser.getByteFrequencyData(values);
+    const bars = 72;
+    const gap = 3;
+    const barWidth = Math.max(2, (width - gap * (bars - 1)) / bars);
+    for (let bar = 0; bar < bars; bar += 1) {
+      const sample = values[Math.floor((bar / bars) * values.length)] || (3 + 5 * Math.sin(bar * .7));
+      const barHeight = Math.max(2, (sample / 255) * (height - 6));
+      const x = bar * (barWidth + gap);
+      ctx.fillStyle = `rgba(244, 242, 235, ${.38 + (sample / 255) * .62})`;
+      ctx.fillRect(x, height - barHeight, barWidth, barHeight);
     }
     if (!audio.paused) {
       const current = audio.currentTime;
+      $("perfClock").textContent = `${formatClock(current)} / ${formatClock(Number.isFinite(audio.duration) ? audio.duration : 0)}`;
       const candidates = perfLyricState.candidates;
       const candidateTime = perfLyricState.times;
       const known = candidateTime.some((value) => value != null);
-      $("perfClock").textContent = `${formatClock(current)} / ${formatClock(Number.isFinite(audio.duration) ? audio.duration : 0)}`;
       let selected = -1;
       if (known) {
         candidates.forEach((node, index) => { if (candidateTime[index] != null && candidateTime[index] <= current + 0.15) selected = index; });
       } else if (Number.isFinite(audio.duration) && audio.duration > 0) {
         selected = Math.min(candidates.length - 1, Math.floor((current / audio.duration) * candidates.length));
       }
-      candidates.forEach((node, index) => node.classList.toggle("active", index === selected));
-      const activeNode = candidates[selected];
-      if (activeNode) {
-        const offset = activeNode.offsetTop - lyricsBox.clientHeight / 2 + activeNode.clientHeight / 2;
-        if (Math.abs(lyricsBox.scrollTop - offset) > 4) lyricsBox.scrollTo({ top: offset, behavior: "smooth" });
+      if (selected !== perfLyricState.activeIndex) {
+        candidates.forEach((node, index) => node.classList.toggle("active", index === selected));
+        const activeNode = candidates[selected];
+        if (activeNode) {
+          const offset = activeNode.offsetTop - lyricsBox.clientHeight / 2 + activeNode.clientHeight / 2;
+          if (Math.abs(lyricsBox.scrollTop - offset) > 4) lyricsBox.scrollTo({ top: Math.max(0, offset), behavior: "smooth" });
+        }
+        perfLyricState.activeIndex = selected;
       }
     }
     perfRaf = requestAnimationFrame(paint);
@@ -1852,6 +1858,7 @@ function renderPerformanceLyrics(item) {
     lyricsBox.innerHTML = "<p class='muted'>No lyrics attached to this take.</p>";
     perfLyricState.candidates = [];
     perfLyricState.times = [];
+    perfLyricState.activeIndex = -1;
     return;
   }
   rows.forEach((line, index) => {
@@ -1866,6 +1873,7 @@ function renderPerformanceLyrics(item) {
     const rowIndex = Number(node.dataset.index);
     return times && times[rowIndex] != null ? times[rowIndex] : null;
   });
+  perfLyricState.activeIndex = -1;
 }
 
 async function refreshChrisperStatus() {

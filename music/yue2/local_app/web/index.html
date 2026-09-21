@@ -231,30 +231,33 @@
           <article><small>STYLE</small><p id="perfStyle">—</p><small>ENGINE</small><p id="perfEngine">—</p></article>
           <div id="perfLyrics" class="performance-lyrics"><p class="active">Lyrics scroll with playback.</p></div>
         </div>
-        <div class="performance-viz"><canvas id="perfSpectrum" aria-label="Live audio spectrum"></canvas></div>
-        <div class="performance-tools">
-          <span id="chrisperStatus" class="chrisper-status"><i></i><span>CRISPER …</span></span>
-          <label class="tool-field">LANG<select id="chrisperLanguage">
-            <option value="auto">Auto</option>
-            <option value="en">EN</option>
-            <option value="zh">ZH</option>
-            <option value="ja">JA</option>
-            <option value="ko">KO</option>
-            <option value="es">ES</option>
-            <option value="fr">FR</option>
-            <option value="de">DE</option>
-            <option value="ru">RU</option>
-            <option value="ar">AR</option>
-            <option value="hi">HI</option>
-            <option value="it">IT</option>
-            <option value="pt">PT</option>
-          </select></label>
-          <button id="perfSyncV1" class="tool-button" type="button" title="Place lines on the vocal-activity envelope (local demucs + DSP)">Vocal sync</button>
-          <button id="perfSyncV2" class="tool-button primary" type="button" title="Re-time lines with CrisperWhisper word timing">Chrisper v2</button>
-          <button id="perfExportPlayer" class="tool-button" type="button" title="Download a self-contained HTML player">Export player ⤓</button>
-        </div>
         <audio id="perfAudio" controls preload="metadata"></audio>
-        <div class="performance-footer"><span id="perfNowPlaying">—</span><time id="perfClock">00:00 / 00:00</time></div>
+        <canvas id="perfSpectrum" aria-label="Animated audio spectrum"></canvas>
+        <div class="performance-footer">
+          <span id="perfNowPlaying">—</span>
+          <span class="footer-right">
+            <time id="perfClock">00:00 / 00:00</time>
+            <span id="chrisperStatus" class="chrisper-status"><i></i><span>CRISPER …</span></span>
+            <label class="tool-field">LANG<select id="chrisperLanguage">
+              <option value="auto">Auto</option>
+              <option value="en">EN</option>
+              <option value="zh">ZH</option>
+              <option value="ja">JA</option>
+              <option value="ko">KO</option>
+              <option value="es">ES</option>
+              <option value="fr">FR</option>
+              <option value="de">DE</option>
+              <option value="ru">RU</option>
+              <option value="ar">AR</option>
+              <option value="hi">HI</option>
+              <option value="it">IT</option>
+              <option value="pt">PT</option>
+            </select></label>
+            <button id="perfSyncV1" class="export-player" type="button" title="Try to sync lyrics better using stems — isolate the take's vocals and re-place each line on the vocal activity envelope.">Sync with stems ↻</button>
+            <button id="perfSyncV2" class="export-player accent" type="button" title="Try to sync lyrics even better with chrisper — run up to 20 CrisperWhisper passes over timed snippets and re-align every line.">Even better · chrisper ✦</button>
+            <button id="perfExportPlayer" class="export-player" type="button" title="Download a self-contained HTML player for this take">Export player ⤓</button>
+          </span>
+        </div>
       </div>
       <button id="perfClose" class="dialog-close" aria-label="Close">×</button>
     </dialog>
