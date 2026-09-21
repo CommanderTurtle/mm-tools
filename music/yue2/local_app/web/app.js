@@ -1885,7 +1885,8 @@ async function refreshChrisperStatus() {
     node.classList.toggle("ready", Boolean(data.up && data.loaded));
     node.classList.toggle("warm", Boolean(data.up && !data.loaded));
     node.classList.toggle("offline", !data.up);
-    label.textContent = !data.up ? `CRISPER OFFLINE · :${data.port}` : data.loaded ? "CRISPER READY" : "CRISPER LOADING";
+    const host = data.url ? new URL(data.url).host : `:${data.port}`;
+    label.textContent = !data.up ? `CRISPER OFFLINE · ${host}` : data.loaded ? "CRISPER READY" : "CRISPER LOADING";
   } catch (_) {
     node.classList.add("offline");
     node.classList.remove("ready", "warm");
@@ -2009,6 +2010,7 @@ function renderStemsPage() {
     $("stemPlay").onclick = toggleStemPlayback;
     $("stemMaster").oninput = applyStemGains;
     $("stemSeek").oninput = seekStems;
+    $("stemMixDownload").onclick = (event) => { event.preventDefault(); downloadStemMix().catch((error) => toast(error.message, "error")); };
   }
 }
 
@@ -2105,32 +2107,86 @@ function renderStemLanes(job) {
 }
 
 async function buildStemMix() {
-  // Fetch every lane, align lengths, and render an offline mixed master so the
-  // transport plays all lanes in lockstep without N parallel <audio> elements.
+  // Decode every lane once, then drive a live Web Audio graph so the faders
+  // change the master mix in real time without re-rendering anything.
   const decoded = await Promise.all(stemKit.lanes.map(async (lane) => {
     const arrayBuffer = await (await fetch(lane.url, { headers: authHeaders() })).arrayBuffer();
-    const audioCtx = new OfflineAudioContext(2, 1, 44100);
-    return audioCtx.decodeAudioData(arrayBuffer.slice(0));
+    const probe = new OfflineAudioContext(2, 1, 44100);
+    return probe.decodeAudioData(arrayBuffer.slice(0));
   }));
-  const length = Math.max(...decoded.map((buffer) => buffer.length));
+  stemKit.buffers = decoded;
+  stemKit.duration = Math.max(...decoded.map((buffer) => buffer.duration));
+  stopStemGraph();
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  const actx = new Ctx();
+  const master = actx.createGain();
+  master.gain.value = Number($("stemMaster").value) / 100;
+  const analyser = actx.createAnalyser();
+  analyser.fftSize = 256; analyser.smoothingTimeConstant = 0.8;
+  master.connect(analyser); analyser.connect(actx.destination);
+  const laneGains = decoded.map((buffer, index) => {
+    const source = actx.createBufferSource();
+    source.buffer = buffer;
+    const gain = actx.createGain();
+    gain.gain.value = stemKit.lanes[index].gain;
+    source.connect(gain); gain.connect(master);
+    return gain;
+  });
+  stemKit.graph = { actx, laneGains, master, analyser };
+  stemKit.playing = false;
+  stemKit.position = 0;
+  $("stemPlay").textContent = "▶ Play";
+  if ($("stemMixDownload")) $("stemMixDownload").disabled = false;
+  startStemTransport();
+}
+
+function stopStemGraph() {
+  if (stemKit.sources) { stemKit.sources.forEach((source) => { try { source.stop(); } catch (_) {} }); stemKit.sources = null; }
+  if (stemKit.graph?.actx) stemKit.graph.actx.close().catch(() => {});
+  stemKit.graph = null;
+}
+
+function stemPosition() {
+  const graph = stemKit.graph;
+  if (!graph) return 0;
+  if (!stemKit.playing) return stemKit.position;
+  return Math.min(stemKit.duration, stemKit.position + (graph.actx.currentTime - stemKit.startedAt));
+}
+
+function startStemSources(offset) {
+  const graph = stemKit.graph;
+  if (!graph) return;
+  if (stemKit.sources) { stemKit.sources.forEach((source) => { try { source.stop(); } catch (_) {} }); }
+  stemKit.sources = stemKit.buffers.map((buffer, index) => {
+    const source = graph.actx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(graph.laneGains[index]);
+    source.start(0, offset);
+    return source;
+  });
+}
+
+async function downloadStemMix() {
+  if (!stemKit.buffers?.length) return;
+  const length = Math.max(...stemKit.buffers.map((buffer) => buffer.length));
   const mix = new OfflineAudioContext(2, length, 44100);
-  decoded.forEach((buffer, index) => {
+  const master = mix.createGain();
+  master.gain.value = Number($("stemMaster").value) / 100;
+  master.connect(mix.destination);
+  stemKit.buffers.forEach((buffer, index) => {
     const source = mix.createBufferSource();
     source.buffer = buffer;
     const gain = mix.createGain();
     gain.gain.value = stemKit.lanes[index].gain;
-    source.connect(gain); gain.connect(mix.destination);
+    source.connect(gain); gain.connect(master);
     source.start(0);
   });
   const rendered = await mix.startRendering();
-  const wav = audioBufferToWav(rendered);
-  const blob = new Blob([wav], { type: "audio/wav" });
-  if (stemKit.audio) URL.revokeObjectURL(stemKit.audio.src);
-  stemKit.audio = new Audio(URL.createObjectURL(blob));
-  stemKit.audio.volume = Number($("stemMaster").value) / 100;
-  stemKit.audio.ontimeupdate = paintStemTransport;
-  stemKit.audio.onended = () => { $("stemPlay").textContent = "▶ Play"; };
-  startStemTransport();
+  const url = URL.createObjectURL(new Blob([audioBufferToWav(rendered)], { type: "audio/wav" }));
+  const link = document.createElement("a");
+  link.href = url; link.download = "stems-mix.wav";
+  document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 function audioBufferToWav(buffer) {
@@ -2166,18 +2222,19 @@ function authHeaders() {
 }
 
 function startStemTransport() {
-  if (!stemKit.audio) return;
-  const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (Ctx) {
-    const actx = new Ctx();
-    const source = actx.createMediaElementSource(stemKit.audio);
-    const analyser = actx.createAnalyser();
-    analyser.fftSize = 256; analyser.smoothingTimeConstant = 0.8;
-    source.connect(analyser); analyser.connect(actx.destination);
-    stemKit.graph = { actx, analyser };
-  }
+  if (!stemKit.graph) return;
+  cancelAnimationFrame(stemKit.raf);
   const paint = () => {
-    paintStemTransport();
+    if (!stemKit.graph) return;
+    let position = stemPosition();
+    if (stemKit.playing && position >= stemKit.duration - 0.03) {
+      stemKit.playing = false;
+      stemKit.position = 0;
+      if (stemKit.sources) { stemKit.sources.forEach((source) => { try { source.stop(); } catch (_) {} }); stemKit.sources = null; }
+      $("stemPlay").textContent = "▶ Play";
+      position = 0;
+    }
+    paintStemClock(position);
     const lane = document.querySelector(".stem-lane .lane-bpm");
     if (stemKit.graph?.analyser && lane) {
       const data = new Uint8Array(stemKit.graph.analyser.frequencyBinCount);
@@ -2187,54 +2244,60 @@ function startStemTransport() {
     }
     stemKit.raf = requestAnimationFrame(paint);
   };
-  cancelAnimationFrame(stemKit.raf);
   stemKit.raf = requestAnimationFrame(paint);
 }
 
-function paintStemTransport() {
-  if (!stemKit.audio) return;
-  const duration = Number.isFinite(stemKit.audio.duration) ? stemKit.audio.duration : 0;
-  $("stemClock").textContent = `${formatClock(stemKit.audio.currentTime)} / ${formatClock(duration)}`;
-  if (duration > 0) $("stemSeek").value = String(Math.round((stemKit.audio.currentTime / duration) * 1000));
+function paintStemClock(position) {
+  $("stemClock").textContent = `${formatClock(position)} / ${formatClock(stemKit.duration || 0)}`;
+  if ((stemKit.duration || 0) > 0) $("stemSeek").value = String(Math.round((position / stemKit.duration) * 1000));
 }
 
 function toggleStemPlayback() {
-  if (!stemKit.audio) return;
-  if (stemKit.audio.paused) {
-    stemKit.audio.play();
-    $("stemPlay").textContent = "❚❚ Pause";
-  } else {
-    stemKit.audio.pause();
+  if (!stemKit.graph) return;
+  if (stemKit.playing) {
+    stemKit.position = stemPosition();
+    stemKit.playing = false;
+    if (stemKit.sources) { stemKit.sources.forEach((source) => { try { source.stop(); } catch (_) {} }); stemKit.sources = null; }
     $("stemPlay").textContent = "▶ Play";
+  } else {
+    if (stemKit.position >= stemKit.duration - 0.03) stemKit.position = 0;
+    stemKit.graph.actx.resume().catch(() => {});
+    stemKit.startedAt = stemKit.graph.actx.currentTime;
+    startStemSources(stemKit.position);
+    stemKit.playing = true;
+    $("stemPlay").textContent = "❚❚ Pause";
   }
 }
 
 function stopStemPlayback() {
-  if (stemKit.audio) { stemKit.audio.pause(); stemKit.audio.src = ""; }
-  stemKit.audio = null;
-  if (stemKit.graph?.actx) stemKit.graph.actx.close().catch(() => {});
-  stemKit.graph = null;
+  stemKit.playing = false;
+  stopStemGraph();
+  stemKit.buffers = null;
+  stemKit.position = 0;
+  stemKit.startedAt = 0;
   cancelAnimationFrame(stemKit.raf);
   stemKit.raf = 0;
+  if ($("stemMixDownload")) $("stemMixDownload").disabled = true;
 }
 
 function seekStems() {
-  if (!stemKit.audio) return;
-  const duration = Number.isFinite(stemKit.audio.duration) ? stemKit.audio.duration : 0;
-  if (duration <= 0) return;
-  stemKit.audio.currentTime = (Number($("stemSeek").value) / 1000) * duration;
+  if (!stemKit.graph) return;
+  stemKit.position = (Number($("stemSeek").value) / 1000) * stemKit.duration;
+  if (stemKit.playing) {
+    stemKit.startedAt = stemKit.graph.actx.currentTime;
+    startStemSources(stemKit.position);
+  }
 }
 
 function applyStemGains() {
   const master = Number($("stemMaster").value) / 100;
-  stemKit.lanes.forEach((lane) => {
+  const now = stemKit.graph ? stemKit.graph.actx.currentTime : 0;
+  stemKit.lanes.forEach((lane, index) => {
     lane.element.style.setProperty("--level", String(lane.gain * master));
+    const node = stemKit.graph?.laneGains[index];
+    if (node) node.gain.setTargetAtTime(lane.gain, now, 0.015);
   });
-  if (stemKit.audio) stemKit.audio.volume = master;
-  // A full offline re-mix is expensive; rebuild when playback pauses.
-  if (stemKit.audio && !stemKit.audio.paused) {
-    stemKit.audio.onpause = () => buildStemMix().catch(() => {});
-  }
+  if (stemKit.graph?.master) stemKit.graph.master.gain.setTargetAtTime(master, now, 0.015);
 }
 
 async function initialize() {

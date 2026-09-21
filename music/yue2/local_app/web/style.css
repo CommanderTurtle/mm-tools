@@ -467,9 +467,12 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .progress-bar i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), color-mix(in oklab, var(--accent) 55%, #fff)); transition: width .4s ease; }
 #stemProgressWrap small { display: block; margin-top: 6px; color: var(--faint); font-size: 10px; }
 .stems-player { padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); }
-.transport { display: grid; grid-template-columns: auto 1fr auto auto; gap: 14px; align-items: center; margin-bottom: 16px; }
+.transport { display: grid; grid-template-columns: auto 1fr auto auto auto; gap: 14px; align-items: center; margin-bottom: 16px; }
 .transport button { border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); padding: 9px 14px; font-size: 12px; cursor: pointer; }
 .transport button:hover { border-color: var(--accent); }
+.mix-export { justify-self: start; color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 600; padding: 8px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); white-space: nowrap; }
+.mix-export:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.mix-export:disabled { opacity: .4; pointer-events: none; }
 .transport input[type="range"] { width: 100%; accent-color: var(--accent); }
 .transport time { color: var(--faint); font: 10px ui-monospace, monospace; white-space: nowrap; }
 .master { display: grid; grid-template-columns: 60px 110px; gap: 8px; align-items: center; }
