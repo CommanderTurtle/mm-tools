@@ -613,7 +613,8 @@ def build_application(manifest: dict[str, Any], project_root: Path, adapter_path
         if kind == "v2" and not crisper_refine.status()["up"]:
             raise HTTPException(503, "CrisperWhisper is offline. Start it with whisper/starthttp.sh or whisper/startwithuv.sh.")
         state = _start_sync(kind, job["id"], relative, language=str(payload.get("language") or "auto"))
-        asyncio.to_thread(_run_vocal_sync_worker if kind == "v1" else _run_crisper_worker, state)
+        loop = asyncio.get_running_loop()
+        loop.run_in_executor(None, _run_vocal_sync_worker if kind == "v1" else _run_crisper_worker, state)
         return {"sync_id": state["id"], "status": "running"}
 
     @app.get("/api/performance/sync/{sync_id}")
