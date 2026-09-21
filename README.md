@@ -44,7 +44,7 @@ deactivate # when done
 
 The downloader is resumable. Run it again after an interrupted transfer. New
 source-import bundles are named `4d`, `lingbot`, `lingbot-5090`, `fire3d`,
-`aukspeech`, `sculpting`, `worldsculpt`, `animate`, `nvidia-sim`, `v2v`, and
+`aukspeech`, `sculpting`, `worldsculpt`, `nvidia-sim`, `v2v`, and
 `yue2`; use `uv run download_models.py --list` for the complete current menu.
 The source imports, single-GPU adapters, setup/start contracts, and private
 browser studios are included here; model artifacts remain external and
@@ -116,46 +116,6 @@ https://github.com/user-attachments/assets/263b2134-0891-411b-932a-f0e5ead6b077
 
 https://github.com/user-attachments/assets/278fbb3b-93c9-4d4a-a4d8-0acaff4bc30a
 
-## New local creative studios
-
-The current expansion uses one shared, dependency-light product surface with
-project-native adapters. Every studio has responsive dark/light themes,
-searchable task cards, complete native controls, presets and drafts, raw
-streaming uploads, a persistent single-GPU queue, cancellation, SSE progress,
-model load/unload health, an output library, side-by-side comparison, and API
-examples. There are no hosted assets, analytics, CORS opt-ins, or automatic
-model downloads at runtime.
-
-| Project | Canonical surface | Default port |
-| --- | --- | ---: |
-| AuK | 16 speech generation, cloning, editing, emotion, timing, and nonverbal workflows; Vox-compatible speech route | 8260 |
-| 4DAnyone | monocular 4D human reconstruction and reusable result inspection | 8261 |
-| TRELLIS.2 + Pixal3D | image/multiview sculpting, local refinement, and interactive GLB inspection | 8262 |
-| WorldSculpt | complete multi-object scene reconstruction and scene inspection | 8263 |
-| Wan Animate 2 | character animation plus native pose/mask preprocessing | 8264 |
-| ID-V2V | identity-preserving transfer, normal/depth guidance, and reusable preprocessing | 8265 |
-| ARDY + SOMA-X | text-to-motion, motion inspection, parametric bodies, and hands | 8266 |
-| LingBot World V2 | 1.3B single-5090 world generation and visual camera-path authoring | 8267 |
-| Fire3D | RGB/RGBD scene reconstruction, native-release evaluation, and GLB inspection | 8268 |
-| YuE2 | composition, planning, continuation/cover, score realization/editing, transcription, resume, and VAE decode | 8270 |
-
-Run a studio from its project directory:
-
-```bash
-./setupwithuv.sh
-./startwithuv.sh
-```
-
-The default bind is `127.0.0.1`; set `MM_STUDIO_HOST=0.0.0.0` only for a
-trusted private network and set `MM_STUDIO_TOKEN` whenever the listener leaves
-loopback. Project `ARCHITECTURE.md` files document their exact model and VRAM
-contracts. The shared implementation lives in `studio/` and is checked without
-loading a model via:
-
-```bash
-python -m unittest studio.tests.test_contracts studio.tests.test_runtime
-bun build studio/web/app.js --target=browser --outfile=/tmp/mm-tools-studio.js
-```
 
 ## Have a 5090? 
 
@@ -427,4 +387,40 @@ ReDesign also defaults to `8173`; change `CW2_UI_PORT` when both browser service
 
 Services bind to the configured private-LAN interface and do not add public-facing authentication by default. Keep them behind the host firewall or set the supported bearer token where provided.
 
+### Update 9-17, new, local creative studios
+
+The current expansion uses one shared, dependency-light product surface with
+project-native adapters. Every studio has responsive dark/light themes,
+searchable task cards, complete native controls, presets and drafts, raw
+streaming uploads, a persistent single-GPU queue, cancellation, SSE progress,
+model load/unload health, an output library, side-by-side comparison, and API
+examples. There are no hosted assets, analytics, CORS opt-ins, or automatic
+model downloads at runtime.
+
+| Project | Canonical surface | Default port |
+| --- | --- | ---: |
+| AuK | 16 speech generation, cloning, editing, emotion, timing, and nonverbal workflows; Vox-compatible speech route | 8260 |
+| 4DAnyone | monocular 4D human reconstruction and reusable result inspection | 8261 |
+| TRELLIS.2 + Pixal3D | image/multiview sculpting, local refinement, and interactive GLB inspection | 8262 |
+| WorldSculpt | complete multi-object scene reconstruction and scene inspection | 8263 |
+| ID-V2V | identity-preserving transfer, normal/depth guidance, and reusable preprocessing | 8265 |
+| ARDY + SOMA-X | text-to-motion, motion inspection, parametric bodies, and hands | 8266 |
+| LingBot World V2 | 1.3B single-5090 world generation and visual camera-path authoring | 8267 |
+| Fire3D | RGB/RGBD scene reconstruction, native-release evaluation, and GLB inspection | 8268 |
+| YuE2 | composition, planning, continuation/cover, score realization/editing, transcription, resume, and VAE decode | 8270 |
+
 </details>
+
+# More?
+
+### Trellis & Pixal3D - 3d modeling/scuplting pipelines
+
+![](sculpting.avif)
+
+### YuE2
+
+The only Yue2 frontend with stem splitting!
+
+<a href="https://a.shel.sh/#ss:~9h=@:aQCb685#]:[a@)a;YaCeHZ[[K4([v)*p&OJB274p;Qifr" title="a.shel.sh superlink">Live Viewer Exporting</a>
+
+- (Share with Friends via app.shel.sh/make & a.shel.sh superlinks, entirely local)
