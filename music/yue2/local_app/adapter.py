@@ -638,7 +638,7 @@ class Adapter(StudioAdapter):
             audio = directory / "vocal-sync.wav"
             try:
                 data, rate = sf.read(source, always_2d=True)
-                studio_api.write_pcm16_wav(audio, data, int(rate))
+                studio_api.write_float32_wav(audio, data, int(rate))
             except Exception:
                 return None
         try:

@@ -145,6 +145,28 @@ def write_pcm16_wav(path: Path, data, rate: int) -> None:
     header += b"data" + struct.pack("<I", len(payload))
     Path(path).write_bytes(header + payload)
 
+def write_float32_wav(path: Path, data, rate: int) -> None:
+    """Hand-write ``data`` (frames, channels) float samples as a little-endian
+    IEEE-float (fmt tag 3) RIFF wav, without libsndfile.
+
+    Used where a lossless take is decoded at the split boundary: the
+    separation engines' own readers and writers speak exactly this layout,
+    so the FLAC->WAV hop keeps full sample precision instead of
+    re-quantizing the mix to 16-bit before separation.
+    """
+    import numpy as np
+
+    samples = np.asarray(data, dtype="<f4")
+    if samples.ndim == 1:
+        samples = samples[:, None]
+    payload = samples.tobytes()
+    channels = int(samples.shape[1])
+    block_align = channels * 4
+    header = b"RIFF" + struct.pack("<I", 36 + len(payload)) + b"WAVE"
+    header += b"fmt " + struct.pack("<IHHIIHH", 16, 3, channels, int(rate), int(rate) * block_align, block_align, 32)
+    header += b"data" + struct.pack("<I", len(payload))
+    Path(path).write_bytes(header + payload)
+
 def split_wav(
     input_path: Path,
     out_dir: Path,
@@ -172,10 +194,11 @@ def split_wav(
     out_dir.mkdir(parents=True, exist_ok=True)
     if not is_riff_wav(input_path):
         # Take outputs land as FLAC; the separation scripts read RIFF only.
+        # Decode at full precision (float32) — never re-quantize to 16-bit.
         import soundfile as sf
 
         decoded, decoded_rate = sf.read(str(input_path), always_2d=True)
-        write_pcm16_wav(out_dir / "__input.wav", decoded, int(decoded_rate))
+        write_float32_wav(out_dir / "__input.wav", decoded, int(decoded_rate))
         input_path = out_dir / "__input.wav"
 
     use_roformer = wanted == ["vocals"] and ROFORMER_CKPT.is_file()

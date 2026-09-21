@@ -159,11 +159,11 @@ def _vocal_sync_lines(audio: Path, lines: list[str], work_dir: Path, progress=No
     if studio_api.is_riff_wav(audio):
         wav = audio
     else:
-        # Take outputs are FLAC: decode, then hand-write a PCM_16 RIFF (the
+        # Take outputs are FLAC: decode, then hand-write a float32 RIFF (the
         # bundled libsndfile writer may be unavailable; its readers are fine).
         wav = work_dir / "source.wav"
         data, rate = sf.read(audio, always_2d=True)
-        studio_api.write_pcm16_wav(wav, data, int(rate))
+        studio_api.write_float32_wav(wav, data, int(rate))
     return studio_api.vocal_timestamps_for_lyrics(wav, lines, work_dir / "sync-work", progress=progress)
 
 
