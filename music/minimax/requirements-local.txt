@@ -36,3 +36,5 @@ tqdm
 transformers>=4.50.3
 uvicorn
 yarl>=1.18.0
+# mel-band roformer vocals engine (music/src/python/vendor) imports this directly
+python-multipart>=0.0.9
