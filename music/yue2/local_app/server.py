@@ -520,7 +520,7 @@ def build_application(manifest: dict[str, Any], project_root: Path, adapter_path
             raise HTTPException(422, "This take has no lyrics to refine.")
         health = crisper_refine.status()
         if not health["up"]:
-            raise HTTPException(503, "CrisperWhisper is offline. Start it with whisper/starthttp.sh.")
+            raise HTTPException(503, f"CrisperWhisper is offline (tried {', '.join(health['tried'])}). Start it with whisper/starthttp.sh or whisper/startwithuv.sh.")
         baseline = ((next((item for item in job.get("outputs", []) if item.get("relative") == relative), {}) or {}).get("metadata") or {}).get("lyric_timestamps") or []
         try:
             import soundfile as sf
@@ -539,6 +539,7 @@ def build_application(manifest: dict[str, Any], project_root: Path, adapter_path
                 hotwords,
                 language,
                 runtime_root / "crisper" / job_id,
+                health["url"],
             )
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc

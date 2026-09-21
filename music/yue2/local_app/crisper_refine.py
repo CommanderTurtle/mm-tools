@@ -14,6 +14,7 @@ import json
 import os
 import re
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 from pathlib import Path
@@ -26,23 +27,85 @@ SEARCH_RADIUS = 12.0  # seconds around a line's baseline time
 MAX_SKIPS = 2         # unmatched whisper words tolerated between two hits
 
 
+DEFAULT_BASE = "http://127.0.0.1:8172"
+
+
+def _discovery_urls() -> list[str]:
+    """Live CrisperWhisper instances announced by whisper's launchers.
+
+    Each launcher writes ``crisperwhisper-<role>-<uid>.json`` under
+    $XDG_RUNTIME_DIR (or /tmp) while its server runs; the machine service
+    (``starthttp.sh``) is preferred over the browser workbench
+    (``startwithuv.sh``) when both are live.
+    """
+    base_dir = Path(os.getenv("XDG_RUNTIME_DIR") or "/tmp")
+    urls: list[str] = []
+    for role in ("http", "ui"):
+        try:
+            payload = json.loads((base_dir / f"crisperwhisper-{role}-{os.getuid()}.json").read_text(encoding="utf-8"))
+            port = int(payload["port"])
+            scheme = str(payload.get("scheme") or "http").lower()
+            if scheme not in {"http", "https"}:
+                scheme = "http"
+            urls.append(f"{scheme}://127.0.0.1:{port}")
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
+    return urls
+
+
+def candidate_urls() -> list[str]:
+    """Candidate bases, best first: an explicit ``CW2_URL`` override, then the
+    live-discovered instances, then ``CW2_PORT``, then the documented default."""
+    override = os.getenv("CW2_URL", "").strip().rstrip("/")
+    if override:
+        return [override]
+    urls = _discovery_urls()
+    raw_port = os.getenv("CW2_PORT", "").strip()
+    if raw_port.isdigit():
+        urls.append(f"http://127.0.0.1:{raw_port}")
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for url in urls or [DEFAULT_BASE]:
+        if url not in seen:
+            seen.add(url)
+            ordered.append(url)
+    return ordered
+
+
 def base_url() -> str:
-    return f"http://127.0.0.1:{int(os.getenv('CW2_PORT', '8172'))}"
+    return candidate_urls()[0]
+
+
+def _port_of(url: str) -> int:
+    parsed = urllib.parse.urlparse(url)
+    return parsed.port or (443 if parsed.scheme == "https" else 80)
 
 
 def status() -> dict[str, Any]:
-    """Probe the whisper service without touching the model."""
-    try:
-        with urllib.request.urlopen(f"{base_url()}/api/health", timeout=2) as handle:
-            payload = json.loads(handle.read().decode("utf-8"))
-        return {
-            "up": True,
-            "loaded": bool(payload.get("loaded")),
-            "model_present": bool(payload.get("model_present", True)),
-            "port": int(os.getenv("CW2_PORT", "8172")),
-        }
-    except Exception:
-        return {"up": False, "loaded": False, "model_present": False, "port": int(os.getenv("CW2_PORT", "8172"))}
+    """Probe every candidate without touching the model; the first answer wins."""
+    tried = candidate_urls()
+    for url in tried:
+        try:
+            with urllib.request.urlopen(f"{url}/api/health", timeout=2) as handle:
+                payload = json.loads(handle.read().decode("utf-8"))
+            return {
+                "up": True,
+                "loaded": bool(payload.get("loaded")),
+                "model_present": bool(payload.get("model_present", True)),
+                "url": url,
+                "port": _port_of(url),
+                "tried": tried,
+            }
+        except Exception:
+            continue
+    return {
+        "up": False,
+        "loaded": False,
+        "model_present": False,
+        "url": tried[0],
+        "port": _port_of(tried[0]),
+        "tried": tried,
+    }
 
 
 def plan_snippets(duration: float) -> list[tuple[float, float]]:
@@ -106,19 +169,19 @@ def _post_multipart(url: str, fields: dict[str, str], filename: str, payload: by
         return json.loads(handle.read().decode("utf-8"))
 
 
-def detect_language(audio: Path) -> str | None:
+def detect_language(audio: Path, base: str) -> str | None:
     try:
-        payload = _post_multipart(f"{base_url()}/api/detect-language", {}, f"detect{audio.suffix}", audio.read_bytes(), timeout=60.0)
+        payload = _post_multipart(f"{base}/api/detect-language", {}, f"detect{audio.suffix}", audio.read_bytes(), timeout=60.0)
         code = str(payload.get("language") or "").strip().lower()
         return code or None
     except Exception:
         return None
 
 
-def transcribe_snippet(path: Path, offset: float, language: str, hotwords: str) -> list[dict[str, Any]]:
+def transcribe_snippet(path: Path, offset: float, language: str, hotwords: str, base: str) -> list[dict[str, Any]]:
     """Transcribe one snippet; return its words rebased onto full-track time."""
     payload = _post_multipart(
-        f"{base_url()}/api/transcribe",
+        f"{base}/api/transcribe",
         {
             "operation": "verbatim",
             "language": language,
@@ -233,10 +296,11 @@ def refine(
     hotwords: str,
     language: str,
     work_dir: Path,
+    base: str | None = None,
 ) -> dict[str, Any]:
     """Run the full v2 pass: snippet plan, whisper, realignment."""
+    resolved_base = base or base_url()
     work_dir = Path(work_dir)
-    work_dir.mkdir(parents=True, exist_ok=True)
     spans = plan_snippets(duration)
     if not spans:
         raise ValueError("Track is too short to refine.")
@@ -248,8 +312,8 @@ def refine(
         snippet = work_dir / f"snippet_{index:02d}.wav"
         slice_wav(audio, start, end, snippet)
         if not resolved:
-            resolved = detect_language(snippet) or "en"
-        words.extend(transcribe_snippet(snippet, start, resolved, hotwords))
+            resolved = detect_language(snippet, resolved_base) or "en"
+        words.extend(transcribe_snippet(snippet, start, resolved, hotwords, resolved_base))
     rows, matched = realign(lines, baseline, words, duration)
     return {
         "rows": rows,
