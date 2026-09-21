@@ -254,6 +254,12 @@
               <option value="it">IT</option>
               <option value="pt">PT</option>
             </select></label>
+            <span id="manualControls" class="manual-controls" hidden>
+              <button id="manualClick" class="manual-btn manual-click" type="button" title="Stamp the highlighted red line with the current player time">CLICK</button>
+              <button id="manualSave" class="manual-btn" type="button" title="Persist these timestamps (manual mode)">SAVE</button>
+              <button id="manualCancel" class="manual-btn" type="button" title="Discard manual edits">CANCEL</button>
+            </span>
+            <button id="perfSyncManual" class="export-player" type="button" title="Manual sync — stamp each line by hand while the take plays. Lyrics turn red; nothing is saved until you press SAVE.">Manual ✍</button>
             <button id="perfSyncV1" class="export-player" type="button" title="Try to sync lyrics better using stems — isolate the take's vocals and re-place each line on the vocal activity envelope.">Sync with stems ↻</button>
             <button id="perfSyncV2" class="export-player accent" type="button" title="Try to sync lyrics even better with chrisper — run up to 20 CrisperWhisper passes over timed snippets and re-align every line.">Even better · chrisper ✦</button>
             <button id="perfExportPlayer" class="export-player" type="button" title="Download a self-contained HTML player for this take">Export player ⤓</button>

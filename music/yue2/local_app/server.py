@@ -5,6 +5,7 @@ import asyncio
 import hashlib
 import importlib.util
 import json
+import math
 import mimetypes
 import os
 import re
@@ -12,6 +13,7 @@ import secrets
 import shutil
 import signal
 import subprocess
+import threading
 import time
 import sys
 from contextlib import asynccontextmanager
@@ -24,7 +26,7 @@ from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from local_app.runtime import ACTIVE_STATES, TERMINAL_STATES, JobRunner, JobStore, StudioAdapter, gpu_snapshot
+from local_app.runtime import ACTIVE_STATES, TERMINAL_STATES, JobRunner, JobStore, StudioAdapter, _json, gpu_snapshot
 from local_app import crisper_refine
 
 
@@ -145,7 +147,7 @@ def _probe_video(path: Path) -> dict[str, Any]:
     }
 
 
-def _vocal_sync_lines(audio: Path, lines: list[str], work_dir: Path) -> list[dict[str, Any]]:
+def _vocal_sync_lines(audio: Path, lines: list[str], work_dir: Path, progress=None) -> list[dict[str, Any]]:
     """On-demand v1 pass: isolate vocals, then place lines on the activity envelope."""
     try:
         import soundfile as sf
@@ -162,7 +164,7 @@ def _vocal_sync_lines(audio: Path, lines: list[str], work_dir: Path) -> list[dic
         wav = work_dir / "source.wav"
         data, rate = sf.read(audio, always_2d=True)
         studio_api.write_pcm16_wav(wav, data, int(rate))
-    return studio_api.vocal_timestamps_for_lyrics(wav, lines, work_dir / "sync-work")
+    return studio_api.vocal_timestamps_for_lyrics(wav, lines, work_dir / "sync-work", progress=progress)
 
 
 def build_application(manifest: dict[str, Any], project_root: Path, adapter_path: Path) -> FastAPI:
@@ -483,69 +485,176 @@ def build_application(manifest: dict[str, Any], project_root: Path, adapter_path
     def chrisper_status() -> dict[str, Any]:
         return crisper_refine.status()
 
-    @app.post("/api/performance/vocal-sync")
-    async def performance_vocal_sync(request: Request) -> dict[str, Any]:
-        try:
-            payload = await request.json()
-        except Exception as exc:
-            raise HTTPException(422, "Request body must be JSON.") from exc
-        if not isinstance(payload, dict):
-            raise HTTPException(422, "Request body must be a JSON object.")
-        job_id = str(payload.get("job_id") or "")
-        relative = str(payload.get("relative") or "")
-        job, path = _resolve_job_output(job_id, relative)
-        lines = _job_lyrics(job)
-        if len(lines) < 2:
-            raise HTTPException(422, "This take has no lyrics to sync.")
-        try:
-            rows = await asyncio.to_thread(_vocal_sync_lines, path, lines, runtime_root / "vocal-sync" / job_id)
-        except Exception as exc:
-            raise HTTPException(500, f"Vocal sync failed: {exc}") from exc
-        return {"rows": rows}
+    sync_jobs: dict[str, dict[str, Any]] = {}
+    sync_lock = threading.Lock()
 
-    @app.post("/api/performance/chrisper")
-    async def performance_chrisper(request: Request) -> dict[str, Any]:
+    def _start_sync(kind: str, job_id: str, relative: str, **extra: Any) -> dict[str, Any]:
+        state: dict[str, Any] = {
+            "id": secrets.token_hex(6),
+            "kind": kind,
+            "job_id": job_id,
+            "relative": relative,
+            "status": "running",
+            "stage": "starting",
+            "pct": 0,
+            "message": "",
+            "partial_rows": None,
+            "rows": None,
+            "stats": {},
+            "error": None,
+            "created_at": time.time(),
+        }
+        state.update(extra)
+        with sync_lock:
+            now = time.time()
+            for stale in [sid for sid, entry in sync_jobs.items() if entry["status"] != "running" and now - entry["created_at"] > 3600]:
+                sync_jobs.pop(stale, None)
+            sync_jobs[state["id"]] = state
+        return state
+
+    def _persist_lyric_sync(job_id: str, relative: str, rows: list[dict[str, Any]], mode: str, stats: dict[str, Any] | None = None) -> bool:
+        job = store.get_job(job_id)
+        changed = False
+        for output in job.get("outputs", []):
+            if not isinstance(output, dict) or output.get("relative") != relative:
+                continue
+            metadata = dict(output.get("metadata") or {})
+            metadata["lyric_timestamps"] = rows
+            entry: dict[str, Any] = {"mode": mode, "at": time.time()}
+            if stats:
+                entry.update(stats)
+            metadata["lyric_sync"] = entry
+            output["metadata"] = metadata
+            changed = True
+        if changed:
+            store.update_job(job_id, outputs_json=_json(job["outputs"]))
+        return changed
+
+    def _run_vocal_sync_worker(state: dict[str, Any]) -> None:
         try:
-            payload = await request.json()
+            job, path = _resolve_job_output(state["job_id"], state["relative"])
+            lines = _job_lyrics(job)
+
+            def report(stage: Any, pct: Any, message: Any = None) -> None:
+                with sync_lock:
+                    state["stage"] = str(stage)[:64]
+                    if isinstance(pct, (int, float)) and pct >= 0:
+                        state["pct"] = min(100, int(pct))
+                    if message:
+                        state["message"] = str(message)[:160]
+
+            rows = _vocal_sync_lines(path, lines, runtime_root / "vocal-sync" / state["job_id"] / state["id"], progress=report)
+            _persist_lyric_sync(state["job_id"], state["relative"], rows, "v1")
+            with sync_lock:
+                state.update(status="complete", stage="done", pct=100, message="", rows=list(rows))
         except Exception as exc:
-            raise HTTPException(422, "Request body must be JSON.") from exc
-        if not isinstance(payload, dict):
-            raise HTTPException(422, "Request body must be a JSON object.")
-        job_id = str(payload.get("job_id") or "")
-        relative = str(payload.get("relative") or "")
-        language = str(payload.get("language") or "auto")
-        job, path = _resolve_job_output(job_id, relative)
-        lines = _job_lyrics(job)
-        if len(lines) < 2:
-            raise HTTPException(422, "This take has no lyrics to refine.")
-        health = crisper_refine.status()
-        if not health["up"]:
-            raise HTTPException(503, f"CrisperWhisper is offline (tried {', '.join(health['tried'])}). Start it with whisper/starthttp.sh or whisper/startwithuv.sh.")
-        baseline = ((next((item for item in job.get("outputs", []) if item.get("relative") == relative), {}) or {}).get("metadata") or {}).get("lyric_timestamps") or []
+            with sync_lock:
+                state.update(status="error", error=str(exc)[:400])
+
+    def _run_crisper_worker(state: dict[str, Any]) -> None:
         try:
+            health = crisper_refine.status()
+            if not health["up"]:
+                raise RuntimeError(f"CrisperWhisper is offline ({'; '.join(health['tried'])}). Start it with whisper/starthttp.sh or whisper/startwithuv.sh.")
+            job, path = _resolve_job_output(state["job_id"], state["relative"])
+            lines = _job_lyrics(job)
+            baseline = ((next((item for item in job.get("outputs", []) if item.get("relative") == state["relative"]), {}) or {}).get("metadata") or {}).get("lyric_timestamps") or []
             import soundfile as sf
 
             duration = float(sf.info(path).duration)
-        except Exception as exc:
-            raise HTTPException(422, f"Cannot read audio duration: {exc}") from exc
-        hotwords = "\n".join(lines)[:4000]
-        try:
-            result = await asyncio.to_thread(
-                crisper_refine.refine,
+
+            def report(message: Any, pct: Any, partial_rows: Any = None) -> None:
+                with sync_lock:
+                    state["stage"] = "refining"
+                    if isinstance(pct, (int, float)) and pct >= 0:
+                        state["pct"] = min(100, int(pct))
+                    if message:
+                        state["message"] = str(message)[:160]
+                    if partial_rows:
+                        state["partial_rows"] = [dict(row) for row in partial_rows]
+
+            hotwords = "\n".join(lines)[:4000]
+            result = crisper_refine.refine(
                 path,
                 duration,
                 lines,
                 baseline,
                 hotwords,
-                language,
-                runtime_root / "crisper" / job_id,
+                str(state.get("language") or "auto"),
+                runtime_root / "crisper" / state["job_id"] / state["id"],
                 health["url"],
+                on_progress=report,
             )
-        except ValueError as exc:
-            raise HTTPException(422, str(exc)) from exc
+            stats = {key: result.get(key) for key in ("language", "snippets", "matched", "total", "words")}
+            _persist_lyric_sync(state["job_id"], state["relative"], result["rows"], "v2", stats=stats)
+            with sync_lock:
+                state.update(status="complete", stage="done", pct=100, message="", rows=result["rows"], stats=stats)
         except Exception as exc:
-            raise HTTPException(502, f"CrisperWhisper request failed: {exc}") from exc
-        return result
+            with sync_lock:
+                state.update(status="error", error=str(exc)[:400])
+
+    @app.post("/api/performance/sync")
+    async def performance_sync(request: Request) -> dict[str, Any]:
+        try:
+            payload = await request.json()
+        except Exception as exc:
+            raise HTTPException(422, "Request body must be JSON.") from exc
+        if not isinstance(payload, dict):
+            raise HTTPException(422, "Request body must be a JSON object.")
+        kind = str(payload.get("engine") or "").strip().lower()
+        if kind not in {"v1", "v2"}:
+            raise HTTPException(422, "engine must be 'v1' or 'v2'.")
+        job_id = str(payload.get("job_id") or "")
+        relative = str(payload.get("relative") or "")
+        job, _ = _resolve_job_output(job_id, relative)
+        lines = _job_lyrics(job)
+        if len(lines) < 2:
+            raise HTTPException(422, "This take has no lyrics to sync.")
+        if kind == "v2" and not crisper_refine.status()["up"]:
+            raise HTTPException(503, "CrisperWhisper is offline. Start it with whisper/starthttp.sh or whisper/startwithuv.sh.")
+        state = _start_sync(kind, job["id"], relative, language=str(payload.get("language") or "auto"))
+        asyncio.to_thread(_run_vocal_sync_worker if kind == "v1" else _run_crisper_worker, state)
+        return {"sync_id": state["id"], "status": "running"}
+
+    @app.get("/api/performance/sync/{sync_id}")
+    async def performance_sync_status(sync_id: str) -> dict[str, Any]:
+        with sync_lock:
+            view = dict(sync_jobs[sync_id]) if sync_id in sync_jobs else None
+        if view is None:
+            raise HTTPException(404, "Unknown sync job.")
+        return view
+
+    @app.post("/api/performance/manual-sync")
+    async def performance_manual_sync(request: Request) -> dict[str, Any]:
+        try:
+            payload = await request.json()
+        except Exception as exc:
+            raise HTTPException(422, "Request body must be JSON.") from exc
+        if not isinstance(payload, dict):
+            raise HTTPException(422, "Request body must be a JSON object.")
+        job_id = str(payload.get("job_id") or "")
+        relative = str(payload.get("relative") or "")
+        _resolve_job_output(job_id, relative)
+        rows_in = payload.get("rows")
+        if not isinstance(rows_in, list) or not rows_in:
+            raise HTTPException(422, "rows must be a non-empty list.")
+        rows: list[dict[str, Any]] = []
+        for row in rows_in:
+            if not isinstance(row, dict):
+                continue
+            try:
+                line = int(row.get("line"))
+                start = float(row.get("start"))
+            except (TypeError, ValueError):
+                continue
+            if line < 0 or not math.isfinite(start) or start < 0:
+                continue
+            rows.append({"line": line, "start": round(start, 3)})
+        if not rows:
+            raise HTTPException(422, "No valid timestamps to save.")
+        if not _persist_lyric_sync(job_id, relative, rows, "manual"):
+            raise HTTPException(404, "Output not found in this job.")
+        return {"saved": len(rows)}
 
     @app.get("/api/events")
     async def events(request: Request) -> StreamingResponse:

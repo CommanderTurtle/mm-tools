@@ -80,7 +80,6 @@ def _port_of(url: str) -> int:
     parsed = urllib.parse.urlparse(url)
     return parsed.port or (443 if parsed.scheme == "https" else 80)
 
-
 def status() -> dict[str, Any]:
     """Probe every candidate without touching the model; the first answer wins."""
     tried = candidate_urls()
@@ -165,8 +164,24 @@ def _post_multipart(url: str, fields: dict[str, str], filename: str, payload: by
         method="POST",
         headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
     )
-    with urllib.request.urlopen(request, timeout=timeout) as handle:
-        return json.loads(handle.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as handle:
+            return json.loads(handle.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = ""
+        try:
+            raw = exc.read().decode("utf-8", "replace").strip()
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, dict) and parsed.get("detail"):
+                    detail = str(parsed["detail"])
+                else:
+                    detail = raw[:300]
+            except json.JSONDecodeError:
+                detail = raw[:300]
+        except Exception:
+            pass
+        raise RuntimeError(f"CrisperWhisper {exc.code}: {detail or exc.reason}") from exc
 
 
 def detect_language(audio: Path, base: str) -> str | None:
@@ -297,6 +312,7 @@ def refine(
     language: str,
     work_dir: Path,
     base: str | None = None,
+    on_progress: Callable[[str, int, list[dict[str, Any]] | None], None] | None = None,
 ) -> dict[str, Any]:
     """Run the full v2 pass: snippet plan, whisper, realignment."""
     resolved_base = base or base_url()
@@ -314,6 +330,9 @@ def refine(
         if not resolved:
             resolved = detect_language(snippet, resolved_base) or "en"
         words.extend(transcribe_snippet(snippet, start, resolved, hotwords, resolved_base))
+        if on_progress is not None:
+            partial_rows = realign(lines, baseline, words, duration)[0] if words else None
+            on_progress(f"pass {index + 1}/{len(spans)} · {len(words)} words", int(round((index + 1) * 100 / len(spans))), partial_rows)
     rows, matched = realign(lines, baseline, words, duration)
     return {
         "rows": rows,

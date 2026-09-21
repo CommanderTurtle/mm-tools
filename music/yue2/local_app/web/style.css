@@ -508,6 +508,16 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .chrisper-status.ready i { background: #e8e6df; box-shadow: 0 0 8px rgba(232,230,223,.5); }
 .chrisper-status.warm i { background: #d6a86f; }
 .chrisper-status.offline i { background: #b3564f; }
+.manual-controls { display: inline-flex; align-items: center; gap: 6px; }
+.manual-btn { padding: 3px 9px; border: 1px solid #272725; border-radius: 3px; background: transparent; color: #686762; font: inherit; letter-spacing: inherit; cursor: pointer; transition: color .15s ease, border-color .15s ease, background .15s ease; }
+.manual-btn:hover { color: #f4f2eb; border-color: rgba(244, 242, 235, .55); }
+.manual-click { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 40%, #272725); }
+.manual-click:hover { background: rgba(var(--accent-rgb), .12); color: var(--accent); }
+.performance-lyrics p.manual-pending { color: #d0655c; cursor: pointer; }
+.performance-lyrics p.manual-done { color: #7fae7a; cursor: pointer; }
+.performance-lyrics p.manual-target { transform: translateX(8px); }
+.performance-lyrics p.manual-target.manual-pending { color: #ff8a7e; }
+.performance-lyrics p.manual-target.manual-done { color: #a5d3a0; }
 .tool-field { display: inline-flex; align-items: center; gap: 6px; color: inherit; font: inherit; letter-spacing: inherit; }
 .tool-field select { background: #0a0a09; color: #c9c7bf; border: 1px solid #272725; border-radius: 3px; font: 10px ui-monospace, monospace; padding: 3px 5px; }
 .export-player { padding: 3px 9px; border: 1px solid #272725; border-radius: 3px; background: transparent; color: #686762; font: inherit; letter-spacing: inherit; cursor: pointer; transition: color .15s ease, border-color .15s ease; }

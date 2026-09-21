@@ -1530,6 +1530,10 @@ function bindEvents() {
   $("perfClose").onclick = () => { if ($("perfAudio").paused) $("perfAudio").pause(); $("performanceDialog").close(); };
   $("perfSyncV1").onclick = () => runPerformanceSync(false);
   $("perfSyncV2").onclick = () => runPerformanceSync(true);
+  $("perfSyncManual").onclick = enterManualMode;
+  $("manualClick").onclick = clickManualStamp;
+  $("manualSave").onclick = saveManualSync;
+  $("manualCancel").onclick = exitManualMode;
   $("perfExportPlayer").onclick = () => { if (currentPerfItem) exportAudioPlayer(currentPerfItem); };
   $("resetMode").onclick = () => { if (!state.mode) return; state.values[state.mode.id] = defaultsForMode(state.mode); renderForm(); saveDraft(); toast("Workflow controls reset."); };
   $("runtimeRefresh").onclick = refreshHealth;
@@ -1777,6 +1781,7 @@ function openPerformance(item) {
   const dialog = $("performanceDialog");
   const audio = $("perfAudio");
   currentPerfItem = item;
+  resetManualState();
   $("perfStyle").textContent = item.metadata?.style || item.job?.request?.controls?.style || "—";
   $("perfEngine").textContent = jobMode(item.job)?.title || "YuE2";
   $("perfNowPlaying").textContent = item.label || item.mode?.title || "Take";
@@ -1816,7 +1821,9 @@ function openPerformance(item) {
       const candidateTime = perfLyricState.times;
       const known = candidateTime.some((value) => value != null);
       let selected = -1;
-      if (known) {
+      if (manualState.active) {
+        selected = candidates.findIndex((node) => Number(node.dataset.index) === manualState.target);
+      } else if (known) {
         candidates.forEach((node, index) => { if (candidateTime[index] != null && candidateTime[index] <= current + 0.15) selected = index; });
       } else if (Number.isFinite(audio.duration) && audio.duration > 0) {
         selected = Math.min(candidates.length - 1, Math.floor((current / audio.duration) * candidates.length));
@@ -1865,7 +1872,9 @@ function renderPerformanceLyrics(item) {
     const paragraph = document.createElement("p");
     paragraph.textContent = line;
     paragraph.dataset.index = index;
-    if (/^\[.+\]$/.test(line)) paragraph.className = "section";
+    const isSection = /^\[.+\]$/.test(line);
+    if (isSection) paragraph.className = "section";
+    else paragraph.onclick = () => { if (manualState.active) { manualState.target = Number(paragraph.dataset.index); applyManualStyles(); } };
     lyricsBox.append(paragraph);
   });
   perfLyricState.candidates = [...lyricsBox.querySelectorAll("p:not(.section)")];
@@ -1874,6 +1883,7 @@ function renderPerformanceLyrics(item) {
     return times && times[rowIndex] != null ? times[rowIndex] : null;
   });
   perfLyricState.activeIndex = -1;
+  if (manualState.active) applyManualStyles();
 }
 
 async function refreshChrisperStatus() {
@@ -1894,26 +1904,149 @@ async function refreshChrisperStatus() {
   }
 }
 
+let perfSyncBusy = false;
+const manualState = { active: false, target: -1, stamps: new Map() };
+
 async function runPerformanceSync(chrisper) {
   const item = currentPerfItem;
   if (!item || !item.job?.id || !item.relative) { toast("No take selected.", "error"); return; }
+  if (perfSyncBusy) { toast("A sync is already running.", "info", 3000); return; }
+  const engine = chrisper ? "v2" : "v1";
   const button = $(chrisper ? "perfSyncV2" : "perfSyncV1");
   const idle = button.textContent;
+  const busyLabel = chrisper ? "Refining…" : "Syncing…";
   button.disabled = true;
-  button.textContent = chrisper ? "Refining…" : "Syncing…";
+  button.textContent = busyLabel;
+  perfSyncBusy = true;
+  let renderedKey = "";
   try {
-    const payload = { job_id: item.job.id, relative: item.relative };
+    const payload = { job_id: item.job.id, relative: item.relative, engine };
     if (chrisper) payload.language = $("chrisperLanguage").value || "auto";
-    const data = await api(chrisper ? "/api/performance/chrisper" : "/api/performance/vocal-sync", { method: "POST", body: JSON.stringify(payload) });
-    item.metadata = { ...(item.metadata || {}), lyric_timestamps: data.rows };
-    renderPerformanceLyrics(item);
-    if (chrisper) toast(`Chrisper v2: ${data.matched}/${data.total} lines re-timed (${data.language}, ${data.snippets} passes).`, "info", 4200);
-    else toast("Vocal sync applied.", "info", 3200);
+    const started = await api("/api/performance/sync", { method: "POST", body: JSON.stringify(payload) });
+    let state = null;
+    for (;;) {
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      state = await api(`/api/performance/sync/${started.sync_id}`);
+      button.textContent = state.pct > 0 ? `${busyLabel} ${Math.min(100, Math.round(state.pct))}%` : busyLabel;
+      button.title = state.message || "";
+      const rows = state.partial_rows || state.rows;
+      if (Array.isArray(rows) && rows.length) {
+        const key = JSON.stringify(rows);
+        if (key !== renderedKey) {
+          renderedKey = key;
+          item.metadata = { ...(item.metadata || {}), lyric_timestamps: rows };
+          renderPerformanceLyrics(item);
+        }
+      }
+      if (state.status === "complete" || state.status === "error") break;
+    }
+    if (!state || state.status === "error") throw new Error(state?.error || "Sync failed.");
+    const stats = state.stats || {};
+    if (chrisper) toast(`Chrisper v2: ${stats.matched ?? "?"}/${stats.total ?? "?"} lines re-timed (${stats.language || "?"}, ${stats.snippets ?? "?"} passes). Saved.`, "info", 4200);
+    else toast("Vocal sync applied and saved.", "info", 3200);
   } catch (error) {
     toast(error.message, "error", 4200);
   } finally {
+    perfSyncBusy = false;
     button.disabled = false;
     button.textContent = idle;
+    button.title = "";
+  }
+}
+
+function savedStampMap(item) {
+  const saved = new Map();
+  for (const row of item?.metadata?.lyric_timestamps || []) {
+    if (row && Number.isFinite(Number(row.start))) saved.set(Number(row.line), Number(row.start));
+  }
+  return saved;
+}
+
+function applyManualStyles() {
+  const item = currentPerfItem;
+  const saved = item ? savedStampMap(item) : new Map();
+  for (const node of perfLyricState.candidates) {
+    const idx = Number(node.dataset.index);
+    const stamped = manualState.stamps.has(idx) || saved.has(idx);
+    node.classList.toggle("manual-pending", manualState.active && !stamped);
+    node.classList.toggle("manual-done", manualState.active && stamped);
+    node.classList.toggle("manual-target", manualState.active && idx === manualState.target);
+  }
+  if (!manualState.active || manualState.target < 0) return;
+  const target = perfLyricState.candidates.find((node) => Number(node.dataset.index) === manualState.target);
+  if (target) {
+    const box = $("perfLyrics");
+    const offset = target.offsetTop - box.clientHeight / 2 + target.clientHeight / 2;
+    if (Math.abs(box.scrollTop - offset) > 4) box.scrollTo({ top: Math.max(0, offset), behavior: "smooth" });
+  }
+}
+
+function resetManualState() {
+  manualState.active = false;
+  manualState.target = -1;
+  manualState.stamps.clear();
+  const controls = $("manualControls");
+  if (controls) controls.hidden = true;
+}
+
+function enterManualMode() {
+  const item = currentPerfItem;
+  if (!item || !item.job?.id || !item.relative) { toast("No take selected.", "error"); return; }
+  if (manualState.active) { exitManualMode(); return; }
+  if (perfSyncBusy) { toast("Wait for the running sync to finish first.", "info", 3000); return; }
+  if (!perfLyricState.candidates.length) { toast("No lyric lines to stamp.", "info", 3000); return; }
+  manualState.active = true;
+  const saved = savedStampMap(item);
+  manualState.target = perfLyricState.candidates.map((node) => Number(node.dataset.index)).find((idx) => !saved.has(idx)) ?? -1;
+  $("manualControls").hidden = false;
+  applyManualStyles();
+  toast("Manual sync: play the take and press CLICK as each red line begins. Nothing is saved until you press SAVE.", "info", 6000);
+}
+
+function exitManualMode() {
+  if (!manualState.active) return;
+  resetManualState();
+  applyManualStyles();
+  toast("Manual edits discarded.", "info", 2600);
+}
+
+function clickManualStamp() {
+  const item = currentPerfItem;
+  const audio = $("perfAudio");
+  if (!item || !manualState.active) return;
+  const t = Number(audio.currentTime || 0);
+  if (!Number.isFinite(t)) return;
+  const saved = savedStampMap(item);
+  let idx = manualState.target;
+  if (!Number.isFinite(idx) || idx < 0) {
+    const active = perfLyricState.candidates[perfLyricState.activeIndex];
+    idx = active ? Number(active.dataset.index) : null;
+  }
+  if (!Number.isFinite(idx) || idx < 0) { toast("Position the player on a lyric line first.", "info", 2600); return; }
+  manualState.stamps.set(idx, Math.round(t * 1000) / 1000);
+  manualState.target = perfLyricState.candidates.map((node) => Number(node.dataset.index)).find((i) => !manualState.stamps.has(i) && !saved.has(i)) ?? -1;
+  applyManualStyles();
+}
+
+async function saveManualSync() {
+  const item = currentPerfItem;
+  if (!item || !manualState.active) return;
+  const saved = savedStampMap(item);
+  const rows = [];
+  for (const node of perfLyricState.candidates) {
+    const idx = Number(node.dataset.index);
+    const value = manualState.stamps.has(idx) ? manualState.stamps.get(idx) : saved.get(idx);
+    if (Number.isFinite(value)) rows.push({ line: idx, start: value });
+  }
+  if (!rows.length) { toast("Nothing to save yet — stamp at least one line with CLICK.", "info", 3200); return; }
+  try {
+    const result = await api("/api/performance/manual-sync", { method: "POST", body: JSON.stringify({ job_id: item.job.id, relative: item.relative, rows }) });
+    item.metadata = { ...(item.metadata || {}), lyric_timestamps: rows };
+    manualState.stamps.clear();
+    applyManualStyles();
+    toast(`Manual sync saved (${result.saved} lines).`, "info", 3200);
+  } catch (error) {
+    toast(error.message, "error", 4200);
   }
 }
 
