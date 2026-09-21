@@ -3,9 +3,7 @@
 `mm-tools` is a pruned, local-first multimedia workstation monorepo. It contains the runtime source, per-project setup entrypoints, and browser/CLI frontends used by this tool suite. It does not contain checkpoints, virtual environments, caches, generated media, or training/evaluation material.
 
 Root-authored mm-tools code is distributed under the root AGPLv3 `LICENSE`.
-Imported upstream runtime files retain their required license, notice, and
-attribution files; those upstream terms continue to apply to their code and
-models. Exact source revisions are recorded in [UPSTREAMS.md](UPSTREAMS.md).
+Imported upstream attributions and revisions are recorded in [the commit ledger](https://github.com/CommanderTurtle/mm-tools/commits/main/).
 
 The all-in-one frontend for local multimedia inference. Cutting out the cloud.
 
