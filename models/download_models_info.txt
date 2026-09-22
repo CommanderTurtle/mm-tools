@@ -36,7 +36,7 @@ rerun the same selection.
 
 Most artifacts download directly into the path consumed by their project.
 Shared Comfy assets first land under `models/imports`, preserving resumable
-snapshot state, and are then exposed in `V2V/ComfyUI/models` by same-filesystem
+snapshot state, and are then exposed in `workflows/V2V/ComfyUI/models` by same-filesystem
 hard links. A copy is used only when the two paths reside on different
 filesystems. Existing different files are never overwritten.
 

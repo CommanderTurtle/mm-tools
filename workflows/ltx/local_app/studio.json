@@ -20,15 +20,15 @@
     {"id": "create", "title": "Create"}
   ],
   "models": [
-    {"label": "LTX-2.5 22B Distilled DiT", "path": "../../V2V/ComfyUI/models/diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors", "note": "INT8 ConvRot · default lane"},
-    {"label": "LTX-2.5 22B Distilled DiT · NVFP4", "path": "../../V2V/ComfyUI/models/diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors", "note": "Blackwell NVFP4 twin of the distilled DiT"},
-    {"label": "Gemma 4 12B projection encoder", "path": "../../V2V/ComfyUI/models/text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors", "note": "Prompt conditioning encoder"},
-    {"label": "LTX video VAE BF16", "path": "../../V2V/ComfyUI/models/vae/ltx-2.5-video-vae-bf16.safetensors"},
-    {"label": "LTX audio VAE BF16", "path": "../../V2V/ComfyUI/models/vae/ltx-2.5-audio-vae-bf16.safetensors"},
-    {"label": "x2 latent spatial upscaler", "path": "../../V2V/ComfyUI/models/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors", "note": "Half-resolution generation path"},
-    {"label": "x2 latent temporal upscaler", "path": "../../V2V/ComfyUI/models/latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors", "note": "Bundled for the long-form lane; unused by the distilled studio graph"},
-    {"label": "Duration head patch", "path": "../../V2V/ComfyUI/models/model_patches/ltx-2.5-duration-head-bf16.safetensors", "note": "Bundled for the long-form lane; unused by the distilled studio graph"},
-    {"label": "E2B prompt enhancer encoder", "path": "../../V2V/ComfyUI/models/text_encoders/gemma4_e2b_it_int8_convrot.safetensors", "note": "Loaded only when prompt enhancement is enabled"}
+    {"label": "LTX-2.5 22B Distilled DiT", "path": "../V2V/ComfyUI/models/diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors", "note": "INT8 ConvRot · default lane"},
+    {"label": "LTX-2.5 22B Distilled DiT · NVFP4", "path": "../V2V/ComfyUI/models/diffusion_models/ltx-2.5-22b-distilled-transformer-nvfp4.safetensors", "note": "Blackwell NVFP4 twin of the distilled DiT"},
+    {"label": "Gemma 4 12B projection encoder", "path": "../V2V/ComfyUI/models/text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors", "note": "Prompt conditioning encoder"},
+    {"label": "LTX video VAE BF16", "path": "../V2V/ComfyUI/models/vae/ltx-2.5-video-vae-bf16.safetensors"},
+    {"label": "LTX audio VAE BF16", "path": "../V2V/ComfyUI/models/vae/ltx-2.5-audio-vae-bf16.safetensors"},
+    {"label": "x2 latent spatial upscaler", "path": "../V2V/ComfyUI/models/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors", "note": "Half-resolution generation path"},
+    {"label": "x2 latent temporal upscaler", "path": "../V2V/ComfyUI/models/latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors", "note": "Bundled for the long-form lane; unused by the distilled studio graph"},
+    {"label": "Duration head patch", "path": "../V2V/ComfyUI/models/model_patches/ltx-2.5-duration-head-bf16.safetensors", "note": "Bundled for the long-form lane; unused by the distilled studio graph"},
+    {"label": "E2B prompt enhancer encoder", "path": "../V2V/ComfyUI/models/text_encoders/gemma4_e2b_it_int8_convrot.safetensors", "note": "Loaded only when prompt enhancement is enabled"}
   ],
   "setup_steps": [
     "Run `cd ~/multimedia/workflows && .venv/bin/python download_models.py ltx` to install the allowlisted LTX-2.5 bundle from the ungated comfyicu mirror of Lightricks/LTX-2.5. The weights remain under the LTX-2.x Community License.",

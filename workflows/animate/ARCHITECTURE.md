@@ -1,7 +1,7 @@
 # Animate 2 Motion Studio
 
 The product surface is the shared mm-tools Studio; native inference is a
-job-scoped instance of the PR-pinned Comfy runtime under `../../V2V/ComfyUI`.
+job-scoped instance of the PR-pinned Comfy runtime under `../V2V/ComfyUI`.
 Comfy listens on an ephemeral loopback port, its editor is never exposed, API
 nodes are disabled, metadata is disabled, and inference runs on CUDA while
 Comfy's native memory management places idle weights between the GPU and host

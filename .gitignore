@@ -498,71 +498,6 @@
 !/nvidia-sim/SOMA-X/tools/**
 /nvidia-sim/SOMA-X/tools/soma_procedural_blender/smoke_test_blender.py
 
-# ID-V2V studio and the PR-pinned shared Comfy runtime.
-!/V2V/
-/V2V/*
-!/V2V/README.md
-!/V2V/.env.local.example
-!/V2V/ARCHITECTURE.md
-!/V2V/requirements-local.txt
-!/V2V/setupwithuv.sh
-!/V2V/startwithuv.sh
-!/V2V/local_app/
-/V2V/local_app/*
-!/V2V/local_app/__init__.py
-!/V2V/local_app/adapter.py
-!/V2V/local_app/server.py
-!/V2V/local_app/studio.json
-!/V2V/ComfyUI/
-/V2V/ComfyUI/*
-!/V2V/ComfyUI/README.md
-!/V2V/ComfyUI/alembic.ini
-!/V2V/ComfyUI/comfyui_version.py
-!/V2V/ComfyUI/cuda_malloc.py
-!/V2V/ComfyUI/execution.py
-!/V2V/ComfyUI/extra_model_paths.yaml.example
-!/V2V/ComfyUI/folder_paths.py
-!/V2V/ComfyUI/hook_breaker_ac10a0.py
-!/V2V/ComfyUI/latent_preview.py
-!/V2V/ComfyUI/main.py
-!/V2V/ComfyUI/manager_requirements.txt
-!/V2V/ComfyUI/node_helpers.py
-!/V2V/ComfyUI/nodes.py
-!/V2V/ComfyUI/openapi.yaml
-!/V2V/ComfyUI/protocol.py
-!/V2V/ComfyUI/pyproject.toml
-!/V2V/ComfyUI/requirements.txt
-!/V2V/ComfyUI/server.py
-!/V2V/ComfyUI/alembic_db/
-!/V2V/ComfyUI/alembic_db/**
-!/V2V/ComfyUI/api_server/
-!/V2V/ComfyUI/api_server/**
-!/V2V/ComfyUI/app/
-!/V2V/ComfyUI/app/**
-/V2V/ComfyUI/app/assets/docs/
-/V2V/ComfyUI/app/assets/docs/**
-!/V2V/ComfyUI/comfy/
-!/V2V/ComfyUI/comfy/**
-/V2V/ComfyUI/comfy/comfy_types/examples/
-/V2V/ComfyUI/comfy/comfy_types/examples/**
-!/V2V/ComfyUI/comfy_api/
-!/V2V/ComfyUI/comfy_api/**
-!/V2V/ComfyUI/comfy_config/
-!/V2V/ComfyUI/comfy_config/**
-!/V2V/ComfyUI/comfy_execution/
-!/V2V/ComfyUI/comfy_execution/**
-!/V2V/ComfyUI/comfy_extras/
-!/V2V/ComfyUI/comfy_extras/**
-!/V2V/ComfyUI/middleware/
-!/V2V/ComfyUI/middleware/**
-!/V2V/ComfyUI/utils/
-!/V2V/ComfyUI/utils/**
-!/V2V/ComfyUI/blueprints/
-/V2V/ComfyUI/blueprints/*
-!/V2V/ComfyUI/blueprints/Motion Transfer (Wan Animate 2 Distilled).json
-!/V2V/ComfyUI/blueprints/Motion Transfer (Wan Animate 2).json
-!/V2V/ComfyUI/blueprints/Music Cover (YuE2).json
-!/V2V/ComfyUI/blueprints/Text to Music (YuE2).json
 
 # YuE2 native inference and editing skill. Checkpoints are reconstructed into
 # music/yue2/models and therefore stay ignored.
@@ -707,6 +642,71 @@
 /workflows/animate/ComfyUI-MMToolsAnimate/*
 !/workflows/animate/ComfyUI-MMToolsAnimate/__init__.py
 !/workflows/animate/ComfyUI-MMToolsAnimate/nodes.py
+# ID-V2V studio and the PR-pinned shared Comfy runtime.
+!/workflows/V2V/
+/workflows/V2V/*
+!/workflows/V2V/README.md
+!/workflows/V2V/.env.local.example
+!/workflows/V2V/ARCHITECTURE.md
+!/workflows/V2V/requirements-local.txt
+!/workflows/V2V/setupwithuv.sh
+!/workflows/V2V/startwithuv.sh
+!/workflows/V2V/local_app/
+/workflows/V2V/local_app/*
+!/workflows/V2V/local_app/__init__.py
+!/workflows/V2V/local_app/adapter.py
+!/workflows/V2V/local_app/server.py
+!/workflows/V2V/local_app/studio.json
+!/workflows/V2V/ComfyUI/
+/workflows/V2V/ComfyUI/*
+!/workflows/V2V/ComfyUI/README.md
+!/workflows/V2V/ComfyUI/alembic.ini
+!/workflows/V2V/ComfyUI/comfyui_version.py
+!/workflows/V2V/ComfyUI/cuda_malloc.py
+!/workflows/V2V/ComfyUI/execution.py
+!/workflows/V2V/ComfyUI/extra_model_paths.yaml.example
+!/workflows/V2V/ComfyUI/folder_paths.py
+!/workflows/V2V/ComfyUI/hook_breaker_ac10a0.py
+!/workflows/V2V/ComfyUI/latent_preview.py
+!/workflows/V2V/ComfyUI/main.py
+!/workflows/V2V/ComfyUI/manager_requirements.txt
+!/workflows/V2V/ComfyUI/node_helpers.py
+!/workflows/V2V/ComfyUI/nodes.py
+!/workflows/V2V/ComfyUI/openapi.yaml
+!/workflows/V2V/ComfyUI/protocol.py
+!/workflows/V2V/ComfyUI/pyproject.toml
+!/workflows/V2V/ComfyUI/requirements.txt
+!/workflows/V2V/ComfyUI/server.py
+!/workflows/V2V/ComfyUI/alembic_db/
+!/workflows/V2V/ComfyUI/alembic_db/**
+!/workflows/V2V/ComfyUI/api_server/
+!/workflows/V2V/ComfyUI/api_server/**
+!/workflows/V2V/ComfyUI/app/
+!/workflows/V2V/ComfyUI/app/**
+/workflows/V2V/ComfyUI/app/assets/docs/
+/workflows/V2V/ComfyUI/app/assets/docs/**
+!/workflows/V2V/ComfyUI/comfy/
+!/workflows/V2V/ComfyUI/comfy/**
+/workflows/V2V/ComfyUI/comfy/comfy_types/examples/
+/workflows/V2V/ComfyUI/comfy/comfy_types/examples/**
+!/workflows/V2V/ComfyUI/comfy_api/
+!/workflows/V2V/ComfyUI/comfy_api/**
+!/workflows/V2V/ComfyUI/comfy_config/
+!/workflows/V2V/ComfyUI/comfy_config/**
+!/workflows/V2V/ComfyUI/comfy_execution/
+!/workflows/V2V/ComfyUI/comfy_execution/**
+!/workflows/V2V/ComfyUI/comfy_extras/
+!/workflows/V2V/ComfyUI/comfy_extras/**
+!/workflows/V2V/ComfyUI/middleware/
+!/workflows/V2V/ComfyUI/middleware/**
+!/workflows/V2V/ComfyUI/utils/
+!/workflows/V2V/ComfyUI/utils/**
+!/workflows/V2V/ComfyUI/blueprints/
+/workflows/V2V/ComfyUI/blueprints/*
+!/workflows/V2V/ComfyUI/blueprints/Motion Transfer (Wan Animate 2 Distilled).json
+!/workflows/V2V/ComfyUI/blueprints/Motion Transfer (Wan Animate 2).json
+!/workflows/V2V/ComfyUI/blueprints/Music Cover (YuE2).json
+!/workflows/V2V/ComfyUI/blueprints/Text to Music (YuE2).json
 
 # Project-owned workbench runtimes.
 !/**/local_app/runtime.py

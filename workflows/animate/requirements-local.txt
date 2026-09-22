@@ -1,1 +1,1 @@
-# Animate reuses V2V/.venv; dependencies live in ../../V2V/requirements-local.txt.
+# Animate reuses V2V/.venv; dependencies live in ../V2V/requirements-local.txt.

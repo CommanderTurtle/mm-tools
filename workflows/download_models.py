@@ -65,7 +65,7 @@ def model_path(relative: str) -> Path:
 def comfy_model_path(relative: str) -> Path:
     # Runtime placement target: the shared pinned Comfy checkout's models
     # directory, exactly where the video studios resolve their weights.
-    return ROOT / "V2V" / "ComfyUI" / "models" / relative
+    return ROOT / "workflows" / "V2V" / "ComfyUI" / "models" / relative
 
 
 A = Artifact

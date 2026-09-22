@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 VENV="${V2V_VENV:-$ROOT/.venv}"
 COMFY="$ROOT/ComfyUI"
-ANIMATE_NODES="$ROOT/../workflows/animate/ComfyUI-WanAnimatePreprocess"
+ANIMATE_NODES="$ROOT/../animate/ComfyUI-WanAnimatePreprocess"
 NODE_LINK="$COMFY/custom_nodes/mmtools_wan_animate_preprocess"
 
 command -v uv >/dev/null 2>&1 || { printf 'uv is required. Install uv, then rerun this script.\n' >&2; exit 1; }
@@ -27,10 +27,10 @@ required=(
   "$COMFY/models/detection/vitpose_h_wholebody_model.onnx"
   "$COMFY/models/detection/vitpose_h_wholebody_data.bin"
   "$COMFY/models/detection/yolov10m.onnx"
-  "$ROOT/../sculpting/pretrained/deps/ZhengPeng7--BiRefNet/model.safetensors"
+  "$ROOT/../../sculpting/pretrained/deps/ZhengPeng7--BiRefNet/model.safetensors"
 )
 for path in "${required[@]}"; do
-  [[ -s "$path" ]] || { printf 'Missing allowlisted artifact: %s\nRun ../models/download_models.py v2v and ../workflows/download_models.py animate first.\n' "$path" >&2; exit 1; }
+  [[ -s "$path" ]] || { printf 'Missing allowlisted artifact: %s\nRun ../../models/download_models.py v2v and ../download_models.py animate first.\n' "$path" >&2; exit 1; }
 done
 
 export UV_LINK_MODE=hardlink
@@ -58,7 +58,7 @@ if [[ -e "$NODE_LINK" && ! -L "$NODE_LINK" ]]; then
 fi
 ln -sfn -- "$ANIMATE_NODES" "$NODE_LINK"
 
-export PYTHONPATH="$ROOT/..:$ROOT:$COMFY${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$ROOT/../..:$ROOT:$COMFY${PYTHONPATH:+:$PYTHONPATH}"
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export CUDA_VISIBLE_DEVICES=0

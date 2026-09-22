@@ -53,7 +53,7 @@ class Adapter(StudioAdapter):
     def __init__(self, project_root: Path, runtime_root: Path) -> None:
         super().__init__(project_root, runtime_root)
         self.repo_root = project_root.parent.parent
-        self.comfy = self.repo_root / "V2V" / "ComfyUI"
+        self.comfy = project_root.parent / "V2V" / "ComfyUI"
         self.python = project_root / ".venv" / "bin" / "python"
         self.models = self.comfy / "models"
 

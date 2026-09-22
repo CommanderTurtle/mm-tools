@@ -23,7 +23,7 @@ own `.venv` and never installs into the other's.
 Models come from the central downloader:
 
 ```bash
-../models/download_models.py v2v
+../../models/download_models.py v2v
 ```
 
 Foreground matting reuses the BiRefNet checkpoint already owned by the
