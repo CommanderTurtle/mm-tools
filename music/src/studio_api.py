@@ -19,7 +19,7 @@ own one-time downloads remain the fallback when the tree is empty.
 No telemetry: the subprocess scripts never touch the network except model
 fetches. Upstream history (danielravina/stemkit at
 2d44bc006e8f98170403ec131353aa7f66b49540) is preserved in
-.git-archives/stemkit.git.tar.
+.git-archives/archives/stemkit.git.tar.
 """
 
 from __future__ import annotations
