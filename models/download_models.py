@@ -308,11 +308,11 @@ BUNDLES: tuple[Bundle, ...] = (
                 placements=(
                     (
                         "wan_2.1_idv2v_int8_convrot.safetensors",
-                        repo_path("workflows/V2V/ComfyUI/models/diffusion_models/wan_2.1_idv2v_int8_convrot.safetensors"),
+                        repo_path("workflows/ComfyUI/models/diffusion_models/wan_2.1_idv2v_int8_convrot.safetensors"),
                     ),
                     (
                         "wan_2.1_idv2v_with_normal_depth_int8_convrot.safetensors",
-                        repo_path("workflows/V2V/ComfyUI/models/diffusion_models/wan_2.1_idv2v_with_normal_depth_int8_convrot.safetensors"),
+                        repo_path("workflows/ComfyUI/models/diffusion_models/wan_2.1_idv2v_with_normal_depth_int8_convrot.safetensors"),
                     ),
                 ),
             ),
@@ -328,15 +328,15 @@ BUNDLES: tuple[Bundle, ...] = (
                 placements=(
                     (
                         "split_files/clip_vision/clip_vision_h.safetensors",
-                        repo_path("workflows/V2V/ComfyUI/models/clip_vision/clip_vision_h.safetensors"),
+                        repo_path("workflows/ComfyUI/models/clip_vision/clip_vision_h.safetensors"),
                     ),
                     (
                         "split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
-                        repo_path("workflows/V2V/ComfyUI/models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"),
+                        repo_path("workflows/ComfyUI/models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"),
                     ),
                     (
                         "split_files/vae/wan_2.1_vae.safetensors",
-                        repo_path("workflows/V2V/ComfyUI/models/vae/wan_2.1_vae.safetensors"),
+                        repo_path("workflows/ComfyUI/models/vae/Wan2_1_VAE_bf16.safetensors"),
                     ),
                 ),
             ),
@@ -768,11 +768,11 @@ BUNDLES: tuple[Bundle, ...] = (
                 placements=(
                     (
                         "audio_encoders/sheetsage2_bf16.safetensors",
-                        repo_path("workflows/V2V/ComfyUI/models/audio_encoders/sheetsage2_bf16.safetensors"),
+                        repo_path("workflows/ComfyUI/models/audio_encoders/sheetsage2_bf16.safetensors"),
                     ),
                     (
                         "checkpoints/yue2_3b_int8_convrot.safetensors",
-                        repo_path("workflows/V2V/ComfyUI/models/checkpoints/yue2_3b_int8_convrot.safetensors"),
+                        repo_path("workflows/ComfyUI/models/checkpoints/yue2_3b_int8_convrot.safetensors"),
                     ),
                 ),
             ),

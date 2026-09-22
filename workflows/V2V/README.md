@@ -16,7 +16,7 @@ From the project folder:
 ```
 
 Setup fails with exact hints when a weight or tool is missing. The shared
-Comfy tree under `ComfyUI/` is the pinned Comfy-Org checkout (PR #15139,
+Comfy tree under `../ComfyUI/` is the pinned Comfy-Org checkout (PR #15139,
 SVI-style identity padding) that Animate 2 also runs; each project keeps its
 own `.venv` and never installs into the other's.
 

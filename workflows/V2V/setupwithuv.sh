@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 VENV="${V2V_VENV:-$ROOT/.venv}"
-COMFY="$ROOT/ComfyUI"
+COMFY="$ROOT/../ComfyUI"
 ANIMATE_NODES="$ROOT/../animate/ComfyUI-WanAnimatePreprocess"
 NODE_LINK="$COMFY/custom_nodes/mmtools_wan_animate_preprocess"
 

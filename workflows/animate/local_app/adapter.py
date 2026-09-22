@@ -245,8 +245,7 @@ class Adapter(StudioAdapter):
     def __init__(self, project_root: Path, runtime_root: Path) -> None:
         super().__init__(project_root, runtime_root)
         self.repo_root = project_root.parent.parent
-        self.v2v = self.project_root.parent / "V2V"
-        self.comfy = self.v2v / "ComfyUI"
+        self.comfy = self.project_root.parent / "ComfyUI"
         self.python = self.project_root / ".venv" / "bin" / "python"
         self.models = self.comfy / "models"
         self.birefnet = self.repo_root / "sculpting" / "pretrained" / "deps" / "ZhengPeng7--BiRefNet"

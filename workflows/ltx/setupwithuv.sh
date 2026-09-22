@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 VENV="${LTX_VENV:-$ROOT/.venv}"
-COMFY="$ROOT/../V2V/ComfyUI"
+COMFY="$ROOT/../ComfyUI"
 
 command -v uv >/dev/null 2>&1 || { printf 'uv is required. Install uv, then rerun this script.\n' >&2; exit 1; }
 command -v nvidia-smi >/dev/null 2>&1 || { printf 'The video studios require an NVIDIA CUDA workstation.\n' >&2; exit 1; }

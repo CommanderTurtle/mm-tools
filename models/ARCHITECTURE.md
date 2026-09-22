@@ -12,7 +12,7 @@ flowchart TB
     Select --> Shared["models/project snapshot"]
     Select --> Native["project-local models/checkpoints"]
     Shared --> Link["Verified hard-link placement"]
-    Link --> Comfy["workflows/V2V/ComfyUI/models/type"]
+    Link --> Comfy["workflows/ComfyUI/models/type"]
     Native --> Runtime["Imported project runtime"]
     Comfy --> Runtime
     Shared --> Resume["Hugging Face resumable metadata"]
@@ -54,7 +54,7 @@ refuses to replace a conflicting runtime placement.
 The former `animate` and `ltx` bundles are retired from this downloader.
 Those weights now come from `workflows/download_models.py`, which ships
 beside the committed ComfyUI pipeline exports; its snapshots land in
-`workflows/models/imports/` and hard-link into `workflows/V2V/ComfyUI/models/*`
+`workflows/models/imports/` and hard-link into `workflows/ComfyUI/models/*`
 exactly as the retired entries did.
 
 ## Boundaries

@@ -362,10 +362,10 @@ The standalone browser obtains its VAE from the modular components in item 15.
 
 20. Kijai/Wan_ID_V2V_comfy
 Resumable snapshot: models/imports/Kijai--Wan_ID_V2V_comfy
-Runtime placement: workflows/V2V/ComfyUI/models/diffusion_models
+Runtime placement: workflows/ComfyUI/models/diffusion_models
 
 ```text
-workflows/V2V/ComfyUI/models/diffusion_models/
+workflows/ComfyUI/models/diffusion_models/
 ├── wan_2.1_idv2v_int8_convrot.safetensors
 └── wan_2.1_idv2v_with_normal_depth_int8_convrot.safetensors
 ```
@@ -376,18 +376,20 @@ files are hard-linked from the resumable snapshot when the filesystem permits.
 
 21. Comfy-Org/Wan_2.1_ComfyUI_repackaged
 Resumable snapshot: models/imports/Comfy-Org--Wan_2.1_ComfyUI_repackaged
-Runtime placement: workflows/V2V/ComfyUI/models
+Runtime placement: workflows/ComfyUI/models
 
 ```text
-workflows/V2V/ComfyUI/models/
+workflows/ComfyUI/models/
 ├── clip_vision/clip_vision_h.safetensors
 ├── text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
-└── vae/wan_2.1_vae.safetensors
+└── vae/Wan2_1_VAE_bf16.safetensors
 ```
 
 Used by: ID-V2V's local Comfy workflow for its vision, text, and VAE support
-models. The downloader materializes Comfy's native directory layout without
-discarding the resumable `split_files` snapshot.
+models, and by the Animate lane, which draws these same shared weights from
+this single snapshot instead of re-downloading them. The downloader
+materializes Comfy's native directory layout without discarding the resumable
+`split_files` snapshot.
 
 22-23. Retired inventory identifiers
 
@@ -818,15 +820,16 @@ Snapshot folder: workflows/models/imports/Comfy-Org--Wan-Animate-2
 
 Retired from this downloader; now supplied by workflows/download_models.py
 (bundle `animate`). The resumable snapshot lands in
-`workflows/models/imports/`, and the six files hard-link into matching
-`workflows/V2V/ComfyUI/models/*` folders exactly as before.
+`workflows/models/imports/`, and the three lane-specific files (two DiTs +
+LoRA) hard-link into `workflows/ComfyUI/models/*`; its shared UMT5 / CLIP
+Vision H / Wan VAE weights come from inventory 21, downloaded once.
 
 51. Wan-AI/Wan2.2-Animate-14B pose detector (retired — workflow inventory 5)
 Snapshot folder: workflows/models/imports/Wan-AI--Wan2.2-Animate-14B-preprocess
 
 Retired from this downloader; now supplied by workflows/download_models.py
 (bundle `animate`). The YOLOv10m ONNX detector hard-links into
-`workflows/V2V/ComfyUI/models/detection/yolov10m.onnx` as before.
+`workflows/ComfyUI/models/detection/yolov10m.onnx` as before.
 
 52. Kijai/vitpose_comfy (retired — workflow inventory 6)
 Snapshot folder: workflows/models/imports/Kijai--vitpose_comfy
@@ -954,7 +957,7 @@ models/imports/Comfy-Org--YuE2/
 
 Used by: the PR-pinned local Comfy YuE2 native-generation and cover
 blueprints. The downloader hard-links both files into the corresponding
-`workflows/V2V/ComfyUI/models` folders. These optimized Comfy assets complement, rather
+`workflows/ComfyUI/models` folders. These optimized Comfy assets complement, rather
 than replace, the native YuE2 models in items 59-62.
 
 64. microsoft/TRELLIS-image-large (sparse decoder only)
@@ -1004,21 +1007,21 @@ Snapshot folder: workflows/models/imports/LHQAQ-Li--wan2.2_animate_14b_fp16_nvfp
 
 Retired from this downloader; now supplied by workflows/download_models.py
 (bundle `animate`). The NVFP4 DiT twin hard-links into
-`workflows/V2V/ComfyUI/models/diffusion_models/` as before.
+`workflows/ComfyUI/models/diffusion_models/` as before.
 
 70. rst220/UMT5_XXL_NVFP4 (retired — workflow inventory 4)
 Snapshot folder: workflows/models/imports/rst220--UMT5_XXL_NVFP4
 
 Retired from this downloader; now supplied by workflows/download_models.py
 (bundle `animate`). The NVFP4 UMT5 encoder hard-links into
-`workflows/V2V/ComfyUI/models/text_encoders/` as before.
+`workflows/ComfyUI/models/text_encoders/` as before.
 
 71. comfyicu/LTX-2.5 (retired — workflow inventory 7)
 Snapshot folder: workflows/models/imports/comfyicu--LTX-2.5
 
 Retired from this downloader; now supplied by workflows/download_models.py
 (bundle `ltx`). The ungated mirror still tracks main without a revision pin;
-the eight files hard-link into matching `workflows/V2V/ComfyUI/models/*` folders for
+the eight files hard-link into matching `workflows/ComfyUI/models/*` folders for
 the native `workflows/ltx` studio as before.
 
 72. Comfy-Org/gemma-4 (retired — workflow inventory 8)
@@ -1026,7 +1029,7 @@ Snapshot folder: workflows/models/imports/Comfy-Org--gemma-4
 
 Retired from this downloader; now supplied by workflows/download_models.py
 (bundle `ltx`). The E2B enhancer encoder hard-links into
-`workflows/V2V/ComfyUI/models/text_encoders/` as before.
+`workflows/ComfyUI/models/text_encoders/` as before.
 
 73. KimberleyJSN/melbandroformer
 Expected file: models/stemkit/roformer/MelBandRoformer.ckpt
@@ -1055,4 +1058,4 @@ separate from the identifiers above:
 ```
 
 Resumable snapshots land in `workflows/models/imports/`; selected files
-hard-link into `workflows/V2V/ComfyUI/models/*` exactly as the retired entries did.
+hard-link into `workflows/ComfyUI/models/*` exactly as the retired entries did.

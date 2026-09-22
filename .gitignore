@@ -564,15 +564,17 @@
 !/models/download_models_info.txt
 !/models/which-ones.txt
 
-# Committed ComfyUI pipeline exports, the standalone downloader, and the two
-# native video studios moved under this lane. Model artifacts, studio runtime
-# state, and the downloader environment are reconstructed locally.
+# Committed shared Comfy checkout, pipeline exports, the standalone
+# downloader, and the native video studios under this lane. Model artifacts,
+# studio runtime state, and the downloader environment are reconstructed
+# locally.
 !/workflows/
 /workflows/*
 /workflows/models/**
 /workflows/.venv/**
 !/workflows/README.md
 !/workflows/download_models.py
+!/workflows/build.sh
 !/workflows/ltx/
 /workflows/ltx/*
 !/workflows/ltx/README.md
@@ -642,7 +644,7 @@
 /workflows/animate/ComfyUI-MMToolsAnimate/*
 !/workflows/animate/ComfyUI-MMToolsAnimate/__init__.py
 !/workflows/animate/ComfyUI-MMToolsAnimate/nodes.py
-# ID-V2V studio and the PR-pinned shared Comfy runtime.
+# ID-V2V studio lane.
 !/workflows/V2V/
 /workflows/V2V/*
 !/workflows/V2V/README.md
@@ -657,56 +659,57 @@
 !/workflows/V2V/local_app/adapter.py
 !/workflows/V2V/local_app/server.py
 !/workflows/V2V/local_app/studio.json
-!/workflows/V2V/ComfyUI/
-/workflows/V2V/ComfyUI/*
-!/workflows/V2V/ComfyUI/README.md
-!/workflows/V2V/ComfyUI/alembic.ini
-!/workflows/V2V/ComfyUI/comfyui_version.py
-!/workflows/V2V/ComfyUI/cuda_malloc.py
-!/workflows/V2V/ComfyUI/execution.py
-!/workflows/V2V/ComfyUI/extra_model_paths.yaml.example
-!/workflows/V2V/ComfyUI/folder_paths.py
-!/workflows/V2V/ComfyUI/hook_breaker_ac10a0.py
-!/workflows/V2V/ComfyUI/latent_preview.py
-!/workflows/V2V/ComfyUI/main.py
-!/workflows/V2V/ComfyUI/manager_requirements.txt
-!/workflows/V2V/ComfyUI/node_helpers.py
-!/workflows/V2V/ComfyUI/nodes.py
-!/workflows/V2V/ComfyUI/openapi.yaml
-!/workflows/V2V/ComfyUI/protocol.py
-!/workflows/V2V/ComfyUI/pyproject.toml
-!/workflows/V2V/ComfyUI/requirements.txt
-!/workflows/V2V/ComfyUI/server.py
-!/workflows/V2V/ComfyUI/alembic_db/
-!/workflows/V2V/ComfyUI/alembic_db/**
-!/workflows/V2V/ComfyUI/api_server/
-!/workflows/V2V/ComfyUI/api_server/**
-!/workflows/V2V/ComfyUI/app/
-!/workflows/V2V/ComfyUI/app/**
-/workflows/V2V/ComfyUI/app/assets/docs/
-/workflows/V2V/ComfyUI/app/assets/docs/**
-!/workflows/V2V/ComfyUI/comfy/
-!/workflows/V2V/ComfyUI/comfy/**
-/workflows/V2V/ComfyUI/comfy/comfy_types/examples/
-/workflows/V2V/ComfyUI/comfy/comfy_types/examples/**
-!/workflows/V2V/ComfyUI/comfy_api/
-!/workflows/V2V/ComfyUI/comfy_api/**
-!/workflows/V2V/ComfyUI/comfy_config/
-!/workflows/V2V/ComfyUI/comfy_config/**
-!/workflows/V2V/ComfyUI/comfy_execution/
-!/workflows/V2V/ComfyUI/comfy_execution/**
-!/workflows/V2V/ComfyUI/comfy_extras/
-!/workflows/V2V/ComfyUI/comfy_extras/**
-!/workflows/V2V/ComfyUI/middleware/
-!/workflows/V2V/ComfyUI/middleware/**
-!/workflows/V2V/ComfyUI/utils/
-!/workflows/V2V/ComfyUI/utils/**
-!/workflows/V2V/ComfyUI/blueprints/
-/workflows/V2V/ComfyUI/blueprints/*
-!/workflows/V2V/ComfyUI/blueprints/Motion Transfer (Wan Animate 2 Distilled).json
-!/workflows/V2V/ComfyUI/blueprints/Motion Transfer (Wan Animate 2).json
-!/workflows/V2V/ComfyUI/blueprints/Music Cover (YuE2).json
-!/workflows/V2V/ComfyUI/blueprints/Text to Music (YuE2).json
+# Shared PR-pinned Comfy checkout; every video lane resolves weights from it.
+!/workflows/ComfyUI/
+/workflows/ComfyUI/*
+!/workflows/ComfyUI/README.md
+!/workflows/ComfyUI/alembic.ini
+!/workflows/ComfyUI/comfyui_version.py
+!/workflows/ComfyUI/cuda_malloc.py
+!/workflows/ComfyUI/execution.py
+!/workflows/ComfyUI/extra_model_paths.yaml.example
+!/workflows/ComfyUI/folder_paths.py
+!/workflows/ComfyUI/hook_breaker_ac10a0.py
+!/workflows/ComfyUI/latent_preview.py
+!/workflows/ComfyUI/main.py
+!/workflows/ComfyUI/manager_requirements.txt
+!/workflows/ComfyUI/node_helpers.py
+!/workflows/ComfyUI/nodes.py
+!/workflows/ComfyUI/openapi.yaml
+!/workflows/ComfyUI/protocol.py
+!/workflows/ComfyUI/pyproject.toml
+!/workflows/ComfyUI/requirements.txt
+!/workflows/ComfyUI/server.py
+!/workflows/ComfyUI/alembic_db/
+!/workflows/ComfyUI/alembic_db/**
+!/workflows/ComfyUI/api_server/
+!/workflows/ComfyUI/api_server/**
+!/workflows/ComfyUI/app/
+!/workflows/ComfyUI/app/**
+/workflows/ComfyUI/app/assets/docs/
+/workflows/ComfyUI/app/assets/docs/**
+!/workflows/ComfyUI/comfy/
+!/workflows/ComfyUI/comfy/**
+/workflows/ComfyUI/comfy/comfy_types/examples/
+/workflows/ComfyUI/comfy/comfy_types/examples/**
+!/workflows/ComfyUI/comfy_api/
+!/workflows/ComfyUI/comfy_api/**
+!/workflows/ComfyUI/comfy_config/
+!/workflows/ComfyUI/comfy_config/**
+!/workflows/ComfyUI/comfy_execution/
+!/workflows/ComfyUI/comfy_execution/**
+!/workflows/ComfyUI/comfy_extras/
+!/workflows/ComfyUI/comfy_extras/**
+!/workflows/ComfyUI/middleware/
+!/workflows/ComfyUI/middleware/**
+!/workflows/ComfyUI/utils/
+!/workflows/ComfyUI/utils/**
+!/workflows/ComfyUI/blueprints/
+/workflows/ComfyUI/blueprints/*
+!/workflows/ComfyUI/blueprints/Motion Transfer (Wan Animate 2 Distilled).json
+!/workflows/ComfyUI/blueprints/Motion Transfer (Wan Animate 2).json
+!/workflows/ComfyUI/blueprints/Music Cover (YuE2).json
+!/workflows/ComfyUI/blueprints/Text to Music (YuE2).json
 
 # Project-owned workbench runtimes.
 !/**/local_app/runtime.py

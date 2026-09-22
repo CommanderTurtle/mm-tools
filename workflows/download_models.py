@@ -65,7 +65,7 @@ def model_path(relative: str) -> Path:
 def comfy_model_path(relative: str) -> Path:
     # Runtime placement target: the shared pinned Comfy checkout's models
     # directory, exactly where the video studios resolve their weights.
-    return ROOT / "workflows" / "V2V" / "ComfyUI" / "models" / relative
+    return ROOT / "workflows" / "ComfyUI" / "models" / relative
 
 
 A = Artifact
@@ -78,19 +78,12 @@ WAN_ANIMATE_2 = A(
     "Comfy-Org/Wan-Animate-2",
     model_path("imports/Comfy-Org--Wan-Animate-2"),
     (
-        "clip_vision/clip_vision_h.safetensors",
         "diffusion_models/wan_animate_2_int8_convrot.safetensors",
         "diffusion_models/wan_animate_2_distill_int8_convrot.safetensors",
         "loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
-        "text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
-        "vae/Wan2_1_VAE_bf16.safetensors",
     ),
     revision="ed158470869ff31fa51cf56012dac33fb00f494b",
     placements=(
-        (
-            "clip_vision/clip_vision_h.safetensors",
-            comfy_model_path("clip_vision/clip_vision_h.safetensors"),
-        ),
         (
             "diffusion_models/wan_animate_2_int8_convrot.safetensors",
             comfy_model_path("diffusion_models/wan_animate_2_int8_convrot.safetensors"),
@@ -102,14 +95,6 @@ WAN_ANIMATE_2 = A(
         (
             "loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
             comfy_model_path("loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors"),
-        ),
-        (
-            "text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
-            comfy_model_path("text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"),
-        ),
-        (
-            "vae/Wan2_1_VAE_bf16.safetensors",
-            comfy_model_path("vae/Wan2_1_VAE_bf16.safetensors"),
         ),
     ),
 )
