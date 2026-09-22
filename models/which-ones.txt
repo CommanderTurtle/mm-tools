@@ -68,10 +68,11 @@ of this file.
 20  worldsculpt  inventory 48-49
 21  nvidia-sim   inventory 53-58
 22  yue2         inventory 59-63
+23  stemkit      inventory 73
 ```
 
 The inventory mirrors every active artifact definition in the downloader,
-numbered 1 through 72 with 22-23 intentionally reserved. Trees show files or
+numbered 1 through 73 with 22-23 intentionally reserved. Trees show files or
 major component directories expected from a fresh run; an ellipsis
 means the remainder of that approved snapshot subset is retained in the same
 folder. Every new artifact is pinned to an immutable Hub revision, except the
@@ -715,6 +716,7 @@ world-gen/fire3d/checkpoints/Fire3D/
 ├── config.json
 ├── manifest.json
 ├── external/
+│   ├── anyup_multi_backbone.pth
 │   ├── dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth
 │   └── trellis2/
 ├── perception/
