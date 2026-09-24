@@ -1292,7 +1292,7 @@ text = upsert_marked(
     text,
     "cli-search-option",
     "        .option('--ml [languages]', 'Append 9 multilingual results; optionally select up to 9 languages (for example: cn,rs)')",
-    anchor="        .option('--json', 'Output as compact JSON', false)\n        .action(async (query, options) => {",
+    anchor="        .option('--json', 'Output as compact JSON', false)\n        .action(async (query, toolQuery, options) => {",
     where="before",
 )
 text = upsert_marked(
@@ -1334,7 +1334,7 @@ text = upsert_marked(
     text,
     "cli-search-request",
     "        if (options.ml !== undefined) {\n            searchParams.ml = options.ml;\n        }",
-    anchor="        const searchParams = {\n            limit: options.limit,\n            integration: 'cli',\n        };",
+    anchor="        const searchParams = {\n            limit: options.limit ?? DEFAULT_SEARCH_LIMIT,\n            integration: 'cli',\n        };",
 )
 text = upsert_marked(
     text,
