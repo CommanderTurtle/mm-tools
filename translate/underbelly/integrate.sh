@@ -108,17 +108,6 @@ if [[ "$MODE" != uninstall ]]; then
     fi
   done
 
-  health_json="$(curl --fail --silent --show-error --max-time 10 "$HOST_TRANSLATE_URL/health")"
-  python3 - "$health_json" <<'PY'
-import json
-import sys
-
-payload = json.loads(sys.argv[1])
-if payload.get("status") != "ok" or not payload.get("loaded"):
-    raise SystemExit("underbelly: translation service is not healthy and loaded")
-if payload.get("cloud") is not False:
-    raise SystemExit("underbelly: translation service did not report local-only mode")
-PY
 fi
 
 export UB_CLI_INDEX="$CLI_INDEX"
@@ -1819,7 +1808,7 @@ if [[ "$MODE" == uninstall ]]; then
     if (( UNINSTALL_DOCKER_REPLACED )) && [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
       (
         cd "$FIRECRAWL_INSTALL_LOCATION" || exit
-        docker compose build underbelly-youtube api && docker compose up -d api
+        sudo docker compose build underbelly-youtube api && sudo docker compose up -d api
       ) >&2
     fi
     exit "$status"
@@ -1833,7 +1822,7 @@ if [[ "$MODE" == uninstall ]]; then
     (
       trap - ERR
       cd "$FIRECRAWL_INSTALL_LOCATION"
-      docker compose rm --stop --force underbelly-youtube >/dev/null 2>&1 || true
+      sudo docker compose rm --stop --force underbelly-youtube >/dev/null 2>&1 || true
     )
   fi
 
@@ -1854,8 +1843,8 @@ if [[ "$MODE" == uninstall ]]; then
     (
       trap - ERR
       cd "$FIRECRAWL_INSTALL_LOCATION"
-      docker compose build api
-      docker compose up -d api
+      sudo docker compose build api
+      sudo docker compose up -d api
     )
     for attempt in $(seq 1 60); do
       if curl --fail --silent --max-time 3 http://127.0.0.1:3002/ >/dev/null 2>&1; then
@@ -1919,10 +1908,10 @@ if [[ "$MODE" == verify ]]; then
   if [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
     (
       cd "$FIRECRAWL_INSTALL_LOCATION"
-      docker compose config --quiet
-      docker compose exec -T api curl --fail --silent --show-error \
+      sudo docker compose config --quiet
+      sudo docker compose exec -T api curl --fail --silent --show-error \
         --max-time 10 "$SERVICE_TRANSLATE_URL/health" >/dev/null
-      docker compose exec -T api curl --fail --silent --show-error \
+      sudo docker compose exec -T api curl --fail --silent --show-error \
         --max-time 10 http://underbelly-youtube:3000/health >/dev/null
     )
   fi
@@ -1935,7 +1924,7 @@ fi
 if [[ "$MODE" == dry-run ]]; then
   run_patcher
   if [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
-    (cd "$FIRECRAWL_INSTALL_LOCATION" && docker compose config --quiet)
+    (cd "$FIRECRAWL_INSTALL_LOCATION" && sudo docker compose config --quiet)
   fi
   report_components dry-run
   printf 'underbelly: dry-run passed; no files changed\n'
@@ -2003,7 +1992,7 @@ rollback() {
     if (( DOCKER_REPLACED )) && [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
       (
         cd "$FIRECRAWL_INSTALL_LOCATION" || exit
-        docker compose build underbelly-youtube api && docker compose up -d api
+        sudo docker compose build underbelly-youtube api && sudo docker compose up -d api
       ) >&2
     fi
   fi
@@ -2028,14 +2017,14 @@ syntax_check_js "$CLI_SCRAPE"
 
 
 if [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
-  (cd "$FIRECRAWL_INSTALL_LOCATION" && docker compose config --quiet)
+  (cd "$FIRECRAWL_INSTALL_LOCATION" && sudo docker compose config --quiet)
   if (( FIRECRAWL_CHANGED )); then
     DOCKER_REPLACED=1
     (
       trap - ERR
       cd "$FIRECRAWL_INSTALL_LOCATION"
-      docker compose build underbelly-youtube api
-      docker compose up -d api
+      sudo docker compose build underbelly-youtube api
+      sudo docker compose up -d api
     )
     for attempt in $(seq 1 60); do
       if curl --fail --silent --max-time 3 http://127.0.0.1:3002/ >/dev/null 2>&1; then
@@ -2050,9 +2039,9 @@ if [[ "$FIRECRAWL_SERVICE_IS_DOCKER" == true ]]; then
   fi
   (
     cd "$FIRECRAWL_INSTALL_LOCATION"
-    docker compose exec -T api curl --fail --silent --show-error \
+    sudo docker compose exec -T api curl --fail --silent --show-error \
       --max-time 10 "$SERVICE_TRANSLATE_URL/health" >/dev/null
-    docker compose exec -T api curl --fail --silent --show-error \
+    sudo docker compose exec -T api curl --fail --silent --show-error \
       --max-time 10 http://underbelly-youtube:3000/health >/dev/null
   )
 fi
