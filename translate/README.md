@@ -28,6 +28,11 @@ CrisperWhisper pass.
 
 ## Install and start
 
+Already serving a multimodal NInfer model with Jev? Use the optional
+[jev-httpd-only adapter](jev-httpd-only/README.md) instead. It exposes the same
+translation/detection HTTP contract for Vox, its MV3 extension, and Underbelly,
+without loading any additional model. The dedicated backend below is unchanged.
+
 ```bash
 cd ~/multimedia/translate
 ./setupwithuv.sh

@@ -1,0 +1,2 @@
+# Keep the Linux launcher and shell-sourced configuration usable after Windows checkouts.
+* text eol=lf
