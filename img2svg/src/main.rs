@@ -3,6 +3,7 @@ use std::{
     fs,
     net::SocketAddr,
     path::{Path, PathBuf},
+    sync::Arc,
     time::Instant,
 };
 
@@ -19,10 +20,12 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use image::{imageops::FilterType, DynamicImage, ImageFormat, Rgba, RgbaImage};
 use serde::{Deserialize, Serialize};
 use tempfile::tempdir;
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, sync::Semaphore};
 use tower_http::{limit::RequestBodyLimitLayer, trace::TraceLayer};
 use visioncortex::PathSimplifyMode;
 use vtracer::{ColorMode, Config, Hierarchical};
+
+mod cereal;
 
 const INDEX_HTML: &str = include_str!("../web/index.html");
 const APP_CSS: &str = include_str!("../web/app.css");
@@ -145,8 +148,10 @@ struct VectorResult {
     elapsed_ms: u128,
 }
 
-#[derive(Clone, Default)]
-struct AppState;
+#[derive(Clone)]
+struct AppState {
+    serialization: Arc<Semaphore>,
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -237,7 +242,10 @@ async fn serve(host: &str, port: u16) -> Result<()> {
         .route("/app.js", get(js))
         .route("/api/health", get(health))
         .route("/api/vectorize", post(vectorize_endpoint))
-        .with_state(AppState)
+        .route("/api/serialize", post(serialize_endpoint))
+        .with_state(AppState {
+            serialization: Arc::new(Semaphore::new(1)),
+        })
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(MAX_UPLOAD_BYTES))
         .layer(TraceLayer::new_for_http());
@@ -307,6 +315,48 @@ async fn vectorize_endpoint(
         .await
         .map_err(ApiError::internal)?
         .map_err(ApiError::bad_request)?;
+    Ok(Json(result))
+}
+
+async fn serialize_endpoint(
+    State(state): State<AppState>,
+    mut multipart: Multipart,
+) -> Result<Json<cereal::Output>, ApiError> {
+    // Keep maximum-resolution jobs from multiplying the decoder's memory use.
+    // The permit follows the blocking job even if its HTTP caller disconnects.
+    let permit = state.serialization.try_acquire_owned().map_err(|_| {
+        ApiError(
+            StatusCode::TOO_MANY_REQUESTS,
+            "serialization is busy; try again when it finishes".into(),
+        )
+    })?;
+    let mut file = None;
+    let mut options = cereal::Options::default();
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(ApiError::bad_request)?
+    {
+        match field.name() {
+            Some("image") => {
+                file = Some(field.bytes().await.map_err(ApiError::bad_request)?.to_vec())
+            }
+            Some("options") => {
+                options = serde_json::from_str(&field.text().await.map_err(ApiError::bad_request)?)
+                    .map_err(ApiError::bad_request)?;
+            }
+            _ => {}
+        }
+    }
+    let file = file.ok_or_else(|| ApiError::bad_request("missing image field"))?;
+    cereal::validate(&options).map_err(ApiError::bad_request)?;
+    let result = tokio::task::spawn_blocking(move || {
+        let _permit = permit;
+        cereal::serialize(&file, &options)
+    })
+    .await
+    .map_err(ApiError::internal)?
+    .map_err(ApiError::bad_request)?;
     Ok(Json(result))
 }
 

@@ -22,6 +22,17 @@
       </label>
 
       <section>
+        <label>Output<select id="output"><option value="svg">SVG</option><option value="text">Serialized text</option></select></label>
+      </section>
+
+      <section id="serializationPanel" hidden>
+        <h2>Output serialization</h2>
+        <label class="range">Long-edge resolution <output id="resolutionOut">128 px</output><input id="resolution" type="range" min="32" max="1024" step="32" value="128"></label>
+        <label>Alphabet<select id="alphabet"><option value="ascii">ASCII strokes / shades</option><option value="block">Shaded blocks</option><option value="braille">Braille (2×4 dots)</option></select></label>
+        <p class="hint">Full canvas · alpha preserved · no trimming</p>
+      </section>
+
+      <section id="tracingPanel">
         <h2>Tracing</h2>
         <label>Mode<select id="mode"><option value="color">Full color</option><option value="mono">Monochrome</option></select></label>
         <label>Preset<select id="preset"><option value="logo">Logo / icon</option><option value="poster">Illustration / poster</option><option value="photo">Photograph</option><option value="pixel">Pixel art</option></select></label>
@@ -36,7 +47,7 @@
         <label class="check"><input id="invert" type="checkbox">Invert foreground</label>
       </section>
 
-      <section>
+      <section id="cleanupPanel">
         <h2>Cleanup</h2>
         <label class="check"><input id="removeBackground" type="checkbox">Remove corner background</label>
         <label class="range">Tolerance <output id="toleranceOut">24</output><input id="tolerance" type="range" min="0" max="96" value="24"></label>
@@ -49,7 +60,7 @@
 
     <article>
       <div class="toolbar">
-        <div class="tabs"><button class="tab active" data-tab="vector">Vector</button><button class="tab" data-tab="raster">Raster</button><button class="tab" data-tab="code">Code</button></div>
+        <div class="tabs"><button class="tab active" id="resultTab" data-tab="vector">Vector</button><button class="tab" data-tab="raster">Raster</button><button class="tab" id="codeTab" data-tab="code">Code</button></div>
         <div class="actions"><button id="copy" disabled>Copy SVG</button><button id="dataUri" disabled>Copy data URI</button><button id="download" disabled>Download SVG</button></div>
       </div>
       <div class="stage" id="stage">
@@ -57,6 +68,7 @@
         <img id="vectorPreview" alt="Vector preview" hidden>
         <img id="rasterPreview" alt="Raster preview" hidden>
         <pre id="codePreview" hidden><code></code></pre>
+        <pre id="textPreview" tabindex="0" aria-label="Serialized image text" hidden></pre>
       </div>
       <footer id="stats"><span>Ready</span></footer>
     </article>
