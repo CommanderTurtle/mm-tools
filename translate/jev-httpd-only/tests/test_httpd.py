@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -109,6 +110,8 @@ class FakeNInfer(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(raw)))
         if getattr(self.server, "redirect", None):
             self.send_header("Location", self.server.redirect)
+        if getattr(self.server, "retry_after", None) is not None:
+            self.send_header("Retry-After", self.server.retry_after)
         self.end_headers()
         try:
             self.wfile.write(raw)
@@ -215,6 +218,203 @@ class AdapterTests(unittest.TestCase):
             (status, result["language"], result["confidence"]), (200, "de", 0.99)
         )
 
+    def test_detect_returns_language_codes_not_display_names(self):
+        for text, code in (("Hello there", "en"), ("Hola amigo", "es")):
+
+            def override(path, body, status, value, code=code):
+                if path == "/v1/systemone":
+                    answer = value["answers"]["language"]
+                    answer["choice"] = code
+                    answer["probabilities"] = {
+                        label: float(label == code)
+                        for label in body["questions"]["language"]["criteria"]
+                    }
+                return status, value
+
+            self.upstream.override = override
+            status, result, _ = self.call("/detect", {"text": text})
+            self.assertEqual((status, result["language"]), (200, code))
+
+    def test_repeated_detection_and_auto_translation_reuse_exact_language_code(self):
+        for path in ("/detect", "/v1/detect", "/translate"):
+            status, result, _ = self.call(path, {"text": "Guten Morgen"})
+            self.assertEqual(status, 200)
+            self.assertEqual(
+                result.get("language", result.get("source_language")), "de"
+            )
+        self.assertEqual(
+            sum(path == "/v1/systemone" for path, _, _ in self.upstream.calls), 1
+        )
+        self.assertEqual(
+            sum(path == "/v1/chat/completions" for path, _, _ in self.upstream.calls), 1
+        )
+        self.assertTrue(
+            all(isinstance(key[1], bytes) for key in self.adapter.detection_cache)
+        )
+        self.assertNotIn("Guten Morgen", repr(self.adapter.detection_cache))
+
+    def test_detection_cache_does_not_cross_samples_or_models_and_expires(self):
+        model = self.upstream.models[0]
+        deadline = time.monotonic() + 3
+        self.adapter.detect("Hallo", model, deadline)
+        self.adapter.detect("Anderer Text", model, deadline)
+        self.adapter.detect("Hallo", {**model, "id": "other"}, deadline)
+        for key, (_, value) in self.adapter.detection_cache.items():
+            self.adapter.detection_cache[key] = (0, value)
+        self.adapter.detect("Hallo", model, deadline)
+        self.assertEqual(
+            sum(path == "/v1/systemone" for path, _, _ in self.upstream.calls), 4
+        )
+        self.assertEqual(len(self.adapter.detection_cache), 1)
+
+    def test_detection_cache_is_bounded_and_evicts_least_recently_used(self):
+        model = self.upstream.models[0]
+        deadline = time.monotonic() + 3
+        with patch.object(httpd, "DETECT_CACHE_ENTRIES", 2):
+            for text in ("eins", "zwei", "eins", "drei", "zwei"):
+                self.adapter.detect(text, model, deadline)
+        self.assertEqual(len(self.adapter.detection_cache), 2)
+        self.assertEqual(
+            sum(path == "/v1/systemone" for path, _, _ in self.upstream.calls), 4
+        )
+
+    def test_parallel_cold_detections_share_one_request_and_distinct_samples_serialize(
+        self,
+    ):
+        adapter = httpd.Adapter(httpd.Config(endpoint=self.origin, concurrency=4))
+        self.api = self.enterContext(running(httpd.Server(("127.0.0.1", 0), adapter)))
+        active = peak = 0
+        counter_lock = threading.Lock()
+
+        def override(path, body, status, value):
+            nonlocal active, peak
+            if path == "/v1/systemone":
+                with counter_lock:
+                    active += 1
+                    peak = max(peak, active)
+                time.sleep(0.02)
+                with counter_lock:
+                    active -= 1
+            return status, value
+
+        self.upstream.override = override
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(
+                pool.map(lambda _: self.call("/detect", {"text": "Hallo"}), range(4))
+            )
+            self.assertTrue(
+                all(
+                    status == 200 and value["language"] == "de"
+                    for status, value, _ in results
+                )
+            )
+            self.assertEqual(
+                sum(path == "/v1/systemone" for path, _, _ in self.upstream.calls), 1
+            )
+            results = list(
+                pool.map(
+                    lambda text: self.call("/detect", {"text": text}),
+                    ("eins", "zwei", "drei", "vier"),
+                )
+            )
+        self.assertTrue(all(status == 200 for status, _, _ in results))
+        self.assertEqual(peak, 1)
+
+    def test_detection_busy_retries_are_bounded_and_then_cached(self):
+        for busy_status in (423, 429):
+            attempts = 0
+
+            def override(path, body, status, value, busy_status=busy_status):
+                nonlocal attempts
+                if path == "/v1/systemone":
+                    attempts += 1
+                    if attempts < 3:
+                        return busy_status, {"error": "private upstream detail"}
+                return status, value
+
+            self.upstream.override = override
+            with (
+                self.subTest(status=busy_status),
+                patch.object(httpd.time, "sleep") as sleep,
+            ):
+                text = f"Hallo {busy_status}"
+                for _ in range(2):
+                    status, value, _ = self.call("/detect", {"text": text})
+                    self.assertEqual((status, value["language"]), (200, "de"))
+                self.assertEqual(attempts, 3)
+                self.assertEqual(
+                    [call.args[0] for call in sleep.call_args_list], [0.1, 0.2]
+                )
+
+    def test_detection_honors_retry_after_and_never_retries_schema_or_auth_errors(self):
+        attempts = 0
+
+        def override(path, body, status, value):
+            nonlocal attempts
+            if path == "/v1/systemone":
+                attempts += 1
+                if attempts == 1:
+                    return 429, {}
+            return status, value
+
+        self.upstream.retry_after = "1.25"
+        self.upstream.override = override
+        with patch.object(httpd.time, "sleep") as sleep:
+            self.assertEqual(self.call("/detect", {"text": "Hallo"})[0], 200)
+            sleep.assert_called_once_with(1.25)
+        for error in (400, 401, 403, 404, 422):
+            self.upstream.override = lambda path, body, status, value, error=error: (
+                (error, {}) if path == "/v1/systemone" else (status, value)
+            )
+            before = len(self.upstream.calls)
+            with self.subTest(status=error), patch.object(httpd.time, "sleep") as sleep:
+                status, result, _ = self.call("/detect", {"text": f"Hallo {error}"})
+                self.assertEqual(status, 502)
+                self.assertIn(f"HTTP {error}", result["error"])
+                self.assertEqual(len(self.upstream.calls) - before, 2)
+                sleep.assert_not_called()
+
+    def test_detection_busy_exhaustion_and_retry_deadlines_release_admission(self):
+        self.upstream.override = lambda path, body, status, value: (
+            (429, {"error": "private upstream detail"})
+            if path == "/v1/systemone"
+            else (status, value)
+        )
+        with patch.object(httpd.time, "sleep") as sleep:
+            status, result, headers = self.call("/detect", {"text": "Hallo"})
+            self.assertEqual(status, 429)
+            self.assertEqual(headers["Retry-After"], "1")
+            self.assertNotIn("private", result["error"])
+            self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(
+            sum(path == "/v1/systemone" for path, _, _ in self.upstream.calls), 3
+        )
+        self.assertEqual(len(self.adapter.detection_cache), 0)
+        self.upstream.retry_after = "99999"
+        before = len(self.upstream.calls)
+        with patch.object(httpd.time, "sleep") as sleep:
+            self.assertEqual(self.call("/detect", {"text": "Hallo"})[0], 504)
+            self.assertEqual(len(self.upstream.calls) - before, 2)
+            sleep.assert_not_called()
+        self.assertTrue(self.adapter.slots.acquire(blocking=False))
+        self.adapter.slots.release()
+        self.assertTrue(self.adapter.detection_lock.acquire(blocking=False))
+        self.adapter.detection_lock.release()
+        self.upstream.override = None
+        self.assertEqual(self.call("/detect", {"text": "Hallo"})[0], 200)
+
+    def test_waiting_detection_obeys_deadline_without_late_inference(self):
+        self.adapter.detection_lock.acquire()
+        try:
+            with self.assertRaises(httpd.ServiceError) as caught:
+                self.adapter.detect(
+                    "Hallo", self.upstream.models[0], time.monotonic() + 0.01
+                )
+            self.assertEqual(caught.exception.status, 504)
+            self.assertEqual(self.upstream.calls, [])
+        finally:
+            self.adapter.detection_lock.release()
+
     def test_no_linguistic_input_does_not_infer(self):
         status, result, _ = self.call("/translate", {"text": " 1234 \n"})
         self.assertEqual(
@@ -277,6 +477,72 @@ class AdapterTests(unittest.TestCase):
         )
         self.assertNotIn("tools", body)
         self.assertFalse(any(row[0] == "/v1/systemone" for row in self.upstream.calls))
+
+    def test_vox_serialized_null_options_work_for_all_image_actions(self):
+        for mode in ("explain", "translate", "custom"):
+            with self.subTest(mode=mode):
+                data_url = "data:image/png;base64,iVBORw0KGgo="
+                status, result, _ = self.call(
+                    "/vision",
+                    {
+                        "image_data_url": data_url,
+                        "mode": mode,
+                        "prompt": "What is shown?" if mode == "custom" else "",
+                        "source_language": None,
+                        "target_language": None,
+                        "max_tokens": None,
+                    },
+                )
+                self.assertEqual(
+                    (status, result["output"], result["mode"]),
+                    (200, "A blue square", mode),
+                )
+                body = self.upstream.calls[-1][1]
+                self.assertEqual(body["max_tokens"], self.adapter.config.max_tokens)
+                self.assertEqual(
+                    body["messages"][0]["content"][1]["image_url"]["url"], data_url
+                )
+        self.assertFalse(any(row[0] == "/v1/systemone" for row in self.upstream.calls))
+
+    def test_null_token_limits_use_defaults_but_explicit_limits_remain_strict(self):
+        status, result, _ = self.call(
+            "/translate",
+            {
+                "text": "Hallo",
+                "source_language": "de",
+                "max_tokens": None,
+            },
+        )
+        self.assertEqual((status, result["translation"]), (200, "Hello"))
+        self.assertEqual(
+            self.upstream.calls[-1][1]["max_tokens"], self.adapter.config.max_tokens
+        )
+        status, result, _ = self.call(
+            "/v1/chat/completions",
+            {
+                "max_tokens": None,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "The source language is German. The target language is English. <source_text>Hallo</source_text>",
+                    }
+                ],
+            },
+        )
+        self.assertEqual(
+            (status, result["choices"][0]["message"]["content"]), (200, "Hello")
+        )
+        self.assertEqual(
+            self.upstream.calls[-1][1]["max_tokens"], self.adapter.config.max_tokens
+        )
+        image = {"image_data_url": "data:image/png;base64,iVBORw0KGgo="}
+        self.assertEqual(self.call("/vision", {**image, "max_tokens": 128})[0], 200)
+        self.assertEqual(self.upstream.calls[-1][1]["max_tokens"], 128)
+        for value in (True, 0, -1, 1.5, "128"):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    self.call("/vision", {**image, "max_tokens": value})[0], 400
+                )
 
     def test_remote_vision_urls_are_not_fetched(self):
         status, result, _ = self.call(
@@ -446,6 +712,7 @@ import {pathToFileURL} from 'node:url';
 import {join} from 'node:path';
 import assert from 'node:assert/strict';
 const {translateWithVox} = await import(pathToFileURL(join(process.env.VOX_MV3_DIR, 'translator.js')).href);
+const {buildVisionRequest} = await import(pathToFileURL(join(process.env.VOX_MV3_DIR, 'vision.js')).href);
 const post = async (path, body) => {
   const response = await fetch(process.env.TRANSLATOR_TEST_URL + path, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const result = await response.json();
@@ -456,7 +723,13 @@ for (const sourceLanguage of ['German', 'Detect']) {
   const result = await translateWithVox({text:' \\nGuten Morgen\\t',sourceLanguage,targetLanguage:'English',chunkCharacters:400,hintLanguage:'German',post});
   assert.equal(result, ' \\nGood morning\\t');
 }
-console.log('Actual Vox MV3 translator: known source and Detect passed');
+for (const mode of ['explain', 'translate', 'custom']) {
+  const request = buildVisionRequest({imageDataUrl:'data:image/png;base64,iVBORw0KGgo=',mode,prompt:'What is shown?'});
+  // Match the real Rust router's Option<u32> serialization between MV3 and this adapter.
+  const result = await post('/vision', {...request, max_tokens:null});
+  assert.equal(result.output, 'A blue square');
+}
+console.log('Actual Vox MV3 translator and all three image actions passed');
 """
         result = subprocess.run(
             [shutil.which("bun"), "--eval", script],
@@ -533,6 +806,14 @@ console.log('Actual Vox MV3 translator: known source and Detect passed');
 
 
 class PureTests(unittest.TestCase):
+    def test_retry_after_seconds_and_http_dates_are_finite_and_backed_off(self):
+        self.assertEqual(httpd.retry_delay(None, 0), 0.1)
+        self.assertEqual(httpd.retry_delay("-1", 1), 0.2)
+        self.assertEqual(httpd.retry_delay("NaN", 1), 0.2)
+        self.assertEqual(httpd.retry_delay("invalid", 1), 0.2)
+        with patch.object(httpd.time, "time", return_value=0):
+            self.assertEqual(httpd.retry_delay("Thu, 01 Jan 1970 00:00:02 GMT", 0), 2)
+
     def test_fragments_preserve_all_characters_and_are_utf8_bounded(self):
         for text in ("αβ🌎" * 99, "a b c\r\nd e f\n" * 100, "\t  日本語 \n"):
             for limit in (4, 9, 50, 1600):

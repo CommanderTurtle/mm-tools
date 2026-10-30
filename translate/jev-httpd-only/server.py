@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import base64
 import binascii
+import hashlib
 import importlib.util
 import json
 import math
@@ -15,8 +16,10 @@ import socket
 import threading
 import time
 import uuid
+from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import dataclass
+from email.utils import parsedate_to_datetime
 from http.client import HTTPException
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -33,6 +36,8 @@ _spec.loader.exec_module(_contract)
 LANGUAGES = {**_contract.LANGUAGE_NAMES, "jv": "Javanese"}
 LANGUAGES.pop("jw", None)
 TOOL_NAME = "submit_translation"
+DETECT_CACHE_SECONDS = 300
+DETECT_CACHE_ENTRIES = 256
 TOOL = {
     "type": "function",
     "function": {
@@ -73,8 +78,10 @@ def language(value: str) -> str:
     )
 
 
-def string(body: dict, key: str, default: str = "") -> str:
+def string(body: dict, key: str, default: str = "", *, nullable: bool = False) -> str:
     value = body.get(key, default)
+    if value is None and nullable:
+        return default
     if not isinstance(value, str):
         raise TypeError(f"{key} must be a string")
     return value
@@ -86,6 +93,27 @@ def positive(value: object, name: str) -> int:
     if value <= 0:
         raise ValueError(f"{name} must be a positive integer")
     return value
+
+
+def token_limit(body: dict, default: int) -> int:
+    # Vox's Option<u32> serializes an omitted token limit as JSON null.
+    value = body.get("max_tokens")
+    return positive(default if value is None else value, "max_tokens")
+
+
+def retry_delay(value: str | None, attempt: int) -> float:
+    delay = 0.1 * 2**attempt
+    if value:
+        try:
+            seconds = float(value)
+        except ValueError:
+            try:
+                seconds = parsedate_to_datetime(value).timestamp() - time.time()
+            except (ValueError, TypeError, OverflowError):
+                return delay
+        if math.isfinite(seconds):
+            delay = max(delay, seconds)
+    return delay
 
 
 @dataclass(frozen=True)
@@ -139,13 +167,14 @@ class Adapter:
         self.enabled.set()
         self.slots = threading.BoundedSemaphore(config.concurrency)
         self.pending = threading.BoundedSemaphore(config.concurrency + 16)
+        # Exact-sample reuse only: never make one page's language sticky for others.
+        # Store hashes, language codes and scores, not page text or image bytes.
+        self.detection_lock = threading.Lock()
+        self.detection_cache = OrderedDict()
         # This is a local/LAN adapter: never inherit ambient cloud HTTP proxies.
         self.http = build_opener(ProxyHandler({}), NoRedirect())
 
     def request(self, path: str, body: dict | None, deadline: float) -> dict:
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            raise ServiceError(504, "NInfer request deadline exceeded")
         headers = {"Accept": "application/json"}
         if self.config.upstream_key:
             headers["Authorization"] = f"Bearer {self.config.upstream_key}"
@@ -156,41 +185,62 @@ class Adapter:
         )
         if data is not None:
             headers["Content-Type"] = "application/json"
-        try:
-            with self.http.open(
-                Request(self.endpoint + path, data=data, headers=headers),
-                timeout=remaining,
-            ) as response:
-                raw = response.read(self.config.max_vision_body_bytes + 1)
-                if len(raw) > self.config.max_vision_body_bytes:
-                    raise ServiceError(502, "NInfer response is too large")
-                value = json.loads(raw)
-        except HTTPError as exc:
-            # Never echo prompts, image bytes, keys or upstream response bodies into logs/errors.
-            status = 429 if exc.code == 429 else 503 if exc.code in (502, 503) else 502
-            hint = (
-                "; start NInfer with --jev for language detection"
-                if path == "/v1/systemone" and exc.code == 404
-                else ""
-            )
-            raise ServiceError(
-                status, f"NInfer {path} returned HTTP {exc.code}{hint}"
-            ) from exc
-        except TimeoutError as exc:
-            raise ServiceError(504, "NInfer request timed out") from exc
-        except URLError as exc:
-            status = (
-                504 if isinstance(exc.reason, (TimeoutError, socket.timeout)) else 503
-            )
-            raise ServiceError(
-                status, "Cannot reach the configured NInfer endpoint"
-            ) from exc
-        except (UnicodeError, ValueError) as exc:
-            raise ServiceError(502, "NInfer returned invalid JSON") from exc
-        except (OSError, HTTPException) as exc:
-            raise ServiceError(
-                502, "NInfer connection failed during the response"
-            ) from exc
+        attempt = 0
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise ServiceError(504, "NInfer request deadline exceeded")
+            try:
+                with self.http.open(
+                    Request(self.endpoint + path, data=data, headers=headers),
+                    timeout=remaining,
+                ) as response:
+                    raw = response.read(self.config.max_vision_body_bytes + 1)
+                    if len(raw) > self.config.max_vision_body_bytes:
+                        raise ServiceError(502, "NInfer response is too large")
+                    value = json.loads(raw)
+                break
+            except HTTPError as exc:
+                # Only idempotent language decisions retry busy/locked admission.
+                # No retry of schema/auth/route errors or completed chat output.
+                busy = exc.code == 429 or (path == "/v1/systemone" and exc.code == 423)
+                delay = retry_delay(exc.headers.get("Retry-After"), attempt)
+                exc.close()
+                if path == "/v1/systemone" and busy and attempt < 2:
+                    if delay >= deadline - time.monotonic():
+                        raise ServiceError(
+                            504, "NInfer detection retry deadline exceeded"
+                        ) from exc
+                    time.sleep(delay)
+                    attempt += 1
+                    continue
+                # Never echo prompts, image bytes, keys or upstream response bodies.
+                status = 429 if busy else 503 if exc.code in (502, 503) else 502
+                hint = (
+                    "; start NInfer with --jev for language detection"
+                    if path == "/v1/systemone" and exc.code == 404
+                    else ""
+                )
+                raise ServiceError(
+                    status, f"NInfer {path} returned HTTP {exc.code}{hint}"
+                ) from exc
+            except TimeoutError as exc:
+                raise ServiceError(504, "NInfer request timed out") from exc
+            except URLError as exc:
+                status = (
+                    504
+                    if isinstance(exc.reason, (TimeoutError, socket.timeout))
+                    else 503
+                )
+                raise ServiceError(
+                    status, "Cannot reach the configured NInfer endpoint"
+                ) from exc
+            except (UnicodeError, ValueError) as exc:
+                raise ServiceError(502, "NInfer returned invalid JSON") from exc
+            except (OSError, HTTPException) as exc:
+                raise ServiceError(
+                    502, "NInfer connection failed during the response"
+                ) from exc
         if not isinstance(value, dict):
             raise ServiceError(502, "NInfer returned a non-object response")
         return value
@@ -281,6 +331,38 @@ class Adapter:
         if not any(char.isalpha() for char in text):
             return "und", 0.0
         sample = text.encode("utf-8")[:4096].decode("utf-8", errors="ignore")
+        key = (model["id"], hashlib.sha256(sample.encode("utf-8")).digest())
+        # A decision lane is not a chat lane count. Serialize cold detections even
+        # when generation concurrency is higher, coalescing identical waiters.
+        if not self.detection_lock.acquire(timeout=max(0, deadline - time.monotonic())):
+            raise ServiceError(504, "Language detection queue deadline exceeded")
+        try:
+            now = time.monotonic()
+            if now >= deadline:
+                raise ServiceError(504, "Language detection deadline exceeded")
+            expired = [
+                key for key, (until, _) in self.detection_cache.items() if until <= now
+            ]
+            for old in expired:
+                del self.detection_cache[old]
+            cached = self.detection_cache.get(key)
+            if cached:
+                self.detection_cache.move_to_end(key)
+                return cached[1]
+            result = self.detect_uncached(sample, model, deadline)
+            self.detection_cache[key] = (
+                time.monotonic() + DETECT_CACHE_SECONDS,
+                result,
+            )
+            while len(self.detection_cache) > DETECT_CACHE_ENTRIES:
+                self.detection_cache.popitem(last=False)
+            return result
+        finally:
+            self.detection_lock.release()
+
+    def detect_uncached(
+        self, sample: str, model: dict, deadline: float
+    ) -> tuple[str, float]:
         criteria = {
             **LANGUAGES,
             "und": "Unknown, mixed languages, or insufficient linguistic evidence",
@@ -368,11 +450,9 @@ class Adapter:
 
     def translate(self, body: dict, model: dict, deadline: float) -> dict:
         text = string(body, "text")
-        source = language(string(body, "source_language", "auto"))
-        target = language(string(body, "target_language", "English"))
-        max_tokens = positive(
-            body.get("max_tokens", self.config.max_tokens), "max_tokens"
-        )
+        source = language(string(body, "source_language", "auto", nullable=True))
+        target = language(string(body, "target_language", "English", nullable=True))
+        max_tokens = token_limit(body, self.config.max_tokens)
         string(body, "system_prompt")
         if "route" in body:
             string(body, "route")
@@ -496,8 +576,8 @@ class Adapter:
         prompt = _contract._vision_prompt(
             mode,
             string(body, "prompt"),
-            string(body, "source_language", "auto"),
-            string(body, "target_language", "English"),
+            string(body, "source_language", "auto", nullable=True),
+            string(body, "target_language", "English", nullable=True),
         )
         message = self.completion(
             [
@@ -511,7 +591,7 @@ class Adapter:
             ],
             model,
             deadline,
-            positive(body.get("max_tokens", self.config.max_tokens), "max_tokens"),
+            token_limit(body, self.config.max_tokens),
             tool=False,
         )
         output = message.get("content")

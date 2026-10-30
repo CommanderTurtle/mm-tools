@@ -65,6 +65,11 @@ curl http://127.0.0.1:8176/translate -H 'Content-Type: application/json' \
   `/v1/systemone` choice over the shared language catalog. The returned classifier
   confidence is the selected probability, not a number invented in chat output.
   Insufficient evidence returns `und`. Whitespace/numeric input needs no decision.
+  Identical samples share a model-scoped, five-minute language-result cache
+  (256-entry LRU; only sample hashes, language codes and scores are retained).
+  Concurrent cold detections serialize, including when chat concurrency is higher;
+  duplicate waiters reuse the first validated result. Different samples/models never
+  inherit a previous sample's language. Invalid/failed results are not cached.
 * Translation output: a forced `submit_translation({"translation":"…"})` function
   call. The adapter validates and unwraps it into the existing `translation`
   response field. This is an output contract, not a tool capable of browser,
@@ -73,6 +78,10 @@ curl http://127.0.0.1:8176/translate -H 'Content-Type: application/json' \
 * `/vision`: forwards the existing `image_data_url` and `explain` / `translate` /
   `custom` prompt to the same model using ordinary OpenAI multimodal messages.
   No Jev decision or second vision model. The running model must support images.
+  Omitted or JSON-null optional `max_tokens` uses `JEV_MAX_TOKENS`, matching Vox's
+  router serialization; explicit limits must still be positive integers. Nullable
+  source/target language options use their normal defaults. Image bytes are already
+  base64 and are forwarded unchanged, without image-result caching.
 * Health/discovery: metadata GET requests only, **no inference probes**. Health
   reports availability of NInfer, not proof that its model is good at translation
   or that `--jev` is enabled; a missing Jev route gives an actionable detection error.
@@ -93,6 +102,13 @@ HTTP requests can wait (useful for MV3's four parallel fragments), sharing the
 `Retry-After: 1`; timeout receives `504`. Increase concurrency only to suit the
 capacity of your existing NInfer lanes. There is no automatic capacity benchmark,
 background detection, or retry storm. No text, image, or authorization logging.
+Language decisions alone allow two delayed retries for upstream `429` busy or `423`
+locked responses, using exponential backoff and honoring numeric/date `Retry-After`.
+Queue waiting, backoff and inference all share the original deadline; a retry that
+cannot fit fails with `504`. Exhausted busy/locked decisions return `429` with
+`Retry-After: 1`. Authentication, missing-route and schema errors (including `422`)
+are never retried. Ordinary translation/vision requests retain their existing
+backpressure behavior; there are no inference probes or changes to DOM splitting.
 
 ## Routes and limits
 
