@@ -15,6 +15,16 @@
 # directories ignored makes every additional production/vendor file opt-in;
 # tracked files continue to behave normally.
 
+# gitdark private histories. A project's .gitdark and .archive object stores, its
+# .gittemp scratch and the .gitinclude allowlist are local-only: the tool commits
+# to its own object directories and edits nothing versioned, so this is the only
+# residue it can leave in a working tree. Held down at every depth so widening one
+# project's rules can never let a private history into the published tree.
+.gitdark/
+.archive/
+.gittemp/
+.gitinclude
+
 # Canonical per-project setup and launch entrypoints. Re-open each project
 # directory only long enough to allow these files; every other new file stays
 # denied by default.
