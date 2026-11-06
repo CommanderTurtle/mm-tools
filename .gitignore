@@ -173,6 +173,7 @@
 !/translate/underbelly/integrate.sh
 !/translate/underbelly/README.md
 !/translate/underbelly/what-is-this.txt
+!/translate/underbelly/.gitattributes
 !/translate/local_app/
 /translate/local_app/*
 !/translate/local_app/__init__.py
