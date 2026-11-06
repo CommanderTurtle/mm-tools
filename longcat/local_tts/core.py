@@ -19,6 +19,8 @@ from transformers import AutoTokenizer
 import audiodit  # noqa: F401 - registers the local model with Transformers
 from audiodit import AudioDiTModel
 
+from .paths import ModelPaths, resolve_model_paths
+
 
 @dataclass(frozen=True)
 class SynthesisOptions:
@@ -116,8 +118,10 @@ def _decode_prompt(path: Path, sample_rate: int) -> torch.Tensor:
 
 class LongCatEngine:
     def __init__(self) -> None:
-        self.model_path = Path(os.environ.get("LONGCAT_MODEL_PATH", ""))
-        self.tokenizer_path = Path(os.environ.get("LONGCAT_TOKENIZER_PATH", ""))
+        # Nothing here assumes what the checkout or its model store is called.
+        self.paths: ModelPaths = resolve_model_paths()
+        self.model_path = self.paths.model or Path("")
+        self.tokenizer_path = self.paths.tokenizer or Path("")
         self.device = os.environ.get("LONGCAT_DEVICE", "cuda")
         self.dtype_name = os.environ.get("LONGCAT_DTYPE", "bfloat16")
         self.model: AudioDiTModel | None = None
@@ -131,6 +135,8 @@ class LongCatEngine:
             "loaded": loaded,
             "model_path": str(self.model_path),
             "tokenizer_path": str(self.tokenizer_path),
+            "model_store": "" if self.paths.store is None else str(self.paths.store),
+            "paths_source": self.paths.source,
             "device": self.device,
             "dtype": self.dtype_name,
             "busy": self._generation_lock.locked(),
@@ -144,10 +150,13 @@ class LongCatEngine:
         with self._state_lock:
             if self.model is not None:
                 return
-            if not (self.model_path / "model.safetensors").is_file():
-                raise FileNotFoundError(f"LongCat checkpoint missing: {self.model_path}")
-            if not (self.tokenizer_path / "tokenizer_config.json").is_file():
-                raise FileNotFoundError(f"UMT5 tokenizer missing: {self.tokenizer_path}")
+            paths = self.paths
+            if not paths.ready:
+                # Weights may have been linked or downloaded after startup.
+                paths = self.paths = resolve_model_paths()
+                self.model_path = paths.model or Path("")
+                self.tokenizer_path = paths.tokenizer or Path("")
+            model_path, tokenizer_path = paths.require()
             if self.device.startswith("cuda") and not torch.cuda.is_available():
                 raise RuntimeError("CUDA was requested but is unavailable")
             if self.dtype_name not in {"float32", "float16", "bfloat16"}:
@@ -160,10 +169,10 @@ class LongCatEngine:
             if torch.cuda.is_available():
                 torch.backends.cuda.matmul.allow_tf32 = True
             self.tokenizer = AutoTokenizer.from_pretrained(
-                str(self.tokenizer_path), local_files_only=True, use_fast=True
+                str(tokenizer_path), local_files_only=True, use_fast=True
             )
             self.model = AudioDiTModel.from_pretrained(
-                str(self.model_path), local_files_only=True, dtype=dtype
+                str(model_path), local_files_only=True, dtype=dtype
             ).to(self.device)
             # The authors explicitly run the waveform VAE in fp16 even when
             # the DiT uses another dtype.

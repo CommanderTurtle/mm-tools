@@ -34,6 +34,10 @@ if port_is_listening; then
 fi
 
 [[ -x .venv/bin/python ]] || { printf 'Missing .venv. Run ./setupwithuv.sh first.\n' >&2; exit 1; }
+# The workbench can attach to the HTTP service, so unresolved weights are a
+# warning here and a hard stop for starthttp.sh.
+.venv/bin/python local_tts/paths.py --check \
+  || printf 'Local loading will fail until the model store is linked.\n' >&2
 command -v flock >/dev/null 2>&1 || { printf 'Missing flock (util-linux).\n' >&2; exit 1; }
 LOCK_FILE="${XDG_RUNTIME_DIR:-/tmp}/longcat-ui-${UID}.lock"
 exec 9>"$LOCK_FILE"

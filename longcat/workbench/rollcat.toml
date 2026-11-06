@@ -1,0 +1,37 @@
+# rollcat.toml - local settings for ./rollcat.py, read with tomllib.
+#
+# [tts.longcat] keeps vox's exact grammar and key names
+# (vox/src/config/defaults.toml:121-142), so a block copied out of vox's
+# settings file works verbatim. Every key is optional; anything unset keeps the
+# default baked into the script.
+#
+# Precedence, lowest first:
+#   script defaults  <  vox's own vox.toml [tts.longcat]  <  this file
+#   <  $LONGCAT_URL / $LONGCAT_PORT  <  command-line flags
+
+[tts.longcat]
+# The httpd-only LongCat service (longcat/starthttp.sh binds LONGCAT_PORT, default 8230).
+base_url = "http://127.0.0.1:8230"
+steps = 16
+guidance_strength = 4.0
+guidance_method = "apg"        # "apg" or "cfg"
+seed = 1024                    # seed for brand-new lines; rerolls walk from here
+duration_scale = 1.0
+
+# Voice is discovered from the directory instead: config.txt + config.<media>.
+# Only reach for these if you want a reference that lives elsewhere, or a named
+# vox profile - a profile also works when copied from vox's settings file:
+#   active_voice_profile = "Ana"
+#   [[tts.longcat.voice_profiles]]
+#   name = "Ana"
+#   audio_path = "~/voices/ana.m4a"
+#   transcript_path = "~/voices/ana.txt"
+
+[rollcat]
+input = "in.txt"               # one utterance per line, blank lines skipped
+output = "output"              # WAVs plus dat.json land here
+file_stem = "longcat"          # 001-longcat.wav, 002-longcat.wav, ...
+concat_stem = "concat"         # c 4-11 -> 001-concat.wav, split again with d 1
+voice_stem = "config"          # config.txt + config.{wav,flac,ogg,m4a,mp3,...}
+pad = 3                        # minimum zero-padding on the index
+timeout = 1800                 # seconds per synthesis request

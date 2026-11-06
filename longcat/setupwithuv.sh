@@ -37,6 +37,14 @@ if [[ ! -f .env ]]; then
   done
 fi
 
+# The shared model store is inferred from this checkout, so the repository may be
+# named anything and may nest this project at whatever depth it likes.
+interpreter="python3"
+[[ -x .venv/bin/python ]] && interpreter=".venv/bin/python"
+"$interpreter" local_tts/paths.py --link \
+  || printf 'Set LONGCAT_MODELS_DIR once the weights exist; ./starthttp.sh reports this again.\n' >&2
+"$interpreter" local_tts/paths.py --check || true
+
 uv venv --python 3.12.10 --seed --managed-python
 # shellcheck disable=SC1091
 source .venv/bin/activate

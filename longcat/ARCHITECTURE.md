@@ -22,11 +22,19 @@ The browser, HTTP service, and CLI share the same inference implementation while
 ## Setup
 
 ```bash
-cd ~/multimedia/longcat
+cd <checkout>/longcat          # the repository may be named anything
 ./setupwithuv.sh gpu
 ```
 
-Verify `LONGCAT_MODEL_PATH` and `LONGCAT_TOKENIZER_PATH` in `.env` before loading. Setup installs dependencies but does not download checkpoints.
+Setup installs dependencies and links the shared model store, but does not
+download checkpoints. The store is inferred by walking up from this directory
+for the nearest folder holding the LongCat checkpoint, so the checkout name, the
+store name, and the nesting depth are all free; the link lands at `longcat/models`.
+`./starthttp.sh` prints the resolved checkpoint and tokenizer before loading.
+`python local_tts/paths.py` re-checks or re-links that resolution on demand
+(`--link`, `--relink`, `--check`, `--json`), and `LONGCAT_MODELS_DIR`,
+`LONGCAT_MODEL_PATH`, `LONGCAT_TOKENIZER_PATH` override it when the weights live
+somewhere the inference cannot reach.
 
 ## Runtime lanes
 
