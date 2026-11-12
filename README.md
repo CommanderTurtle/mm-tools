@@ -55,7 +55,8 @@ deactivate # when done
 The downloader is resumable. Run it again after an interrupted transfer. New
 source-import bundles are named `4d`, `lingbot`, `lingbot-5090`, `fire3d`,
 `aukspeech`, `sculpting`, `worldsculpt`, `nvidia-sim`, `v2v`, `yue2`, and
-`motionbricks`; use `uv run download_models.py --list` for the complete current menu.
+`motionbricks`, `flowhmr`, and optional `flowhmr-physics`; use
+`uv run download_models.py --list` for the complete current menu.
 The source imports, single-GPU adapters, setup/start contracts, and private
 browser studios are included here; model artifacts remain external and
 resumable. LingBot deliberately separates its shared encoder/VAE bundle from
@@ -99,6 +100,10 @@ https://github.com/user-attachments/assets/944a9918-28dd-4a29-8e2b-76d1d80cd4e7
 Motion authoring: [MotionBricks studio](motion-sim/nv-motionbricks/README.md)
 provides SOMA and Unitree G1 inbetweening, Smart Primitive authoring, scene editing
 and interactive character preview through the pinned native runtime.
+
+[FlowHMR studio](motion-sim/reftoanimesh/README.md) reconstructs SMPL-H motion
+from reference video, with person selection, reusable intermediates and an
+optional side-by-side PHC humanoid rollout.
 
 # Video Compression
 

@@ -1,0 +1,3 @@
+RGBMocapCorrection is used as a dependency under this project's overarching AGPL-3.0 License
+
+Written for this project, so the repository's own terms apply to it.

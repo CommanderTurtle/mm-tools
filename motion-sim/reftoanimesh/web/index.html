@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>FlowHMR · studio</title>
+    <link rel="stylesheet" href="/web/style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/build/three.module.js",
+          "three/addons/": "/vendor/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="FlowHMR studio"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M4 22 12 6l7 20 9-16M4 14h24" /></svg
+        ><strong>FlowHMR</strong><span>studio</span></a
+      >
+      <span class="local">LOCAL WORKSPACE <i></i></span>
+      <button id="theme" class="quiet" title="Switch color theme">
+        Light / dark
+      </button>
+    </header>
+    <main>
+      <aside class="setup panel">
+        <div class="section-title">
+          <span class="eyebrow">01 / SOURCE</span
+          ><span id="sourceLabel" class="chip">Video</span>
+        </div>
+        <label id="drop" class="drop" for="upload"
+          ><svg viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M5 21v6h22v-6M16 23V5m-7 7 7-7 7 7" /></svg
+          ><strong>Drop a reference clip</strong><span>or choose a video</span
+          ><small>MP4 · MOV · WebM · MKV · AVI</small
+          ><input id="upload" type="file" accept="video/*,.mkv,.avi,.m4v"
+        /></label>
+        <div class="source-player">
+          <video id="video" controls playsinline preload="metadata"></video
+          ><canvas id="boxes" aria-label="Detected person boxes"></canvas>
+        </div>
+        <p id="filename" class="filename">
+          Your original video stays in this workspace.
+        </p>
+        <button id="newSource" class="quiet" hidden>
+          Choose a different source
+        </button>
+        <div class="section-title reconstruction-title">
+          <span class="eyebrow">02 / RECONSTRUCTION</span
+          ><span class="chip">SMPL-H</span>
+        </div>
+        <form id="settings">
+          <div class="field-pair">
+            <label
+              >Seed<input
+                name="seed"
+                type="number"
+                min="0"
+                max="2147483647"
+                value="0"
+                required /></label
+            ><label
+              >Steps<input
+                name="steps"
+                type="number"
+                min="1"
+                max="100"
+                value="20"
+                required
+            /></label>
+          </div>
+          <label
+            >Guidance <output id="cfgValue">1.0</output
+            ><input
+              name="cfg"
+              type="range"
+              min="0"
+              max="10"
+              step="0.1"
+              value="1"
+          /></label>
+          <label
+            >Frame limit <span class="hint">0 = full clip</span
+            ><input
+              name="max_frames"
+              type="number"
+              min="0"
+              max="10000"
+              value="900"
+              required
+          /></label>
+          <label class="toggle"
+            ><input name="manual_person" type="checkbox" checked /><span
+              >Choose the person<span class="hint"
+                >Select a track when several are detected</span
+              ></span
+            ></label
+          >
+          <label class="toggle"
+            ><input name="static_camera" type="checkbox" /><span
+              >Static camera<span class="hint"
+                >Skip camera reconstruction for a fixed viewpoint</span
+              ></span
+            ></label
+          >
+          <label class="toggle"
+            ><input name="postprocess" type="checkbox" /><span
+              >Motion correction<span class="hint"
+                >Native foot contact and floor refinement</span
+              ></span
+            ></label
+          >
+          <label class="toggle physics-option"
+            ><input name="physics" type="checkbox" /><span
+              >Physics tracking<span id="physicsNote" class="hint"
+                >Separate PHC environment</span
+              ></span
+            ><span class="status-dot"></span
+          ></label>
+          <details class="advanced">
+            <summary>Advanced controls</summary>
+            <div class="field-pair">
+              <label
+                >Camera stride<input
+                  name="camera_stride"
+                  type="number"
+                  min="1"
+                  max="120"
+                  value="1"
+                  required /></label
+              ><label
+                >SAM batch<input
+                  name="sam_chunk"
+                  type="number"
+                  min="1"
+                  max="128"
+                  value="16"
+                  required
+              /></label>
+            </div>
+            <label
+              >Attention<select name="attention">
+                <option value="original">Original</option>
+                <option value="query_batched">Query-batched</option>
+              </select></label
+            >
+            <div class="field-pair">
+              <label
+                >Query chunk<input
+                  name="query_chunk"
+                  type="number"
+                  min="1"
+                  max="8192"
+                  value="256"
+                  required /></label
+              ><label
+                >GPU index<input
+                  name="device"
+                  type="number"
+                  min="0"
+                  max="31"
+                  value="0"
+                  required
+              /></label>
+            </div>
+            <label class="toggle"
+              ><input name="sam_compile" type="checkbox" /><span
+                >Compile SAM<span class="hint"
+                  >Native opt-in compilation</span
+                ></span
+              ></label
+            >
+            <label class="toggle"
+              ><input name="reselect" type="checkbox" /><span
+                >Reselect on reuse<span class="hint"
+                  >Rebuild detection and dependent caches</span
+                ></span
+              ></label
+            >
+          </details>
+          <button id="generate" class="primary" type="submit">
+            Reconstruct motion <span>↗</span>
+          </button>
+          <p class="hint">30 fps · native checkpoints · one job at a time</p>
+        </form>
+      </aside>
+      <section class="workspace">
+        <div class="workspace-title">
+          <div>
+            <span class="eyebrow">MOTION WORKSPACE</span>
+            <h1>Reference to motion.</h1>
+          </div>
+          <div class="view-options">
+            <label><input id="trail" type="checkbox" checked /> Trail</label
+            ><label><input id="wire" type="checkbox" /> Wire</label
+            ><label><input id="skeleton" type="checkbox" /> Joints</label
+            ><label><input id="follow" type="checkbox" /> Follow</label
+            ><button id="resetView" title="Reset both cameras">
+              Reset view
+            </button>
+          </div>
+        </div>
+        <div class="view-grid">
+          <section class="view-panel">
+            <div class="view-label">
+              <span><i class="swatch lavender"></i>Reconstruction</span
+              ><span class="mono">SMPL-H / 52 JOINTS</span>
+            </div>
+            <div id="meshView" class="viewport">
+              <div id="meshEmpty" class="empty">
+                <span class="large-number">01</span
+                ><strong>Recover the movement</strong>
+                <p>
+                  Reconstruct body, hands and world-space motion from your
+                  reference clip.
+                </p>
+              </div>
+              <span id="meshLoading" class="view-badge" hidden
+                >Loading frame…</span
+              >
+            </div>
+          </section>
+          <section class="view-panel">
+            <div class="view-label">
+              <span><i class="swatch teal"></i>Physics tracking</span
+              ><span class="mono">PHC / HUMANOID</span>
+            </div>
+            <div id="physicsView" class="viewport">
+              <div id="physicsEmpty" class="empty">
+                <span class="large-number">02</span
+                ><strong>Compare the tracking</strong>
+                <p>
+                  Optional native physics rollout, shown alongside the
+                  reconstructed motion.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+        <section class="transport panel" aria-label="Motion playback">
+          <div class="transport-top">
+            <button id="play" class="play" aria-label="Play motion" disabled>
+              ▶</button
+            ><button id="previous" title="Previous frame" disabled>‹</button
+            ><button id="next" title="Next frame" disabled>›</button
+            ><span id="time" class="mono">00:00.00 / 00:00.00</span
+            ><span class="spacer"></span
+            ><label class="inline"
+              ><input id="loop" type="checkbox" checked /> Loop</label
+            ><select id="speed" aria-label="Playback speed">
+              <option value="0.25">0.25×</option>
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="1.5">1.5×</option>
+              <option value="2">2×</option></select
+            ><button id="record" disabled>Record WebM</button>
+          </div>
+          <input
+            id="timeline"
+            type="range"
+            min="0"
+            max="0"
+            value="0"
+            step="1"
+            aria-label="Motion frame"
+            disabled
+          />
+          <div class="timeline-meta mono">
+            <span id="frame">FRAME —</span
+            ><span id="range">Drag to inspect · space to play</span
+            ><span>30 FPS</span>
+          </div>
+        </section>
+        <section class="result panel">
+          <div>
+            <span class="eyebrow">ACTIVE JOB</span>
+            <h2 id="jobTitle">Ready for a reference clip</h2>
+            <p id="status" role="status">Choose a video to begin.</p>
+          </div>
+          <div id="jobActions" class="job-actions" hidden>
+            <button id="reuse">Reuse source &amp; caches</button
+            ><button id="cancel" class="danger" hidden>Cancel</button
+            ><button id="delete" class="quiet">Delete</button>
+          </div>
+          <ol id="stages" class="stages">
+            <li data-stage="detection">Detect</li>
+            <li data-stage="camera">Camera</li>
+            <li data-stage="feature_extract">Features</li>
+            <li data-stage="generation">Motion</li>
+            <li data-stage="viewer">Mesh</li>
+            <li data-stage="physics">Physics</li>
+          </ol>
+          <div class="progress"><div id="progressBar"></div></div>
+          <div id="metrics" class="metrics" hidden></div>
+          <div id="downloads" class="downloads"></div>
+          <details id="logDetails">
+            <summary>Job log</summary>
+            <pre id="log"></pre>
+          </details>
+        </section>
+      </section>
+      <aside class="history panel">
+        <div class="section-title">
+          <span class="eyebrow">WORKSPACE HISTORY</span
+          ><span id="jobCount" class="chip">0</span>
+        </div>
+        <p class="hint">
+          Saved locally. Reuse a job to explore another seed or refinement.
+        </p>
+        <div id="jobs"></div>
+      </aside>
+    </main>
+    <dialog id="personDialog">
+      <div class="dialog-heading">
+        <div>
+          <span class="eyebrow">PERSON SELECTION</span>
+          <h2>Whose motion?</h2>
+        </div>
+        <button id="closePerson" title="Keep this selection pending">×</button>
+      </div>
+      <p>
+        Choose a tracked person below, or click their box in the source video.
+      </p>
+      <div id="candidates"></div>
+      <p id="selectionCountdown" class="hint"></p>
+    </dialog>
+    <div id="notice" role="alert" hidden></div>
+    <script type="module" src="/web/app.js"></script>
+  </body>
+</html>

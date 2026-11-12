@@ -1,0 +1,3 @@
+KimodoMotionCorrection is used as a dependency under this project's overarching AGPL-3.0 License
+
+Its own source files declare the Apache-2.0 terms.

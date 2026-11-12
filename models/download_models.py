@@ -55,6 +55,7 @@ class Artifact:
     direct_filename: str | None = None
     sha256: str | None = None
     expected_size: int | None = None
+    drive_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -822,6 +823,29 @@ BUNDLES: tuple[Bundle, ...] = (
         "74",
         motionbricks_artifacts(),
     ),
+    Bundle(
+        "flowhmr", "FlowHMR video reconstruction (licensed SMPL-H supplied separately)", "75",
+        (
+            A("fafsaf1/flowhmr-0.46B", model_path("flowhmr/checkpoints"), ("flowhmr_latest/*",), revision="1eb105e554e0cfc1846ea5feac8c2d516a36d319"),
+            A("facebook/sam-3d-body-dinov3", model_path("flowhmr/ckpts/sam-3d-body-dinov3"), ("model.ckpt", "model_config.yaml", "assets/mhr_model.pt"), revision="11aaa346c7204874a1cbafe3d39a979080b2c55a"),
+            A("facebook/VGGT-Omega", model_path("flowhmr/ckpts/vggt-omega"), ("vggt_omega_1b_512.pt",), revision="1041e80fc0e911235d3426b0a3d9a81075111a53"),
+            A("kadirnar/yolox_l-v0.1.1", model_path("flowhmr/ckpts/yolox"), ("yolox_l.pth",), revision="f63e87ffbded0e30713d32dba22501f56fe5007e"),
+            A("zju3dv/GVHMR body regressor", model_path("flowhmr/assets/body_models"),
+              direct_url="https://raw.githubusercontent.com/zju3dv/GVHMR/ee960bb6e2ea2d381aa97f08e9b71ef320b624b1/hmr4d/utils/body_model/smpl_neutral_J_regressor.pt",
+              direct_filename="smpl_neutral_J_regressor.pt", expected_size=662187,
+              sha256="70e3213bd30fe8d8ce37b54675282745e406f915a51511a003aeff99b6da04cf"),
+        ),
+    ),
+    Bundle(
+        "flowhmr-physics", "FlowHMR optional PHC tracking (licensed Isaac Gym / SMPL supplied separately)", "76",
+        tuple(A("FlowHMR / PHC " + path, model_path("flowhmr") / Path(path).parent,
+                direct_filename=Path(path).name, drive_id=drive_id) for path, drive_id in (
+            ("output/HumanoidIm/phc_comp_3/Humanoid.pth", "1JbK9Vzo1bEY8Pig6D92yAUv8l-1rKWo3"),
+            ("output/HumanoidIm/phc_3/Humanoid.pth", "1pS1bRUbKFDp6o6ZJ9XSFaBlXv6_PrhNc"),
+            ("assets/example/amass_isaac_gender_betas.pkl", "1bLp4SNIZROMB7Sxgt0Mh4-4BLOPGV9_U"),
+            ("assets/example/amass_isaac_gender_betas_unique.pkl", "1arpCsue3Knqttj75Nt9Mwo32TKC4TYDx"),
+        )),
+    ),
 )
 
 
@@ -942,6 +966,9 @@ def download_artifact(
     # snapshot_download normally creates local_dir/cache_dir, but doing it here
     # guarantees that fresh nested roots such as qwen/ and text-only/ exist.
     artifact.destination.mkdir(parents=True, exist_ok=True)
+    if artifact.drive_id:
+        download_drive_artifact(artifact, number, total)
+        return
     if artifact.direct_url:
         download_direct_artifact(artifact, number, total)
         materialize_placements(artifact)
@@ -972,6 +999,46 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(8 * 1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def download_drive_artifact(artifact: Artifact, number: int, total: int) -> None:
+    """Cache upstream Drive releases with an explicit first-download receipt.
+
+    PHC publishes Drive IDs rather than content digests. A local receipt detects
+    later cache corruption; it is deliberately distinct from a publisher pin.
+    Existing unreceipted files are preserved rather than silently trusted.
+    """
+    if not artifact.direct_filename or Path(artifact.direct_filename).name != artifact.direct_filename:
+        raise ValueError("Drive artifact needs a filename")
+    destination = artifact.destination / artifact.direct_filename
+    receipt = destination.with_name(destination.name + ".receipt.json")
+    if destination.exists():
+        if receipt.is_file():
+            recorded = json.loads(receipt.read_text())
+            if recorded.get("drive_id") == artifact.drive_id and recorded.get("sha256") == _sha256(destination):
+                print(f"\n[{number}/{total}] cached: {destination} (local receipt verified)")
+                return
+        raise FileExistsError(f"Preserving unverified Drive cache: {destination}; move it aside before downloading")
+    try:
+        import gdown
+    except ImportError as exc:
+        raise RuntimeError("PHC downloads require: uv pip install gdown==5.2.0") from exc
+    partial = destination.with_name(destination.name + ".partial")
+    print(f"\n[{number}/{total}] {artifact.repo_id} — upstream provides no content digest")
+    if not gdown.download(id=artifact.drive_id, output=str(partial), resume=True, quiet=False, use_cookies=False):
+        raise RuntimeError(f"Drive download incomplete: {artifact.repo_id}")
+    if not partial.is_file() or partial.stat().st_size < 1024:
+        raise RuntimeError(f"Empty or incomplete Drive artifact: {partial}")
+    with partial.open("rb") as handle:
+        beginning = handle.read(256).lstrip().lower()
+    if beginning.startswith((b"<!doctype html", b"<html")):
+        raise RuntimeError(f"Drive returned an HTML page: {partial}")
+    digest = _sha256(partial)
+    pending = receipt.with_name(receipt.name + ".partial")
+    pending.write_text(json.dumps({"drive_id": artifact.drive_id, "sha256": digest,
+                                  "size": partial.stat().st_size}, indent=2) + "\n")
+    os.replace(partial, destination)
+    os.replace(pending, receipt)
 
 
 def download_direct_artifact(artifact: Artifact, number: int, total: int) -> None:
