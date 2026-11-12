@@ -112,6 +112,9 @@ with part controls, motion playback and portable asset bundles.
 [Idol studio](sculpting/idol/README.md) turns images into Gaussian splats, with
 the original Space presets and sampling controls, an orbit viewer and PLY export.
 
+[SceneBloom studio](sculpting/scenebloom/README.md) generates furnished rooms
+with local vision, saved stages, spatial inspection and textured GLB export.
+
 # Video Compression
 
 ![videosmaller](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-videosmaller-clip.avif)

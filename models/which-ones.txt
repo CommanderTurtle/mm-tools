@@ -1146,6 +1146,29 @@ https://huggingface.co/tencent/Hunyuan3D-2mini/blob/f90a0f7df7d5e6f71109cf333f6a
 Optional image-only route. A supplied mesh uses the refinement bundle alone.
 The coarse worker exits before refinement loads. Models stay offline on use.
 
+81. SceneBloom furnished room studio (bundle: scenebloom)
+Source: Tinaliu0123/scenebloom @ c57240816fd0cce5d00faae239ab37e4467cd4b5 (Apache-2.0)
+Exact checkpoint revisions and archive digests: manifests/scenebloom.json.
+FLUX.1-dev uses its gated noncommercial model license; accept access terms and
+authenticate with hf auth login before downloading. SceneBloom-AssetLoRAs retain
+the FLUX terms plus their supplied object notices. SceneBloom-Assets include
+MIT, Apache-2.0 and CC-BY-4.0 assets with per-source notices. M3DLayout is
+CC-BY-NC-4.0. AmbientCG 2K-JPG packs are CC0; completed downloads have local
+checksum receipts and are reused. Apple DFN5B CLIP and DepthPro: Apple AMLR.
+Qwen3-Embedding, Qwen3-VL, BERT, DINOv2, GroundingDINO, OVMono3D: Apache-2.0.
+PyTorch3D: BSD; Genesis: Apache-2.0; native dependencies retain their licenses.
+The shared ComfyUI vision runtime retains GPL-3.0.
+Independent studio: root AGPL-3.0; Three.js: MIT; Inter / IBM Plex Mono: OFL-1.1.
+Models/assets live in models/scenebloom; local vision reuses models/qwen's
+NVFP4 checkpoint. Setup links the shared model store; the native runtime and its
+pinned upstream trees, including OVMono3D, are committed in the studio. Retrieval indexes are
+built once on first use.
+https://github.com/Tinaliu0123/scenebloom/tree/c57240816fd0cce5d00faae239ab37e4467cd4b5
+https://huggingface.co/tina390/SceneBloom-AssetLoRAs
+https://huggingface.co/datasets/tina390/SceneBloom-Assets
+https://huggingface.co/datasets/Metaverse-AI-Lab/M3DLayout
+https://ambientcg.com
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,

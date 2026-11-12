@@ -1,0 +1,142 @@
+{
+  "source": "c57240816fd0cce5d00faae239ab37e4467cd4b5",
+  "snapshots": [
+    {
+      "repo": "black-forest-labs/FLUX.1-dev",
+      "revision": "3de623fc3c33e44ffbe2bad470d0f45bccf2eb21",
+      "dest": "checkpoints/FLUX.1-dev",
+      "patterns": [
+        "model_index.json",
+        "scheduler/*",
+        "text_encoder/*",
+        "text_encoder_2/*",
+        "tokenizer/*",
+        "tokenizer_2/*",
+        "transformer/*",
+        "vae/*",
+        "LICENSE*",
+        "README.md"
+      ]
+    },
+    {
+      "repo": "Qwen/Qwen3-Embedding-0.6B",
+      "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+      "dest": "checkpoints/Qwen3-Embedding-0.6B",
+      "patterns": []
+    },
+    {
+      "repo": "apple/DFN5B-CLIP-ViT-H-14-378",
+      "revision": "01b771ed0d1395ca5ffdd279897d665ebe00dfd2",
+      "dest": "checkpoints/DFN5B-CLIP-ViT-H-14-378",
+      "patterns": [
+        "open_clip_config.json",
+        "open_clip_pytorch_model.bin",
+        "README.md",
+        "LICENSE*"
+      ]
+    },
+    {
+      "repo": "uva-cv-lab/ovmono3d_lift",
+      "revision": "e9933f7726e532eb65d19989663839c39ba20b3b",
+      "dest": "checkpoints/ovmono3d",
+      "patterns": ["ovmono3d_lift.pth", "README.md"]
+    },
+    {
+      "repo": "ShilongLiu/GroundingDINO",
+      "revision": "a94c9b567a2a374598f05c584e96798a170c56fb",
+      "dest": "checkpoints/ovmono3d",
+      "patterns": ["groundingdino_swinb_cogcoor.pth"]
+    },
+    {
+      "repo": "apple/DepthPro",
+      "revision": "ccd1350a774eb2248bcdfb3be430e38f1d3087ef",
+      "dest": "checkpoints/ovmono3d",
+      "patterns": ["depth_pro.pt", "LICENSE"]
+    },
+    {
+      "repo": "bert-base-uncased",
+      "revision": "86b5e0934494bd15c9632b12f734a8a67f723594",
+      "dest": "checkpoints/huggingface",
+      "cache": true,
+      "patterns": [
+        "config.json",
+        "model.safetensors",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "vocab.txt"
+      ]
+    },
+    {
+      "repo": "tina390/SceneBloom-Assets",
+      "revision": "0e65c250dc8ea351e8909edd74becdec9bfe3207",
+      "dest": "assets",
+      "type": "dataset",
+      "patterns": ["glb/*", "LICENSE", "README.md", "licenses/*"]
+    },
+    {
+      "repo": "tina390/SceneBloom-AssetLoRAs",
+      "revision": "c2347dc7153d1093776ff1cf474a23fe13338590",
+      "dest": "assets",
+      "patterns": ["adapters/*", "licenses/*", "LICENSE.md"]
+    },
+    {
+      "repo": "Metaverse-AI-Lab/M3DLayout",
+      "revision": "72a2a80c3b96788635b9192b64853e1428d59cb4",
+      "dest": "m3dlayout",
+      "type": "dataset",
+      "patterns": [
+        "layout_dataset/M3DLayout_json.zip",
+        "rendering_dataset/3dfront/3dfront_postprocessed_5173.zip",
+        "README.md",
+        "LICENSE*"
+      ]
+    },
+    {
+      "repo": "SergiusFlavius/Qwen3-VL-4B-Instruct-heretic-NVFP4",
+      "revision": "8a2e15ce775cb94b52be620fced1420ac879b4ad",
+      "dest": "../qwen/text-encoder-vl-nvfp4",
+      "patterns": ["qwen3_vl_4b_nvfp4_full.safetensors"]
+    }
+  ],
+  "dinov2": {
+    "url": "https://dl.fbaipublicfiles.com/dinov2/dinov2_vitb14/dinov2_vitb14_pretrain.pth",
+    "sha256": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73"
+  },
+  "archives": [
+    {
+      "path": "layout_dataset/M3DLayout_json.zip",
+      "sha256": "10c0b11d43f980cd03f214cbd6bf377192257c7da58b56c94125d20375ef39e2",
+      "dest": "layout"
+    },
+    {
+      "path": "rendering_dataset/3dfront/3dfront_postprocessed_5173.zip",
+      "sha256": "1d41914b14cad59f2360968d34ac01deb0555b0362b0659f40ad2f662d63a9c6",
+      "dest": "3dfront"
+    }
+  ],
+  "materials": [
+    "Tiles046",
+    "Tiles057",
+    "Tiles053",
+    "Tiles062",
+    "Tiles040",
+    "Plaster001",
+    "Plaster002",
+    "PaintedPlaster017",
+    "Plaster003",
+    "Styrofoam003",
+    "Wood082A",
+    "Wood082B",
+    "Wood083A",
+    "Wood085B",
+    "Wood083B",
+    "Leather039",
+    "Wood037",
+    "Wallpaper001C",
+    "Carpet009",
+    "Carpet008",
+    "Carpet004",
+    "Leather018",
+    "Carpet016"
+  ]
+}

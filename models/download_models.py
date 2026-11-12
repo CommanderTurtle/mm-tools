@@ -103,6 +103,19 @@ QWEN_GUIDE = A(
     ("qwen3_vl_4b_nvfp4_full.safetensors",),
 )
 
+
+def scenebloom_artifacts() -> tuple[Artifact, ...]:
+    manifest = json.loads((MODELS / "manifests/scenebloom.json").read_text())
+    root = model_path("scenebloom")
+    result = [A(row["repo"], root / row["dest"], tuple(row["patterns"]),
+                revision=row["revision"], cache_layout=row.get("cache", False),
+                repo_type=row.get("type", "model")) for row in manifest["snapshots"]]
+    result.append(A("facebookresearch/dinov2", root / "checkpoints/dinov2",
+                    direct_url=manifest["dinov2"]["url"],
+                    direct_filename="dinov2_vitb14_pretrain.pth",
+                    sha256=manifest["dinov2"]["sha256"]))
+    return tuple(result)
+
 # TRELLIS.2 and Pixal3D name these repositories from their pipeline JSON.  Keep
 # the dependencies local and pinned so neither sculpting runtime can silently
 # contact the Hub during model construction.  Only the one legacy sparse-
@@ -905,6 +918,9 @@ BUNDLES: tuple[Bundle, ...] = (
 )
 
 
+BUNDLES += (Bundle("scenebloom", "SceneBloom rooms + cached assets + local vision", "81", scenebloom_artifacts()),)
+
+
 UNDERDOG = json.loads((MODELS / "manifests/underdog.json").read_text())
 BUNDLES += tuple(
     Bundle(f"underdog-{key}", f"{row['name']} English STT ({row['download']})", row["inventory"], (
@@ -1250,8 +1266,122 @@ def main(argv: Sequence[str] | None = None) -> int:
     for number, artifact in enumerate(artifacts, start=1):
         download_artifact(artifact, number, len(artifacts), workers)
 
+    if any(bundle.key == "scenebloom" for bundle in bundles):
+        prepare_scenebloom_assets(MODELS)
+
     print(f"\nCompleted {len(artifacts)} snapshot downloads.")
     return 0
+
+# SceneBloom ships two large published archives plus AmbientCG material packs; the
+# picker verifies and unpacks them, and serving stays offline afterwards.
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import stat
+import tempfile
+import urllib.request
+import zipfile
+
+
+def asset_digest(path):
+    value = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            value.update(block)
+    return value.hexdigest()
+
+
+def asset_unpack(archive, destination, checksum):
+    receipt = destination / ".complete.json"
+    if receipt.is_file():
+        saved = json.loads(receipt.read_text())
+        if saved.get("sha256") == checksum and all(
+            (destination / name).is_file()
+            and (destination / name).stat().st_size == size
+            for name, size in saved["files"].items()
+        ):
+            return
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=destination.parent, prefix=".unpack-") as work:
+        stage = Path(work)
+        files = {}
+        with zipfile.ZipFile(archive) as source:
+            for item in source.infolist():
+                target = stage / item.filename
+                if (
+                    not target.resolve().is_relative_to(stage.resolve())
+                    or "\\" in item.filename
+                ):
+                    raise ValueError(f"Unsafe archive member: {item.filename}")
+                if stat.S_ISLNK(item.external_attr >> 16):
+                    raise ValueError("Archive links are unsupported")
+                if item.is_dir():
+                    continue
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with source.open(item) as src, target.open("wb") as dst:
+                    shutil.copyfileobj(src, dst)
+                files[item.filename] = item.file_size
+        destination.mkdir(exist_ok=True)
+        for name in files:
+            target = destination / name
+            if not target.resolve().is_relative_to(destination.resolve()):
+                raise ValueError("Existing extraction link escapes asset directory")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(stage / name, target)
+        temporary = stage / "receipt.json"
+        temporary.write_text(json.dumps(dict(sha256=checksum, files=files)))
+        temporary.replace(receipt)
+
+
+def prepare_scenebloom_assets(models: Path) -> None:
+    manifest = json.loads((models / "manifests/scenebloom.json").read_text())
+    root = models / "scenebloom"
+    for entry in manifest["archives"]:
+        archive = root / "m3dlayout" / entry["path"]
+        checksum = asset_digest(archive)
+        if checksum != entry["sha256"]:
+            raise ValueError(f"Checksum mismatch: {archive}")
+        asset_unpack(archive, root / "m3dlayout/extracted" / entry["dest"], checksum)
+    cache = root / "material-archives"
+    cache.mkdir(exist_ok=True)
+    for material in manifest["materials"]:
+        archive = cache / f"{material}_2K-JPG.zip"
+        receipt = archive.with_suffix(".json")
+        # AmbientCG publishes versioned filenames, not cryptographic digests.
+        # Record our completed transfer's checksum; incomplete files never count.
+        valid = archive.is_file() and receipt.is_file()
+        if valid:
+            valid = asset_digest(archive) == json.loads(receipt.read_text())["sha256"]
+        if not valid:
+            url = f"https://ambientcg.com/get?file={archive.name}"
+            request = urllib.request.Request(
+                url, headers={"User-Agent": "mm-tools SceneBloom asset picker"}
+            )
+            temporary = archive.with_suffix(".partial")
+            try:
+                with (
+                    urllib.request.urlopen(request, timeout=120) as src,
+                    temporary.open("wb") as dst,
+                ):
+                    shutil.copyfileobj(src, dst)
+                with zipfile.ZipFile(temporary) as source:
+                    if source.testzip() is not None:
+                        raise ValueError(f"Damaged material archive: {material}")
+                temporary.replace(archive)
+                receipt.write_text(json.dumps(dict(url=url, sha256=asset_digest(archive))))
+            finally:
+                temporary.unlink(missing_ok=True)
+        asset_unpack(archive, root / "materials" / material, asset_digest(archive))
+        if not (
+            root / "materials" / material / f"{material}_2K-JPG_Color.jpg"
+        ).is_file():
+            raise ValueError(f"Missing material colour map: {material}")
+    bert = root / "checkpoints/huggingface/models--bert-base-uncased/refs"
+    bert.mkdir(parents=True, exist_ok=True)
+    (bert / "main").write_text("86b5e0934494bd15c9632b12f734a8a67f723594")
+    (root / "assets-ready.json").write_text(json.dumps(dict(source=manifest["source"])))
 
 
 if __name__ == "__main__":

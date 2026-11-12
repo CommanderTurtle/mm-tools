@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SceneBloom · studio</title>
+    <link rel="stylesheet" href="/web/style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/three.module.js",
+          "three/addons/": "/vendor/addons/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand"
+        ><span class="mark">✳</span> SceneBloom <small>STUDIO</small></a
+      >
+      <div class="local"><i></i> LOCAL WORKSPACE</div>
+      <button id="historyOpen">Saved rooms <span>↗</span></button>
+    </header>
+    <main>
+      <aside class="brief">
+        <div class="eyebrow">01 / ROOM BRIEF</div>
+        <h1>A place<br />takes shape.</h1>
+        <p class="muted">
+          Describe the room. Compose its zones.<br />Explore every angle.
+        </p>
+        <form id="form">
+          <div class="presets" aria-label="Room presets">
+            <button type="button" data-room="bedroom">Bedroom</button
+            ><button type="button" data-room="living room">Living</button
+            ><button type="button" data-room="dining room">Dining</button
+            ><button type="button" data-room="office">Office</button
+            ><button type="button" data-room="bathroom">Bathroom</button>
+          </div>
+          <label for="prompt">Room description</label
+          ><textarea id="prompt" rows="7" maxlength="12000" required>
+A warm bedroom with a bed, two nightstands, a wardrobe and a quiet workspace with a desk and chair.</textarea
+          >
+          <div class="row">
+            <label
+              >Seed<input
+                name="random_seed"
+                type="number"
+                min="0"
+                max="2147483647"
+                value="42" /></label
+            ><label class="check"
+              ><input name="randomize" type="checkbox" checked />
+              Randomize</label
+            >
+          </div>
+          <details class="advanced">
+            <summary>Generation settings <span>+</span></summary>
+            <div id="settings"></div>
+            <label
+              >Surface supports<textarea
+                name="small_object_supports"
+                rows="3"
+              ></textarea>
+            </label>
+          </details>
+          <button class="primary" id="generate" type="submit">
+            Generate room <span>↗</span>
+          </button>
+          <div class="row actions">
+            <button type="button" id="resume" hidden>Resume saved stages</button
+            ><button type="button" id="cancel" hidden>Cancel run</button>
+          </div>
+        </form>
+        <div class="source">
+          <strong>LOCAL VISION · QWEN3-VL</strong>
+          <p>
+            Native FreeFuse proposals, geometric fitting and textured scene
+            export.
+          </p>
+          <code id="revision"></code>
+        </div>
+      </aside>
+      <section class="workspace">
+        <div class="workspaceTop">
+          <div>
+            <span class="eyebrow">02 / SPATIAL VIEW</span>
+            <h2 id="roomTitle">Untitled room</h2>
+          </div>
+          <span class="pill" id="state">Ready</span>
+        </div>
+        <div
+          id="viewport"
+          tabindex="0"
+          aria-label="Interactive scene viewer. In walk mode use W A S D or arrow keys; drag to look."
+        >
+          <div class="empty" id="empty">
+            <span>＋</span>
+            <h3>Your room, in perspective.</h3>
+            <p>Generate a scene or open a saved room.</p>
+          </div>
+          <div class="viewMeta">
+            <span id="stats">METRES / Y-UP</span
+            ><span id="viewHelp">Drag to orbit · scroll to zoom</span>
+          </div>
+        </div>
+        <div class="toolbar">
+          <div class="segmented">
+            <button data-view="orbit" aria-pressed="true">Orbit</button
+            ><button data-view="plan" aria-pressed="false">Plan</button
+            ><button data-view="walk" aria-pressed="false">Walk</button>
+          </div>
+          <label class="check"
+            ><input id="walls" type="checkbox" checked /> Walls</label
+          ><label class="check"
+            ><input id="zones" type="checkbox" checked /> Zones</label
+          ><label class="check"
+            ><input id="spin" type="checkbox" /> Rotate</label
+          ><button id="capture" disabled>Save view ↓</button>
+        </div>
+        <div class="progressHeader">
+          <span class="eyebrow">03 / GENERATION</span
+          ><span id="stageLabel">Idle</span>
+        </div>
+        <ol id="stages" class="stages"></ol>
+        <p id="notice" role="status" aria-live="polite"></p>
+        <section class="artifacts">
+          <div class="sectionTitle">
+            <h2>Proposals & renders</h2>
+            <nav id="exports"></nav>
+          </div>
+          <div id="gallery" class="gallery">
+            <p class="muted">
+              Zone images and native camera renders appear here as they
+              complete.
+            </p>
+          </div>
+        </section>
+        <details id="logDetails">
+          <summary>Run log</summary>
+          <pre id="log"></pre>
+        </details>
+      </section>
+      <aside class="inspector">
+        <span class="eyebrow">SCENE INDEX</span>
+        <h2>Zones & objects</h2>
+        <p class="muted" id="selection">
+          Select an object in the scene to inspect its placement.
+        </p>
+        <div id="objects"></div>
+      </aside>
+    </main>
+    <dialog id="history">
+      <div class="sectionTitle">
+        <h2>Saved rooms</h2>
+        <button id="historyClose" aria-label="Close saved rooms">×</button>
+      </div>
+      <div id="runs"></div>
+    </dialog>
+    <dialog id="imageDialog">
+      <button id="imageClose" aria-label="Close image">×</button
+      ><img id="largeImage" alt="Scene generation image" /><a
+        id="imageDownload"
+        download
+        >Download image ↓</a
+      >
+    </dialog>
+    <script type="module" src="/web/app.js"></script>
+  </body>
+</html>
