@@ -1,0 +1,4 @@
+Flask==3.1.2
+waitress==3.0.2
+yt-dlp[default,deno]==2026.10.26
+deno==2.9.8

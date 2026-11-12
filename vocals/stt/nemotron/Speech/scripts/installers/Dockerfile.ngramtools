@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+#
+#
+#
+# Unless required by applicable law or agreed to in writing, software
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+# Use this script to install KenLM, OpenSeq2Seq decoder, Flashlight decoder, OpenGRM Ngram tool to contaner 
+
+# How to use? Build it from NeMo root folder:
+# 1. git clone https://github.com/NVIDIA-NeMo/Speech.git && cd NeMo
+# 2. DOCKER_BUILDKIT=1 docker build -t nemo:23.03.1 -f ./scripts/installers/Dockerfile.ngramtools .
+
+from nvcr.io/nvidia/nemo:23.03
+
+WORKDIR /workspace/nemo
+
+COPY scripts/. /workspace/nemo/scripts/
+
+RUN /bin/bash scripts/asr_language_modeling/ngram_lm/install_beamsearch_decoders.sh
+
+RUN /bin/bash scripts/installers/install_opengrm.sh

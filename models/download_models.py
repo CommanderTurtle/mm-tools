@@ -953,6 +953,17 @@ BUNDLES += (Bundle("pixel-wizard", "WeVisOne-VL-4B perception studio", "85", (
 )),)
 
 
+BUNDLES += (Bundle("nemotron", "Nemotron 3.5 Transcribe NVFP4 studio", "86", (
+    A("nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-NVFP4", model_path("nemotron-transcribe/checkpoint"),
+      ("*.safetensors", "*.json", "*.jinja", "LICENSE", "licenses/*", "THIRD_PARTY_NOTICES.md", "README.md"),
+      revision="66c6adc4020179567074d0399cda2a4eeb2bb347"),
+    A("facebookresearch/demucs htdemucs", model_path("nemotron-transcribe/stems"),
+      direct_url="https://dl.fbaipublicfiles.com/demucs/hybrid_transformer/955717e8-8726e21a.th",
+      direct_filename="955717e8-8726e21a.th",
+      sha256="8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b4"),
+)),)
+
+
 UNDERDOG = json.loads((MODELS / "manifests/underdog.json").read_text())
 BUNDLES += tuple(
     Bundle(f"underdog-{key}", f"{row['name']} English STT ({row['download']})", row["inventory"], (

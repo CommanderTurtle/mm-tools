@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES.
+#
+#
+#
+# Unless required by applicable law or agreed to in writing, software
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+FROM vllm/vllm-openai:v0.24.0
+
+COPY tools/easymagpie_vllm_omni/requirements.txt /tmp/easymagpie-requirements.txt
+
+RUN python3 -m pip install --no-cache-dir \
+    -r /tmp/easymagpie-requirements.txt \
+    coverage \
+    pytest \
+    pytest-asyncio \
+    "setuptools>=64"
+
+WORKDIR /workspace
+
+ENTRYPOINT []

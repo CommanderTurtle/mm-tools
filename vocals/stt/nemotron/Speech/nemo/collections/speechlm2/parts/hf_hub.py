@@ -1,0 +1,395 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+#
+#
+#
+# Unless required by applicable law or agreed to in writing, software
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
+
+from huggingface_hub import CONFIG_NAME, PyTorchModelHubMixin
+from huggingface_hub.hub_mixin import DataclassInstance
+from omegaconf import DictConfig, OmegaConf
+from transformers.utils import cached_file
+
+from nemo.collections.speechlm2.vllm.salm.config import checkpoint_architecture
+from nemo.utils import logging
+
+SAFETENSORS_SINGLE_FILE = "model.safetensors"
+LLM_BACKBONE_DIR = "llm_backbone"
+
+
+class HFHubMixin(
+    PyTorchModelHubMixin,
+    library_name="NeMo",
+    repo_url="https://github.com/NVIDIA-NeMo/Speech",
+    docs_url="https://docs.nvidia.com/nemo-framework/user-guide/latest/nemotoolkit",
+):
+    @classmethod
+    def _from_pretrained(
+        cls,
+        *,
+        model_id: str,
+        revision: Optional[str],
+        cache_dir: Optional[Union[str, Path]],
+        force_download: bool,
+        local_files_only: bool,
+        token: Union[str, bool, None],
+        map_location: str = "cpu",
+        strict: bool = False,
+        trust_remote_code: bool = False,
+        **model_kwargs,
+    ):
+        """
+        Load Pytorch pretrained weights and return the loaded model.
+        Wrapper over PyTorchModelHubMixin that auto-handles config in **model_kwargs.
+
+        Supports distributed model-parallel loading via ``distributed_setup``:
+
+            >>> strategy = setup_distributed(tp_size=2)
+            >>> model = SALM.from_pretrained(
+            ...     "nvidia/salm-model", distributed_setup=strategy.distributed_setup
+            ... )
+
+        ``trust_remote_code`` is a runtime security decision. It is deliberately
+        taken from the caller and overwrites any value stored in the downloaded
+        checkpoint config so that a model repository cannot opt itself into
+        executing remote code.
+
+        ``weights_path`` may select an alternate local safetensors file while
+        ``model_id`` continues to provide config and tokenizer peripheral files.
+        """
+        if not isinstance(trust_remote_code, bool):
+            raise TypeError(f"trust_remote_code must be a bool, got {type(trust_remote_code).__name__}")
+
+        distributed_setup = model_kwargs.pop("distributed_setup", None)
+        weights_path = model_kwargs.pop("weights_path", None)
+        device_mesh = distributed_setup.mesh_context.device_mesh if distributed_setup is not None else None
+        torch_dtype = model_kwargs.pop("torch_dtype", None)
+        if weights_path is not None:
+            weights_path = Path(weights_path).expanduser().resolve()
+            if not weights_path.is_file() or weights_path.suffix != ".safetensors":
+                raise FileNotFoundError(f"weights_path must be a local safetensors file, got {weights_path}.")
+            if device_mesh is not None:
+                raise ValueError("weights_path is not yet supported with distributed_setup.")
+
+        _cached_file_kwargs = dict(
+            cache_dir=cache_dir,
+            force_download=force_download,
+            local_files_only=local_files_only,
+            token=token,
+            revision=revision,
+            _raise_exceptions_for_gated_repo=False,
+            _raise_exceptions_for_missing_entries=False,
+            _raise_exceptions_for_connection_errors=False,
+        )
+
+        resolved_config_file = cached_file(model_id, CONFIG_NAME, **_cached_file_kwargs)
+        if resolved_config_file is None:
+            raise RuntimeError(f"Missing {CONFIG_NAME} file for {model_id=}")
+        model_kwargs['cfg'] = OmegaConf.to_container(OmegaConf.load(resolved_config_file))
+        model_kwargs['cfg']['trust_remote_code'] = trust_remote_code
+        if isinstance(model_kwargs['cfg'].get('model'), dict):
+            model_kwargs['cfg']['model']['trust_remote_code'] = trust_remote_code
+        _inject_local_artifact_paths(model_kwargs['cfg'], model_id, _cached_file_kwargs)
+        # The setting below tells the model's __init__ not to load the original pretrained weights
+        # for individual children modules.
+        # To illustrate: if you trained a new model M using a pretrained ASR and a pretrained LLM,
+        # this setting skips loading the original pretrained ASR and LLM weights, and loads the
+        # final trained model weights directly.
+        model_kwargs['cfg']['pretrained_weights'] = False
+        # Timestamp tensors are a frozen, registered artifact, not unexpected
+        # language-model weights. Read their construction metadata before init.
+        from nemo.collections.speechlm2.parts.ctc_timestamp_checkpoint import read_ctc_timestamp_config
+
+        weight_file = weights_path or cached_file(model_id, SAFETENSORS_SINGLE_FILE, **_cached_file_kwargs)
+        ctc_config = read_ctc_timestamp_config(weight_file) if weight_file is not None else None
+        if ctc_config is not None:
+            model_kwargs['cfg']['ctc_timestamp_artifact'] = ctc_config
+
+        if device_mesh is None:
+            # Non-distributed: for Automodel checkpoints we must build the modules
+            # before ``PyTorchModelHubMixin`` applies checkpoint weights.
+            if model_kwargs['cfg'].get("use_nemo_automodel", False):
+                model_kwargs['cfg']['init_configure_model'] = True
+            if torch_dtype is not None:
+                model_kwargs['cfg']['torch_dtype'] = (
+                    torch_dtype if isinstance(torch_dtype, str) else str(torch_dtype).replace("torch.", "")
+                )
+            if weights_path is None:
+                model = super()._from_pretrained(
+                    model_id=model_id,
+                    revision=revision,
+                    cache_dir=cache_dir,
+                    force_download=force_download,
+                    local_files_only=local_files_only,
+                    token=token,
+                    map_location=map_location,
+                    strict=strict,
+                    **model_kwargs,
+                )
+                weights_path = cached_file(model_id, SAFETENSORS_SINGLE_FILE, **_cached_file_kwargs)
+            else:
+                model = _load_from_local_weights(cls, model_kwargs, weights_path, map_location, strict)
+            if weights_path is not None:
+                _attach_bundled_ctc_timestamp(model, weights_path)
+            ctc_timestamp = getattr(model, "ctc_timestamp", None)
+            if ctc_timestamp is not None:
+                ctc_timestamp.validate_tokenizer()
+            return model
+
+        # --- Distributed flow ---
+        # Delegate to a module-level function so that ``cls(...)`` is not called
+        # from a frame that has ``__class__`` in its closure (which our classmethod
+        # has due to the ``super()`` call above).  Lightning's
+        # ``save_hyperparameters()`` walks the call stack and mistakes such frames
+        # for ``__init__`` frames, causing a ``KeyError: 'self'``.
+        return _distributed_from_pretrained(
+            cls=cls,
+            model_id=model_id,
+            model_kwargs=model_kwargs,
+            torch_dtype=torch_dtype,
+            distributed_setup=distributed_setup,
+            cached_file_kwargs=_cached_file_kwargs,
+            strict=strict,
+        )
+
+    def _save_pretrained(self, save_directory: Path) -> None:
+        ctc_timestamp = self._modules.get("ctc_timestamp")
+        if ctc_timestamp is None:
+            super()._save_pretrained(save_directory)
+            return
+        from safetensors.torch import save_model
+
+        ctc_timestamp.validate_tokenizer()
+        save_model(self, str(save_directory / SAFETENSORS_SINGLE_FILE), metadata=ctc_timestamp.artifact_metadata)
+
+    def save_pretrained(
+        self,
+        save_directory: Union[str, Path],
+        *,
+        config: Optional[Union[dict, "DataclassInstance"]] = None,
+        repo_id: Optional[str] = None,
+        push_to_hub: bool = False,
+        model_card_kwargs: Optional[Dict[str, Any]] = None,
+        **push_to_hub_kwargs,
+    ) -> Optional[str]:
+        """
+        Save weights in local directory.
+
+        Args:
+            save_directory (`str` or `Path`):
+                Path to directory in which the model weights and configuration will be saved.
+            config (`dict` or `DataclassInstance`, *optional*):
+                Model configuration specified as a key/value dictionary or a dataclass instance.
+                If not provided, we will automatically serialize attribute ``model.cfg``.
+            push_to_hub (`bool`, *optional*, defaults to `False`):
+                Whether or not to push your model to the Huggingface Hub after saving it.
+            repo_id (`str`, *optional*):
+                ID of your repository on the Hub. Used only if `push_to_hub=True`. Will default to the folder name if
+                not provided.
+            model_card_kwargs (`Dict[str, Any]`, *optional*):
+                Additional arguments passed to the model card template to customize the model card.
+            push_to_hub_kwargs:
+                Additional key word arguments passed along to the [`~ModelHubMixin.push_to_hub`] method.
+        Returns:
+            `str` or `None`: url of the commit on the Hub if `push_to_hub=True`, `None` otherwise.
+        """
+        if config is None:
+            config = getattr(self, "cfg")
+            if isinstance(config, DictConfig):
+                config = OmegaConf.to_container(self.cfg)
+        # Ensure HF-compatible fields are present so vLLM / transformers can identify the model.
+        if isinstance(config, dict):
+            config = dict(config)
+            # Remote-code trust is a runtime choice and must never be persisted
+            # in a checkpoint that can be loaded by another user.
+            config.pop("trust_remote_code", None)
+            if isinstance(config.get("model"), dict):
+                config["model"] = dict(config["model"])
+                config["model"].pop("trust_remote_code", None)
+            config.setdefault("model_type", "nemo_speechlm")
+            if "architectures" not in config:
+                llm_config = getattr(getattr(self, "llm", None), "config", None)
+                backbone_architectures = getattr(llm_config, "architectures", None) or []
+                config["architectures"] = [checkpoint_architecture(config, backbone_architectures)]
+        return super().save_pretrained(
+            save_directory=save_directory,
+            config=config,
+            repo_id=repo_id,
+            push_to_hub=push_to_hub,
+            model_card_kwargs=model_card_kwargs,
+            **push_to_hub_kwargs,
+        )
+
+
+def _distributed_from_pretrained(
+    cls,
+    model_id,
+    model_kwargs,
+    torch_dtype,
+    distributed_setup,
+    cached_file_kwargs,
+    strict=False,
+):
+    """Create a distributed model instance outside of a classmethod frame.
+
+    Lightning's ``save_hyperparameters()`` walks the call stack looking for
+    ``__init__`` frames.  Our ``_from_pretrained`` classmethod has ``__class__``
+    in its closure (due to a ``super()`` call), which Lightning mistakes for an
+    ``__init__`` frame, causing ``KeyError: 'self'``.  By moving the constructor
+    call here (a plain module-level function), the problematic frame is avoided.
+    """
+    model_kwargs['cfg']['init_configure_model'] = False
+    if torch_dtype is not None:
+        model_kwargs['cfg']['torch_dtype'] = (
+            torch_dtype if isinstance(torch_dtype, str) else str(torch_dtype).replace("torch.", "")
+        )
+
+    # 1. Create instance (tokenizer only; llm=None, perception=None)
+    instance = cls(**model_kwargs)
+
+    # 2. Build parallelized architecture
+    instance.configure_model(distributed_setup=distributed_setup)
+
+    # 3. Load weights
+    weight_file = cached_file(model_id, SAFETENSORS_SINGLE_FILE, **cached_file_kwargs)
+    if weight_file is None:
+        raise RuntimeError(f"Missing {SAFETENSORS_SINGLE_FILE} file for {model_id=}")
+    _load_state_dict_with_dtensors(instance, str(Path(weight_file).parent), exact=strict)
+
+    return instance
+
+
+def _load_from_local_weights(cls, model_kwargs, weights_path, map_location, strict):
+    """Construct and load outside a classmethod frame for Lightning compatibility."""
+    model = cls(**model_kwargs)
+    return cls._load_as_safetensor(model, str(weights_path), map_location, strict)
+
+
+def _canonical_dtensor_checkpoint_key(key: str) -> str:
+    """Map a runtime FQN back to the canonical HF-export namespace."""
+    return key.replace("._checkpoint_wrapped_module.", ".")
+
+
+def _canonicalize_named_tensors(named_tensors, kind: str):
+    """Return canonical checkpoint keys mapped to their runtime tensors."""
+    result = {}
+    sources = {}
+    for runtime_key, tensor in named_tensors:
+        checkpoint_key = _canonical_dtensor_checkpoint_key(runtime_key)
+        if checkpoint_key in result:
+            raise RuntimeError(
+                f"Multiple runtime {kind} names map to checkpoint key {checkpoint_key!r}: "
+                f"{sources[checkpoint_key]!r} and {runtime_key!r}."
+            )
+        result[checkpoint_key] = tensor
+        sources[checkpoint_key] = runtime_key
+    return result
+
+
+def _load_state_dict_with_dtensors(model, weight_dir, *, strict: bool = False, exact: bool = False):
+    """Load safetensors weights into a model with DTensor parameters using DCP.
+
+    Uses ``torch.distributed.checkpoint`` with ``_HuggingFaceStorageReader``
+    to load weights directly into model parameters in-place.  This mirrors
+    the loading path used by ``NeMoAutoModelForCausalLM``.
+
+    Args:
+        model: The model with DTensor parameters (after ``configure_model``).
+        weight_dir: Directory containing ``.safetensors`` file(s).
+        strict: Require every named model parameter to exist in the checkpoint.
+            Set this to ``False`` only for an intentional partial initialization.
+        exact: Also require persistent-buffer and extra-state coverage, matching
+            shapes, and no unexpected checkpoint tensors.
+    """
+    from itertools import chain
+
+    import torch.distributed.checkpoint as dcp
+    from nemo_automodel.components.checkpoint._backports.hf_storage import _HuggingFaceStorageReader
+
+    from nemo.collections.speechlm2.parts.weight_loading import apply_checkpoint_extra_state, checkpoint_load_state
+
+    reader = _HuggingFaceStorageReader(path=weight_dir)
+    metadata = reader.read_metadata().state_dict_metadata
+    if exact:
+        state_dict = checkpoint_load_state(model, {key: tuple(value.size) for key, value in metadata.items()})
+    else:
+        # Build state dict from named_parameters/named_buffers.
+        # This avoids FSDP2 state-dict hooks that model.state_dict() triggers.
+        # DCP will write directly into these tensors in-place.
+        parameters = _canonicalize_named_tensors(model.named_parameters(), "parameter")
+        buffers = _canonicalize_named_tensors(model.named_buffers(), "buffer")
+        all_tensors = dict(chain(parameters.items(), buffers.items()))
+
+        # DCP is strict by default — it errors on model keys missing from the
+        # checkpoint (e.g. positional-encoding buffers computed at init).
+        # Keep only keys present in the checkpoint metadata.
+        missing_parameters = sorted(parameters.keys() - metadata.keys())
+        if missing_parameters and strict:
+            examples = ", ".join(missing_parameters[:10])
+            raise RuntimeError(
+                "Refusing to partially initialize a distributed model: "
+                f"{len(missing_parameters)} model parameters are absent from the checkpoint "
+                f"at {weight_dir}. First missing keys: {examples}"
+            )
+
+        state_dict = {key: value for key, value in all_tensors.items() if key in metadata}
+        if missing_parameters:
+            logging.warning(
+                "Leaving %d model parameters at their initialized values because strict loading is disabled "
+                "(first keys: %s)",
+                len(missing_parameters),
+                ", ".join(missing_parameters[:10]),
+            )
+    # DCP + HF storage reader: parses safetensors header for byte offsets,
+    # the planner narrows each tensor to the local DTensor shard,
+    # and copies directly into model parameter storage.
+    dcp.load(state_dict, storage_reader=reader)
+    if exact:
+        apply_checkpoint_extra_state(model, state_dict)
+    ctc_timestamp = getattr(model, "ctc_timestamp", None)
+    if ctc_timestamp is not None:
+        ctc_timestamp.validate_tokenizer()
+
+
+def _inject_local_artifact_paths(cfg: dict, model_id: str, cached_file_kwargs: dict) -> None:
+    """
+    Redirect a loaded SpeechLM2 checkpoint config to artifacts saved beside it.
+
+    The root checkpoint directory keeps NeMo's wrapper ``config.json``. When it
+    also contains a root tokenizer and ``llm_backbone/config.json``, point
+    tokenizer construction to the root directory and LLM config construction to
+    ``llm_backbone`` by mutating ``tokenizer_path`` plus ``pretrained_llm`` or
+    ``pretrained_lm_name`` in-place.
+    """
+    resolved_tokenizer_file = cached_file(model_id, "tokenizer_config.json", **cached_file_kwargs)
+    if resolved_tokenizer_file is not None and ("pretrained_llm" in cfg or "pretrained_lm_name" in cfg):
+        cfg["tokenizer_path"] = str(Path(resolved_tokenizer_file).parent)
+
+    resolved_llm_config_file = cached_file(model_id, f"{LLM_BACKBONE_DIR}/{CONFIG_NAME}", **cached_file_kwargs)
+    if resolved_llm_config_file is None:
+        return
+
+    llm_backbone_path = str(Path(resolved_llm_config_file).parent)
+    if "pretrained_llm" in cfg:
+        cfg["pretrained_llm"] = llm_backbone_path
+    if "pretrained_lm_name" in cfg:
+        cfg["pretrained_lm_name"] = llm_backbone_path
+
+
+def _attach_bundled_ctc_timestamp(model, weights_path: Union[str, Path]) -> None:
+    """Point a compatible speech encoder at a CTC head bundled in its SALM checkpoint."""
+    from safetensors import safe_open
+
+    from nemo.collections.speechlm2.parts.ctc_timestamp_utils import CTC_TIMESTAMP_ARTIFACT_FORMAT
+
+    resolved_path = Path(weights_path).expanduser().resolve()
+    with safe_open(str(resolved_path), framework="pt", device="cpu") as checkpoint:
+        metadata = checkpoint.metadata() or {}
+    if metadata.get("ctc_timestamp_format") != CTC_TIMESTAMP_ARTIFACT_FORMAT:
+        return
+    encoder = getattr(getattr(model, "perception", None), "encoder", None)
+    if encoder is None or not getattr(encoder, "supports_ctc_timestamp_inputs", False):
+        raise RuntimeError("Checkpoint contains a CTC timestamp head but the model has no compatible speech encoder.")
+    encoder.ctc_timestamp_model_path = str(resolved_path)

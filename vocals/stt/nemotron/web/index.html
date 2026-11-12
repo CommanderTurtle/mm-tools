@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Nemotron · studio</title>
+    <link rel="stylesheet" href="/web/style.css" />
+    <script type="module" src="/web/app.js"></script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="/">n<span>•</span></a>
+      <div><strong>Nemotron</strong><small>3.5 TRANSCRIBE / STUDIO</small></div>
+      <span class="profile">NVFP4 <i></i> LOCAL</span
+      ><button id="new">New session</button>
+    </header>
+    <main>
+      <aside class="library">
+        <div class="section-title">
+          <span>SESSIONS</span
+          ><button id="refresh" title="Refresh sessions">↻</button>
+        </div>
+        <div id="history"></div>
+        <div class="library-foot">
+          Audio stays here.<br />Models run on demand.
+        </div>
+      </aside>
+      <section class="workspace">
+        <div class="section-title">
+          <span id="title">Untitled recording</span><span id="duration">—</span>
+        </div>
+        <div class="input-bar">
+          <label class="file-button"
+            >Open media<input
+              id="upload"
+              type="file"
+              accept="audio/*,video/*,.m4a,.flac,.ogg,.mkv" /></label
+          ><button id="record">Record microphone</button>
+          <details class="url-input">
+            <summary>Import URL</summary>
+            <label
+              >Media, podcast episode or video URL<input
+                id="source-url"
+                type="url"
+                placeholder="https://…"
+            /></label>
+          </details>
+          <span id="input-name">Drop audio or video here</span>
+        </div>
+        <div id="stage" class="media-stage">
+          <video id="player" playsinline preload="metadata"></video
+          ><canvas id="wave" aria-label="Audio waveform"></canvas>
+          <div id="empty-media">
+            <span>◉</span><strong>A place to listen closely.</strong>
+            <p>Speech, conversation, film or song.</p>
+          </div>
+          <div id="subtitle"></div>
+        </div>
+        <div class="transport">
+          <button id="back" title="Back 15 seconds">−15</button
+          ><button id="play" class="play" aria-label="Play">▶</button
+          ><button id="forward" title="Forward 15 seconds">+15</button
+          ><span id="position">00:00</span
+          ><input
+            id="seek"
+            aria-label="Playback position"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0"
+          /><span id="length">00:00</span
+          ><select id="speed" aria-label="Playback speed">
+            <option value="0.75">0.75×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option></select
+          ><input
+            id="volume"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value="1"
+            aria-label="Playback volume"
+            title="Volume"
+          /><label title="Show subtitles"
+            ><input id="captions" type="checkbox" checked />CC</label
+          >
+        </div>
+        <div id="mix-panel" hidden>
+          <label
+            >Playback<select id="track">
+              <option value="original.wav">Original</option>
+              <option value="music.wav">Music</option>
+              <option value="vocals.wav">Vocals</option>
+              <option value="mix">Sing along</option>
+            </select></label
+          ><label
+            >Vocal mix<input
+              id="vocal-volume"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value="0.4"
+          /></label>
+          <div id="stem-downloads"></div>
+        </div>
+        <div class="result-toolbar">
+          <h1 id="result-heading">Transcript</h1>
+          <input
+            id="search"
+            type="search"
+            placeholder="Find in transcript"
+            aria-label="Find in transcript"
+          /><select id="speaker" aria-label="Filter speaker">
+            <option value="">All speakers</option></select
+          ><label><input id="follow" type="checkbox" checked />Follow</label
+          ><button id="copy">Copy</button>
+        </div>
+        <div id="warnings" role="status"></div>
+        <div id="language-panel" hidden>
+          <span>Language notes · user annotations</span>
+          <select id="language-filter" aria-label="Filter annotated language">
+            <option value="">All languages</option>
+          </select>
+          <a id="language-export" hidden download="annotations.json"
+            >Download notes</a
+          >
+          <div id="language-map" aria-label="Annotated language timeline"></div>
+        </div>
+        <section id="transcript" class="transcript">
+          <div class="empty-result">
+            <span>01 / INPUT</span>
+            <h2>Start with a recording.</h2>
+            <p>
+              Choose a recipe, adjust the instruction, then listen with the
+              transcript.
+            </p>
+          </div>
+        </section>
+        <div id="exports" class="exports"></div>
+        <details id="reasoning-panel" hidden>
+          <summary>Reasoning</summary>
+          <pre id="reasoning"></pre>
+        </details>
+        <div class="status">
+          <span id="status" role="status" aria-live="polite">Ready</span
+          ><button id="log">Log</button
+          ><button id="remove" disabled>Remove session</button>
+        </div>
+        <pre id="log-text" hidden></pre>
+      </section>
+      <aside class="settings">
+        <form id="form">
+          <div class="section-title">PROCESS</div>
+          <label>Recipe<select id="task" name="task"></select></label
+          ><label
+            >Instruction<textarea
+              name="prompt"
+              id="prompt"
+              rows="7"
+              required
+            ></textarea></label
+          ><label class="check"
+            ><input
+              name="timestamps"
+              id="timestamps"
+              type="checkbox"
+              checked
+            />Word timing + speakers</label
+          ><label class="check" id="continue-label" hidden
+            ><input
+              name="continue_chat"
+              id="continue-chat"
+              type="checkbox"
+            />Continue conversation</label
+          >
+          <details class="advanced">
+            <summary>Native settings</summary>
+            <label
+              >System instruction<textarea
+                name="system"
+                rows="3"
+                placeholder="Optional"
+              ></textarea></label
+            ><label class="check"
+              ><input name="reasoning" id="thinking" type="checkbox" />Reasoning
+              · audio questions</label
+            ><label
+              >Output token budget<input
+                name="max_tokens"
+                type="number"
+                min="128"
+                max="32768"
+                value="16384"
+                step="128"
+                required /></label
+            ><label
+              >Context tokens<input
+                name="context"
+                type="number"
+                min="4096"
+                max="65536"
+                step="1024"
+                value="65536"
+                required /></label
+            ><label
+              >GPU memory fraction<input
+                name="memory"
+                type="number"
+                min="0.1"
+                max="0.95"
+                step="0.01"
+                value="0.85"
+                required /></label
+            ><label class="check"
+              ><input name="mtp" type="checkbox" checked />MTP8 speculative
+              decoding</label
+            >
+            <p class="hint">
+              Mixed NVFP4 / FP8 weights · BF16 compute · FP8 KV. One recording
+              per job, up to one hour. Context and duration capacity depend on
+              available memory.
+            </p>
+          </details>
+          <button id="run" class="primary" type="submit">
+            Run transcription <span>↗</span></button
+          ><button id="cancel" type="button" hidden>Stop active job</button>
+        </form>
+        <div class="recipe-note" id="recipe-note"></div>
+        <div class="source-note">
+          NVIDIA NeMo Speech<br /><code id="source-pin"></code>
+        </div>
+      </aside>
+    </main>
+  </body>
+</html>

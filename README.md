@@ -396,6 +396,20 @@ cd ~/multimedia/video-compact/gif-avif
 
 The host FFmpeg build must expose the requested GIF/AVIF encoder and AVIF muxer.
 
+### Nemotron
+
+Local Nemotron 3.5 transcription, speaker timelines, karaoke, subtitles and audio questions.
+
+```bash
+uv run models/download_models.py nemotron
+cd vocals/stt/nemotron
+./setupwithuv.sh
+./startwithuv.sh                             # http://127.0.0.1:8289
+```
+
+Native NVFP4/FP8 on Blackwell; microphone, media files and explicit URL imports,
+word seeking, CPU vocal separation, saved conversations and timed exports.
+
 ### CrisperWhisper
 
 Local CrisperWhisper 2.0 transcription in normalized or literal mode. The HTTP service and browser workbench use separate ports and model lifecycles.
@@ -430,6 +444,9 @@ ReDesign also defaults to `8173`; change `CW2_UI_PORT` when both browser service
 | `8252` | SymphonyGen local studio |
 | `8253` | VocalRender local studio |
 | `8254` | MiniMax Music 3 local studio |
+| `8289` | Nemotron transcription studio |
+| `8292` | Underdog Bark HTTP |
+| `8293` | Underdog Bark studio |
 
 Services bind to the configured private-LAN interface and do not add public-facing authentication by default. Keep them behind the host firewall or set the supported bearer token where provided.
 
@@ -476,6 +493,3 @@ The only Yue2 frontend with stem splitting!
 Another:
 
 https://a.shel.sh/#media:rZ9jBas~g*mK]Q-()SB$IFDo]Xl-b5y[P,/@f/FwenhdLmh~Aaw
-
-| `8292` | Underdog Bark HTTP |
-| `8293` | Underdog Bark studio |

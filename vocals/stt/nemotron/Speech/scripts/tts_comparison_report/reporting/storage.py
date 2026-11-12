@@ -1,0 +1,188 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+#
+#
+#
+# Unless required by applicable law or agreed to in writing, software
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+import errno
+import json
+from abc import ABC, abstractmethod
+from pathlib import Path
+from stat import S_ISDIR, S_ISLNK
+from typing import Any, BinaryIO, Generator
+
+from paramiko.sftp_client import SFTPClient
+
+
+class BaseStorage(ABC):
+    """Abstract storage interface for accessing report artifacts."""
+
+    @abstractmethod
+    def exists(self, path: Path) -> bool:
+        """Check whether a path exists.
+
+        Args:
+            path: Path to check.
+
+        Returns:
+            True if the path exists, otherwise False.
+        """
+        ...
+
+    @abstractmethod
+    def iter_dir(
+        self,
+        path: Path,
+        only_dirs: bool = False,
+    ) -> Generator[Path, None, None]:
+        """Iterate over items in a directory.
+
+        Args:
+            path: Directory path to iterate.
+            only_dirs: Whether to yield only directory entries. When True,
+                symbolic links are followed, so a link whose target is a
+                directory is yielded as the link path; dangling links are skipped.
+
+        Yields:
+            Paths of directory entries.
+        """
+        ...
+
+    @abstractmethod
+    def open_file(self, path: Path) -> BinaryIO:
+        """Open a file for binary reading.
+
+        Args:
+            path: Path to the file.
+
+        Returns:
+            Binary file-like object.
+        """
+        ...
+
+    @abstractmethod
+    def read_json(self, path: Path) -> Any:
+        """Read and parse a JSON file.
+
+        Args:
+            path: Path to the JSON file.
+
+        Returns:
+            Parsed JSON content.
+        """
+        ...
+
+    @abstractmethod
+    def read_bytes(self, path: Path) -> bytes:
+        """Read raw bytes from a file in storage.
+
+        Args:
+            path: Path to the file.
+
+        Returns:
+            File content as bytes.
+        """
+        ...
+
+
+class LocalStorage(BaseStorage):
+    """Storage backend for accessing artifacts on the local filesystem."""
+
+    def exists(self, path: Path) -> bool:
+        """See the BaseStorage class docstring."""
+        return path.exists()
+
+    def iter_dir(
+        self,
+        path: Path,
+        only_dirs: bool = False,
+    ) -> Generator[Path, None, None]:
+        """See the BaseStorage class docstring."""
+        for p in path.iterdir():
+            if only_dirs and not p.is_dir():
+                continue
+            yield p
+
+    def open_file(self, path: Path) -> BinaryIO:
+        """See the BaseStorage class docstring."""
+        return open(path, "rb")
+
+    def read_json(self, path: Path) -> Any:
+        """See the BaseStorage class docstring."""
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data
+
+    def read_bytes(self, path: Path) -> bytes:
+        """See the BaseStorage class docstring."""
+        return path.read_bytes()
+
+
+class SFTPStorage(BaseStorage):
+    """Storage backend for accessing artifacts on a remote host over SFTP."""
+
+    def __init__(self, sftp: SFTPClient) -> None:
+        super().__init__()
+        self.sftp = sftp
+
+    def exists(self, path: Path) -> bool:
+        """See the BaseStorage class docstring."""
+        try:
+            self.sftp.stat(path.as_posix())
+            return True
+
+        except FileNotFoundError:
+            return False
+
+        except OSError as e:
+            if getattr(e, "errno", None) == errno.ENOENT:
+                return False
+            raise
+
+    def _is_dir(self, path: Path, mode: int) -> bool:
+        if S_ISDIR(mode):
+            return True
+
+        if S_ISLNK(mode):
+            try:
+                return S_ISDIR(self.sftp.stat(path.as_posix()).st_mode)
+
+            except FileNotFoundError:
+                return False
+
+            except OSError as e:
+                if getattr(e, "errno", None) == errno.ENOENT:
+                    return False
+                raise
+
+        return False
+
+    def iter_dir(
+        self,
+        path: Path,
+        only_dirs: bool = False,
+    ) -> Generator[Path, None, None]:
+        """See the BaseStorage class docstring."""
+        for item in self.sftp.listdir_attr(path.as_posix()):
+            item_path = path / item.filename
+
+            if only_dirs and not self._is_dir(item_path, item.st_mode):
+                continue
+
+            yield item_path
+
+    def open_file(self, path: Path) -> BinaryIO:
+        """See the BaseStorage class docstring."""
+        return self.sftp.open(path.as_posix(), "rb")
+
+    def read_json(self, path: Path) -> Any:
+        """See the BaseStorage class docstring."""
+        with self.sftp.open(path.as_posix(), "rb") as f:
+            data = json.loads(f.read().decode("utf-8"))
+        return data
+
+    def read_bytes(self, path: Path) -> bytes:
+        """See the BaseStorage class docstring."""
+        with self.sftp.open(path.as_posix(), "rb") as f:
+            data = f.read()
+        return data

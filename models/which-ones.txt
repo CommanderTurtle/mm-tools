@@ -1214,6 +1214,22 @@ PyTorch/torchvision/NumPy/SciPy: BSD; Flask/Waitress: BSD/ZPL; Pillow: HPND;
 Supervision: MIT; Matplotlib: PSF-derived. No vLLM server is required.
 https://huggingface.co/tencent/WeVisOne-VL-4B
 
+86. Nemotron 3.5 Transcribe (bundle: nemotron)
+Source: NVIDIA-NeMo/Speech @ 3d381ffad4a513885c97a48a577013ed805d88da (Apache-2.0)
+Model: nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-NVFP4
+@ 66c6adc4020179567074d0399cda2a4eeb2bb347 (OpenMDW-1.1).
+Includes the mixed NVFP4/FP8 decoder, perception encoder, BF16 CTC heads, FP8 MTP,
+tokenizer, nested backbone config and model licenses, in models/nemotron-transcribe.
+Karaoke: Meta htdemucs 955717e8-8726e21a.th from its official release (MIT);
+SHA256 8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b4.
+Independent studio: root AGPL-3.0. NeMo/vLLM/Transformers: Apache-2.0;
+PyTorch/torchaudio/NumPy: BSD; Demucs: MIT; Flask/Waitress: BSD/ZPL;
+PyAV: BSD; FFmpeg: LGPL/GPL depending on installed build; yt-dlp: Unlicense;
+yt-dlp-ejs: Unlicense/MIT/ISC; Deno: MIT, installed for explicit media URL imports.
+Local Linux/Blackwell lane, CUDA 13 toolkit; native vLLM0.32.0 locked stack.
+The original Space's cloud providers and copyrighted demo media are separate.
+https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-NVFP4
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,
