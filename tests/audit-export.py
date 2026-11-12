@@ -19,7 +19,7 @@ def tracked(root: Path) -> list[str]:
 # Vendored library assets that must stay tracked: loaded relative to the
 # module path by the code itself, with no model-downloader source upstream.
 VENDORED_ASSETS = {
-    "sculpting/native/nvdiffrec/nvdiffrec_render/bsdf_256_256.bin",
+    "sculpting/trellis/native/nvdiffrec/nvdiffrec_render/bsdf_256_256.bin",
 }
 
 def audit(root: Path, files: list[str]) -> dict:

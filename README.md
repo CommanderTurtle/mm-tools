@@ -15,6 +15,18 @@ This repo was created for protecting open-source runtimes under a documentable h
 
 ## What you actually have to do
 
+| Directory | Runtimes |
+| --- | --- |
+| `vocals/tts`, `vocals/stt`, `vocals/singing` | Speech synthesis, transcription, singing |
+| `music` | Composition, generation, score transcription |
+| `motion-sim` | Character animation and motion reconstruction |
+| `sculpting` | Mesh generation and editing |
+| `world-gen` | World generation |
+| `visual-modeling` | Image understanding and decomposition |
+
+`translate`, `ideogram`, `img2svg`, `video-compact`, `models`, `workflows`, and
+`tests` remain at the root. GIF/AVIF conversion lives in `video-compact/gif-avif`.
+
 Install the host tools required by the projects you plan to run:
 
 - `uv` for Python environments and packages
@@ -208,7 +220,7 @@ cd ~/multimedia/img2svg
 Local LongCat voice synthesis and cloning. The HTTP service and browser workbench own independent model lifecycles.
 
 ```bash
-cd ~/multimedia/longcat
+cd ~/multimedia/vocals/tts/longcat
 ./setupwithuv.sh
 ./starthttp.sh                            # machine API: :8230
 ./startwithuv.sh                          # browser UI: :8231
@@ -219,7 +231,7 @@ cd ~/multimedia/longcat
 Native ACE-Step 1.5 music generation, editing, repainting, extension, and audio-to-audio controls.
 
 ```bash
-cd ~/multimedia/acestep
+cd ~/multimedia/music/acestep
 ./setupwithuv.sh
 ./startwithuv.sh                          # http://127.0.0.1:8250
 ```
@@ -243,7 +255,7 @@ The browser owns a private loopback song engine. Its separate Prompt Guide tab u
 Foundation-1 text-to-audio with the enhanced Stable Audio Gradio controls, local T5 conditioning, MIDI analysis, and optional TorchAO controls.
 
 ```bash
-cd ~/multimedia/stableaudio
+cd ~/multimedia/music/stableaudio
 ./setupwithuv.sh
 ./startwithuv.sh                          # http://127.0.0.1:8251
 ```
@@ -253,7 +265,7 @@ cd ~/multimedia/stableaudio
 Two-stage symbolic composition: generate harmony MIDI, then orchestrate a MIDI sketch with baseline or GRPO checkpoints.
 
 ```bash
-cd ~/multimedia/symphony
+cd ~/multimedia/music/symphony
 ./setupwithuv.sh
 ./startwithuv.sh                          # http://127.0.0.1:8252
 ```
@@ -265,7 +277,7 @@ The web process is model-free while idle. Each generation request owns and relea
 Prompt-conditioned local singing synthesis with the highest-quality Pro weights only, explicit load/unload controls, browser playback, and WAV downloads.
 
 ```bash
-cd ~/multimedia/vocalrender
+cd ~/multimedia/vocals/singing/vocalrender
 ./setupwithuv.sh
 ./startwithuv.sh                          # http://127.0.0.1:8253
 ```
@@ -275,7 +287,7 @@ cd ~/multimedia/vocalrender
 Audio-to-MIDI/score transcription with a browser piano roll.
 
 ```bash
-cd ~/multimedia/muscriptor
+cd ~/multimedia/music/muscriptor
 ./setupwithuv.sh
 ./startwithuv.sh                             # http://127.0.0.1:8222
 ```
@@ -291,7 +303,7 @@ Single-file CLI:
 Sheet-music image/PDF encoding and SMT-backed beKern/MIDI/SVG conversion.
 
 ```bash
-cd ~/multimedia/musvit
+cd ~/multimedia/music/musvit
 ./setupwithuv.sh
 ./startwithuv.sh                             # browser studio: :8223
 ./startwithuv.sh SCORE_IMAGE_OR_PDF          # direct CLI
@@ -304,7 +316,7 @@ Use `musvit_embed.py` directly for the embedding lane.
 Flat-image decomposition into editable layers using local detection, segmentation, inpainting, OCR, and Qwen Image Layered components.
 
 ```bash
-cd ~/multimedia/redesign
+cd ~/multimedia/visual-modeling/redesign
 ./setupwithuv.sh
 ./startwithuv.sh                             # http://127.0.0.1:8173
 ```
@@ -341,7 +353,7 @@ cd ~/multimedia/video-compact
 Local trim/crop/resize and animated GIF or AVIF conversion.
 
 ```bash
-cd ~/multimedia/video-to-gif-avif
+cd ~/multimedia/video-compact/gif-avif
 ./setupwithuv.sh
 ./startwithuv.sh                             # http://127.0.0.1:8241
 ```
@@ -353,7 +365,7 @@ The host FFmpeg build must expose the requested GIF/AVIF encoder and AVIF muxer.
 Local CrisperWhisper 2.0 transcription in normalized or literal mode. The HTTP service and browser workbench use separate ports and model lifecycles.
 
 ```bash
-cd ~/multimedia/whisper
+cd ~/multimedia/vocals/stt/whisper
 ./setupwithuv.sh
 ./starthttp.sh                            # machine API: :8172
 ./startwithuv.sh                          # browser UI: :8173

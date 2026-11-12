@@ -27,7 +27,7 @@ required=(
   "$COMFY/models/detection/vitpose_h_wholebody_model.onnx"
   "$COMFY/models/detection/vitpose_h_wholebody_data.bin"
   "$COMFY/models/detection/yolov10m.onnx"
-  "$ROOT/../../sculpting/pretrained/deps/ZhengPeng7--BiRefNet/model.safetensors"
+  "$ROOT/../../sculpting/trellis/pretrained/deps/ZhengPeng7--BiRefNet/model.safetensors"
 )
 for path in "${required[@]}"; do
   [[ -s "$path" ]] || { printf 'Missing allowlisted artifact: %s\nRun ../../models/download_models.py v2v and ../download_models.py animate first.\n' "$path" >&2; exit 1; }

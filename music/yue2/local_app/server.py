@@ -555,7 +555,7 @@ def build_application(manifest: dict[str, Any], project_root: Path, adapter_path
         try:
             health = crisper_refine.status()
             if not health["up"]:
-                raise RuntimeError(f"CrisperWhisper is offline ({'; '.join(health['tried'])}). Start it with whisper/starthttp.sh or whisper/startwithuv.sh.")
+                raise RuntimeError(f"CrisperWhisper is offline ({'; '.join(health['tried'])}). Start it with vocals/stt/whisper/starthttp.sh or vocals/stt/whisper/startwithuv.sh.")
             job, path = _resolve_job_output(state["job_id"], state["relative"])
             lines = _job_lyrics(job)
             baseline = ((next((item for item in job.get("outputs", []) if item.get("relative") == state["relative"]), {}) or {}).get("metadata") or {}).get("lyric_timestamps") or []
@@ -611,7 +611,7 @@ def build_application(manifest: dict[str, Any], project_root: Path, adapter_path
         if len(lines) < 2:
             raise HTTPException(422, "This take has no lyrics to sync.")
         if kind == "v2" and not crisper_refine.status()["up"]:
-            raise HTTPException(503, "CrisperWhisper is offline. Start it with whisper/starthttp.sh or whisper/startwithuv.sh.")
+            raise HTTPException(503, "CrisperWhisper is offline. Start it with vocals/stt/whisper/starthttp.sh or vocals/stt/whisper/startwithuv.sh.")
         state = _start_sync(kind, job["id"], relative, language=str(payload.get("language") or "auto"))
         loop = asyncio.get_running_loop()
         loop.run_in_executor(None, _run_vocal_sync_worker if kind == "v1" else _run_crisper_worker, state)

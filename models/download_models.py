@@ -82,7 +82,7 @@ QWEN_GUIDE = A(
 # tree; the source snapshot remains intact for resume/checksum purposes.
 SCULPT_SPARSE_DECODER = A(
     "microsoft/TRELLIS-image-large",
-    repo_path("sculpting/pretrained/deps/microsoft--TRELLIS-image-large"),
+    repo_path("sculpting/trellis/pretrained/deps/microsoft--TRELLIS-image-large"),
     (
         "ckpts/ss_dec_conv3d_16l8_fp16.json",
         "ckpts/ss_dec_conv3d_16l8_fp16.safetensors",
@@ -91,17 +91,17 @@ SCULPT_SPARSE_DECODER = A(
     placements=(
         (
             "ckpts/ss_dec_conv3d_16l8_fp16.json",
-            repo_path("sculpting/pretrained/TRELLIS.2-4B/ckpts/ss_dec_conv3d_16l8_fp16.json"),
+            repo_path("sculpting/trellis/pretrained/TRELLIS.2-4B/ckpts/ss_dec_conv3d_16l8_fp16.json"),
         ),
         (
             "ckpts/ss_dec_conv3d_16l8_fp16.safetensors",
-            repo_path("sculpting/pretrained/TRELLIS.2-4B/ckpts/ss_dec_conv3d_16l8_fp16.safetensors"),
+            repo_path("sculpting/trellis/pretrained/TRELLIS.2-4B/ckpts/ss_dec_conv3d_16l8_fp16.safetensors"),
         ),
     ),
 )
 SCULPT_DINO = A(
     "camenduru/dinov3-vitl16-pretrain-lvd1689m",
-    repo_path("sculpting/pretrained/deps/camenduru--dinov3-vitl16-pretrain-lvd1689m"),
+    repo_path("sculpting/trellis/pretrained/deps/camenduru--dinov3-vitl16-pretrain-lvd1689m"),
     (
         "config.json",
         "model.safetensors",
@@ -115,7 +115,7 @@ SCULPT_RMBG = A(
     # the official ZhengPeng7 model is ungated, so unattended setup stays
     # deterministic instead of stalling on a click-through approval.
     "ZhengPeng7/BiRefNet",
-    repo_path("sculpting/pretrained/deps/ZhengPeng7--BiRefNet"),
+    repo_path("sculpting/trellis/pretrained/deps/ZhengPeng7--BiRefNet"),
     (
         "BiRefNet_config.py",
         "birefnet.py",
@@ -126,13 +126,13 @@ SCULPT_RMBG = A(
 )
 SCULPT_MOGE = A(
     "Ruicheng/moge-2-vitl",
-    repo_path("sculpting/pretrained/deps/Ruicheng--moge-2-vitl"),
+    repo_path("sculpting/trellis/pretrained/deps/Ruicheng--moge-2-vitl"),
     ("model.pt",),
     revision="39c4d5e957afe587e04eec59dc2bcc3be5ecd968",
 )
 SCULPT_NAF = A(
     "valeoai/NAF release checkpoint",
-    repo_path("sculpting/pretrained/deps/valeoai--NAF"),
+    repo_path("sculpting/trellis/pretrained/deps/valeoai--NAF"),
     direct_url="https://github.com/valeoai/NAF/releases/download/model/naf_release.pth",
     direct_filename="naf_release.pth",
     sha256="c096c1ab2217a5c3ac136365f721685e2201379cb69d509cfb0261183847c98f",
@@ -266,22 +266,22 @@ BUNDLES: tuple[Bundle, ...] = (
             ),
             A(
                 "benjiaiplayground/GroundingDINO_SwinB",
-                repo_path("redesign/weights"),
+                repo_path("visual-modeling/redesign/weights"),
                 ("groundingdino_swinb_cogcoor.pth",),
             ),
             A(
                 "facebook/sam2.1-hiera-large",
-                repo_path("redesign/weights"),
+                repo_path("visual-modeling/redesign/weights"),
                 ("sam2.1_hiera_large.pt",),
             ),
             A(
                 "GoGiants1/Hi-SAM",
-                repo_path("redesign/weights"),
+                repo_path("visual-modeling/redesign/weights"),
                 ("sam_tss_h_textseg.pth", "sam_vit_h_4b8939.pth"),
             ),
-            A("iimate/big-lama-pt", repo_path("redesign/weights"), ("big-lama.pt",)),
-            A("jixin0101/ObjectClear", repo_path("redesign/weights"), cache_layout=True),
-            A("google-bert/bert-base-uncased", repo_path("redesign/weights"), cache_layout=True),
+            A("iimate/big-lama-pt", repo_path("visual-modeling/redesign/weights"), ("big-lama.pt",)),
+            A("jixin0101/ObjectClear", repo_path("visual-modeling/redesign/weights"), cache_layout=True),
+            A("google-bert/bert-base-uncased", repo_path("visual-modeling/redesign/weights"), cache_layout=True),
             A(
                 "PaddlePaddle/PP-OCRv5_server_det",
                 Path.home() / ".paddlex/official_models/PP-OCRv5_server_det",
@@ -449,7 +449,7 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A(
                 "AntResearch/4DAnyone",
-                repo_path("4d-ify/models"),
+                repo_path("motion-sim/4d-ify/models"),
                 (
                     "4danyone/*",
                     "gvhmr/*",
@@ -459,7 +459,7 @@ BUNDLES: tuple[Bundle, ...] = (
             ),
             A(
                 "ZhengPeng7/BiRefNet",
-                repo_path("4d-ify/models/birefnet"),
+                repo_path("motion-sim/4d-ify/models/birefnet"),
                 (
                     "BiRefNet_config.py",
                     "birefnet.py",
@@ -471,10 +471,10 @@ BUNDLES: tuple[Bundle, ...] = (
             ),
             A(
                 "camenduru/GVHMR",
-                repo_path("4d-ify/models/.sources/camenduru--GVHMR"),
+                repo_path("motion-sim/4d-ify/models/.sources/camenduru--GVHMR"),
                 ("dpvo/dpvo.pth",),
                 revision="21b32d5389e2e59c0737d4c4095bbc0b8c23f66b",
-                placements=(("dpvo/dpvo.pth", repo_path("4d-ify/models/gvhmr/dpvo.pth")),),
+                placements=(("dpvo/dpvo.pth", repo_path("motion-sim/4d-ify/models/gvhmr/dpvo.pth")),),
             ),
         ),
     ),
@@ -544,7 +544,7 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A(
                 "tencent/AuK",
-                repo_path("aukspeech/ckpts/AuK"),
+                repo_path("vocals/tts/aukspeech/ckpts/AuK"),
                 (
                     "auk_base.safetensors",
                     "config.yaml",
@@ -554,7 +554,7 @@ BUNDLES: tuple[Bundle, ...] = (
             ),
             A(
                 "Qwen/Qwen2.5-Omni-3B",
-                repo_path("aukspeech/ckpts/Qwen2.5-Omni-3B"),
+                repo_path("vocals/tts/aukspeech/ckpts/Qwen2.5-Omni-3B"),
                 (
                     "added_tokens.json",
                     "chat_template.json",
@@ -581,13 +581,13 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A(
                 "microsoft/TRELLIS.2-4B",
-                repo_path("sculpting/pretrained/TRELLIS.2-4B"),
+                repo_path("sculpting/trellis/pretrained/TRELLIS.2-4B"),
                 ("pipeline.json", "texturing_pipeline.json", "ckpts/*"),
                 revision="af44b45f2e35a493886929c6d786e563ec68364d",
             ),
             A(
                 "TencentARC/Pixal3D",
-                repo_path("sculpting/world/pretrained/Pixal3D"),
+                repo_path("sculpting/trellis/world/pretrained/Pixal3D"),
                 (
                     "pipeline.json",
                     "pipeline_mv.json",
@@ -609,7 +609,7 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A(
                 "TencentARC/Pixal3D",
-                repo_path("sculpting/world/pretrained/Pixal3D"),
+                repo_path("sculpting/trellis/world/pretrained/Pixal3D"),
                 (
                     "pipeline.json",
                     "pipeline_mv.json",
@@ -619,7 +619,7 @@ BUNDLES: tuple[Bundle, ...] = (
             ),
             A(
                 "AlayaLab/WorldSculpt",
-                repo_path("sculpting/world/pretrained"),
+                repo_path("sculpting/trellis/world/pretrained"),
                 (
                     "shape_ft1024_mv_lora_ibr_texverse_fixedmem05/config.json",
                     "shape_ft1024_mv_lora_ibr_texverse_fixedmem05/ckpts/*.pt",
@@ -642,31 +642,31 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A(
                 "nvidia/ARDY-Core-RP-20FPS-Horizon40",
-                repo_path("nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon40"),
+                repo_path("motion-sim/nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon40"),
                 ("config.yaml", "denoiser.safetensors", "tokenizer.safetensors", "stats/*/*.npy"),
                 revision="abe6c43beb28c867c950acb824b9c4ef3d63fb76",
             ),
             A(
                 "nvidia/ARDY-Core-RP-20FPS-Horizon8",
-                repo_path("nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon8"),
+                repo_path("motion-sim/nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon8"),
                 ("config.yaml", "denoiser.safetensors", "tokenizer.safetensors", "stats/*/*.npy"),
                 revision="257a0843a10bf5201065963d7bca2791e9393a7a",
             ),
             A(
                 "nvidia/ARDY-G1-RP-25FPS-Horizon52",
-                repo_path("nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon52"),
+                repo_path("motion-sim/nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon52"),
                 ("config.yaml", "denoiser.safetensors", "tokenizer.safetensors", "stats/*/*.npy"),
                 revision="059b8007df0ba194a006a877b59a563955ac7b70",
             ),
             A(
                 "nvidia/ARDY-G1-RP-25FPS-Horizon8",
-                repo_path("nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon8"),
+                repo_path("motion-sim/nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon8"),
                 ("config.yaml", "denoiser.safetensors", "tokenizer.safetensors", "stats/*/*.npy"),
                 revision="334a8a9cdbafc962dcd304c26f31e6b17a869355",
             ),
             A(
                 "voxta/Llama-3-8B-LLM2Vec-ARDY-INT8",
-                repo_path("nvidia-sim/text-encoders/voxta/Llama-3-8B-LLM2Vec-ARDY-INT8"),
+                repo_path("motion-sim/nvidia-sim/text-encoders/voxta/Llama-3-8B-LLM2Vec-ARDY-INT8"),
                 (
                     "chat_template.jinja",
                     "config.json",
@@ -679,7 +679,7 @@ BUNDLES: tuple[Bundle, ...] = (
             ),
             A(
                 "nvidia/SOMA-X",
-                repo_path("nvidia-sim/SOMA-X/assets"),
+                repo_path("motion-sim/nvidia-sim/SOMA-X/assets"),
                 (
                     "Anny/*",
                     "GarmentMeasurements/*",

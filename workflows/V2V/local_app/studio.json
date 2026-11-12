@@ -25,7 +25,7 @@
     {"label": "ID-V2V normal + depth", "path": "../ComfyUI/models/diffusion_models/wan_2.1_idv2v_with_normal_depth_int8_convrot.safetensors", "note": "Three-control alternate checkpoint"},
     {"label": "UMT5 XXL", "path": "../ComfyUI/models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors", "note": "FP8 scaled"},
     {"label": "CLIP Vision H", "path": "../ComfyUI/models/clip_vision/clip_vision_h.safetensors"},
-    {"label": "Local subject matte", "path": "../../sculpting/pretrained/deps/ZhengPeng7--BiRefNet", "note": "Shared; no duplicate checkpoint"}
+    {"label": "Local subject matte", "path": "../../sculpting/trellis/pretrained/deps/ZhengPeng7--BiRefNet", "note": "Shared; no duplicate checkpoint"}
   ],
   "setup_steps": [
     "Run `cd ~/multimedia/workflows/V2V && ./setupwithuv.sh` once. This prepares the single shared ID-V2V / Animate 2 environment.",

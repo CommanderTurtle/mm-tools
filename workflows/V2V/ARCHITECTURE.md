@@ -27,7 +27,7 @@ The normal ID-V2V path reproduces the released graph:
    private runtime.
 
 Automatic foreground preparation uses the already allowlisted BiRefNet model
-from `sculpting/pretrained/deps`; it is released before Comfy loads the 20 GB
+from `sculpting/trellis/pretrained/deps`; it is released before Comfy loads the 20 GB
 diffusion model.  This avoids a duplicate segmentation checkpoint and avoids
 the native project's gated SAM3 dependency.  A prepared SAM3-compatible video
 can always be uploaded instead.  Relighting deliberately skips segmentation

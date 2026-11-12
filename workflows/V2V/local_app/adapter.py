@@ -47,7 +47,7 @@ class Adapter(StudioAdapter):
         self.comfy = project_root.parent / "ComfyUI"
         self.python = project_root / ".venv" / "bin" / "python"
         self.models = self.comfy / "models"
-        self.birefnet = self.repo_root / "sculpting" / "pretrained" / "deps" / "ZhengPeng7--BiRefNet"
+        self.birefnet = self.repo_root / "sculpting" / "trellis" / "pretrained" / "deps" / "ZhengPeng7--BiRefNet"
 
     def health(self) -> dict[str, Any]:
         required = [

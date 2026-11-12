@@ -6,7 +6,7 @@ be launched from any working directory and still targets `<mm-tools>/models`.
 Before every selected download it explicitly creates the complete destination
 with `parents=True`. A fresh clone therefore does not need pre-existing `qwen`,
 `text-only`, `imports`, project-local checkpoint, Comfy model,
-`redesign/weights`, or PaddleX directories.
+`visual-modeling/redesign/weights`, or PaddleX directories.
 Current Hugging Face Hub writes real files into `local_dir`; older Hub releases
 receive their former `local_dir_use_symlinks=False` compatibility flag only
 when that argument still exists.
@@ -191,7 +191,7 @@ models/PRAIG--musvit/
 └── model.safetensors
 ```
 
-Used by: musvit/musvit_embed.py through MUSVIT_MODEL_PATH for score-image
+Used by: music/musvit/musvit_embed.py through MUSVIT_MODEL_PATH for score-image
 representations.
 
 9. PRAIG/smt-fp-grandstaff
@@ -203,7 +203,7 @@ models/PRAIG--smt-fp-grandstaff/
 └── model.safetensors
 ```
 
-Used by: musvit/sheet_to_midi.py through SMT_MODEL_PATH for sheet-music
+Used by: music/musvit/sheet_to_midi.py through SMT_MODEL_PATH for sheet-music
 decoding before MIDI and SVG rendering.
 
 10. nyralabs/CrisperWhisper2.0_large
@@ -399,32 +399,32 @@ from the strict ID-V2V allowlist. These two identifiers remain reserved so the
 established 24-40 inventory does not silently change meaning.
 
 24. benjiaiplayground/GroundingDINO_SwinB
-Expected folder: redesign/weights
+Expected folder: visual-modeling/redesign/weights
 
 ```text
-redesign/weights/
+visual-modeling/redesign/weights/
 └── groundingdino_swinb_cogcoor.pth
 ```
 
-Used by: redesign/ReDesign/tool_gpu_manager.py and the detect CLI primitive for
+Used by: visual-modeling/redesign/ReDesign/tool_gpu_manager.py and the detect CLI primitive for
 open-vocabulary object detection.
 
 25. facebook/sam2.1-hiera-large
-Expected folder: redesign/weights
+Expected folder: visual-modeling/redesign/weights
 
 ```text
-redesign/weights/
+visual-modeling/redesign/weights/
 └── sam2.1_hiera_large.pt
 ```
 
-Used by: redesign/ReDesign/tool_gpu_manager.py and the detect CLI primitive for
+Used by: visual-modeling/redesign/ReDesign/tool_gpu_manager.py and the detect CLI primitive for
 object segmentation.
 
 26. GoGiants1/Hi-SAM
-Expected folder: redesign/weights
+Expected folder: visual-modeling/redesign/weights
 
 ```text
-redesign/weights/
+visual-modeling/redesign/weights/
 ├── sam_tss_h_textseg.pth
 └── sam_vit_h_4b8939.pth
 ```
@@ -433,10 +433,10 @@ Used by: redesign text extraction for text-region masks and editable text
 layers.
 
 27. iimate/big-lama-pt
-Expected folder: redesign/weights
+Expected folder: visual-modeling/redesign/weights
 
 ```text
-redesign/weights/
+visual-modeling/redesign/weights/
 └── big-lama.pt
 ```
 
@@ -444,10 +444,10 @@ Used by: redesign text and object-removal primitives for local background
 inpainting.
 
 28. jixin0101/ObjectClear ReDesign cache
-Expected folder: redesign/weights/models--jixin0101--ObjectClear
+Expected folder: visual-modeling/redesign/weights/models--jixin0101--ObjectClear
 
 ```text
-redesign/weights/models--jixin0101--ObjectClear/
+visual-modeling/redesign/weights/models--jixin0101--ObjectClear/
 ├── blobs/
 ├── refs/
 └── snapshots/
@@ -458,10 +458,10 @@ from the direct ideogram ObjectClear folder because the ReDesign loader expects
 Hugging Face cache layout.
 
 29. google-bert/bert-base-uncased ReDesign cache
-Expected folder: redesign/weights/models--google-bert--bert-base-uncased
+Expected folder: visual-modeling/redesign/weights/models--google-bert--bert-base-uncased
 
 ```text
-redesign/weights/models--google-bert--bert-base-uncased/
+visual-modeling/redesign/weights/models--google-bert--bert-base-uncased/
 ├── blobs/
 ├── refs/
 └── snapshots/
@@ -635,10 +635,10 @@ it only once. Neither application loads it until the corresponding helper is
 requested. Ideogram can also skip caption inference when given valid JSON.
 
 41. AntResearch/4DAnyone
-Expected folder: 4d-ify/models
+Expected folder: motion-sim/4d-ify/models
 
 ```text
-4d-ify/models/
+motion-sim/4d-ify/models/
 ├── 4danyone/
 │   └── model.safetensors
 ├── gvhmr/
@@ -659,10 +659,10 @@ SMPL-X body model is not redistributed or downloaded automatically; obtain it
 from the official SMPL-X provider when the runtime asks for it.
 
 42. ZhengPeng7/BiRefNet (4DAnyone placement)
-Expected folder: 4d-ify/models/birefnet
+Expected folder: motion-sim/4d-ify/models/birefnet
 
 ```text
-4d-ify/models/birefnet/
+motion-sim/4d-ify/models/birefnet/
 ├── BiRefNet_config.py
 ├── birefnet.py
 ├── config.json
@@ -732,10 +732,10 @@ TRELLIS decoders, and normalization statistics. Fire3D was admitted because
 its Git source is modest; the large weights remain optional and user-selected.
 
 45. tencent/AuK
-Expected folder: aukspeech/ckpts/AuK
+Expected folder: vocals/tts/aukspeech/ckpts/AuK
 
 ```text
-aukspeech/ckpts/AuK/
+vocals/tts/aukspeech/ckpts/AuK/
 ├── auk_base.safetensors
 ├── config.yaml
 ├── vae.safetensors
@@ -748,10 +748,10 @@ path. AuK-Flash and service-only alternatives are intentionally outside this
 strict core bundle.
 
 46. Qwen/Qwen2.5-Omni-3B
-Expected folder: aukspeech/ckpts/Qwen2.5-Omni-3B
+Expected folder: vocals/tts/aukspeech/ckpts/Qwen2.5-Omni-3B
 
 ```text
-aukspeech/ckpts/Qwen2.5-Omni-3B/
+vocals/tts/aukspeech/ckpts/Qwen2.5-Omni-3B/
 ├── config.json
 ├── generation_config.json
 ├── model-*.safetensors
@@ -765,10 +765,10 @@ Used by: AuK as its required local multimodal/text encoder. The complete
 runtime snapshot is retained rather than relying on a later network fetch.
 
 47. microsoft/TRELLIS.2-4B
-Expected folder: sculpting/pretrained/TRELLIS.2-4B
+Expected folder: sculpting/trellis/pretrained/TRELLIS.2-4B
 
 ```text
-sculpting/pretrained/TRELLIS.2-4B/
+sculpting/trellis/pretrained/TRELLIS.2-4B/
 ├── pipeline.json
 ├── texturing_pipeline.json
 └── ckpts/
@@ -781,10 +781,10 @@ Inventory 64 supplies the one sparse-structure decoder referenced from the
 older TRELLIS-image-large release but absent from this snapshot.
 
 48. TencentARC/Pixal3D
-Expected folder: sculpting/world/pretrained/Pixal3D
+Expected folder: sculpting/trellis/world/pretrained/Pixal3D
 
 ```text
-sculpting/world/pretrained/Pixal3D/
+sculpting/trellis/world/pretrained/Pixal3D/
 ├── pipeline.json
 ├── pipeline_mv.json
 ├── ckpts/
@@ -793,15 +793,15 @@ sculpting/world/pretrained/Pixal3D/
 └── NOTICE
 ```
 
-Used by: both `sculpting/ComfyUI-Pixal3D` and `sculpting/world`. The full
+Used by: both `sculpting/trellis/ComfyUI-Pixal3D` and `sculpting/trellis/world`. The full
 single-view, multiview, 512/1024, and texture checkpoint set is shared at one
 documented path.
 
 49. AlayaLab/WorldSculpt
-Expected folder: sculpting/world/pretrained
+Expected folder: sculpting/trellis/world/pretrained
 
 ```text
-sculpting/world/pretrained/
+sculpting/trellis/world/pretrained/
 ├── shape_ft1024_mv_lora_ibr_texverse_fixedmem05/
 │   ├── config.json
 │   └── ckpts/
@@ -810,7 +810,7 @@ sculpting/world/pretrained/
     └── ckpts/
 ```
 
-Used by: `sculpting/world` for its two released WorldSculpt stages. Inventory
+Used by: `sculpting/trellis/world` for its two released WorldSculpt stages. Inventory
 48 supplies its documented Pixal3D base; inventory 47 supplies the sibling
 TRELLIS.2 runtime dependency through the sculpting bundle when needed.
 Inventories 65-68 supply the shared, strictly local image encoder, background
@@ -841,16 +841,16 @@ Retired from this downloader; now supplied by workflows/download_models.py
 detection-model folder as before.
 
 53. nvidia/ARDY-Core-RP-20FPS-Horizon40
-Expected folder: nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon40
+Expected folder: motion-sim/nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon40
 
 54. nvidia/ARDY-Core-RP-20FPS-Horizon8
-Expected folder: nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon8
+Expected folder: motion-sim/nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon8
 
 55. nvidia/ARDY-G1-RP-25FPS-Horizon52
-Expected folder: nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon52
+Expected folder: motion-sim/nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon52
 
 56. nvidia/ARDY-G1-RP-25FPS-Horizon8
-Expected folder: nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon8
+Expected folder: motion-sim/nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon8
 
 Each ARDY folder contains its `config.yaml`, denoiser, tokenizer, complete
 per-character statistics, license, and README. Together these are the four
@@ -858,7 +858,7 @@ canonical Core and Unitree G1 long/short-horizon variants named by
 `update.txt`; none is silently substituted.
 
 57. voxta/Llama-3-8B-LLM2Vec-ARDY-INT8
-Expected folder: nvidia-sim/text-encoders/voxta/Llama-3-8B-LLM2Vec-ARDY-INT8
+Expected folder: motion-sim/nvidia-sim/text-encoders/voxta/Llama-3-8B-LLM2Vec-ARDY-INT8
 
 ```text
 .../Llama-3-8B-LLM2Vec-ARDY-INT8/
@@ -885,10 +885,10 @@ network fallback. The former gated BF16 base and two loose adapters are not
 part of the canonical download.
 
 58. nvidia/SOMA-X
-Expected folder: nvidia-sim/SOMA-X/assets
+Expected folder: motion-sim/nvidia-sim/SOMA-X/assets
 
 ```text
-nvidia-sim/SOMA-X/assets/
+motion-sim/nvidia-sim/SOMA-X/assets/
 ├── Anny/
 ├── GarmentMeasurements/
 ├── MANO/
@@ -963,23 +963,23 @@ blueprints. The downloader hard-links both files into the corresponding
 than replace, the native YuE2 models in items 59-62.
 
 64. microsoft/TRELLIS-image-large (sparse decoder only)
-Snapshot folder: sculpting/pretrained/deps/microsoft--TRELLIS-image-large
+Snapshot folder: sculpting/trellis/pretrained/deps/microsoft--TRELLIS-image-large
 
 Only `ckpts/ss_dec_conv3d_16l8_fp16.{json,safetensors}` plus the model card
 are retained. The two checkpoint files are hard-linked into
-`sculpting/pretrained/TRELLIS.2-4B/ckpts`, completing the exact pipeline graph
+`sculpting/trellis/pretrained/TRELLIS.2-4B/ckpts`, completing the exact pipeline graph
 without downloading the rest of this legacy repository.
 
 65. camenduru/dinov3-vitl16-pretrain-lvd1689m
 Expected folder:
-sculpting/pretrained/deps/camenduru--dinov3-vitl16-pretrain-lvd1689m
+sculpting/trellis/pretrained/deps/camenduru--dinov3-vitl16-pretrain-lvd1689m
 
 The safetensors model, config, processor, model card, and license are retained.
 Both TRELLIS.2 and Pixal3D are given this absolute local directory in their
 generated runtime pipeline configs; no Hub resolution is permitted.
 
 66. ZhengPeng7/BiRefNet
-Expected folder: sculpting/pretrained/deps/ZhengPeng7--BiRefNet
+Expected folder: sculpting/trellis/pretrained/deps/ZhengPeng7--BiRefNet
 
 The safetensors model, configuration, and two required custom Python model
 files are retained. This is the official ungated checkpoint compatible with
@@ -988,14 +988,14 @@ Both sculpting runtimes use this one local snapshot for deterministic
 background removal.
 
 67. Ruicheng/moge-2-vitl
-Expected folder: sculpting/pretrained/deps/Ruicheng--moge-2-vitl
+Expected folder: sculpting/trellis/pretrained/deps/Ruicheng--moge-2-vitl
 
 The released `model.pt` and model card are retained for optional automatic
 camera/FOV estimation in Pixal3D. Manual camera controls stay available and do
 not require loading MoGe.
 
 68. valeoai/NAF release checkpoint
-Expected file: sculpting/pretrained/deps/valeoai--NAF/naf_release.pth
+Expected file: sculpting/trellis/pretrained/deps/valeoai--NAF/naf_release.pth
 
 This 2.6 MB official release asset supplies Pixal3D's trained feature
 upsampling path. It is fetched directly from the upstream GitHub release with

@@ -30,7 +30,7 @@
     {"label": "UMT5 XXL NVFP4", "path": "../ComfyUI/models/text_encoders/UMT5_XXL_NVFP4.safetensors", "note": "Blackwell NVFP4 twin of the FP8 UMT5 encoder"},
     {"label": "CLIP Vision H", "path": "../ComfyUI/models/clip_vision/clip_vision_h.safetensors"},
     {"label": "ViTPose + YOLO", "path": "../ComfyUI/models/detection/", "note": "Mix preprocessing and diagnostic lane"},
-    {"label": "BiRefNet", "path": "../../sculpting/pretrained/deps/ZhengPeng7--BiRefNet/model.safetensors", "note": "Shared local source-character matte"}
+    {"label": "BiRefNet", "path": "../../sculpting/trellis/pretrained/deps/ZhengPeng7--BiRefNet/model.safetensors", "note": "Shared local source-character matte"}
   ],
   "setup_steps": [
     "Run `cd ~/multimedia/workflows && .venv/bin/python download_models.py animate` to install the allowlisted direct-motion and scene-replacement models.",
