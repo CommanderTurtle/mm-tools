@@ -943,6 +943,16 @@ BUNDLES += (Bundle("unlimited-ocr2", "Unlimited OCR 2 document studio", "84", (
 )),)
 
 
+BUNDLES += (Bundle("pixel-wizard", "WeVisOne-VL-4B perception studio", "85", (
+    A("tencent/WeVisOne-VL-4B", model_path("wevisone-vl-4b"),
+      ("*.safetensors", "*.pt", "*.json", "*.jinja", "LICENSE", "README.md"),
+      revision="6b44a45873b4bbc7dca383922504430dc60eca23"),
+    A("hugging-apps/wevisone-vl-4b", model_path("wevisone-vl-4b"),
+      ("examples/*.jpg",), repo_type="space",
+      revision="ef77acac09937039d2d8cf318dc613090d8f7cba"),
+)),)
+
+
 UNDERDOG = json.loads((MODELS / "manifests/underdog.json").read_text())
 BUNDLES += tuple(
     Bundle(f"underdog-{key}", f"{row['name']} English STT ({row['download']})", row["inventory"], (

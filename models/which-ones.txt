@@ -1201,6 +1201,19 @@ Independent studio: root AGPL-3.0. PyMuPDF: AGPL-3.0; Marked, DOMPurify, KaTeX: 
 Inter / IBM Plex Mono: OFL-1.1.
 https://huggingface.co/baidu/Unlimited-OCR-2
 
+85. Pixel Wizard (bundle: pixel-wizard)
+Source: Tencent/WeVisOne-VL @ 9a6bcd85404505df0d05cfb5d97512ccacf35dee (Apache-2.0)
+Model: tencent/WeVisOne-VL-4B @ 6b44a45873b4bbc7dca383922504430dc60eca23 (Apache-2.0)
+Includes the Qwen3-VL checkpoint, tokenizer/processor and native mask_decoder.pt.
+Examples: hugging-apps/wevisone-vl-4b @ ef77acac09937039d2d8cf318dc613090d8f7cba;
+the pinned Space declares no separate example-image license. Review asset terms before redistribution.
+Stored in models/wevisone-vl-4b; setup links the store into visual-modeling/pixel-wizard.
+The studio follows the native Transformers CUDA/BF16 path and pixel decoder.
+Independent studio: root AGPL-3.0. Native engine/Transformers: Apache-2.0;
+PyTorch/torchvision/NumPy/SciPy: BSD; Flask/Waitress: BSD/ZPL; Pillow: HPND;
+Supervision: MIT; Matplotlib: PSF-derived. No vLLM server is required.
+https://huggingface.co/tencent/WeVisOne-VL-4B
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,

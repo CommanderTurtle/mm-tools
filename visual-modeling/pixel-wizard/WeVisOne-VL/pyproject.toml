@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools==80.10.2", "wheel==0.47.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wevisone-vl"
+version = "1.0.0"
+description = "Unified visual perception from objects to pixels (WeVisOne-VL)"
+requires-python = ">=3.10"
+authors = [{ name = "WeChat Vision, Tencent Inc." }]
+dependencies = [
+  "accelerate==1.14.0",
+  "huggingface-hub==1.21.0",
+  "matplotlib==3.11.0",
+  "numpy==2.2.6",
+  "Pillow==12.2.0",
+  "pycocotools==2.0.11",
+  "qwen_vl_utils==0.0.14",
+  "safetensors==0.8.0",
+  "scipy==1.18.1",
+  "supervision==0.31.0",
+  "torch==2.11.0",
+  "torchvision==0.26.0",
+  "transformers==5.12.1",
+]
+
+[project.optional-dependencies]
+demo = ["gradio==6.30.0"]
+vllm = [
+  "vllm==0.23.0 ; sys_platform != 'win32'",
+  "triton==3.6.0 ; sys_platform != 'win32'",
+]
+
+[project.scripts]
+wevisone-vl = "wevisone_vl.cli:main"
+
+[project.urls]
+Repository = "https://github.com/Tencent/WeVisOne-VL"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["wevisone_vl*", "evaluation*"]
+exclude = ["evaluation.tests*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

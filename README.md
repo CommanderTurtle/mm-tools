@@ -337,9 +337,15 @@ Use `musvit_embed.py` directly for the embedding lane.
 
 ### Unlimited OCR 2
 
-[Unlimited OCR 2 studio](visual-modeling/OCR/README.md) parses ordered PDF/image
+[Unlimited OCR 2 studio](visual-modeling/OCR/ARCHITECTURE.md) parses ordered PDF/image
 pages into a structured document with layout overlays, tables, equations and
 figure crops. Select `unlimited-ocr2` in the downloader; serve on `:8287`.
+
+### Pixel Wizard
+
+[Pixel Wizard](visual-modeling/pixel-wizard/ARCHITECTURE.md) uses WeVisOne-VL-4B for
+grounding, detection, counting, pointing, OCR, captions, segmentation and alpha
+matting. Select `pixel-wizard` in the downloader; serve on `:8288`.
 
 ### ReDesign
 

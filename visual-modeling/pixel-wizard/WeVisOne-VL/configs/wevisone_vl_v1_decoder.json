@@ -1,0 +1,32 @@
+{
+  "format_version": 1,
+  "release": "wevisone_vl_v1",
+  "checkpoint_contract": {
+    "state_dict_tensors": 296,
+    "parameters": 9609764,
+    "seg_token_id": 152678,
+    "spatial_merge_size": 2
+  },
+  "refinement": {
+    "implementation": "FullCanvasAlphaCascadeHead"
+  },
+  "cfg": {
+    "alpha_cascade_blocks": 2,
+    "alpha_cascade_dim": 48,
+    "architecture_version": "wevisone_vl_v1",
+    "cnn_image_size": 1024,
+    "group_norm_groups": 32,
+    "hidden_dim": 192,
+    "mask_feature_dim": 64,
+    "msda_encoder_layers": 3,
+    "msda_num_levels": 4,
+    "msda_num_points": 4,
+    "num_fourier_freqs": 32,
+    "stem_mid_dim": 128,
+    "transformer_dropout": 0.0,
+    "transformer_ffn_dim": 768,
+    "transformer_heads": 8,
+    "transformer_layers": 6,
+    "vision_feature_layers": [5, 11, 17, 23]
+  }
+}

@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Pixel Wizard</title>
+    <link rel="stylesheet" href="/web/style.css" />
+    <script type="module" src="/web/app.js"></script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="/"
+        ><span class="mark" aria-hidden="true">▧</span> pixel wizard</a
+      ><span class="chip">WeVisOne-VL <b>4B</b></span
+      ><button id="history-button">Saved runs <span>↗</span></button>
+    </header>
+    <main>
+      <div class="heading">
+        <div>
+          <p class="eyebrow">VISUAL PERCEPTION / LOCAL STUDIO</p>
+          <h1>Objects. Points. <em>Pixels.</em></h1>
+        </div>
+        <p class="engine">
+          Transformers · BF16<br /><span>Models load per run</span>
+        </p>
+      </div>
+      <nav id="tasks" class="tasks" aria-label="Perception task"></nav>
+      <div class="workspace">
+        <section class="panel input-panel">
+          <div class="panel-head">
+            <h2><span>01</span> Image & query</h2>
+            <span id="dimensions" class="muted">—</span>
+          </div>
+          <fieldset id="inputs">
+            <div id="drop" class="input-stage">
+              <canvas
+                id="input"
+                hidden
+                aria-label="Input image; drag to draw reference boxes"
+                tabindex="0"
+              ></canvas
+              ><label id="upload-hint" for="upload"
+                ><span class="upload-icon">＋</span>Drop an image here<span
+                  >or choose a file</span
+                ></label
+              ><input id="upload" type="file" accept="image/*" hidden />
+            </div>
+            <div class="image-tools">
+              <button id="choose" type="button">Choose image</button
+              ><button id="camera-button" type="button">Camera</button
+              ><button id="clear-boxes" type="button" hidden>Clear boxes</button
+              ><span id="box-hint" hidden>Drag on the image</span>
+            </div>
+            <label id="query-label" for="query">Grounding expression</label
+            ><textarea
+              id="query"
+              rows="3"
+              placeholder="boys holding microphone"
+            ></textarea>
+            <label id="caption-label" hidden
+              >Caption preset<select id="caption">
+                <option
+                  value="describe the image with bounding boxes in detail"
+                >
+                  Detailed · with boxes
+                </option>
+                <option
+                  value="describe the image with bounding boxes in one sentence."
+                >
+                  One sentence · with boxes
+                </option>
+                <option value="">Free-form / VQA</option>
+              </select></label
+            >
+            <details>
+              <summary>Prompt override <span>↗</span></summary>
+              <label for="prompt">Leave empty for the native task prompt</label
+              ><textarea
+                id="prompt"
+                rows="3"
+                placeholder="Exact instruction sent to the model"
+              ></textarea>
+            </details>
+            <details>
+              <summary>Generation parameters <span>↗</span></summary>
+              <div class="parameters">
+                <label
+                  >Max new tokens <output id="tokens-value">1024</output
+                  ><input
+                    id="max_new_tokens"
+                    type="range"
+                    min="64"
+                    max="8192"
+                    step="64"
+                    value="1024"
+                /></label>
+                <label
+                  >Temperature <output id="temp-value">0</output
+                  ><input
+                    id="temperature"
+                    type="range"
+                    min="0"
+                    max="1.5"
+                    step="0.05"
+                    value="0"
+                /></label>
+                <label
+                  >Top p<input
+                    id="top_p"
+                    type="number"
+                    min="0.01"
+                    max="1"
+                    step="0.01"
+                    value="0.95"
+                /></label>
+                <label
+                  >Top k<input
+                    id="top_k"
+                    type="number"
+                    min="1"
+                    max="100"
+                    value="50"
+                /></label>
+                <label
+                  >Repetition penalty<input
+                    id="repetition_penalty"
+                    type="number"
+                    min="1"
+                    max="1.5"
+                    step="0.01"
+                    value="1.05"
+                /></label>
+              </div>
+            </details>
+            <button id="run" type="button" class="primary">
+              Run perception <span>↗</span>
+            </button>
+          </fieldset>
+          <button id="stop" type="button" class="danger" hidden>
+            Stop & release model
+          </button>
+          <p id="status" role="status" aria-live="polite">
+            Choose an image or an example.
+          </p>
+        </section>
+        <section class="panel result-panel">
+          <div class="panel-head">
+            <h2><span>02</span> Inspection</h2>
+            <button id="download-view" disabled>Export view ↗</button>
+          </div>
+          <div class="viewbar">
+            <label
+              >View<select id="display">
+                <option value="auto">Auto</option>
+                <option value="overlay">Overlay</option>
+                <option value="green">Green screen</option>
+                <option value="alpha">Mask / alpha</option>
+                <option value="cutout">Cutout</option>
+                <option value="original">Original</option>
+              </select></label
+            ><label
+              >Instance<select id="instance">
+                <option value="all">All objects</option>
+              </select></label
+            ><button id="replay" disabled>Replay ↻</button>
+          </div>
+          <div class="result-stage" id="result-stage">
+            <canvas id="result" hidden aria-label="Perception result"></canvas>
+            <div id="result-empty">
+              <span>⌗</span>
+              <h3>Image → geometry</h3>
+              <p>
+                Boxes, points and alpha mattes<br />appear here after a run.
+              </p>
+            </div>
+            <div class="scan" aria-hidden="true"></div>
+          </div>
+          <div id="stats" class="stats"></div>
+          <div
+            id="instances"
+            class="instances"
+            aria-label="Detected objects"
+          ></div>
+          <details>
+            <summary>Display controls <span>↗</span></summary>
+            <div class="visual-controls">
+              <label class="check"
+                ><input id="show-boxes" type="checkbox" checked />Boxes /
+                points</label
+              ><label class="check"
+                ><input id="show-labels" type="checkbox" checked />Labels</label
+              ><label class="check"
+                ><input id="show-masks" type="checkbox" checked />Masks</label
+              >
+              <label
+                >Palette<select id="palette">
+                  <option value="auto">By category</option>
+                  <option value="#ff5c7c">Pink</option>
+                  <option value="#2fd47b">Green</option>
+                  <option value="#409cff">Blue</option>
+                  <option value="#ffb830">Amber</option>
+                  <option value="#b05cff">Purple</option>
+                  <option value="#00ccc4">Cyan</option>
+                  <option value="#ffffff">White</option>
+                  <option value="custom">Custom</option>
+                </select></label
+              ><label
+                >Custom color<input id="color" type="color" value="#ff5c7c"
+              /></label>
+              <label
+                >Line width<input
+                  id="line-width"
+                  type="range"
+                  min="1"
+                  max="10"
+                  value="3" /></label
+              ><label
+                >Label size<input
+                  id="font-size"
+                  type="range"
+                  min="10"
+                  max="40"
+                  value="16"
+              /></label>
+              <label
+                >Mask opacity<input
+                  id="opacity"
+                  type="range"
+                  min="0.05"
+                  max="0.95"
+                  step="0.05"
+                  value="0.45" /></label
+              ><label
+                >Segmentation threshold<input
+                  id="threshold"
+                  type="range"
+                  min="0.1"
+                  max="0.9"
+                  step="0.05"
+                  value="0.5"
+              /></label>
+            </div>
+          </details>
+          <div class="output-head">
+            <h3>Model output</h3>
+            <button id="copy" disabled>Copy</button>
+          </div>
+          <pre id="raw" tabindex="0">Awaiting perception.</pre>
+          <details id="sent-prompt" hidden>
+            <summary>Sent prompt</summary>
+            <pre id="prompt-text"></pre>
+          </details>
+          <div id="exports" class="exports" hidden></div>
+          <button id="log-button" hidden>Worker log</button>
+        </section>
+      </div>
+      <section class="examples-section">
+        <div class="section-title">
+          <h2>Examples</h2>
+          <span>Choose a scene, then run</span>
+        </div>
+        <div id="examples" class="examples"></div>
+      </section>
+      <footer>
+        <span>One image · every granularity</span><span id="revision"></span>
+      </footer>
+    </main>
+    <dialog id="history">
+      <div class="panel-head">
+        <h2>Saved runs</h2>
+        <button id="close-history">Close</button>
+      </div>
+      <div id="history-list"></div>
+    </dialog>
+    <dialog id="logs">
+      <div class="panel-head">
+        <h2>Worker log</h2>
+        <button id="close-log">Close</button>
+      </div>
+      <pre id="log-text"></pre>
+    </dialog>
+    <dialog id="camera">
+      <div class="panel-head">
+        <h2>Camera</h2>
+        <button id="close-camera">Close</button>
+      </div>
+      <video id="camera-video" autoplay playsinline muted></video
+      ><button id="capture" class="primary">Use frame</button>
+    </dialog>
+  </body>
+</html>
