@@ -1,0 +1,31 @@
+# Pins that go into docker/Dockerfile. Not a laptop install list —
+# flash-attn and atorch expect the CUDA image.
+# Ming-3.0-tts-0.5b only; tiny installs requirements-tiny.txt instead.
+
+torch==2.6.0
+torchaudio==2.6.0
+torchvision==0.21.0
+
+transformers==4.46.3
+tokenizers
+accelerate==1.3.0
+huggingface_hub
+numpy
+soundfile==0.12.1
+tqdm
+loguru
+diffusers==0.33.0
+x_transformers
+onnxruntime
+inflect
+einops
+packaging
+modelscope
+pynini==2.1.6
+
+# tiny kernels (safe to keep in the shared image)
+fla-core==0.4.1
+atorch==1.7.0
+
+# Optional acceleration (image installs the matching wheel)
+# flash_attn

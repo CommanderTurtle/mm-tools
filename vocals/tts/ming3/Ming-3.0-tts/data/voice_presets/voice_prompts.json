@@ -1,0 +1,10 @@
+{
+  "DB30": {
+    "text": "感谢你的认可。",
+    "audio": "voice_audio/db30.wav"
+  },
+  "lingguang": {
+    "text": "诶，你今天有空吗？我们能不能聊聊这件事啊？",
+    "audio": "voice_audio/lingguang.wav"
+  }
+}

@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Ming · studio</title>
+    <link rel="stylesheet" href="/web/style.css" />
+    <script src="/web/app.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span class="mark">m</span>
+        <div>
+          <h1>Ming <span>studio</span></h1>
+          <small>Speech / performance / dialogue</small>
+        </div>
+      </div>
+      <div class="header-right">
+        <span id="engine">Loading workspace</span
+        ><button id="new">New take</button>
+      </div>
+    </header>
+    <main>
+      <aside>
+        <div class="eyebrow">01 / Instrument</div>
+        <label
+          >Model<select id="model">
+            <option value="0.5B">0.5B · dense / ~3 GB</option>
+            <option value="tiny">tiny · MoE / ~18 GB</option>
+          </select></label
+        >
+        <p class="muted">BF16 · 44.1 kHz<br />Models load per take.</p>
+        <div
+          id="tasks"
+          class="tasks"
+          role="group"
+          aria-label="Speech task"
+        ></div>
+        <div class="history-head">
+          <h2>Takes</h2>
+          <button id="refresh" aria-label="Refresh takes">↻</button>
+        </div>
+        <div id="history"></div>
+        <details class="provenance">
+          <summary>Source</summary>
+          <code id="source"></code>
+        </details>
+      </aside>
+      <section class="workspace">
+        <form id="form">
+          <fieldset id="editor" disabled>
+            <div class="section-head">
+              <div>
+                <div class="eyebrow">02 / Composition</div>
+                <h2 id="task-title">Built-in voice</h2>
+              </div>
+              <label class="import"
+                >Import text<input
+                  id="import"
+                  type="file"
+                  accept=".txt,.md,text/plain,text/markdown"
+              /></label>
+            </div>
+            <p class="muted" id="task-help"></p>
+            <div class="control-grid">
+              <label data-modes="seed multilingual paralinguistic"
+                >Language<select id="language"></select
+              ></label>
+              <label data-modes="ip"
+                >Voice search<input
+                  id="voice-search"
+                  type="search"
+                  placeholder="Name or language"
+              /></label>
+              <label data-modes="ip"
+                >Built-in voice<select id="ip"></select
+              ></label>
+              <label class="wide" data-modes="voice_design"
+                >Voice description<textarea
+                  id="style"
+                  rows="3"
+                  placeholder="A warm documentary narrator, measured pace, clear articulation."
+                ></textarea>
+              </label>
+              <label class="wide" data-modes="freeform"
+                >Direction<textarea
+                  id="instruction"
+                  rows="3"
+                  placeholder="Begin quietly, then brighten. Stress the final word."
+                ></textarea>
+              </label>
+              <label data-modes="emotion"
+                >Emotion<select id="emotion">
+                  <option value="高兴">Happy</option>
+                  <option value="悲伤">Sad</option>
+                  <option value="愤怒">Angry</option>
+                  <option value="恐惧">Fearful</option>
+                  <option value="厌恶">Disgusted</option>
+                  <option value="惊讶">Surprised</option>
+                  <option value="中性">Neutral</option>
+                </select></label
+              >
+              <label data-modes="dialect"
+                >Dialect<select id="dialect">
+                  <option value="cantonese">Cantonese / 粤语</option>
+                  <option value="chuanyu dialect">Sichuanese / 川渝话</option>
+                </select></label
+              >
+              <label data-modes="basic"
+                >Speed<select id="speed">
+                  <option value="慢速">Slow</option>
+                  <option value="中速">Medium</option>
+                  <option value="快速">Fast</option>
+                </select></label
+              >
+              <label data-modes="basic"
+                >Pitch<select id="pitch">
+                  <option value="低">Low</option>
+                  <option value="中">Medium</option>
+                  <option value="高">High</option>
+                </select></label
+              >
+              <label data-modes="basic"
+                >Volume<select id="volume">
+                  <option value="低">Low</option>
+                  <option value="中">Medium</option>
+                  <option value="高">High</option>
+                </select></label
+              >
+            </div>
+            <div class="script-head">
+              <label for="text">Script</label
+              ><span id="count">0 characters</span>
+            </div>
+            <textarea
+              id="text"
+              class="script"
+              rows="9"
+              maxlength="24000"
+              placeholder="Write the words to speak…"
+              required
+            ></textarea>
+            <div id="tags" class="chips" data-modes="paralinguistic"></div>
+            <div data-modes="podcast">
+              <p class="muted">
+                One turn per line: <code>speaker_1: Hello.</code> Every
+                reference speaker must appear. The native model generates the
+                complete dialogue together; its frame budget tops out at 48
+                seconds.
+              </p>
+              <div id="turns" class="turns" aria-label="Dialogue turns"></div>
+              <button type="button" id="add-turn">Add turn</button>
+            </div>
+            <section id="reference-section">
+              <div class="section-head">
+                <div>
+                  <div class="eyebrow">03 / Casting</div>
+                  <h2>Reference voices</h2>
+                </div>
+                <button type="button" id="add-speaker" data-modes="podcast">
+                  Add speaker
+                </button>
+              </div>
+              <p class="muted">
+                Use a clean 3–10 second recording. Transcripts must match the
+                recording exactly.
+              </p>
+              <div id="speakers"></div>
+            </section>
+            <details class="advanced">
+              <summary>
+                Generation controls <span>Native defaults</span>
+              </summary>
+              <div class="control-grid">
+                <label
+                  >Seed<input
+                    id="seed"
+                    type="number"
+                    min="-1"
+                    max="4294967295"
+                    step="1"
+                    placeholder="Native default"
+                /></label>
+                <label
+                  >CFG<input id="cfg" type="number" min="0" max="10" step="0.1"
+                /></label>
+                <label
+                  >Sigma<input
+                    id="sigma"
+                    type="number"
+                    min="0"
+                    max="2"
+                    step="0.01"
+                /></label>
+                <label
+                  >Temperature<input
+                    id="temperature"
+                    type="number"
+                    min="0"
+                    max="2"
+                    step="0.05"
+                /></label>
+                <label id="chunk-label"
+                  >Text fragment target<input
+                    id="max_length"
+                    type="number"
+                    min="1"
+                    max="500"
+                    step="1"
+                /></label>
+                <label class="tiny-only"
+                  >Flow steps<input
+                    id="flow_steps"
+                    type="number"
+                    min="1"
+                    max="100"
+                    step="1"
+                /></label>
+                <label class="decode-only"
+                  >Maximum decode steps<input
+                    id="max_decode_steps"
+                    type="number"
+                    min="1"
+                    max="4000"
+                    step="1"
+                    placeholder="Native default"
+                /></label>
+                <label class="tiny-only decode-only"
+                  >Minimum decode steps<input
+                    id="min_decode_steps"
+                    type="number"
+                    min="1"
+                    max="4000"
+                    step="1"
+                    placeholder="13"
+                /></label>
+                <label class="tiny-only"
+                  >Stop threshold<input
+                    id="stop_threshold"
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    placeholder="0.5"
+                /></label>
+                <label data-modes="podcast"
+                  >Minimum frames<input
+                    id="min_frames"
+                    type="number"
+                    min="8"
+                    max="600"
+                    step="1"
+                    placeholder="Automatic from dialogue"
+                /></label>
+                <label data-modes="podcast"
+                  >Maximum frames<input
+                    id="max_frames"
+                    type="number"
+                    min="8"
+                    max="600"
+                    step="1"
+                    placeholder="Automatic from dialogue"
+                /></label>
+              </div>
+              <div class="checks">
+                <label
+                  ><input type="checkbox" id="normalization" />Text
+                  normalization</label
+                ><label
+                  ><input type="checkbox" id="trim" />Trim trailing
+                  silence</label
+                ><label
+                  ><input type="checkbox" id="raw" />Raw text · bypass
+                  preparation and splitting</label
+                >
+              </div>
+              <p class="muted" id="defaults-note"></p>
+            </details>
+          </fieldset>
+          <div class="transport">
+            <span id="status" role="status" aria-live="polite">Ready</span
+            ><button id="cancel" type="button" hidden>Cancel</button
+            ><button id="generate" type="submit" disabled>
+              Generate speech <span>↗</span>
+            </button>
+          </div>
+        </form>
+        <section id="output" hidden>
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">04 / Playback</div>
+              <h2>Take <span id="take-seed"></span></h2>
+            </div>
+            <span id="duration"></span>
+          </div>
+          <p id="warning" role="status"></p>
+          <canvas
+            id="wave"
+            height="130"
+            tabindex="0"
+            role="slider"
+            aria-label="Seek audio"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          ></canvas>
+          <div class="playback">
+            <audio id="player" controls preload="metadata"></audio
+            ><label
+              >Playback<select id="playback-rate">
+                <option value="0.75">0.75×</option>
+                <option value="1" selected>1×</option>
+                <option value="1.25">1.25×</option>
+                <option value="1.5">1.5×</option>
+              </select></label
+            >
+          </div>
+          <div id="downloads" class="downloads"></div>
+        </section>
+        <details id="log-panel">
+          <summary>Worker log</summary>
+          <pre id="log"></pre>
+        </details>
+      </section>
+    </main>
+    <footer>
+      <span>Ming 3.0</span><span id="footer-status">Local workspace</span>
+    </footer>
+  </body>
+</html>

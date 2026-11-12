@@ -974,6 +974,32 @@ BUNDLES += (Bundle("audio8", "Audio8 Realistic Air speech studio", "87", (
 )),)
 
 
+MING3_REVISION = "a39b80660bdc5a4394d5e1d41af6dbfd9c443a54"
+MING3_REFERENCES = tuple(
+    A("inclusionAI/Ming-3.0-tts", model_path("ming3/references"),
+      direct_url=f"https://raw.githubusercontent.com/inclusionAI/Ming-3.0-tts/{MING3_REVISION}/{path}",
+      direct_filename=Path(path).name, sha256=sha, expected_size=size)
+    for path, sha, size in (
+        ("data/voice_presets/voice_audio/lingguang.wav", "c1e7e796f9e7798db98de29625cf1ae8acb5eaa271171f52223e47ea777b2802", 321690),
+        ("data/voice_presets/voice_audio/db30.wav", "1611471cc6ebdda5a207802802ad12d2265b21e61e2ca43b98a2605cf981559c", 39094),
+        ("data/wavs/emotion_prompt.wav", "0380398fb7055a0fb00080ad3084024969c35441bd11f7c463b148ac5bce8b4d", 139678),
+        ("data/wavs/yue_prompt.wav", "766fa80cd16b1488d4ff01f7c8e6fd3ce5775d215266bfbbe807f73ca89aa2f2", 132558),
+    )
+) + (A("hugging-apps/ming-3-tts-05b", model_path("ming3/references"), ("voices.json",),
+       repo_type="space", revision="d4ecae7bc5c59fb0b8e80461e503e53a8a6ba6bd"),)
+BUNDLES += tuple(
+    Bundle(key, title, inventory, (
+        A(f"inclusionAI/Ming-3.0-tts-{variant}", model_path(f"ming3/{variant}"),
+          ("*.safetensors", "*.onnx", "*.json", "*.txt", "*.py", "*.jinja", "LICENSE", "README.md"),
+          revision=revision), *MING3_REFERENCES,
+    ))
+    for key, title, inventory, variant, revision in (
+        ("ming3-0.5b", "Ming3 0.5B dense speech (~3 GB)", "88", "0.5B", "7247f4c94a5b2e987404ed28a5cfec41b1a4ca61"),
+        ("ming3-tiny", "Ming3 tiny MoE speech + podcast (~18 GB)", "89", "tiny", "4715ef5a2f02901f75687d538b6920fd0dd11e6b"),
+    )
+)
+
+
 UNDERDOG = json.loads((MODELS / "manifests/underdog.json").read_text())
 BUNDLES += tuple(
     Bundle(f"underdog-{key}", f"{row['name']} English STT ({row['download']})", row["inventory"], (

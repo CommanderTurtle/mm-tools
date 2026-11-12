@@ -1243,6 +1243,23 @@ PyTorch/torchaudio/NumPy/SoundFile: BSD; libsndfile: LGPL; Flask/Waitress: BSD/Z
 FFmpeg: LGPL/GPL depending on installed build.
 https://huggingface.co/Edge0/Audio8-TTS-Realistic-Air
 
+88–89. Ming3 (bundles: ming3-0.5b, ming3-tiny)
+Source: inclusionAI/Ming-3.0-tts @ a39b80660bdc5a4394d5e1d41af6dbfd9c443a54 (MIT).
+88: inclusionAI/Ming-3.0-tts-0.5B @ 7247f4c94a5b2e987404ed28a5cfec41b1a4ca61 (MIT), ~3 GB.
+89: inclusionAI/Ming-3.0-tts-tiny @ 4715ef5a2f02901f75687d538b6920fd0dd11e6b (MIT), ~18 GB.
+Independent choices in models/ming3, including CampPlus and complete tokenizer/model shards.
+Reference recordings: pinned native source; voice catalogue: hugging-apps/ming-3-tts-05b
+@ d4ecae7bc5c59fb0b8e80461e503e53a8a6ba6bd (MIT). Review voice rights for redistribution.
+Native FST normalization grammars ship with the pinned source, committed at
+vocals/tts/ming3/Ming-3.0-tts/.
+Independent studio: root AGPL-3.0. Transformers/Diffusers/Safetensors/Pynini/FLA: Apache-2.0/MIT;
+PyTorch/torchaudio/NumPy/SciPy/SoundFile: BSD; ONNX Runtime/x-transformers: MIT;
+libsndfile: LGPL; Flask/Waitress: BSD/ZPL; FFmpeg: LGPL/GPL depending on installed build.
+Separate Python 3.11 environments, native BF16; tiny retains FP32 recurrent state.
+CUDA 12.8 PyTorch wheels target Blackwell. Tiny alone provides podcast generation.
+https://huggingface.co/inclusionAI/Ming-3.0-tts-0.5B
+https://huggingface.co/inclusionAI/Ming-3.0-tts-tiny
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,

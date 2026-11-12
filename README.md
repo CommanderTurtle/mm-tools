@@ -424,6 +424,21 @@ cd vocals/tts/audio8
 Native BF16 and 44.1 kHz codec, microphone/file references, waveform seeking,
 saved sessions, WAV/FLAC and codec-token exports.
 
+### Ming3
+
+Local voice design, cloning, multilingual delivery and multi-speaker podcasts.
+
+```bash
+uv run models/download_models.py ming3-0.5b  # dense, ~3 GB
+uv run models/download_models.py ming3-tiny  # optional MoE + podcast, ~18 GB
+cd vocals/tts/ming3
+./setupwithuv.sh
+./startwithuv.sh                             # http://127.0.0.1:8291
+```
+
+Separate native BF16 environments, reference recording, director controls,
+vocal tags, saved takes, waveform seeking and WAV/FLAC exports.
+
 ### CrisperWhisper
 
 Local CrisperWhisper 2.0 transcription in normalized or literal mode. The HTTP service and browser workbench use separate ports and model lifecycles.
@@ -460,6 +475,7 @@ ReDesign also defaults to `8173`; change `CW2_UI_PORT` when both browser service
 | `8254` | MiniMax Music 3 local studio |
 | `8289` | Nemotron transcription studio |
 | `8290` | Audio8 speech studio |
+| `8291` | Ming3 speech and podcast studio |
 | `8292` | Underdog Bark HTTP |
 | `8293` | Underdog Bark studio |
 

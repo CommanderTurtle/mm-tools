@@ -1,0 +1,21 @@
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch==2.7.1+cu128
+torchaudio==2.7.1+cu128
+transformers==4.46.3
+tokenizers==0.20.3
+safetensors==0.8.0
+accelerate==1.14.0
+huggingface_hub==0.36.2
+triton==3.3.1
+packaging==26.2
+numpy==1.26.4
+scipy==1.15.3
+soundfile==0.14.0
+onnxruntime==1.23.2
+einops==0.8.2
+einx==0.4.3
+loguru==0.7.3
+x-transformers==2.7.4
+fla-core==0.4.2
+inflect==7.5.0
+pynini==2.1.6

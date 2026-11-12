@@ -1,0 +1,31 @@
+# Ming-3.0-tts-tiny ordinary inference reference pins (Python 3.10.15).
+#
+#   pip install -r requirements-tiny.txt
+
+--extra-index-url https://download.pytorch.org/whl/cu118
+
+torch==2.7.1+cu118
+torchaudio==2.7.1+cu118
+transformers==4.46.3
+tokenizers==0.20.3
+safetensors==0.8.0
+accelerate==1.14.0
+huggingface_hub==0.36.2
+triton==3.3.1
+packaging==26.2
+numpy==1.26.4
+scipy==1.15.3
+soundfile==0.14.0
+onnxruntime==1.23.2
+einops==0.8.2
+einx==0.4.3
+loguru==0.7.3
+x-transformers==2.7.4
+fla-core==0.4.2
+
+# Text frontend (shared with 0.5b)
+inflect==7.5.0
+
+# Optional FST normalization, loaded on first Chinese/English request.
+#   conda install -c conda-forge pynini==2.1.6
+# Pass --no_text_normalization to run without it.

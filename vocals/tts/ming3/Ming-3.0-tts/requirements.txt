@@ -1,0 +1,41 @@
+# Ming-3.0-tts-0.5b runtime; docker/Dockerfile uses the same set.
+# Ming-3.0-tts-tiny needs a separate stack: see requirements-tiny.txt.
+torch==2.6.0
+torchaudio==2.6.0
+transformers==4.46.3
+tokenizers
+accelerate==1.3.0
+huggingface_hub
+numpy
+soundfile==0.12.1
+tqdm
+loguru
+
+# Flow-matching head and audio tokenizer
+x_transformers==2.9.2
+diffusers==0.33.0
+
+# Speaker embedding (campplus.onnx)
+onnxruntime
+
+# Text frontend
+inflect
+
+einops
+packaging
+
+# --- Optional ---------------------------------------------------------------
+# Text normalization. Loaded lazily: run with --no_text_normalization to skip.
+# Prefer conda, the wheels are unreliable on macOS/Windows:
+#   conda install -c conda-forge pynini==2.1.6
+# pynini==2.1.6
+#
+# Attention acceleration. Inference falls back to PyTorch SDPA when absent.
+# Optional wheel for torch 2.6, CUDA 12, Python 3.10, Linux x86_64,
+# and torch._C._GLIBCXX_USE_CXX11_ABI == False. Other runtimes need a matching wheel.
+#   pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.4.post1/flash_attn-2.7.4.post1+cu12torch2.6cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
+# flash_attn==2.7.4.post1
+#
+# Running cookbooks/cookbook.ipynb.
+# jupyter
+# ipython
