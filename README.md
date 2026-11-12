@@ -97,23 +97,26 @@ https://github.com/user-attachments/assets/944a9918-28dd-4a29-8e2b-76d1d80cd4e7
 
 # Motion authoring
 
-Motion authoring: [MotionBricks studio](motion-sim/nv-motionbricks/README.md)
+Motion authoring: [MotionBricks studio](motion-sim/nv-motionbricks/ARCHITECTURE.md)
 provides SOMA and Unitree G1 inbetweening, Smart Primitive authoring, scene editing
 and interactive character preview through the pinned native runtime.
 
-[FlowHMR studio](motion-sim/reftoanimesh/README.md) reconstructs SMPL-H motion
+[FlowHMR studio](motion-sim/reftoanimesh/ARCHITECTURE.md) reconstructs SMPL-H motion
 from reference video, with person selection, reusable intermediates and an
 optional side-by-side PHC humanoid rollout.
 
-[PhysAg3D studio](sculpting/PhysAg3D/README.md) builds articulated objects from
+[PhysAg3D studio](sculpting/PhysAg3D/ARCHITECTURE.md) builds articulated objects from
 images through separately saved TRELLIS generation and OMP/Blender/MuJoCo stages,
 with part controls, motion playback and portable asset bundles.
 
-[Idol studio](sculpting/idol/README.md) turns images into Gaussian splats, with
+[Idol studio](sculpting/idol/ARCHITECTURE.md) turns images into Gaussian splats, with
 the original Space presets and sampling controls, an orbit viewer and PLY export.
 
-[SceneBloom studio](sculpting/scenebloom/README.md) generates furnished rooms
+[SceneBloom studio](sculpting/scenebloom/ARCHITECTURE.md) generates furnished rooms
 with local vision, saved stages, spatial inspection and textured GLB export.
+
+[Hy-Nomas studio](world-gen/hynomas/ARCHITECTURE.md) generates continuous worlds with
+text, image starts and recorded camera motion, rollback, saved state and MP4 exports.
 
 # Video Compression
 

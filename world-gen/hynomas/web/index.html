@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hy-Nomas · studio</title>
+    <link rel="stylesheet" href="/web.css" />
+    <script type="importmap">
+      { "imports": { "three": "/vendor/three/build/three.module.js" } }
+    </script>
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="/"
+        >◈ <span>studio<small>HY-NOMAS / WORLD GENERATION</small></span></a
+      >
+      <div class="runtime">
+        <span id="model-state" class="pill">Stopped</span
+        ><select id="adapter" aria-label="World model">
+          <option value="base">INT8 · base</option>
+          <option value="cinematic">INT8 · cinematic</option>
+          <option value="dual_arm_robotics">
+            INT8 · dual-arm robotics
+          </option></select
+        ><button id="load">Load model</button
+        ><button id="stop" class="danger">Stop / release</button>
+      </div>
+    </header>
+    <main>
+      <aside class="panel setup">
+        <div class="section-title">
+          <span>01 / WORLD</span
+          ><button id="new-world" class="quiet">New</button>
+        </div>
+        <label
+          >World name<input
+            id="world-name"
+            value="Untitled world"
+            maxlength="160"
+        /></label>
+        <label
+          >Perspective<select id="perspective">
+            <option value="first-person">First person</option>
+            <option value="third-person follow" selected>
+              Third person · follow
+            </option>
+            <option value="second-person">Second person · talking head</option>
+            <option value="third-person observer">
+              Third person · observer
+            </option>
+          </select></label
+        >
+        <label
+          >Style<select id="style">
+            <option>real-world footage</option>
+            <option>animation/anime</option>
+            <option>CG</option>
+            <option>video game</option>
+            <option>software/web/app/computer screen recording</option>
+            <option>slideshow</option>
+          </select></label
+        >
+        <label
+          >Environment<textarea
+            id="environment"
+            rows="4"
+            placeholder="A snow-covered courtyard beneath a mountain palace, early sunlight and drifting mist."
+          ></textarea>
+        </label>
+        <label
+          >Subject<textarea
+            id="subject"
+            rows="3"
+            placeholder="A snow leopard moving through the courtyard."
+          ></textarea>
+        </label>
+        <div class="reference">
+          <label class="upload"
+            >＋ Start from an image<input
+              id="reference"
+              type="file"
+              accept="image/png,image/jpeg,image/webp" /></label
+          ><img id="reference-preview" hidden alt="Reference image" /><span
+            id="reference-status"
+            class="muted"
+            >PNG / JPEG / WebP · up to 10 MB</span
+          ><button id="clear-reference" class="quiet" hidden>
+            Remove image
+          </button>
+        </div>
+        <details>
+          <summary>Generation settings</summary>
+          <div class="settings">
+            <label
+              >Steps<select id="steps">
+                <option>4</option>
+                <option>6</option>
+                <option selected>8</option>
+              </select></label
+            ><label
+              >Prompt seed<input
+                id="seed"
+                type="number"
+                min="0"
+                max="2147483647"
+                placeholder="Random"
+            /></label>
+          </div>
+          <p class="muted">
+            1280 × 704 · 24 fps · INT8 DiT / KV · BF16 decoder
+          </p>
+          <p id="enhancer" class="muted"></p>
+          <p class="muted">
+            The local prompt enhancer loads on demand and exits after each
+            request. Its ~56 GB weights add to host memory while loaded; a 64 GB
+            machine can use substantial swap.
+          </p>
+          <button id="prepare">Prepare selected LoRA as INT8</button>
+          <p id="preparation" class="muted">
+            Optional model bundle: hynomas-loras
+          </p>
+          <a href="/studio/log" target="_blank" rel="noopener"
+            >Runtime log ↗</a
+          >
+        </details>
+        <details>
+          <summary>Saved worlds</summary>
+          <div class="actions">
+            <button id="snapshot">Save world state</button
+            ><button id="release">Release world</button>
+          </div>
+          <div id="snapshots" class="saved-list"></div>
+        </details>
+      </aside>
+      <section class="workspace">
+        <div class="panel viewer">
+          <div class="section-title">
+            <span>02 / WORLD VIEW</span
+            ><span id="clock" class="mono">00:00 / 00:00</span>
+          </div>
+          <div class="screen">
+            <video
+              id="player"
+              controls
+              playsinline
+              preload="metadata"
+              aria-label="Generated world playback"
+            ></video>
+            <div id="empty" class="empty">
+              <span class="world-mark">◈</span>
+              <h1>Shape a world.<br />Then move through it.</h1>
+              <p>
+                Start with text or an image. Continue with direction, camera
+                motion, or both in sequence.
+              </p>
+            </div>
+            <div id="activity" hidden>
+              <span></span>
+              <p id="phase">Preparing</p>
+            </div>
+          </div>
+          <nav
+            id="timeline"
+            class="timeline"
+            aria-label="Generated segments"
+          ></nav>
+          <div class="viewer-tools">
+            <button id="rollback">↶ Roll back one turn</button
+            ><span class="spacer"></span
+            ><label class="check"
+              ><input id="overlay" type="checkbox" />Prompt + camera
+              overlay</label
+            ><button id="download">Download MP4</button
+            ><button id="gallery-save">Save to gallery</button
+            ><button id="pe-export">Prompt JSON</button
+            ><button id="share">Local share link</button>
+          </div>
+        </div>
+        <div class="panel direction">
+          <div class="section-title">
+            <span>03 / DIRECTION</span
+            ><span id="turn-count" class="mono">T0</span>
+          </div>
+          <label class="sr-only" for="direction">Next action</label
+          ><textarea
+            id="direction"
+            rows="3"
+            placeholder="Describe what happens next…"
+          ></textarea>
+          <div class="actions">
+            <label class="check"
+              ><input id="use-camera" type="checkbox" />Use recorded
+              camera</label
+            ><span id="camera-summary" class="muted">No path recorded</span
+            ><span class="spacer"></span
+            ><button id="generate" class="primary">Create world →</button>
+          </div>
+          <p id="message" role="status" aria-live="polite"></p>
+          <button id="resume" hidden>Reconnect to pending turn</button>
+          <details>
+            <summary>Structured prompt JSON</summary>
+            <label
+              >Native segments<textarea
+                id="structured"
+                rows="8"
+                spellcheck="false"
+                placeholder='{"segments":[...]}'
+              ></textarea>
+            </label>
+            <p class="muted">
+              Standalone native prompt with timed segments. Start a new world to
+              use it. Text direction uses the prompt enhancer and supports
+              continuation, rollback and snapshots.
+            </p>
+          </details>
+          <details>
+            <summary>Prompt enhancer output</summary>
+            <pre id="pe-output"></pre>
+          </details>
+        </div>
+        <section class="panel">
+          <div class="section-title">
+            <span>LOCAL GALLERY</span
+            ><button id="gallery-refresh" class="quiet">Refresh</button>
+          </div>
+          <div id="gallery" class="gallery"></div>
+        </section>
+      </section>
+      <aside class="panel camera-panel">
+        <div class="section-title">
+          <span>CAMERA / 24 Hz</span
+          ><span id="record-time" class="mono">00:00</span>
+        </div>
+        <div
+          id="camera-view"
+          tabindex="0"
+          role="application"
+          aria-label="Camera recorder: WASD to move, arrows or right drag to look, Shift to move faster"
+        ></div>
+        <div class="camera-help">
+          <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</span
+          ><span>↑ ↓ ← → look</span><span>Right-drag orbit · Shift faster</span>
+        </div>
+        <div class="actions">
+          <button id="record" class="primary">● Record</button
+          ><button id="reset-camera">Reset</button>
+        </div>
+        <svg
+          id="camera-map"
+          viewBox="0 0 240 120"
+          aria-label="Top-down recorded camera path"
+        >
+          <path id="camera-line" d="" />
+          <circle id="camera-dot" r="3" cx="120" cy="60" />
+        </svg>
+        <div class="settings">
+          <label
+            >Translation<input
+              id="translation"
+              type="number"
+              value="1"
+              min="0.1"
+              max="10"
+              step="0.1" /></label
+          ><label
+            >Rotation<input
+              id="rotation"
+              type="number"
+              value="2.5"
+              min="0.1"
+              max="10"
+              step="0.1"
+          /></label>
+        </div>
+        <div class="actions">
+          <label class="upload"
+            >Import path<input
+              id="camera-import"
+              type="file"
+              accept="application/json,.json" /></label
+          ><button id="camera-export">Export path</button>
+        </div>
+        <p class="muted">
+          Record up to 60 seconds. Paths remain editable between turns;
+          generated motion uses the native translation and rotation scales.
+        </p>
+        <details>
+          <summary>Turn history</summary>
+          <div id="history"></div>
+        </details>
+      </aside>
+    </main>
+  </body>
+</html>

@@ -1169,6 +1169,27 @@ https://huggingface.co/datasets/tina390/SceneBloom-Assets
 https://huggingface.co/datasets/Metaverse-AI-Lab/M3DLayout
 https://ambientcg.com
 
+82. Hy-Nomas world studio (bundle: hynomas)
+Source: Tencent-Hunyuan/Hy-Nomas @ 36e2bdb0f91455d97e4dbd8e64af0129707cecdf (Apache-2.0)
+Models: tencent/Hy-Nomas @ 621df1570098aa1ebf916dac3ac72ae3cbe25caa (Apache-2.0)
+Qwen/Qwen2.5-VL-7B-Instruct @ cc594898137f460bfe9f0759e9844b3ce807cfb5 (Apache-2.0)
+Includes distilled INT8 DiT, BF16 PixelUMM decoder, DCAE-V and Nomas-PE.
+Models live in models/hynomas; setup creates relative local model links.
+INT8 weights retain native BF16 computation and INT8 KV. The SM89-only FP8
+decoder is excluded; the explicit BF16 decoder supports the single-GPU profile.
+Nomas-PE uses its own CPU process/environment on demand (~56 GB weights).
+Its memory is additional to offloaded generation weights; provision host RAM/swap.
+Independent studio: root AGPL-3.0. Three.js: MIT; Inter / IBM Plex Mono: OFL-1.1.
+https://huggingface.co/tencent/Hy-Nomas/tree/621df1570098aa1ebf916dac3ac72ae3cbe25caa
+
+83. Hy-Nomas optional LoRAs (bundle: hynomas-loras; also select hynomas)
+Same source/model pin and Apache-2.0 terms as entry 82.
+Includes distilled FP32 base (~34 GB), cinematic (~6 GB) and dual-arm robotics
+(~12 GB) LoRAs. Prepare each explicitly in the studio: native CPU merge then
+native INT8 conversion. Cached INT8 derivatives live in world-gen/hynomas/.work.
+Preparation needs room for the temporary merged checkpoint and host-memory headroom.
+The FP32 base is preparation input, never a silent replacement at inference.
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,

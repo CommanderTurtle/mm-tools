@@ -919,6 +919,21 @@ BUNDLES: tuple[Bundle, ...] = (
 
 
 BUNDLES += (Bundle("scenebloom", "SceneBloom rooms + cached assets + local vision", "81", scenebloom_artifacts()),)
+BUNDLES += (
+    Bundle("hynomas", "Hy-Nomas INT8 world studio + local prompt enhancer", "82", (
+        A("tencent/Hy-Nomas", model_path("hynomas"),
+          ("DiT/distilled_int8/*", "VAE/PixelUMM_FT/*", "VAE/DCAE-V/*", "PE/*", "LICENSE", "README.md"),
+          revision="621df1570098aa1ebf916dac3ac72ae3cbe25caa"),
+        A("Qwen/Qwen2.5-VL-7B-Instruct", model_path("hynomas/text-encoder"),
+          ("*.safetensors", "*.json", "*.txt", "*.jinja", "LICENSE", "README.md"),
+          revision="cc594898137f460bfe9f0759e9844b3ce807cfb5"),
+    )),
+    Bundle("hynomas-loras", "Hy-Nomas cinematic + robotics INT8 adapter preparation", "83", (
+        A("tencent/Hy-Nomas", model_path("hynomas"),
+          ("DiT/distilled/*", "DiT/lora_weights/*", "LICENSE", "README.md"),
+          revision="621df1570098aa1ebf916dac3ac72ae3cbe25caa"),
+    )),
+)
 
 
 UNDERDOG = json.loads((MODELS / "manifests/underdog.json").read_text())
