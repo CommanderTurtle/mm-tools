@@ -55,7 +55,7 @@ deactivate # when done
 The downloader is resumable. Run it again after an interrupted transfer. New
 source-import bundles are named `4d`, `lingbot`, `lingbot-5090`, `fire3d`,
 `aukspeech`, `sculpting`, `worldsculpt`, `nvidia-sim`, `v2v`, `yue2`, and
-`motionbricks`, `flowhmr`, and optional `flowhmr-physics`; use
+`motionbricks`, `flowhmr`, optional `flowhmr-physics`, and `physag3d`; use
 `uv run download_models.py --list` for the complete current menu.
 The source imports, single-GPU adapters, setup/start contracts, and private
 browser studios are included here; model artifacts remain external and
@@ -104,6 +104,10 @@ and interactive character preview through the pinned native runtime.
 [FlowHMR studio](motion-sim/reftoanimesh/README.md) reconstructs SMPL-H motion
 from reference video, with person selection, reusable intermediates and an
 optional side-by-side PHC humanoid rollout.
+
+[PhysAg3D studio](sculpting/PhysAg3D/README.md) builds articulated objects from
+images through separately saved TRELLIS generation and OMP/Blender/MuJoCo stages,
+with part controls, motion playback and portable asset bundles.
 
 # Video Compression
 

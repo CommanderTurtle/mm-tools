@@ -1,0 +1,16 @@
+retry:
+  modelFallback: false
+contextPromotion:
+  enabled: false
+advisor:
+  enabled: false
+autoResume: false
+memory:
+  backend: "off"
+telemetry:
+  otlpExportEnabled: false
+dev:
+  autoqa: false
+edit:
+  autoRepair:
+    enabled: false

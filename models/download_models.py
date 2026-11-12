@@ -846,6 +846,15 @@ BUNDLES: tuple[Bundle, ...] = (
             ("assets/example/amass_isaac_gender_betas_unique.pkl", "1arpCsue3Knqttj75Nt9Mwo32TKC4TYDx"),
         )),
     ),
+    Bundle(
+        "physag3d", "PhysAg3D articulated assets (TRELLIS.2 / DINOv3 / BiRefNet)", "77",
+        (
+            A("microsoft/TRELLIS.2-4B", repo_path("sculpting/trellis/pretrained/TRELLIS.2-4B"),
+              ("pipeline.json", "texturing_pipeline.json", "ckpts/*"),
+              revision="af44b45f2e35a493886929c6d786e563ec68364d"),
+            SCULPT_SPARSE_DECODER, SCULPT_DINO, SCULPT_RMBG,
+        ),
+    ),
 )
 
 

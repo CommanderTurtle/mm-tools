@@ -1,0 +1,165 @@
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.standalone {
+  margin: 0;
+  background: #172329;
+  color: #e3e9eb;
+  font:
+    14px/1.6 system-ui,
+    sans-serif;
+  color-scheme: dark;
+}
+.standalone * {
+  box-sizing: border-box;
+}
+.standalone header {
+  padding: 22px 5vw;
+  border-bottom: 1px solid #34474d;
+}
+.standalone header > span {
+  color: #b9dec7;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+.standalone h1 {
+  font-size: 28px;
+  font-weight: 500;
+  margin: 8px 0;
+}
+.standalone main {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) 260px;
+  gap: 24px;
+  padding: 24px 5vw;
+}
+.standalone #stage {
+  height: 65vh;
+  min-height: 360px;
+  position: relative;
+  background: radial-gradient(ellipse, #3b5156, #22343b);
+  border: 1px solid #49615e;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.standalone #status {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  pointer-events: none;
+  z-index: 1;
+  color: #d4c89f;
+  font-size: 11px;
+}
+.standalone #source {
+  width: 100%;
+  height: 160px;
+  object-fit: contain;
+  background: #2d3e44;
+  border-radius: 10px;
+}
+.standalone button,
+.standalone select {
+  background: #283c42;
+  color: inherit;
+  padding: 8px 12px;
+  border: 1px solid #54736a;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.standalone input {
+  accent-color: #b9dec7;
+}
+.standalone .controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  flex-wrap: wrap;
+}
+.standalone #scrub {
+  flex: 1;
+  min-width: 100px;
+}
+.standalone .joint {
+  border-top: 1px solid #3c5558;
+  padding: 14px 0;
+}
+.standalone .joint label {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.standalone .joint input {
+  width: 100%;
+}
+.standalone .note,
+.standalone #limitations {
+  color: #b5c6c5;
+  font-size: 12px;
+}
+.standalone a {
+  color: #b9dec7;
+}
+.standalone #compare {
+  display: flex;
+  gap: 14px;
+  padding: 0 5vw;
+}
+.standalone figure {
+  margin: 0;
+  flex: 1;
+}
+.standalone figure img {
+  width: 100%;
+  height: 200px;
+  object-fit: contain;
+  background: #283c42;
+  border-radius: 10px;
+}
+.standalone figcaption {
+  font-size: 12px;
+  color: #a9c3b5;
+}
+.standalone video {
+  display: block;
+  width: 70%;
+  max-height: 75vh;
+  margin: 24px auto;
+  border-radius: 12px;
+}
+.standalone video[hidden] {
+  display: none;
+}
+.standalone details {
+  margin: 24px 5vw;
+}
+.standalone footer {
+  padding: 12px 5vw 24px;
+  font-size: 11px;
+}
+.standalone pre {
+  font-size: 11px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .standalone main {
+    display: block;
+  }
+  .standalone aside {
+    margin-top: 20px;
+  }
+  .standalone #stage {
+    height: 55vh;
+  }
+  .standalone #compare {
+    flex-wrap: wrap;
+  }
+  .standalone video {
+    width: 90%;
+  }
+}

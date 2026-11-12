@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PhysAg3D · asset</title>
+    <link rel="stylesheet" href="./viewer.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./libraries/build/three.module.js",
+          "three/addons/": "./libraries/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body class="standalone">
+    <header>
+      <span>PhysAg3D · asset</span>
+      <h1 id="title">Loading asset</h1>
+      <p id="kind"></p>
+    </header>
+    <main>
+      <div>
+        <div id="stage"><p id="status"></p></div>
+        <div class="controls">
+          <button id="play">Play</button><button id="home">Frame</button
+          ><button id="wire">Wire</button
+          ><select id="clips" aria-label="Animation"></select
+          ><input
+            id="scrub"
+            type="range"
+            min="0"
+            max="1"
+            step=".001"
+            value="0"
+            aria-label="Time"
+          /><output id="time">0 s</output>
+        </div>
+      </div>
+      <aside>
+        <img id="source" alt="Source image" />
+        <div id="joints"></div>
+        <p id="limitations"></p>
+        <a id="download">Download GLB</a>
+        <p class="note">
+          Geometric joint controls and saved animation. Physics is recorded
+          separately.
+        </p>
+      </aside>
+    </main>
+    <section id="compare"></section>
+    <video id="video" controls muted loop playsinline hidden></video>
+    <details>
+      <summary>Delivery record</summary>
+      <pre id="record"></pre>
+    </details>
+    <footer>
+      Viewer · AGPL-3.0 ·
+      <a href="./libraries/LICENSE">Three.js · MIT</a>
+    </footer>
+    <script type="module" src="./player.js"></script>
+  </body>
+</html>

@@ -1078,13 +1078,26 @@ Official PHC Drive checkpoint IDs and AMASS shape statistics are declared in
 the picker. Upstream publishes no digests for these files: the first download
 records a local SHA-256 receipt; later runs reuse and verify those exact bytes.
 Install gdown==5.2.0 in the downloader environment for this optional bundle.
-PHC: BSD-3-Clause; AMASS statistics follow AMASS terms. Supply licensed SMPL 1.1
-neutral/male/female files as models/flowhmr/data/smpl/SMPL_NEUTRAL.pkl,
-SMPL_MALE.pkl and SMPL_FEMALE.pkl. Isaac Gym Preview 4 is separately licensed:
-install it in its own supported Python 3.8 / Torch 1.13 environment before
-running setup-physics.sh. It is a separate native physics stack, with its own
-GPU compatibility constraints. Reconstruction works independently of this lane.
+Supply SMPL 1.1 neutral/male/female files as models/flowhmr/data/smpl/SMPL_NEUTRAL.pkl,
+SMPL_MALE.pkl and SMPL_FEMALE.pkl. Isaac Gym Preview 4 is a separate native
+physics stack with its own GPU compatibility constraints: install it in its own
+supported Python 3.8 / Torch 1.13 environment before running setup-physics.sh.
+Reconstruction works independently of this lane.
 https://github.com/flowhmr/flowhmr/blob/df15cadf56e738bf80c42c93d5e73687ff1002d2/docs/install.md
+
+77. PhysAg3D articulated object studio
+Bundle: physag3d
+Source: Supra-3D/PhysAg3D @ 3b0dab92e82e8c53b4596e89aea0f6139c4d0382 (MIT)
+Shares existing sculpting/trellis/pretrained files; no extra copy of weights.
+TRELLIS.2-4B @ af44b45f2e35a493886929c6d786e563ec68364d (MIT)
+TRELLIS-image-large sparse decoder @ 25e0d31ffbebe4b5a97464dd851910efc3002d96 (MIT)
+DINOv3 mirror @ 3c276edd87d6f6e569ff0c4400e086807d0f3881 (Meta DINOv3 license)
+BiRefNet @ e2bf8e4460fc8fa32bba5ea4d94b3233d367b0e4 (MIT)
+Independent studio: root AGPL-3.0. OMP uses the user's existing configured model;
+agent weights/provider credentials are separate. Blender: GPL; MuJoCo: Apache-2.0;
+Gmsh: GPL-2.0-or-later; Triangle's native mesher has its own noncommercial terms;
+Three.js: MIT. Review the mesher's terms before commercial use.
+https://github.com/Supra-3D/PhysAg3D/tree/3b0dab92e82e8c53b4596e89aea0f6139c4d0382
 
 Workflows section (workflows/download_models.py)
 ------------------------------------------------

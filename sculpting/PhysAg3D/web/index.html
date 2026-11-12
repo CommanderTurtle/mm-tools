@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PhysAg3D · studio</title>
+    <link rel="stylesheet" href="/web/style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/build/three.module.js",
+          "three/addons/": "/vendor/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="/"
+        >◈ <strong>PhysAg3D</strong><span>studio</span></a
+      >
+      <div id="activity">Ready</div>
+      <button id="cancel" class="danger" hidden>Stop stage</button
+      ><span class="local">LOCAL WORKSPACE</span>
+    </header>
+    <main>
+      <aside class="library">
+        <div class="section-title">
+          <h2>Objects</h2>
+          <span id="count">0</span>
+        </div>
+        <label class="upload" id="drop"
+          >＋ Add object image<input
+            id="upload"
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/bmp,image/tiff"
+            hidden
+          /><small>Drop an image or choose a file</small></label
+        >
+        <input
+          id="search"
+          type="search"
+          placeholder="Find an object"
+          aria-label="Find an object"
+        />
+        <div id="cases" class="case-list"></div>
+        <details class="setup">
+          <summary>Runtime</summary>
+          <label
+            >Agent<select id="mode">
+              <option value="local">Local OMP model</option>
+              <option value="nvidia">NVIDIA developer · :7999</option>
+            </select></label
+          ><label id="nvidia-ready-label" hidden
+            ><input id="nvidia-ready" type="checkbox" /> Model on port 7999 is
+            loaded</label
+          ><button id="discover">Refresh models</button
+          ><label
+            >Exact OMP model<select id="model">
+              <option value="">Select after refresh</option>
+            </select></label
+          ><small id="model-note"
+            >Uses your existing OMP provider configuration.</small
+          ><label
+            >Blender executable<input
+              id="blender"
+              value="blender"
+              spellcheck="false"
+          /></label>
+        </details>
+      </aside>
+      <section class="workspace">
+        <div class="workspace-heading">
+          <div>
+            <small class="eyebrow">IMAGE → INTERACTIVE ASSET</small>
+            <h1 id="title">An object, in motion.</h1>
+          </div>
+          <select id="attempt" aria-label="Saved attempt">
+            <option>No attempts yet</option>
+          </select>
+        </div>
+        <nav class="stages" aria-label="Construction stages">
+          <button data-phase="plan">
+            <b>01</b
+            ><span>Plan & scaffold<small>OMP + Blender</small></span></button
+          ><button data-phase="native">
+            <b>02</b><span>Generate<small>TRELLIS.2</small></span></button
+          ><button data-phase="refine">
+            <b>03</b
+            ><span>Refine & simulate<small>OMP + MuJoCo</small></span></button
+          ><button data-phase="package">
+            <b>04</b><span>Package<small>Local viewer + files</small></span>
+          </button>
+        </nav>
+        <div class="preview-bar">
+          <div class="segmented" id="views">
+            <button data-view="source" class="selected">Source</button
+            ><button data-view="native">Native</button
+            ><button data-view="refined">Refined</button>
+          </div>
+          <span id="motion-kind">Awaiting an image</span
+          ><button id="capture" title="Save the current rendered view as PNG">
+            Snapshot
+          </button>
+        </div>
+        <div id="viewport">
+          <div id="stage"></div>
+          <img id="source" alt="Uploaded object" hidden />
+          <div id="empty">
+            <span>◈</span>
+            <h2>From surface to structure</h2>
+            <p>
+              Bring an image. Preserve its appearance.<br />Build and inspect
+              how its parts move.
+            </p>
+          </div>
+          <div class="viewport-tools">
+            <button id="home" title="Frame object">⌖ Frame</button
+            ><button id="wire" aria-pressed="false">Wire</button
+            ><button id="orbit" aria-pressed="false">Orbit</button>
+          </div>
+          <div id="viewer-status" role="status"></div>
+        </div>
+        <div class="transport">
+          <button id="play" aria-label="Play animation">▶</button
+          ><select id="clip" aria-label="Animation clip">
+            <option>Static asset</option></select
+          ><input
+            id="scrub"
+            type="range"
+            min="0"
+            max="1"
+            step="0.001"
+            value="0"
+            aria-label="Animation time"
+          /><output id="time">0.00 s</output
+          ><select id="speed" aria-label="Playback speed">
+            <option value="0.25">¼×</option>
+            <option value="0.5">½×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option></select
+          ><label><input id="loop" type="checkbox" checked />Loop</label>
+        </div>
+        <div class="comparison" id="comparison"></div>
+        <details id="log-panel">
+          <summary>Stage log <span id="stage-status"></span></summary>
+          <pre id="log"></pre>
+        </details>
+      </section>
+      <aside class="inspector">
+        <div class="section-title">
+          <h2>Build</h2>
+          <span class="dot"></span>
+        </div>
+        <p class="note">
+          Each stage saves its work and stops. Switch your external model server
+          between generation and agent stages.
+        </p>
+        <label
+          >Refinement notes<textarea
+            id="feedback"
+            rows="4"
+            placeholder="Parts, movement, materials, corrections…"
+          ></textarea>
+        </label>
+        <label class="check"
+          ><input id="resume" type="checkbox" checked />Continue saved work and
+          OMP session</label
+        >
+        <details>
+          <summary>Generation settings</summary>
+          <div class="form-grid">
+            <label
+              >Resolution<select id="resolution">
+                <option>512</option>
+                <option selected>1024</option>
+              </select></label
+            ><label
+              >Texture<select id="texture">
+                <option>1024</option>
+                <option selected>2048</option>
+                <option>4096</option>
+              </select></label
+            ><label
+              >Steps<input
+                id="steps"
+                type="number"
+                min="1"
+                max="100"
+                value="24" /></label
+            ><label
+              >Seed<input
+                id="seed"
+                type="number"
+                min="0"
+                max="2147483647"
+                value="42" /></label
+            ><label
+              >CUDA device<input
+                id="device"
+                type="number"
+                min="0"
+                max="31"
+                value="0" /></label
+            ><label
+              >Free VRAM · GiB<input
+                id="min_free_gb"
+                type="number"
+                min="0"
+                max="192"
+                step="0.5"
+                value="28"
+            /></label>
+          </div>
+          <p class="note">Native precision. SDPA / FlexGEMM kernel lane.</p>
+        </details>
+        <label
+          >Stage budget · minutes<input
+            id="minutes"
+            type="number"
+            min="1"
+            max="240"
+            value="60"
+        /></label>
+        <section class="parts">
+          <div class="section-title">
+            <h2>Parts</h2>
+            <button id="reset-joints">Reset</button>
+          </div>
+          <p class="note" id="parts-note">
+            Direct controls appear when a refined asset includes joint bindings.
+          </p>
+          <div id="joints"></div>
+        </section>
+        <section>
+          <div class="section-title">
+            <h2>Delivery</h2>
+            <span id="delivery-status">—</span>
+          </div>
+          <div id="downloads" class="downloads"></div>
+          <p id="evidence" class="note"></p>
+          <ul id="limitations"></ul>
+          <video
+            id="video"
+            controls
+            muted
+            loop
+            playsinline
+            preload="metadata"
+            hidden
+          ></video>
+        </section>
+      </aside>
+    </main>
+    <dialog id="handoff">
+      <form method="dialog">
+        <small class="eyebrow">MODEL HANDOFF</small>
+        <h2 id="handoff-title"></h2>
+        <p id="handoff-text"></p>
+        <p class="note" id="agent-warning">
+          OMP can execute local Blender/Python commands using your configured
+          permissions.
+        </p>
+        <label class="check"
+          ><input id="ready" type="checkbox" />Ready to run this stage</label
+        >
+        <div class="dialog-actions">
+          <button value="cancel">Cancel</button
+          ><button id="confirm" value="run" class="primary" disabled>
+            Run stage
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <div id="toast" role="alert" hidden></div>
+    <script type="module" src="/web/app.js"></script>
+  </body>
+</html>
