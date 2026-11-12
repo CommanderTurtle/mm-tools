@@ -410,6 +410,20 @@ cd vocals/stt/nemotron
 Native NVFP4/FP8 on Blackwell; microphone, media files and explicit URL imports,
 word seeking, CPU vocal separation, saved conversations and timed exports.
 
+### Audio8
+
+Local Realistic Air speech, reference voices and paragraph takes.
+
+```bash
+uv run models/download_models.py audio8
+cd vocals/tts/audio8
+./setupwithuv.sh
+./startwithuv.sh                             # http://127.0.0.1:8290
+```
+
+Native BF16 and 44.1 kHz codec, microphone/file references, waveform seeking,
+saved sessions, WAV/FLAC and codec-token exports.
+
 ### CrisperWhisper
 
 Local CrisperWhisper 2.0 transcription in normalized or literal mode. The HTTP service and browser workbench use separate ports and model lifecycles.
@@ -445,6 +459,7 @@ ReDesign also defaults to `8173`; change `CW2_UI_PORT` when both browser service
 | `8253` | VocalRender local studio |
 | `8254` | MiniMax Music 3 local studio |
 | `8289` | Nemotron transcription studio |
+| `8290` | Audio8 speech studio |
 | `8292` | Underdog Bark HTTP |
 | `8293` | Underdog Bark studio |
 

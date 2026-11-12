@@ -964,6 +964,16 @@ BUNDLES += (Bundle("nemotron", "Nemotron 3.5 Transcribe NVFP4 studio", "86", (
 )),)
 
 
+BUNDLES += (Bundle("audio8", "Audio8 Realistic Air speech studio", "87", (
+    A("Edge0/Audio8-TTS-Realistic-Air", model_path("audio8-realistic-air"),
+      ("*.safetensors", "*.pth", "*.json", "*.py", "*.txt", "LICENSE", "NOTICE", "README.md"),
+      revision="23c305cc013fde378edb459f538317043c993a74"),
+    A("Edge0/Audio8-TTS-Realistic-Air", model_path("audio8-realistic-air"),
+      ("examples/sample-10-reference.wav", "examples/sample-18-reference.wav"), repo_type="space",
+      revision="0e7d7ed6626f49e7ac5898365cb116321b610a5d"),
+)),)
+
+
 UNDERDOG = json.loads((MODELS / "manifests/underdog.json").read_text())
 BUNDLES += tuple(
     Bundle(f"underdog-{key}", f"{row['name']} English STT ({row['download']})", row["inventory"], (

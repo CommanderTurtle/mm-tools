@@ -1230,6 +1230,19 @@ Local Linux/Blackwell lane, CUDA 13 toolkit; native vLLM0.32.0 locked stack.
 The original Space's cloud providers and copyrighted demo media are separate.
 https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-NVFP4
 
+87. Audio8 Realistic Air (bundle: audio8)
+Source: Edge0-AI/Audio8_TTS @ 1d64afcc2da56222b41ddcf53de7b8bc54be1fb6 (Apache-2.0).
+Model: Edge0/Audio8-TTS-Realistic-Air @ 23c305cc013fde378edb459f538317043c993a74
+(Apache-2.0), including native Transformers code, tokenizer and 44.1 kHz codec.
+Examples: Edge0/Audio8-TTS-Realistic-Air Space @ 0e7d7ed6626f49e7ac5898365cb116321b610a5d;
+the Space declares no separate reference-recording license. Review asset terms before redistribution.
+Stored in models/audio8-realistic-air; linked into vocals/tts/audio8.
+Native CUDA BF16, Transformers 4.57.3; published main model is 0.6B.
+Independent studio: root AGPL-3.0. Transformers/Safetensors: Apache-2.0;
+PyTorch/torchaudio/NumPy/SoundFile: BSD; libsndfile: LGPL; Flask/Waitress: BSD/ZPL;
+FFmpeg: LGPL/GPL depending on installed build.
+https://huggingface.co/Edge0/Audio8-TTS-Realistic-Air
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,

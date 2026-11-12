@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Audio8 · studio</title>
+    <link rel="stylesheet" href="/web/style.css" />
+    <script type="module" src="/web/app.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span class="mark">a8</span>
+        <div>
+          <h1>Audio8</h1>
+          <span class="sub">studio / Realistic Air</span>
+        </div>
+      </div>
+      <span class="badge">BF16 · 44.1 kHz · local</span>
+    </header>
+    <main>
+      <form id="form" class="editor">
+        <section>
+          <div class="heading">
+            <h2><span>01</span> Text</h2>
+            <output id="count">0 characters</output>
+          </div>
+          <div class="samples" aria-label="Text examples">
+            <button type="button" data-example="en">English</button
+            ><button type="button" data-example="zh">中文</button
+            ><button type="button" data-example="ja">日本語</button
+            ><button type="button" data-example="es">Español</button>
+          </div>
+          <label class="sr" for="text">Text to speak</label
+          ><textarea
+            id="text"
+            rows="7"
+            placeholder="Write something to say…"
+            required
+          ></textarea>
+          <div class="row">
+            <label class="check"
+              ><input id="paragraphs" type="checkbox" /> Separate takes at blank
+              lines</label
+            ><button id="import" type="button" class="quiet">Import text</button
+            ><input
+              id="textFile"
+              type="file"
+              accept=".txt,.md,text/plain,text/markdown"
+              hidden
+            />
+          </div>
+          <p class="hint">
+            Up to 600 characters per take. Short passages under 150 work best.
+          </p>
+          <details class="languages">
+            <summary>23 languages · detected from your text</summary>
+            <p id="languages"></p>
+          </details>
+        </section>
+        <section>
+          <h2><span>02</span> Voice reference</h2>
+          <label for="voice">Voice</label
+          ><select id="voice"></select>
+          <div id="custom" hidden>
+            <div class="drop">
+              <label for="reference"
+                >Drop or choose a recording
+                <small
+                  >3–15 seconds · audio or video · up to 32 MB</small
+                ></label
+              ><input id="reference" type="file" accept="audio/*,video/*" />
+              <div class="row">
+                <button id="record" type="button">Record microphone</button
+                ><span id="recordTime"></span>
+              </div>
+            </div>
+          </div>
+          <div id="referenceArea">
+            <p id="referenceName" class="hint"></p>
+            <audio id="referencePlayer" controls preload="metadata"></audio
+            ><label for="transcript">Exact reference transcript</label
+            ><textarea
+              id="transcript"
+              rows="3"
+              maxlength="600"
+              placeholder="The words spoken in the reference, exactly."
+            ></textarea>
+          </div>
+          <p id="noVoice" class="hint" hidden>
+            A new unconditioned voice. A recording gives more consistent
+            identity.
+          </p>
+        </section>
+        <section>
+          <details>
+            <summary>Generation settings</summary>
+            <div class="settings">
+              <label
+                >Temperature <output for="temperature"></output
+                ><input
+                  id="temperature"
+                  type="range"
+                  min="0.05"
+                  max="2"
+                  step="0.05"
+              /></label>
+              <label
+                >Top p <output for="top_p"></output
+                ><input id="top_p" type="range" min="0.01" max="1" step="0.01"
+              /></label>
+              <label
+                >Top k<input
+                  id="top_k"
+                  type="number"
+                  min="0"
+                  max="4096"
+                  step="1"
+              /></label>
+              <label
+                >Seed<input
+                  id="seed"
+                  type="number"
+                  min="0"
+                  max="4294967295"
+                  step="1"
+              /></label>
+              <label
+                >Initial frame budget<input
+                  id="frames"
+                  type="number"
+                  min="32"
+                  max="2000"
+                  step="1"
+              /></label>
+              <label
+                >Retry frame budget<input
+                  id="retry_frames"
+                  type="number"
+                  min="32"
+                  max="2000"
+                  step="1"
+              /></label>
+              <label
+                >Paragraphs per batch<input
+                  id="batch_size"
+                  type="number"
+                  min="1"
+                  max="8"
+                  step="1"
+              /></label>
+              <label class="check"
+                ><input id="sample" type="checkbox" /> Sampling
+                <small>off = greedy</small></label
+              >
+              <label class="check"
+                ><input id="codes" type="checkbox" /> Export codec tokens
+                (.npy)</label
+              >
+            </div>
+            <p class="hint">
+              Native context: 2048 packed positions including text and
+              reference. An unfinished take retries once with the larger budget.
+              Equal budgets disable retry.
+            </p>
+          </details>
+        </section>
+        <div class="actions">
+          <button id="generate" class="primary" type="submit">
+            Generate speech <span>↗</span></button
+          ><button id="cancel" type="button" hidden>Cancel</button>
+        </div>
+        <p id="error" role="alert"></p>
+      </form>
+      <div class="workspace">
+        <section class="session">
+          <div class="heading">
+            <h2>Session</h2>
+            <button id="new" type="button" class="quiet">New draft</button>
+          </div>
+          <p id="status" role="status" aria-live="polite">Ready</p>
+          <progress id="progress" hidden></progress>
+          <p id="detail" class="hint">Models load for a take, then release.</p>
+          <div id="downloads" class="links"></div>
+        </section>
+        <div id="takes" class="takes">
+          <div class="empty">
+            <div class="wave-symbol">▁ ▃ ▆ ▂ ▅ ▇ ▄ ▁</div>
+            <h3>Your voice, in takes</h3>
+            <p>Generate a passage to listen, seek and compare.</p>
+          </div>
+        </div>
+        <section>
+          <div class="heading">
+            <h2>Saved sessions</h2>
+            <button id="refresh" class="quiet" type="button">Refresh</button>
+          </div>
+          <div id="history"></div>
+        </section>
+        <details id="logs" class="logbox">
+          <summary>Worker log</summary>
+          <pre id="log">Select a session.</pre>
+        </details>
+      </div>
+    </main>
+    <footer>
+      Audio8 Realistic Air · native Transformers <span id="pin"></span>
+    </footer>
+  </body>
+</html>

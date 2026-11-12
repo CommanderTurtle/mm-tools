@@ -1,0 +1,9 @@
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch==2.8.0+cu128
+torchaudio==2.8.0+cu128
+transformers==4.57.3
+soundfile==0.13.1
+numpy==2.2.6
+safetensors==0.7.0
+flask==3.1.2
+waitress==3.0.2
