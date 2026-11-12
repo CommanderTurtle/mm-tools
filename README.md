@@ -109,6 +109,9 @@ optional side-by-side PHC humanoid rollout.
 images through separately saved TRELLIS generation and OMP/Blender/MuJoCo stages,
 with part controls, motion playback and portable asset bundles.
 
+[Idol studio](sculpting/idol/README.md) turns images into Gaussian splats, with
+the original Space presets and sampling controls, an orbit viewer and PLY export.
+
 # Video Compression
 
 ![videosmaller](https://huggingface.co/sHEL1562/shelling/resolve/main/src/2-videosmaller-clip.avif)

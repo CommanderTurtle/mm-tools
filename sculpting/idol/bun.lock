@@ -1,0 +1,24 @@
+{
+  "lockfileVersion": 2,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "mm-tools-idol-studio",
+      "dependencies": {
+        "@fontsource/ibm-plex-mono": "5.2.7",
+        "@fontsource/inter": "5.2.8",
+        "@mkkellogg/gaussian-splats-3d": "0.4.7",
+        "three": "0.170.0",
+      },
+    },
+  },
+  "packages": {
+    "@fontsource/ibm-plex-mono": ["@fontsource/ibm-plex-mono@5.2.7", "", {}, "sha512-MKAb8qV+CaiMQn2B0dIi1OV3565NYzp3WN5b4oT6LTkk+F0jR6j0ZN+5BKJiIhffDC3rtBULsYZE65+0018z9w=="],
+
+    "@fontsource/inter": ["@fontsource/inter@5.2.8", "", {}, "sha512-P6r5WnJoKiNVV+zvW2xM13gNdFhAEpQ9dQJHt3naLvfg+LkF2ldgSLiF4T41lf1SQCM9QmkqPTn4TH568IRagg=="],
+
+    "@mkkellogg/gaussian-splats-3d": ["@mkkellogg/gaussian-splats-3d@0.4.7", "", { "peerDependencies": { "three": ">=0.160.0" } }, "sha512-0vy9/i9sJLFH/v3WJZ4axCsqjkToe8UsV3xY7bvK5EUC0akiRsWZODoCiSzpxhTLNyzSKTsyQKozIFeNA5RWRA=="],
+
+    "three": ["three@0.170.0", "", {}, "sha512-FQK+LEpYc0fBD+J8g6oSEyyNzjp+Q7Ks1C568WWaoMRLW+TkNNWmenWeGgJjV105Gd+p/2ql1ZcjYvNiPZBhuQ=="],
+  }
+}

@@ -1,0 +1,14 @@
+flask==3.1.2
+waitress==3.0.2
+torch==2.11.0
+torchvision==0.26.0
+transformers==5.22.2
+diffusers==0.43.0
+accelerate==1.15.0
+huggingface-hub==2.4.0
+safetensors==0.8.0
+tensordict==0.15.6
+numpy==2.2.6
+pillow==11.3.0
+plyfile==1.1.5
+tqdm==4.67.1

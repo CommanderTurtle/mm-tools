@@ -1,0 +1,1 @@
+idol @ git+https://github.com/speridlabs/idol-sdk

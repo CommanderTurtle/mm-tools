@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Idol · studio</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/web/style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/three.module.js",
+          "splats": "/vendor/splats/gaussian-splats-3d.module.js"
+        }
+      }
+    </script>
+    <script type="module" src="/web/app.js"></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="eyebrow">mm-tools · sculpture</span>
+        <div class="heading-row">
+          <h1>Idol</h1>
+          <nav aria-label="Resources">
+            <a
+              href="https://github.com/speridlabs/idol-sdk"
+              target="_blank"
+              rel="noreferrer"
+              >Code</a
+            >
+            <a
+              href="https://huggingface.co/speridlabs/idol"
+              target="_blank"
+              rel="noreferrer"
+              >Weights</a
+            >
+            <button
+              id="theme"
+              type="button"
+              aria-label="Toggle light or dark theme"
+            >
+              ☀
+            </button>
+          </nav>
+        </div>
+        <p>
+          <strong>One image in, a 3D object out.</strong> Generate Gaussian
+          splats from an object image. Choose an example below or
+          <em>upload your own.</em>
+        </p>
+      </header>
+      <form id="generate-form">
+        <div class="main-grid">
+          <fieldset id="inputs" class="input-column">
+            <div id="input-panel" class="input-panel">
+              <span class="panel-label">Input image</span>
+              <div class="image-tools">
+                <button
+                  id="expand-input"
+                  type="button"
+                  title="Fullscreen input"
+                  aria-label="Fullscreen input"
+                >
+                  ⛶
+                </button>
+                <button
+                  id="clear-input"
+                  type="button"
+                  title="Clear image"
+                  aria-label="Clear image"
+                >
+                  ×
+                </button>
+              </div>
+              <img id="input-preview" alt="Input object" hidden />
+              <label id="drop-label" class="drop-label" for="upload"
+                >Drop an image<br /><span>or click to upload</span></label
+              >
+              <input id="upload" type="file" accept="image/*" hidden />
+              <div class="source-tools">
+                <button
+                  id="upload-button"
+                  type="button"
+                  title="Upload image"
+                  aria-label="Upload image"
+                >
+                  ↑
+                </button>
+                <button
+                  id="paste-button"
+                  type="button"
+                  title="Paste image"
+                  aria-label="Paste image"
+                >
+                  ▣
+                </button>
+              </div>
+            </div>
+            <div class="mode-panel">
+              <span class="panel-label">Input type</span>
+              <div class="radios">
+                <label
+                  ><input type="radio" name="mode" value="synthetic" checked />
+                  Synthetic</label
+                >
+                <label
+                  ><input type="radio" name="mode" value="real" /> Real
+                  photo</label
+                >
+              </div>
+            </div>
+            <button id="generate" type="submit">Generate</button>
+            <details id="settings">
+              <summary>Settings</summary>
+              <div class="settings-body">
+                <label class="control-label" for="num-gaussians"
+                  >Gaussians</label
+                >
+                <select id="num-gaussians">
+                  <option value="65536">64K</option>
+                  <option value="131072">128K</option>
+                  <option value="262144" selected>256K</option>
+                  <option value="524288">512K</option>
+                  <option value="1048576">1M</option>
+                </select>
+                <div class="slider-heading">
+                  <label for="steps">Steps</label
+                  ><button type="button" data-reset="steps" title="Reset steps">
+                    ↺</button
+                  ><input
+                    id="steps-number"
+                    type="number"
+                    min="10"
+                    max="100"
+                    step="1"
+                    value="50"
+                    aria-label="Steps value"
+                  />
+                </div>
+                <div class="slider-row">
+                  <span>10</span
+                  ><input
+                    id="steps"
+                    type="range"
+                    min="10"
+                    max="100"
+                    step="1"
+                    value="50"
+                  /><span>100</span>
+                </div>
+                <div class="slider-heading">
+                  <label for="cfg">Guidance scale</label
+                  ><button
+                    type="button"
+                    data-reset="cfg"
+                    title="Reset guidance"
+                  >
+                    ↺</button
+                  ><input
+                    id="cfg-number"
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    value="3"
+                    aria-label="Guidance value"
+                  />
+                </div>
+                <div class="slider-row">
+                  <span>0</span
+                  ><input
+                    id="cfg"
+                    type="range"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    value="3"
+                  /><span>10</span>
+                </div>
+                <div class="slider-heading">
+                  <label for="rescale_t">Time shift</label
+                  ><button
+                    type="button"
+                    data-reset="rescale_t"
+                    title="Reset time shift"
+                  >
+                    ↺</button
+                  ><input
+                    id="rescale_t-number"
+                    type="number"
+                    min="1"
+                    max="6"
+                    step="0.1"
+                    value="3"
+                    aria-label="Time shift value"
+                  />
+                </div>
+                <div class="slider-row">
+                  <span>1</span
+                  ><input
+                    id="rescale_t"
+                    type="range"
+                    min="1"
+                    max="6"
+                    step="0.1"
+                    value="3"
+                  /><span>6</span>
+                </div>
+                <label class="control-label" for="seed">Seed</label>
+                <input
+                  id="seed"
+                  type="number"
+                  min="0"
+                  max="2147483647"
+                  step="1"
+                  value="42"
+                  required
+                />
+                <label class="check"
+                  ><input id="randomize" type="checkbox" /> Random seed</label
+                >
+              </div>
+            </details>
+          </fieldset>
+          <div class="output-column">
+            <section id="result" class="result" aria-label="3D Gaussian viewer">
+              <div
+                id="scene"
+                tabindex="0"
+                aria-label="Drag to orbit, scroll to zoom"
+              ></div>
+              <div class="viewer-tools">
+                <button
+                  id="reset-camera"
+                  type="button"
+                  title="Reset camera"
+                  aria-label="Reset camera"
+                >
+                  ↺
+                </button>
+                <button
+                  id="expand-result"
+                  type="button"
+                  title="Fullscreen viewer"
+                  aria-label="Fullscreen viewer"
+                >
+                  ⛶
+                </button>
+                <a
+                  id="download-ply"
+                  title="Download PLY"
+                  aria-label="Download PLY"
+                  download
+                  hidden
+                  >↓</a
+                >
+              </div>
+              <div id="viewer-status" class="viewer-status" role="status">
+                Loading example
+              </div>
+              <span class="orbit-help">Drag to orbit · Scroll to zoom</span>
+            </section>
+            <div id="metadata" class="metadata"></div>
+          </div>
+        </div>
+      </form>
+      <section class="run-strip" aria-label="Saved generations">
+        <select id="history" aria-label="Saved runs">
+          <option value="">Saved runs</option>
+        </select>
+        <span id="status" role="status" aria-live="polite">Ready</span>
+        <button id="cancel" type="button" hidden>Cancel</button>
+        <div id="artifacts" hidden>
+          <a id="prepared" target="_blank" rel="noreferrer">Model input</a>
+          <a id="camera" download>Camera</a>
+          <a id="run-settings" download>Settings</a>
+        </div>
+        <details id="log-panel" hidden>
+          <summary>Run log</summary>
+          <pre id="log"></pre>
+        </details>
+      </section>
+      <section class="examples-section">
+        <h2>Examples — click to load the image and its settings</h2>
+        <div id="examples" class="examples"></div>
+      </section>
+    </main>
+  </body>
+</html>

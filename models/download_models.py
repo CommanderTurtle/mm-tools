@@ -56,6 +56,7 @@ class Artifact:
     sha256: str | None = None
     expected_size: int | None = None
     drive_id: str | None = None
+    repo_type: str = "model"
 
 
 @dataclass(frozen=True)
@@ -855,6 +856,23 @@ BUNDLES: tuple[Bundle, ...] = (
             SCULPT_SPARSE_DECODER, SCULPT_DINO, SCULPT_RMBG,
         ),
     ),
+    Bundle(
+        "idol", "Idol image-to-splats (gated DINOv3 / FLUX.2 VAE, Space examples)", "78",
+        (
+            A("speridlabs/idol", model_path("idol/weights"),
+              ("config.json", "*.safetensors", "README.md"),
+              revision="2731c2291fc65a797c5cb627a5e5526fc1490902"),
+            A("facebook/dinov3-vith16plus-pretrain-lvd1689m", model_path("idol/dinov3"),
+              ("config.json", "model.safetensors", "preprocessor_config.json", "LICENSE.md", "README.md"),
+              revision="c807c9eeea853df70aec4069e6f56b28ddc82acc"),
+            A("black-forest-labs/FLUX.2-dev", model_path("idol/flux2"),
+              ("vae/config.json", "vae/diffusion_pytorch_model.safetensors", "LICENSE.md", "README.md"),
+              revision="26afe3a78bb242c0a8bb181dcc8937bb16e5c66c"),
+            A("speridlabs/idol", model_path("idol/demo"),
+              ("examples/*", "README.md"), repo_type="space",
+              revision="2fd68f6aaa69df7c178503a788ad8deb4c7d3117"),
+        ),
+    ),
 )
 
 
@@ -992,6 +1010,8 @@ def download_artifact(
     }
     if artifact.revision:
         kwargs["revision"] = artifact.revision
+    if artifact.repo_type != "model":
+        kwargs["repo_type"] = artifact.repo_type
     # Older Hub releases need this to materialize local files. Current Hub
     # removed the argument and already uses real files for local_dir snapshots.
     if SNAPSHOT_SUPPORTS_SYMLINK_FLAG:

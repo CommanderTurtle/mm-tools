@@ -1099,6 +1099,24 @@ Gmsh: GPL-2.0-or-later; Triangle's native mesher has its own noncommercial terms
 Three.js: MIT. Review the mesher's terms before commercial use.
 https://github.com/Supra-3D/PhysAg3D/tree/3b0dab92e82e8c53b4596e89aea0f6139c4d0382
 
+78. Idol image-to-Gaussian-splat studio
+Bundle: idol
+Source: speridlabs/idol-sdk @ 8db700349a5570aac390e4780fa32e3eed6b587a (Apache-2.0)
+Idol weights @ 2731c2291fc65a797c5cb627a5e5526fc1490902 (Apache-2.0)
+DINOv3 ViT-H+ @ c807c9eeea853df70aec4069e6f56b28ddc82acc (Meta DINOv3 license)
+FLUX.2-dev VAE only @ 26afe3a78bb242c0a8bb181dcc8937bb16e5c66c (FLUX noncommercial license)
+Space presets / example PLY @ 2fd68f6aaa69df7c178503a788ad8deb4c7d3117 (Apache-2.0)
+Accept DINOv3 and FLUX.2-dev access terms with your own Hugging Face account,
+then use hf auth login before selecting this bundle. DINO access requires approval.
+The FLUX transformer is excluded; only its VAE is used. Cached files live under
+models/idol; sculpting/idol/models is a relative link created during setup.
+Independent studio: root AGPL-3.0. GaussianSplats3D / Three.js: MIT;
+Inter / IBM Plex Mono: OFL-1.1. Native preprocessing, precision and PLY export
+remain with the pinned SDK. Generation uses local files and offline Hub mode.
+https://github.com/speridlabs/idol-sdk/tree/8db700349a5570aac390e4780fa32e3eed6b587a
+https://huggingface.co/facebook/dinov3-vith16plus-pretrain-lvd1689m
+https://huggingface.co/black-forest-labs/FLUX.2-dev
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,

@@ -1,0 +1,942 @@
+[
+  {
+    "image": "examples/nb-armchair.webp",
+    "title": "Armchair",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-zombie.webp",
+    "title": "Zombie",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-explorer.webp",
+    "title": "Explorer",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-cowboy.webp",
+    "title": "Cowboy",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-viking.webp",
+    "title": "Viking",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-barista.webp",
+    "title": "Barista",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-axolotl.webp",
+    "title": "Axolotl",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-bear-hoodie.webp",
+    "title": "Bear hoodie",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-dj.webp",
+    "title": "Dj",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-ghost.webp",
+    "title": "Ghost",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-grandma.webp",
+    "title": "Grandma",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-rockstar.webp",
+    "title": "Rockstar",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-snowman.webp",
+    "title": "Snowman",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-alien.webp",
+    "title": "Alien",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-dog-corgi.webp",
+    "title": "Dog corgi",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-panda.webp",
+    "title": "Panda",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-robot-cute.webp",
+    "title": "Robot cute",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-knight.webp",
+    "title": "Knight",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-robot-mech.webp",
+    "title": "Robot mech",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-football.webp",
+    "title": "Football",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fig-fox.webp",
+    "title": "Fox",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-wingback.webp",
+    "title": "Wingback",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-dresser-memphis.webp",
+    "title": "Dresser memphis",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-barcelona.webp",
+    "title": "Barcelona",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-bar-stool.webp",
+    "title": "Bar stool",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-chair-tulip-red.webp",
+    "title": "Chair tulip red",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-chaise.webp",
+    "title": "Chaise",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-chesterfield.webp",
+    "title": "Chesterfield",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-daybed.webp",
+    "title": "Daybed",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-desk-writing.webp",
+    "title": "Desk writing",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-egg-chair.webp",
+    "title": "Egg chair",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-gaming-chair.webp",
+    "title": "Gaming chair",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-lounge-velvet-green.webp",
+    "title": "Lounge velvet green",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-loveseat-leather.webp",
+    "title": "Loveseat leather",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-velvet-armchair-emerald.webp",
+    "title": "Velvet armchair emerald",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-chair-papasan.webp",
+    "title": "Chair papasan",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-trunk-steamer.webp",
+    "title": "Trunk steamer",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-vanity.webp",
+    "title": "Vanity",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-desk-chair-vintage.webp",
+    "title": "Desk chair vintage",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-bean-bag.webp",
+    "title": "Bean bag",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/fur-globe-bar.webp",
+    "title": "Globe bar",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-handbag.webp",
+    "title": "Handbag",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-roller-skate.webp",
+    "title": "Roller skate",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-backpack.webp",
+    "title": "Backpack",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-birdhouse.webp",
+    "title": "Birdhouse",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-lunchbox.webp",
+    "title": "Lunchbox",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-watering-can.webp",
+    "title": "Watering can",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-boot-hiking.webp",
+    "title": "Boot hiking",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-microscope-brass.webp",
+    "title": "Microscope brass",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-perfume.webp",
+    "title": "Perfume",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-polaroid-stack.webp",
+    "title": "Polaroid stack",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-power-drill.webp",
+    "title": "Power drill",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-stand-mixer.webp",
+    "title": "Stand mixer",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-bicycle-helmet.webp",
+    "title": "Bicycle helmet",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-mailbox.webp",
+    "title": "Mailbox",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/obj-dumbbell.webp",
+    "title": "Dumbbell",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/food-cupcake.webp",
+    "title": "Cupcake",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/food-lollipop.webp",
+    "title": "Lollipop",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/food-macarons.webp",
+    "title": "Macarons",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/food-avocado.webp",
+    "title": "Avocado",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/food-mango.webp",
+    "title": "Mango",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/food-mushroom.webp",
+    "title": "Mushroom",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/food-gingerbread-house.webp",
+    "title": "Gingerbread house",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/food-bread-loaf.webp",
+    "title": "Bread loaf",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/food-donut.webp",
+    "title": "Donut",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/food-strawberry.webp",
+    "title": "Strawberry",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/food-grapes.webp",
+    "title": "Grapes",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/toy-robot-tin.webp",
+    "title": "Robot tin",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/toy-armor-helmet.webp",
+    "title": "Armor helmet",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/toy-buddha.webp",
+    "title": "Buddha",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/toy-castle.webp",
+    "title": "Castle",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/toy-submarine.webp",
+    "title": "Submarine",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/toy-train.webp",
+    "title": "Train",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/toy-chess-king.webp",
+    "title": "Chess king",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/nb-trophy.webp",
+    "title": "Trophy",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/nb-boombox.webp",
+    "title": "Boombox",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/nb-cupcake.webp",
+    "title": "Cupcake",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/nb-dragon-anime.webp",
+    "title": "Dragon anime",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/nb-microscope.webp",
+    "title": "Microscope",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/nb-castle-iso.webp",
+    "title": "Castle iso",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/nb-house-tiny.webp",
+    "title": "House tiny",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/nb-bird-wood.webp",
+    "title": "Bird wood",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/logo-gold-trophy.webp",
+    "title": "Gold trophy",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/logo-award.webp",
+    "title": "Award",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/logo-chess.webp",
+    "title": "Chess",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/logo-marble.webp",
+    "title": "Marble",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/logo-marble-dark-a.webp",
+    "title": "Marble dark a",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/logo-pretzel.webp",
+    "title": "Pretzel",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/x-agent-charm-keychain.webp",
+    "title": "Agent charm keychain",
+    "mode": "synthetic",
+    "seed": 42,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/x-jade-chess-king.webp",
+    "title": "Jade chess king",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/x-minesweeper-mine.webp",
+    "title": "Minesweeper mine",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/iris-robot-duck.webp",
+    "title": "Robot duck",
+    "mode": "synthetic",
+    "seed": 1,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/iris-scooter.webp",
+    "title": "Scooter",
+    "mode": "synthetic",
+    "seed": 1,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  },
+  {
+    "image": "examples/scene-garden-a.webp",
+    "title": "Garden a",
+    "mode": "synthetic",
+    "seed": 7,
+    "steps": 50,
+    "cfg": 3.0,
+    "rescale_t": 3.0,
+    "num_gaussians": 262144
+  }
+]
