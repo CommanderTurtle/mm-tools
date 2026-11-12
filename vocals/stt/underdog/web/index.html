@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Underdog · studio</title>
+    <link rel="stylesheet" href="/assets/style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">STUDIO / SPEECH TO TEXT</p>
+          <h1>Underdog <span>3.0</span></h1>
+          <p>
+            English transcription. Choose a voice recording and a Bark model.
+          </p>
+        </div>
+        <div id="runtime" class="runtime">Reading local runtime…</div>
+      </header>
+
+      <section aria-label="Model loaders">
+        <div class="section-head">
+          <h2>Models</h2>
+          <button id="refresh" class="secondary" type="button">Refresh</button>
+        </div>
+        <div id="models" class="models"></div>
+        <p class="hint">
+          Downloads are independent. Loaded models stay resident until unloaded
+          or the server closes.
+        </p>
+      </section>
+
+      <section class="input-card" aria-label="Audio input">
+        <div
+          id="dropzone"
+          class="dropzone"
+          tabindex="0"
+          role="button"
+          aria-label="Choose audio file"
+        >
+          <strong id="file-label">Drop audio here or choose a file</strong>
+          <small>MP3 · WAV · M4A · FLAC · OGG · browser recording</small>
+        </div>
+        <input
+          id="file"
+          type="file"
+          accept="audio/*,.m4a,.mp3,.wav,.flac,.ogg,.webm"
+          hidden
+        />
+        <div class="recording">
+          <button id="record" class="secondary" type="button">
+            ● Record microphone
+          </button>
+          <span id="record-time">00:00</span>
+          <audio id="preview" controls aria-label="Audio preview"></audio>
+        </div>
+      </section>
+
+      <form id="controls">
+        <div class="primary-controls">
+          <label
+            >Model<select
+              id="variant"
+              name="variant"
+              aria-describedby="model-description"
+            ></select
+          ></label>
+          <label>Language<input value="English (en)" readonly /></label>
+          <label
+            >Chunk seconds<input
+              name="chunk_duration"
+              type="number"
+              min="1"
+              max="30"
+              step="1"
+              value="30"
+              required
+          /></label>
+        </div>
+        <p id="model-description" class="hint">Select a downloaded model.</p>
+        <div class="actions">
+          <button id="run" type="submit" disabled>Transcribe locally</button>
+          <button id="cancel" class="secondary hidden" type="button">
+            Cancel
+          </button>
+          <span id="status" role="status" aria-live="polite">Ready</span>
+        </div>
+        <progress
+          id="progress"
+          class="hidden"
+          aria-label="Transcription progress"
+        ></progress>
+      </form>
+
+      <section
+        id="results"
+        class="results hidden"
+        aria-label="Transcription results"
+      >
+        <nav id="result-tabs" aria-label="Model results"></nav>
+        <article>
+          <div class="result-head">
+            <h2 id="result-title">Transcript</h2>
+            <div class="exports">
+              <button id="copy" class="secondary" type="button">Copy</button>
+              <button id="download-text" class="secondary" type="button">
+                TXT ↓
+              </button>
+              <button id="download-json" class="secondary" type="button">
+                JSON ↓
+              </button>
+            </div>
+          </div>
+          <div id="transcript" class="transcript"></div>
+          <div id="metrics" class="metrics"></div>
+        </article>
+        <details class="chunks">
+          <summary>Audio chunks</summary>
+          <p class="hint">
+            Chunk boundaries, rather than word alignment. Select a time to seek
+            the recording.
+          </p>
+          <div id="chunks"></div>
+        </details>
+        <details class="json">
+          <summary>Structured JSON</summary>
+          <pre id="json"></pre>
+        </details>
+      </section>
+    </main>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>

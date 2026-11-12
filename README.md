@@ -44,7 +44,7 @@ cd ~ && git clone https://github.com/CommanderTurtle/mm-tools multimedia && cd m
 cd models
 uv venv --python 3.12.10 --seed --managed-python
 source .venv/bin/activate
-uv pip install -U huggingface_hub hf_transfer
+uv pip install -U huggingface_hub hf_transfer gdown==5.2.0
 
 uv run download_models.py
 # Choose workers first, then select project bundles or press Enter for all.
@@ -452,6 +452,19 @@ cd ~/multimedia/vocals/stt/whisper
 
 ReDesign also defaults to `8173`; change `CW2_UI_PORT` when both browser services run together.
 
+### Underdog Bark
+
+English transcription with independent Bark 3.0, Plus, Clean and Pro loaders.
+Whisper-style studio, microphone recording, transcript comparison and TXT/JSON export.
+
+```bash
+uv run models/download_models.py underdog-pro  # also: underdog-base, underdog-plus, underdog-clean
+cd vocals/stt/underdog
+./setupwithuv.sh
+./startwithuv.sh                           # studio: :8293
+./starthttp.sh                             # optional API: :8292, BARK_MODEL in .env
+```
+
 ## Port map
 
 | Port | Runtime |
@@ -462,6 +475,7 @@ ReDesign also defaults to `8173`; change `CW2_UI_PORT` when both browser service
 | `8174` | Ideogram/ObjectClear editor |
 | `8176` | Translate |
 | `8177` | Translate standalone UI |
+| `8221` | MotionBricks character studio |
 | `8222` | MuScriptor |
 | `8223` | MuSViT local score studio |
 | `8230` | LongCat HTTP |
@@ -473,13 +487,21 @@ ReDesign also defaults to `8173`; change `CW2_UI_PORT` when both browser service
 | `8252` | SymphonyGen local studio |
 | `8253` | VocalRender local studio |
 | `8254` | MiniMax Music 3 local studio |
+| `8281` | FlowHMR reference-to-motion studio |
+| `8282` | PhysAg3D staged asset studio |
+| `8283` | Idol Gaussian studio |
+| `8284` | Hy3D mesh studio |
+| `8285` | SceneBloom scene studio |
+| `8286` | Hy-Nomas world studio |
+| `8287` | Unlimited OCR 2 document studio |
+| `8288` | Pixel Wizard vision studio |
 | `8289` | Nemotron transcription studio |
 | `8290` | Audio8 speech studio |
 | `8291` | Ming3 speech and podcast studio |
 | `8292` | Underdog Bark HTTP |
 | `8293` | Underdog Bark studio |
 
-Services bind to the configured private-LAN interface and do not add public-facing authentication by default. Keep them behind the host firewall or set the supported bearer token where provided.
+The new studios default to loopback; existing services retain their configured private-LAN interfaces. Keep network-exposed services behind the host firewall or set the supported bearer token where provided.
 
 ### Update 9-17, new, local creative studios
 

@@ -17,7 +17,7 @@ Create the small downloader environment once:
 cd ~/multimedia/models
 uv venv --python 3.12 --seed --managed-python .venv
 source .venv/bin/activate
-uv pip install -U huggingface_hub hf_transfer
+uv pip install -U huggingface_hub hf_transfer gdown==5.2.0
 ```
 
 Interactive mode asks for the snapshot file-worker count first, then presents the
@@ -1259,6 +1259,27 @@ Separate Python 3.11 environments, native BF16; tiny retains FP32 recurrent stat
 CUDA 12.8 PyTorch wheels target Blackwell. Tiny alone provides podcast generation.
 https://huggingface.co/inclusionAI/Ming-3.0-tts-0.5B
 https://huggingface.co/inclusionAI/Ming-3.0-tts-tiny
+
+90–93. Underdog Bark 3.0 (bundles: underdog-base, underdog-plus, underdog-clean, underdog-pro)
+90: ConwayResearch/Underdog-Bark-3.0 @ e7a641c0fdd4cdf1818dde62a98c26e11d65c061, 163 MB packed.
+91: ConwayResearch/Underdog-Bark-3.0-Plus @ 28a7d4234146b0f01c11e0c6b72dfa29028a4758, 180 MB packed.
+92: ConwayResearch/Underdog-Bark-3.0-Clean @ 73775471a9410b75ceb2401e837861dac12bd76d, 180 MB packed.
+93: ConwayResearch/Underdog-Bark-3.0-Pro @ d87f288a9a0b0cdb92228057e168ce575b300a6b, 1.25 GB BF16.
+Weights: CC-BY-NC-4.0 at these revisions; commercial use requires the author's license.
+Each selected snapshot retains its LICENSE and NOTICE; packed variants include the original
+bark_loader.py, verified against its pinned hash and used as a separate native runtime module.
+Processor/config only: nvidia/parakeet-tdt-0.6b-v3
+@ 541d1f99c6b0c3cd0b11a95167540bb8edefd82b (CC-BY-4.0), including its attribution card.
+Ancestor: moondream/parakeet-ultra (CC-BY-4.0); see the native model NOTICE files.
+Playground reference: hugging-apps/underdog-bark-3-0-pro
+@ 9cc2dc0ce2eccd76e286d665907e104a5887545e. Its older CC-BY label is superseded by
+the model repositories' current terms. Hosted examples and Gradio assets are excluded.
+Stored in models/underdog/{base,plus,clean,pro,processor}; linked into vocals/stt/underdog.
+Independent studio: root AGPL-3.0. Transformers/Safetensors: Apache-2.0;
+PyTorch/NumPy/SoundFile/librosa: BSD/ISC; Constriction: MIT/Apache-2.0;
+SoXR/libsndfile: LGPL; FastAPI/python-multipart: MIT; Uvicorn/Starlette: BSD;
+FFmpeg: LGPL/GPL depending on installed build. English only; Clean changes speech style.
+https://huggingface.co/ConwayResearch/Underdog-Bark-3.0-Pro
 
 Workflows section (workflows/download_models.py)
 ------------------------------------------------

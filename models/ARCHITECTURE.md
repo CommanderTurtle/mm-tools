@@ -36,7 +36,7 @@ repository name over the network.
 cd ~/multimedia/models
 uv venv --python 3.12.10 --seed --managed-python .venv
 source .venv/bin/activate
-uv pip install -U huggingface_hub hf_transfer
+uv pip install -U huggingface_hub hf_transfer gdown==5.2.0
 
 uv run download_models.py --list
 uv run download_models.py 4d lingbot lingbot-5090 fire3d
@@ -75,9 +75,10 @@ exactly as the retired entries did.
   safetensors/remote-code pair. The gated `briaai/RMBG-2.0` alias is replaced
   by its compatible official ungated source so an unattended local install
   never stalls on a click-through license.
-- The only non-Hugging-Face model artifact is NAF's 2.6 MB official GitHub
-  release checkpoint. It uses resumable `.partial` storage and is accepted only
-  after exact size and SHA-256 verification.
+- Direct upstream artifacts, including NAF, AnyUp, MotionBricks assets, DINOv2,
+  U2Net, Demucs and Ming reference recordings, use resumable `.partial` storage
+  and SHA-256 verification, with exact sizes where recorded. The picker owns
+  these downloads alongside the pinned Hub snapshots.
 - Each downloaded model remains governed by its upstream model license and
   access terms; no checkpoint is part of the AGPL source export.
 - `which-ones.txt` is the canonical human-readable map from bundle to exact

@@ -2,12 +2,13 @@ MM Tools model downloader
 =========================
 
 Create one small uv environment in this directory and install the current
-Hugging Face Hub client plus mm-tools' canonical hf_transfer backend:
+Hugging Face Hub client, mm-tools' canonical hf_transfer backend and the PHC
+Drive downloader:
 
   cd ~/multimedia/models
   uv venv --python 3.12.10 --seed --managed-python .venv
   source .venv/bin/activate
-  uv pip install -U huggingface_hub hf_transfer
+  uv pip install -U huggingface_hub hf_transfer gdown==5.2.0
   uv run download_models.py --list
   uv run download_models.py
 
@@ -47,8 +48,9 @@ ZhengPeng7 BiRefNet checkpoint, MoGe-2 camera
 calibration, and NAF feature upsampling. The legacy
 decoder is hard-linked into TRELLIS.2-4B; both sculpting adapters point their
 generated local pipeline config at the shared DINO/BiRefNet directories.
-NAF is the sole direct-release asset: its partial download is resumable and is
-accepted only after exact byte-size and SHA-256 verification.
+Direct-release assets use resumable partial downloads and SHA-256 verification,
+with exact byte sizes where recorded. The current artifact list is maintained
+in `which-ones.txt`.
 
 `lingbot` contains only the 14B release's shared UMT5 encoder, tokenizer, and
 Wan VAE. Its approximately 70 GB 14B DiT is intentionally not downloaded:

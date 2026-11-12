@@ -1,0 +1,91 @@
+{
+  "processor": {
+    "repo": "nvidia/parakeet-tdt-0.6b-v3",
+    "revision": "541d1f99c6b0c3cd0b11a95167540bb8edefd82b",
+    "files": [
+      "config.json",
+      "generation_config.json",
+      "processor_config.json",
+      "tokenizer.json",
+      "tokenizer_config.json",
+      "README.md"
+    ]
+  },
+  "playground": {
+    "repo": "hugging-apps/underdog-bark-3-0-pro",
+    "revision": "9cc2dc0ce2eccd76e286d665907e104a5887545e"
+  },
+  "variants": {
+    "base": {
+      "name": "Bark 3.0",
+      "repo": "ConwayResearch/Underdog-Bark-3.0",
+      "revision": "e7a641c0fdd4cdf1818dde62a98c26e11d65c061",
+      "inventory": "90",
+      "loader_sha256": "e86b7f130bec1a8fa14dd315cfce95785b890dbd30000f6ceb2597fdd4312b02",
+      "download": "163 MB",
+      "operation": "verbatim",
+      "padding_seconds": 0.25,
+      "files": [
+        "model.bark",
+        "bark_loader.py",
+        "LICENSE",
+        "NOTICE",
+        "README.md"
+      ]
+    },
+    "plus": {
+      "name": "Bark 3.0 Plus",
+      "repo": "ConwayResearch/Underdog-Bark-3.0-Plus",
+      "revision": "28a7d4234146b0f01c11e0c6b72dfa29028a4758",
+      "inventory": "91",
+      "loader_sha256": "e86b7f130bec1a8fa14dd315cfce95785b890dbd30000f6ceb2597fdd4312b02",
+      "download": "180 MB",
+      "operation": "verbatim",
+      "padding_seconds": 0.25,
+      "files": [
+        "model.bark",
+        "bark_loader.py",
+        "LICENSE",
+        "NOTICE",
+        "README.md"
+      ]
+    },
+    "clean": {
+      "name": "Bark 3.0 Clean",
+      "repo": "ConwayResearch/Underdog-Bark-3.0-Clean",
+      "revision": "73775471a9410b75ceb2401e837861dac12bd76d",
+      "inventory": "92",
+      "loader_sha256": "97ee639ccfc9359a2ea8d9e9d253a630149932e9da629ce0d1363b9b44ec21ba",
+      "download": "180 MB",
+      "operation": "intended",
+      "padding_seconds": 0.0,
+      "files": [
+        "model.bark",
+        "bark_loader.py",
+        "LICENSE",
+        "NOTICE",
+        "README.md"
+      ]
+    },
+    "pro": {
+      "name": "Bark 3.0 Pro",
+      "repo": "ConwayResearch/Underdog-Bark-3.0-Pro",
+      "revision": "d87f288a9a0b0cdb92228057e168ce575b300a6b",
+      "inventory": "93",
+      "download": "1.25 GB",
+      "operation": "verbatim",
+      "padding_seconds": 0.25,
+      "files": [
+        "model.safetensors",
+        "config.json",
+        "generation_config.json",
+        "processor_config.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "LICENSE",
+        "NOTICE",
+        "README.md"
+      ]
+    }
+  }
+}
