@@ -873,6 +873,35 @@ BUNDLES: tuple[Bundle, ...] = (
               revision="2fd68f6aaa69df7c178503a788ad8deb4c7d3117"),
         ),
     ),
+    Bundle(
+        "hy3d", "Hi3D mesh refinement / local background removal", "79",
+        (
+            A("hi3d-official/Hi3Dv1.0", model_path("hy3d/weights"),
+              ("model_index.json", "scheduler/*.json", "vae/*.json", "vae/*.safetensors",
+               "transformer_*/*.json", "transformer_*/*.safetensors", "LICENSE", "NOTICE",
+               "AUTHORS", "THIRD_PARTY_LICENSES.md", "sparc3d/ops/flexicubes/LICENSE.txt"),
+              revision="d502e938cbedc6e87aba8884614c5ca6d177a4b6"),
+            A("facebook/dinov2-large", model_path("hy3d/dinov2"),
+              ("config.json", "model.safetensors", "preprocessor_config.json", "README.md"),
+              revision="47b73eefe95e8d44ec3623f8890bd894b6ea2d6c"),
+            A("openai/clip-vit-large-patch14", model_path("hy3d/clip"),
+              ("config.json", "model.safetensors", "preprocessor_config.json", "README.md"),
+              revision="32bd64288804d66eefd0ccbe215aa642df71cc41"),
+            A("danielgatis/rembg", model_path("hy3d/rembg"),
+              direct_url="https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx",
+              direct_filename="u2net.onnx", expected_size=175997641,
+              sha256="8d10d2f3bb75ae3b6d527c77944fc5e7dcd94b29809d47a739a7a728a912b491"),
+        ),
+    ),
+    Bundle(
+        "hy3d-coarse", "Hi3D optional image-to-mesh stage (Hunyuan3D-2 mini turbo)", "80",
+        (
+            A("tencent/Hunyuan3D-2mini", model_path("hy3d/coarse"),
+              ("hunyuan3d-dit-v2-mini-turbo/config.yaml",
+               "hunyuan3d-dit-v2-mini-turbo/model.fp16.safetensors", "LICENSE", "NOTICE", "README.md"),
+              revision="f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6"),
+        ),
+    ),
 )
 
 

@@ -1,0 +1,10 @@
+{
+  "name": "mm-tools-hy3d-studio",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "three": "0.170.0",
+    "@fontsource/inter": "5.2.8",
+    "@fontsource/ibm-plex-mono": "5.2.7"
+  }
+}

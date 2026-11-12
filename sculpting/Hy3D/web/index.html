@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hy3D — studio</title>
+    <link rel="stylesheet" href="/web/style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/three.module.js",
+          "three/addons/": "/vendor/addons/"
+        }
+      }
+    </script>
+    <script type="module" src="/web/app.js"></script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="/">Hy3D <span>/ studio</span></a
+      ><span class="eyebrow">IMAGE → GEOMETRY</span
+      ><span class="local"
+        >LOCAL · <span id="connection">CONNECTING</span></span
+      >
+    </header>
+    <main>
+      <aside class="inputs">
+        <form id="form">
+          <fieldset id="settings">
+            <div class="section-heading">
+              <span class="index">01</span>
+              <h1>Reference</h1>
+              <button id="new" type="button">New</button>
+            </div>
+            <label class="drop" id="drop"
+              ><input id="image" type="file" accept="image/*" /><img
+                id="reference"
+                alt="Selected reference"
+                hidden
+              /><span id="drop-hint"
+                ><b>Drop an image</b
+                ><small>or browse · transparent images supported</small></span
+              ></label
+            >
+            <div class="tabs" id="images">
+              <button type="button" data-image="input.png" aria-pressed="true">
+                Input</button
+              ><button type="button" data-image="condition.png" disabled>
+                Cutout</button
+              ><button type="button" data-image="prepared.png" disabled>
+                Conditioning
+              </button>
+            </div>
+            <label class="field"
+              >Input route<select id="route">
+                <option value="image">Image → coarse → refined mesh</option>
+                <option value="mesh">Image + existing mesh → refinement</option>
+              </select></label
+            >
+            <p id="coarse-note" class="note" hidden>
+              Select the optional hy3d-coarse bundle for image-only generation.
+            </p>
+            <label class="field" id="mesh-field" hidden
+              >Coarse geometry<input
+                id="mesh"
+                type="file"
+                accept=".glb,.ply,.obj,.stl"
+              /><small id="mesh-name"
+                >GLB, PLY, OBJ or STL · embedded geometry</small
+              ></label
+            >
+            <div class="section-heading">
+              <span class="index">02</span>
+              <h2>Refinement</h2>
+            </div>
+            <label class="field"
+              >Extraction grid<select id="resolution">
+                <option value="512">512 · one pass</option>
+                <option value="1024" selected>1024 · two passes</option>
+                <option value="1536">1536 · three passes</option>
+              </select></label
+            >
+            <div class="paired">
+              <label class="field"
+                >Steps per pass<input
+                  id="steps"
+                  type="number"
+                  min="1"
+                  max="200"
+                  value="25"
+                  required /></label
+              ><label class="field"
+                >Seed<input
+                  id="seed"
+                  type="number"
+                  min="0"
+                  max="2147483647"
+                  value="0"
+                  required
+              /></label>
+            </div>
+            <label class="check"
+              ><input id="randomize" type="checkbox" />Randomize seed</label
+            >
+            <label class="check"
+              ><input id="remove_background" type="checkbox" />Remove background
+              <span>U2Net · CPU</span></label
+            >
+            <label class="check"
+              ><input id="offload" type="checkbox" />Sequential CPU offload
+              <span>refinement</span></label
+            >
+            <p class="note">
+              Native precision. Larger grids increase sparse activation memory;
+              offload releases idle weights.
+            </p>
+            <button class="primary" id="generate" type="submit">
+              Generate mesh <span>↗</span>
+            </button>
+          </fieldset>
+        </form>
+        <button id="cancel" class="danger" hidden>Cancel active run</button>
+        <button id="resume" hidden>Resume saved stages</button>
+        <p id="message" role="status" aria-live="polite"></p>
+        <section class="history">
+          <div class="section-heading">
+            <span class="index">03</span>
+            <h2>Saved runs</h2>
+            <button id="refresh" type="button" aria-label="Refresh saved runs">
+              ↻
+            </button>
+          </div>
+          <div id="history"></div>
+        </section>
+      </aside>
+      <section class="workspace">
+        <div class="viewer-head">
+          <div>
+            <span class="eyebrow">GEOMETRY WORKSPACE</span>
+            <h2 id="run-title">A form, in detail.</h2>
+          </div>
+          <div class="tabs" id="stages">
+            <button data-stage="coarse" disabled>Coarse</button
+            ><button data-stage="refined" disabled aria-pressed="true">
+              Refined
+            </button>
+          </div>
+        </div>
+        <div id="viewer">
+          <canvas
+            id="canvas"
+            aria-label="Interactive mesh preview; drag to orbit, scroll to zoom"
+          ></canvas>
+          <div id="empty">
+            <span class="wire-icon">◇</span>
+            <h2>Image to shape</h2>
+            <p>
+              Generate a mesh or refine your own.<br />Inspect the geometry at
+              every saved stage.
+            </p>
+          </div>
+          <div id="viewer-error" role="alert" hidden></div>
+          <div class="axis-label">Y ↑ &nbsp; X → &nbsp; Z ↗</div>
+          <span class="viewport-tag">GEOMETRY ONLY</span>
+        </div>
+        <div class="toolbar">
+          <label
+            >Surface<select id="surface">
+              <option value="solid">Clay</option>
+              <option value="normal">Normals</option>
+              <option value="wire">Wireframe</option>
+            </select></label
+          ><label
+            >Light<input
+              id="light"
+              type="range"
+              min="0.2"
+              max="3"
+              step="0.1"
+              value="1.4" /></label
+          ><label class="check"
+            ><input id="spin" type="checkbox" />Turntable</label
+          ><button id="fit">Fit view</button>
+        </div>
+        <div class="progress-panel">
+          <div>
+            <span class="pulse" id="pulse"></span
+            ><strong id="phase">Ready</strong><span id="counter"></span>
+          </div>
+          <progress
+            id="progress"
+            max="1"
+            value="0"
+            aria-label="Native sampling progress"
+          ></progress>
+          <p id="progress-note">
+            Each stage saves its output and releases its models before the next.
+          </p>
+        </div>
+        <div class="outputs">
+          <div class="stats">
+            <div><small>VERTICES</small><strong id="vertices">—</strong></div>
+            <div><small>FACES</small><strong id="faces">—</strong></div>
+            <div><small>GRID</small><strong id="grid">—</strong></div>
+          </div>
+          <div id="exports" class="exports" aria-label="Downloads"></div>
+        </div>
+        <details id="log-panel">
+          <summary>Run log <span>native output</span></summary>
+          <pre id="log">Choose a saved run to inspect its log.</pre>
+        </details>
+        <footer>
+          <span>Hi3D 1.0 / Sparc3D · unit-normalized geometry</span
+          ><a href="https://hi3d.ai" target="_blank" rel="noreferrer"
+            >Powered by Hi3D 1.0 ↗</a
+          >
+        </footer>
+      </section>
+    </main>
+  </body>
+</html>

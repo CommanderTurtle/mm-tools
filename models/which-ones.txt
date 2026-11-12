@@ -1117,6 +1117,35 @@ https://github.com/speridlabs/idol-sdk/tree/8db700349a5570aac390e4780fa32e3eed6b
 https://huggingface.co/facebook/dinov3-vith16plus-pretrain-lvd1689m
 https://huggingface.co/black-forest-labs/FLUX.2-dev
 
+79. Hi3D refinement (bundle: hy3d)
+Source: hi3d-official/Hi3Dv1.0 @ 13657ad09afaa92e350b461a1cd66399e44a59c4
+Weights: d502e938cbedc6e87aba8884614c5ca6d177a4b6 (~7.74 GB)
+Hi3D Open License Agreement 1.0; source and weights retain its use, attribution,
+commercial branding and scale conditions (200,000 MAU or USD 1M monthly revenue).
+Hi3D is licensed under the Hi3D Open License Agreement Version 1.0.
+Copyright © 2026 OCEANO HK HOLDING LIMITED. All rights not expressly granted
+are reserved. The Hi3D trademarks are owned by OCEANO HK HOLDING LIMITED or
+its applicable affiliate(s).
+https://github.com/hi3d-official/Hi3Dv1.0/blob/13657ad09afaa92e350b461a1cd66399e44a59c4/LICENSE
+External DINOv2-large @ 47b73eefe95e8d44ec3623f8890bd894b6ea2d6c (Apache-2.0),
+CLIP ViT-L/14 @ 32bd64288804d66eefd0ccbe215aa642df71cc41 (MIT),
+U2Net ONNX from rembg v0.0.0 release (Apache-2.0 model / MIT adapter),
+175997641 bytes; upstream MD5 60024c5c889badc19c04ad937298a77b verified on use.
+Files live in models/hy3d; setup links sculpting/Hy3D/models relatively.
+Excluded sample media, training data, pickle checkpoints and texture models are
+omitted. Native notices remain with source/checkpoints; independently written
+studio is root AGPL-3.0. Three.js: MIT; Inter / IBM Plex Mono: OFL-1.1.
+
+80. Hunyuan coarse generator (bundle: hy3d-coarse; also select hy3d)
+Tencent-Hunyuan/Hunyuan3D-2 @ f8db63096c8282cb27354314d896feba5ba6ff8a
+tencent/Hunyuan3D-2mini @ f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6
+Only mini turbo config and FP16 safetensors; conditioner and VAE are included
+inside that checkpoint. Tencent Hunyuan 3D 2.0 Community License applies,
+including territory exclusions (EU, UK, South Korea), scale and use conditions.
+https://huggingface.co/tencent/Hunyuan3D-2mini/blob/f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6/LICENSE
+Optional image-only route. A supplied mesh uses the refinement bundle alone.
+The coarse worker exits before refinement loads. Models stay offline on use.
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,
