@@ -335,6 +335,12 @@ cd ~/multimedia/music/musvit
 
 Use `musvit_embed.py` directly for the embedding lane.
 
+### Unlimited OCR 2
+
+[Unlimited OCR 2 studio](visual-modeling/OCR/README.md) parses ordered PDF/image
+pages into a structured document with layout overlays, tables, equations and
+figure crops. Select `unlimited-ocr2` in the downloader; serve on `:8287`.
+
 ### ReDesign
 
 Flat-image decomposition into editable layers using local detection, segmentation, inpainting, OCR, and Qwen Image Layered components.

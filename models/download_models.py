@@ -936,6 +936,13 @@ BUNDLES += (
 )
 
 
+BUNDLES += (Bundle("unlimited-ocr2", "Unlimited OCR 2 document studio", "84", (
+    A("baidu/Unlimited-OCR-2", model_path("unlimited-ocr2"),
+      ("*.safetensors", "*.json", "*.py", "*.txt", "LICENSE", "README.md"),
+      revision="0480966938291445591f69f08a13b041c073a96a"),
+)),)
+
+
 UNDERDOG = json.loads((MODELS / "manifests/underdog.json").read_text())
 BUNDLES += tuple(
     Bundle(f"underdog-{key}", f"{row['name']} English STT ({row['download']})", row["inventory"], (

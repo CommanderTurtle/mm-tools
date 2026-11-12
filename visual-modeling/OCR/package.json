@@ -1,0 +1,12 @@
+{
+  "name": "mm-tools-ocr2-studio",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "marked": "16.4.2",
+    "dompurify": "3.3.0",
+    "katex": "0.16.25",
+    "@fontsource/inter": "5.2.8",
+    "@fontsource/ibm-plex-mono": "5.2.7"
+  }
+}

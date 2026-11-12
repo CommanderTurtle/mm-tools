@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>OCR 2 · studio</title>
+    <link rel="stylesheet" href="/vendor/katex/katex.min.css" />
+    <link rel="stylesheet" href="/web/style.css" />
+    <script defer src="/vendor/katex/katex.min.js"></script>
+    <script defer src="/vendor/katex/contrib/auto-render.min.js"></script>
+    <script type="module" src="/web/app.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span class="mark" aria-hidden="true">▤</span><strong>studio</strong
+        ><span class="slash">/</span><span>Unlimited OCR <b>2</b></span>
+      </div>
+      <div class="engine">Transformers <span>BF16 · local</span></div>
+      <button id="historyToggle">
+        Documents <span id="historyCount">0</span>
+      </button>
+    </header>
+    <main>
+      <aside class="settings">
+        <div class="eyebrow">Document workspace</div>
+        <h1>Document<br />parsing.</h1>
+        <p class="intro">
+          Page structure, tables, equations and figures. One ordered document.
+        </p>
+        <form id="settingsForm">
+          <fieldset id="settingsFields">
+            <label for="files" class="upload"
+              ><span>＋</span><strong>Add a document</strong
+              ><small>PDF · PNG · JPEG · WebP · TIFF</small></label
+            >
+            <input
+              id="files"
+              type="file"
+              accept="application/pdf,image/*"
+              multiple
+              hidden
+            />
+            <label for="mode">Detail</label>
+            <select id="mode">
+              <option value="auto">Auto</option>
+              <option value="gundam">Gundam · tiled</option>
+              <option value="base">Base · global view</option>
+            </select>
+            <p id="modeHint" class="hint">
+              Auto tiles single pages; documents use one global view per page.
+            </p>
+            <label for="instruction">Instruction <span>optional</span></label>
+            <textarea
+              id="instruction"
+              rows="3"
+              maxlength="16000"
+              placeholder="Multi page parsing."
+            ></textarea>
+            <label for="max_page_tokens"
+              >Tokens per page <output id="tokenValue">20,000</output></label
+            >
+            <input
+              id="max_page_tokens"
+              type="range"
+              min="256"
+              max="20000"
+              step="1"
+              value="20000"
+            />
+            <details>
+              <summary>Document settings</summary>
+              <label for="max_length">Context tokens</label
+              ><input
+                id="max_length"
+                type="number"
+                min="4096"
+                max="786432"
+                step="1"
+                value="131072"
+              />
+              <p class="hint">
+                Includes image input and generated text. Larger budgets require
+                more GPU memory.
+              </p>
+              <label for="dpi">PDF raster DPI</label
+              ><input id="dpi" type="number" min="72" max="400" value="200" />
+              <p class="hint">
+                Applied when opening a PDF. All pages are retained.
+              </p>
+            </details>
+            <button id="parse" class="primary" type="submit" disabled>
+              Parse document <span>↗</span>
+            </button>
+          </fieldset>
+        </form>
+        <button id="cancel" class="stop" hidden>Stop operation</button>
+        <button id="example">Open example report</button>
+        <div class="runtime-note">
+          <span class="dot"></span>Loads on parse · releases on exit
+        </div>
+        <a
+          href="https://github.com/baidu/Unlimited-OCR"
+          target="_blank"
+          rel="noreferrer"
+          >Native pipeline ↗</a
+        >
+      </aside>
+      <section class="workspace" id="dropTarget">
+        <div class="toolbar">
+          <strong id="title">No document open</strong
+          ><span class="spacer"></span
+          ><button id="prev" title="Previous page">‹</button
+          ><span id="pageCount">0 / 0</span
+          ><button id="next" title="Next page">›</button
+          ><button id="fit">100%</button
+          ><label class="check"
+            ><input id="boxes" type="checkbox" checked />Layout</label
+          >
+        </div>
+        <div class="pageRail" id="pages" aria-label="Document pages"></div>
+        <div class="pageTools">
+          <span id="pageName">Drop a document to begin</span
+          ><span class="spacer"></span
+          ><button id="moveLeft" title="Move page earlier">Move earlier</button
+          ><button id="moveRight" title="Move page later">Move later</button
+          ><button id="removePage">Exclude page</button>
+        </div>
+        <div class="spread">
+          <section class="sourcePane">
+            <div class="paneHeading">
+              01 <span>Source & layout</span><span id="dimensions"></span>
+            </div>
+            <div id="sourceScroll">
+              <div id="sourceSheet">
+                <img id="pageImage" alt="Selected document page" hidden /><svg
+                  id="overlay"
+                  viewBox="0 0 1000 1000"
+                  preserveAspectRatio="none"
+                  aria-label="Detected layout regions"
+                ></svg>
+                <div class="scan"></div>
+              </div>
+              <div id="empty">
+                <div class="paperIcon">▤</div>
+                <h2>Open a document.</h2>
+                <p>
+                  Open page images or a PDF.<br />Arrange the reading order,
+                  then parse.
+                </p>
+              </div>
+            </div>
+          </section>
+          <section class="resultPane">
+            <div class="paneHeading">
+              02 <span>Document output</span>
+              <nav aria-label="Output view">
+                <button data-view="rendered" class="selected">Read</button
+                ><button data-view="blocks">Blocks</button
+                ><button data-view="raw">Raw</button>
+              </nav>
+            </div>
+            <div id="rendered" class="output">
+              <div class="outputEmpty">
+                <span>↳</span>
+                <p>Recognized content appears here.</p>
+                <small>Headings · tables · formulas · figures</small>
+              </div>
+            </div>
+            <div id="blocks" class="output" hidden></div>
+            <pre id="raw" class="output" hidden></pre>
+            <div class="exports">
+              <button id="copy" disabled>Copy Markdown</button
+              ><a id="markdown" hidden download>Markdown ↗</a
+              ><a id="layout" hidden download>Layout JSON ↗</a
+              ><a id="zip" hidden download>Bundle ↓</a>
+            </div>
+          </section>
+        </div>
+        <footer>
+          <span class="dot" id="activity"></span
+          ><span id="status" role="status">Ready</span
+          ><span class="spacer"></span><span id="metrics"></span
+          ><button id="showLog">Log</button>
+        </footer>
+        <div id="notice" role="alert" hidden></div>
+      </section>
+    </main>
+    <dialog id="historyDialog">
+      <div class="dialogHead">
+        <h2>Documents</h2>
+        <button id="closeHistory" aria-label="Close documents">×</button>
+      </div>
+      <div id="history"></div>
+    </dialog>
+    <dialog id="logDialog">
+      <div class="dialogHead">
+        <h2>Runtime log</h2>
+        <button id="closeLog" aria-label="Close log">×</button>
+      </div>
+      <pre id="log"></pre>
+    </dialog>
+  </body>
+</html>

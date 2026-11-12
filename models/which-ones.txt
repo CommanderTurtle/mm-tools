@@ -1190,6 +1190,17 @@ native INT8 conversion. Cached INT8 derivatives live in world-gen/hynomas/.work.
 Preparation needs room for the temporary merged checkpoint and host-memory headroom.
 The FP32 base is preparation input, never a silent replacement at inference.
 
+84. Unlimited OCR 2 document studio (bundle: unlimited-ocr2)
+Source: baidu/Unlimited-OCR @ 64e6f066023b305ab03860603a9cf358a8b70148 (MIT)
+Model: baidu/Unlimited-OCR-2 @ 0480966938291445591f69f08a13b041c073a96a (MIT)
+Includes BF16 weights, tokenizer and native Transformers/DASH model code.
+Stored in models/unlimited-ocr2; setup links this store into visual-modeling/OCR.
+The studio follows the official Transformers Space path, with the version-2
+layout parser for document merges and figure crops. SGLang is a separate backend.
+Independent studio: root AGPL-3.0. PyMuPDF: AGPL-3.0; Marked, DOMPurify, KaTeX: MIT/Apache-2.0;
+Inter / IBM Plex Mono: OFL-1.1.
+https://huggingface.co/baidu/Unlimited-OCR-2
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,
