@@ -28,9 +28,9 @@ source .venv/bin/activate
 uv pip install --torch-backend "$torch_backend" torch torchvision torchaudio
 uv pip install -r requirements-local.txt
 
-# Fail fast when the shared vocals engine (music/src/python/vendor) loses an
+# Fail fast when the shared vocals engine (music/src/python/bundled) loses an
 # import: the stem pane loads it inside this same venv.
-PYTHONPATH="$ROOT/../src/python/vendor" .venv/bin/python - <<'PY'
+PYTHONPATH="$ROOT/../src/python/bundled" .venv/bin/python - <<'PY'
 from models.bs_roformer.mel_band_roformer import MelBandRoformer
 print(f"vocals engine closure ready: {MelBandRoformer.__name__}")
 PY

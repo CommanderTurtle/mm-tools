@@ -56,7 +56,7 @@ uv pip install --python "$SHEET_VENV/bin/python" -r "$ROOT/models/SheetSage2/req
 
 mkdir -p "$ROOT/.runtime/studio/assets" "$ROOT/.runtime/studio/outputs"
 
-PYTHONPATH="$ROOT/../..:$ROOT/../src:$ROOT/../src/python/vendor:$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" "$VENV/bin/python" - <<'PY'
+PYTHONPATH="$ROOT/../..:$ROOT/../src:$ROOT/../src/python/bundled:$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" "$VENV/bin/python" - <<'PY'
 import torch
 from yue2 import YuE2Pipeline, SymbolicPlan
 from local_app.server import build_application
