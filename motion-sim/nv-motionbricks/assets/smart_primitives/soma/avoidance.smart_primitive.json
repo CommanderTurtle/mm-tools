@@ -1,0 +1,502 @@
+{
+  "format": "motionbricks.smart_primitive.authoring",
+  "schema_version": 1,
+  "name": "avoidance",
+  "rig": "soma",
+  "editor": {
+    "selected_node_id": 7,
+    "camera": {
+      "pos": [
+        4.002395735496871,
+        -1.488658206748426,
+        2.9335192329831097
+      ],
+      "pivot": [
+        -1.5875720204187522,
+        0.5664674496174894,
+        -0.564981759956591
+      ],
+      "pitch": -30.5,
+      "yaw": -200.1999999999998,
+      "fov": 45.0,
+      "near": 0.01,
+      "far": 1000.0
+    }
+  },
+  "sequences": [
+    {
+      "id": 15,
+      "name": "Walk",
+      "node_ids": [
+        5,
+        6
+      ],
+      "pivot_node_id": 11
+    },
+    {
+      "id": 17,
+      "name": "Jog",
+      "node_ids": [
+        7,
+        8
+      ],
+      "pivot_node_id": 11
+    }
+  ],
+  "root": {
+    "id": 1,
+    "name": "Root",
+    "local_transform": {
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "euler_degrees": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "visible": true,
+    "translation_locks": [
+      false,
+      false,
+      false
+    ],
+    "rotation_locks": [
+      false,
+      false,
+      false
+    ],
+    "components": [],
+    "children": [
+      {
+        "id": 2,
+        "name": "Box",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            1.958346962928772
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "interaction_box",
+            "id": 9,
+            "width": 0.5,
+            "depth": 0.5,
+            "height": 1.0,
+            "color": [
+              0.33250001072883606,
+              0.949999988079071,
+              0.6372032761573792
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 11,
+        "name": "Pivot",
+        "local_transform": {
+          "translation": [
+            -0.08050525188446045,
+            0.09527856111526489,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          true,
+          true,
+          false
+        ],
+        "components": [
+          {
+            "type": "pivot",
+            "id": 16,
+            "motion_direction": [
+              0.0,
+              1.0,
+              0.0
+            ],
+            "operation_order": "rotation_then_translation",
+            "translation_axis": "x",
+            "translation_constraint": "line_projection",
+            "line_min_offset": -0.20000000298023224,
+            "line_max_offset": 0.20000000298023224,
+            "rotation_axis": "z",
+            "rotation_constraint": "unconstrained",
+            "cone_half_angle_degrees": 45.0,
+            "cone_side": "forward",
+            "show_motion_direction": true,
+            "show_translation_constraint": true,
+            "show_rotation_constraint": true
+          }
+        ],
+        "children": [
+          {
+            "id": 3,
+            "name": "Variation 0",
+            "local_transform": {
+              "translation": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation_xyzw": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "euler_degrees": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "visible": true,
+            "translation_locks": [
+              false,
+              false,
+              false
+            ],
+            "rotation_locks": [
+              false,
+              false,
+              false
+            ],
+            "components": [],
+            "children": [
+              {
+                "id": 5,
+                "name": "Entry0",
+                "local_transform": {
+                  "translation": [
+                    0.0,
+                    -1.1901543140411377,
+                    0.0
+                  ],
+                  "rotation_xyzw": [
+                    0.0,
+                    0.0,
+                    0.3007056415081024,
+                    -0.9537169933319092
+                  ]
+                },
+                "euler_degrees": [
+                  0.0,
+                  0.0,
+                  -34.99998092651367
+                ],
+                "visible": true,
+                "translation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "rotation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "components": [
+                  {
+                    "type": "target_pose",
+                    "id": 10,
+                    "clip": "../../motions/soma/avoidance/neutral_avoid_obstacle_bend_down_walk_ff_180_R_001__A543.bvh",
+                    "sample_time_seconds": 1.659999966621399,
+                    "frame_index": 199,
+                    "playback_mode": "time",
+                    "hips_constrained": false,
+                    "num_poses_to_use": 4,
+                    "transition_early_by_frames": 8,
+                    "min_tokens": 6,
+                    "max_tokens": 14,
+                    "ik_pin_mask": 0,
+                    "show_mesh": true,
+                    "show_skeletons": false,
+                    "show_velocity": false,
+                    "show_trajectory": false,
+                    "trajectory_scale": 2.0,
+                    "color": [
+                      0.949999988079071,
+                      0.33250001072883606,
+                      0.6297270655632019
+                    ]
+                  }
+                ],
+                "children": [
+                  {
+                    "id": 6,
+                    "name": "Action0",
+                    "local_transform": {
+                      "translation": [
+                        0.0,
+                        0.0,
+                        0.0
+                      ],
+                      "rotation_xyzw": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                      ]
+                    },
+                    "euler_degrees": [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "visible": true,
+                    "translation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "rotation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "components": [
+                      {
+                        "type": "target_pose",
+                        "id": 12,
+                        "clip": "../../motions/soma/avoidance/neutral_avoid_obstacle_bend_down_walk_ff_180_R_001__A543.bvh",
+                        "sample_time_seconds": 2.7300000190734863,
+                        "frame_index": 328,
+                        "playback_mode": "time",
+                        "hips_constrained": false,
+                        "num_poses_to_use": 4,
+                        "transition_early_by_frames": 1,
+                        "min_tokens": 6,
+                        "max_tokens": 14,
+                        "ik_pin_mask": 0,
+                        "show_mesh": true,
+                        "show_skeletons": false,
+                        "show_velocity": false,
+                        "show_trajectory": false,
+                        "trajectory_scale": 2.0,
+                        "color": [
+                          0.6052522659301758,
+                          0.33250001072883606,
+                          0.949999988079071
+                        ]
+                      }
+                    ],
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "name": "Variation 1",
+            "local_transform": {
+              "translation": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation_xyzw": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "euler_degrees": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "visible": true,
+            "translation_locks": [
+              false,
+              false,
+              false
+            ],
+            "rotation_locks": [
+              false,
+              false,
+              false
+            ],
+            "components": [],
+            "children": [
+              {
+                "id": 7,
+                "name": "Entry1",
+                "local_transform": {
+                  "translation": [
+                    -0.33566316962242126,
+                    -3.085617780685425,
+                    0.0
+                  ],
+                  "rotation_xyzw": [
+                    0.0,
+                    0.0,
+                    0.9238795638084412,
+                    0.3826833963394165
+                  ]
+                },
+                "euler_degrees": [
+                  0.0,
+                  0.0,
+                  135.00001525878906
+                ],
+                "visible": true,
+                "translation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "rotation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "components": [
+                  {
+                    "type": "target_pose",
+                    "id": 13,
+                    "clip": "../../motions/soma/avoidance/neutral_avoid_obstacle_bend_down_jog_ff_180_R_001__A544.bvh",
+                    "sample_time_seconds": 1.840000033378601,
+                    "frame_index": 221,
+                    "playback_mode": "time",
+                    "hips_constrained": false,
+                    "num_poses_to_use": 4,
+                    "transition_early_by_frames": 8,
+                    "min_tokens": 6,
+                    "max_tokens": 14,
+                    "ik_pin_mask": 0,
+                    "show_mesh": true,
+                    "show_skeletons": false,
+                    "show_velocity": false,
+                    "show_trajectory": false,
+                    "trajectory_scale": 2.0,
+                    "color": [
+                      0.33250001072883606,
+                      0.8532445430755615,
+                      0.949999988079071
+                    ]
+                  }
+                ],
+                "children": [
+                  {
+                    "id": 8,
+                    "name": "Action1",
+                    "local_transform": {
+                      "translation": [
+                        0.0,
+                        0.0,
+                        0.0
+                      ],
+                      "rotation_xyzw": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                      ]
+                    },
+                    "euler_degrees": [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "visible": true,
+                    "translation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "rotation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "components": [
+                      {
+                        "type": "target_pose",
+                        "id": 14,
+                        "clip": "../../motions/soma/avoidance/neutral_avoid_obstacle_bend_down_jog_ff_180_R_001__A544.bvh",
+                        "sample_time_seconds": 2.2899999618530273,
+                        "frame_index": 275,
+                        "playback_mode": "time",
+                        "hips_constrained": false,
+                        "num_poses_to_use": 4,
+                        "transition_early_by_frames": 1,
+                        "min_tokens": 6,
+                        "max_tokens": 14,
+                        "ik_pin_mask": 0,
+                        "show_mesh": true,
+                        "show_skeletons": false,
+                        "show_velocity": false,
+                        "show_trajectory": false,
+                        "trajectory_scale": 2.0,
+                        "color": [
+                          0.949999988079071,
+                          0.8900744915008545,
+                          0.33250001072883606
+                        ]
+                      }
+                    ],
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

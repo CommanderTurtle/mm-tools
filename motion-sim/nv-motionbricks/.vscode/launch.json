@@ -1,0 +1,39 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "[Tool] Smart Primitive Editor",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "app.smart_primitive_editor",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "[Tool] Scene Editor",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "app.scene_editor",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "[Demo] Inbetweener",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "app.inbetweener_demo",
+            "console": "integratedTerminal",
+            "args": [
+                "--model-precision", "fp32"
+            ]
+        },
+        {
+            "name": "[Demo] Scene Preview",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "app.scene_preview",
+            "console": "integratedTerminal",
+            "args": [
+                "--model-precision", "fp32"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,626 @@
+{
+  "format": "motionbricks.smart_primitive.authoring",
+  "schema_version": 1,
+  "name": "jump_0_5m",
+  "rig": "soma",
+  "editor": {
+    "selected_node_id": 3,
+    "camera": {
+      "pos": [
+        4.5502753257751465,
+        -1.8978675603866577,
+        3.2185232639312744
+      ],
+      "pivot": [
+        1.2873131120352563,
+        0.6858590854008708,
+        -0.11935067678243705
+      ],
+      "pitch": -39.372808780797484,
+      "yaw": 153.23098019458195,
+      "fov": 45.0,
+      "near": 0.01,
+      "far": 1000.0
+    }
+  },
+  "sequences": [
+    {
+      "id": 20,
+      "name": "Jump",
+      "node_ids": [
+        14,
+        15,
+        16
+      ],
+      "pivot_node_id": 3
+    },
+    {
+      "id": 28,
+      "name": "Jump2",
+      "node_ids": [
+        22,
+        23,
+        24
+      ],
+      "pivot_node_id": 3
+    }
+  ],
+  "root": {
+    "id": 1,
+    "name": "Root",
+    "local_transform": {
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "euler_degrees": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "visible": true,
+    "translation_locks": [
+      false,
+      false,
+      false
+    ],
+    "rotation_locks": [
+      false,
+      false,
+      false
+    ],
+    "components": [],
+    "children": [
+      {
+        "id": 2,
+        "name": "Box",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.25200000405311584
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "interaction_box",
+            "id": 7,
+            "width": 0.699999988079071,
+            "depth": 0.699999988079071,
+            "height": 0.5,
+            "color": [
+              0.6054707169532776,
+              0.949999988079071,
+              0.33250001072883606
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 3,
+        "name": "Pivot",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "pivot",
+            "id": 29,
+            "motion_direction": [
+              0.0,
+              1.0,
+              0.0
+            ],
+            "operation_order": "rotation_then_translation",
+            "translation_axis": "x",
+            "translation_constraint": "line_projection",
+            "line_min_offset": -0.30000001192092896,
+            "line_max_offset": 0.30000001192092896,
+            "rotation_axis": "z",
+            "rotation_constraint": "unconstrained",
+            "cone_half_angle_degrees": 45.0,
+            "cone_side": "forward",
+            "show_motion_direction": true,
+            "show_translation_constraint": true,
+            "show_rotation_constraint": true
+          }
+        ],
+        "children": [
+          {
+            "id": 13,
+            "name": "Variation1",
+            "local_transform": {
+              "translation": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation_xyzw": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "euler_degrees": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "visible": true,
+            "translation_locks": [
+              false,
+              false,
+              false
+            ],
+            "rotation_locks": [
+              false,
+              false,
+              false
+            ],
+            "components": [],
+            "children": [
+              {
+                "id": 14,
+                "name": "Entry1",
+                "local_transform": {
+                  "translation": [
+                    0.0,
+                    -3.7251834869384766,
+                    0.0
+                  ],
+                  "rotation_xyzw": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    8.901414548745379e-05
+                  ]
+                },
+                "euler_degrees": [
+                  0.0,
+                  0.0,
+                  179.98980712890625
+                ],
+                "visible": true,
+                "translation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "rotation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "components": [
+                  {
+                    "type": "target_pose",
+                    "id": 17,
+                    "clip": "../../motions/soma/jump/jump_over_obstacle_0_5m_R_002__A437.bvh",
+                    "sample_time_seconds": 1.5916666666666666,
+                    "frame_index": 191,
+                    "playback_mode": "frames",
+                    "hips_constrained": false,
+                    "num_poses_to_use": 4,
+                    "transition_early_by_frames": 8,
+                    "min_tokens": 6,
+                    "max_tokens": 14,
+                    "ik_pin_mask": 0,
+                    "show_mesh": true,
+                    "show_skeletons": false,
+                    "show_velocity": true,
+                    "show_trajectory": false,
+                    "trajectory_scale": 2.0,
+                    "color": [
+                      0.949999988079071,
+                      0.7006987929344177,
+                      0.33250001072883606
+                    ]
+                  }
+                ],
+                "children": [
+                  {
+                    "id": 15,
+                    "name": "Action1",
+                    "local_transform": {
+                      "translation": [
+                        0.0,
+                        0.0,
+                        0.0
+                      ],
+                      "rotation_xyzw": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                      ]
+                    },
+                    "euler_degrees": [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "visible": true,
+                    "translation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "rotation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "components": [
+                      {
+                        "type": "target_pose",
+                        "id": 18,
+                        "clip": "../../motions/soma/jump/jump_over_obstacle_0_5m_R_002__A437.bvh",
+                        "sample_time_seconds": 2.1600000858306885,
+                        "frame_index": 259,
+                        "playback_mode": "time",
+                        "hips_constrained": false,
+                        "num_poses_to_use": 4,
+                        "transition_early_by_frames": 1,
+                        "min_tokens": 6,
+                        "max_tokens": 14,
+                        "ik_pin_mask": 0,
+                        "show_mesh": true,
+                        "show_skeletons": false,
+                        "show_velocity": true,
+                        "show_trajectory": false,
+                        "trajectory_scale": 2.0,
+                        "color": [
+                          0.41935068368911743,
+                          0.15002314746379852,
+                          0.9472049474716187
+                        ]
+                      }
+                    ],
+                    "children": [
+                      {
+                        "id": 16,
+                        "name": "Exit1",
+                        "local_transform": {
+                          "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                          ],
+                          "rotation_xyzw": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                          ]
+                        },
+                        "euler_degrees": [
+                          0.0,
+                          0.0,
+                          0.0
+                        ],
+                        "visible": true,
+                        "translation_locks": [
+                          false,
+                          false,
+                          false
+                        ],
+                        "rotation_locks": [
+                          false,
+                          false,
+                          false
+                        ],
+                        "components": [
+                          {
+                            "type": "target_pose",
+                            "id": 19,
+                            "clip": "../../motions/soma/jump/jump_over_obstacle_0_5m_R_002__A437.bvh",
+                            "sample_time_seconds": 2.700000047683716,
+                            "frame_index": 324,
+                            "playback_mode": "time",
+                            "hips_constrained": false,
+                            "num_poses_to_use": 4,
+                            "transition_early_by_frames": 8,
+                            "min_tokens": 6,
+                            "max_tokens": 14,
+                            "ik_pin_mask": 0,
+                            "show_mesh": true,
+                            "show_skeletons": false,
+                            "show_velocity": true,
+                            "show_trajectory": false,
+                            "trajectory_scale": 2.0,
+                            "color": [
+                              0.4283851385116577,
+                              0.949999988079071,
+                              0.33250001072883606
+                            ]
+                          }
+                        ],
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": 21,
+            "name": "Variation2",
+            "local_transform": {
+              "translation": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation_xyzw": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "euler_degrees": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "visible": true,
+            "translation_locks": [
+              false,
+              false,
+              false
+            ],
+            "rotation_locks": [
+              false,
+              false,
+              false
+            ],
+            "components": [],
+            "children": [
+              {
+                "id": 22,
+                "name": "Entry2",
+                "local_transform": {
+                  "translation": [
+                    0.0,
+                    -4.106581687927246,
+                    0.0
+                  ],
+                  "rotation_xyzw": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    8.901414548745379e-05
+                  ]
+                },
+                "euler_degrees": [
+                  0.0,
+                  0.0,
+                  179.98980712890625
+                ],
+                "visible": true,
+                "translation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "rotation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "components": [
+                  {
+                    "type": "target_pose",
+                    "id": 25,
+                    "clip": "../../motions/soma/jump/jump_over_obstacle_0_5m_R_001__A415.bvh",
+                    "sample_time_seconds": 2.5999999046325684,
+                    "frame_index": 312,
+                    "playback_mode": "time",
+                    "hips_constrained": false,
+                    "num_poses_to_use": 4,
+                    "transition_early_by_frames": 8,
+                    "min_tokens": 6,
+                    "max_tokens": 14,
+                    "ik_pin_mask": 0,
+                    "show_mesh": true,
+                    "show_skeletons": false,
+                    "show_velocity": false,
+                    "show_trajectory": false,
+                    "trajectory_scale": 2.0,
+                    "color": [
+                      0.33250001072883606,
+                      0.949999988079071,
+                      0.8760449886322021
+                    ]
+                  }
+                ],
+                "children": [
+                  {
+                    "id": 23,
+                    "name": "Action2",
+                    "local_transform": {
+                      "translation": [
+                        0.0,
+                        0.0,
+                        0.0
+                      ],
+                      "rotation_xyzw": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                      ]
+                    },
+                    "euler_degrees": [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "visible": true,
+                    "translation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "rotation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "components": [
+                      {
+                        "type": "target_pose",
+                        "id": 26,
+                        "clip": "../../motions/soma/jump/jump_over_obstacle_0_5m_R_001__A415.bvh",
+                        "sample_time_seconds": 3.25,
+                        "frame_index": 390,
+                        "playback_mode": "time",
+                        "hips_constrained": false,
+                        "num_poses_to_use": 4,
+                        "transition_early_by_frames": 1,
+                        "min_tokens": 6,
+                        "max_tokens": 14,
+                        "ik_pin_mask": 0,
+                        "show_mesh": true,
+                        "show_skeletons": false,
+                        "show_velocity": false,
+                        "show_trajectory": false,
+                        "trajectory_scale": 2.0,
+                        "color": [
+                          0.33250001072883606,
+                          0.7384169697761536,
+                          0.949999988079071
+                        ]
+                      }
+                    ],
+                    "children": [
+                      {
+                        "id": 24,
+                        "name": "Exit2",
+                        "local_transform": {
+                          "translation": [
+                            0.0,
+                            0.0,
+                            0.0
+                          ],
+                          "rotation_xyzw": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                          ]
+                        },
+                        "euler_degrees": [
+                          0.0,
+                          0.0,
+                          0.0
+                        ],
+                        "visible": true,
+                        "translation_locks": [
+                          false,
+                          false,
+                          false
+                        ],
+                        "rotation_locks": [
+                          false,
+                          false,
+                          false
+                        ],
+                        "components": [
+                          {
+                            "type": "target_pose",
+                            "id": 27,
+                            "clip": "../../motions/soma/jump/jump_over_obstacle_0_5m_R_001__A415.bvh",
+                            "sample_time_seconds": 3.869999885559082,
+                            "frame_index": 464,
+                            "playback_mode": "time",
+                            "hips_constrained": false,
+                            "num_poses_to_use": 4,
+                            "transition_early_by_frames": 8,
+                            "min_tokens": 6,
+                            "max_tokens": 14,
+                            "ik_pin_mask": 0,
+                            "show_mesh": true,
+                            "show_skeletons": false,
+                            "show_velocity": false,
+                            "show_trajectory": false,
+                            "trajectory_scale": 2.0,
+                            "color": [
+                              0.5244588255882263,
+                              0.33250001072883606,
+                              0.949999988079071
+                            ]
+                          }
+                        ],
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

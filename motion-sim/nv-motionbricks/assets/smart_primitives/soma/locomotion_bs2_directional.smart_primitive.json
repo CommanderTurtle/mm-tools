@@ -1,0 +1,363 @@
+{
+  "format": "motionbricks.smart_primitive.authoring",
+  "schema_version": 1,
+  "name": "locomotion_bs2_directional",
+  "rig": "soma",
+  "editor": {
+    "selected_node_id": 4,
+    "camera": {
+      "pos": [
+        3.6425366401672363,
+        -4.171139717102051,
+        2.9785895347595215
+      ],
+      "pivot": [
+        -3.772688876822216,
+        9.07386333833163,
+        -3.7524537535790987
+      ],
+      "pitch": -23.913999046412506,
+      "yaw": 119.24231958680377,
+      "fov": 45.0,
+      "near": 0.01,
+      "far": 1000.0
+    }
+  },
+  "sequences": [],
+  "root": {
+    "id": 1,
+    "name": "Root",
+    "local_transform": {
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "euler_degrees": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "visible": true,
+    "translation_locks": [
+      false,
+      false,
+      false
+    ],
+    "rotation_locks": [
+      false,
+      false,
+      false
+    ],
+    "components": [],
+    "children": [
+      {
+        "id": 2,
+        "name": "Idle",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.7071067690849304,
+            0.7071067690849304
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          89.99999237060547
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 7,
+            "clip": "../../motions/soma/locomotion/idle/idle_loop_001__A268.bvh",
+            "sample_time_seconds": 0.0,
+            "frame_index": 0,
+            "playback_mode": "frames",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": false,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.7873680591583252,
+              0.949999988079071,
+              0.33250001072883606
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 3,
+        "name": "Forward",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.7071067690849304,
+            -0.7071068286895752
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          270.00000762939453
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 8,
+            "clip": "../../motions/soma/locomotion/bs_1d_linear/run_loop_180_R_003__A331.bvh",
+            "sample_time_seconds": 0.475,
+            "frame_index": 57,
+            "playback_mode": "frames",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": true,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.33250001072883606,
+              0.949999988079071,
+              0.6103634238243103
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 4,
+        "name": "Backward",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.7071067690849304,
+            0.7071067690849304
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          89.99999237060547
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 9,
+            "clip": "../../motions/soma/locomotion/bs_2d_directional/jog_ff_loop_360_R_very_fast_001__A454.bvh",
+            "sample_time_seconds": 0.8916666666666667,
+            "frame_index": 107,
+            "playback_mode": "frames",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": true,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.690045177936554,
+              0.33250001072883606,
+              0.949999988079071
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 5,
+        "name": "Left",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            1.0,
+            3.919656592188403e-05
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          179.99551391601562
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 10,
+            "clip": "../../motions/soma/locomotion/bs_2d_directional/jog_ff_loop_270_R_very_fast_002__A455_M.bvh",
+            "sample_time_seconds": 0.5083333333333333,
+            "frame_index": 61,
+            "playback_mode": "frames",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": true,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.949999988079071,
+              0.33250001072883606,
+              0.9389123916625977
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 6,
+        "name": "Right",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            8.901414548745379e-05,
+            1.0
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          0.010200269520282745
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 11,
+            "clip": "../../motions/soma/locomotion/bs_2d_directional/jog_ff_loop_270_R_very_fast_002__A455.bvh",
+            "sample_time_seconds": 0.5083333333333333,
+            "frame_index": 61,
+            "playback_mode": "frames",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": true,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.949999988079071,
+              0.33250001072883606,
+              0.37814974784851074
+            ]
+          }
+        ],
+        "children": []
+      }
+    ]
+  }
+}

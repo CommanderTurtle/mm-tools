@@ -1,0 +1,319 @@
+{
+  "format": "motionbricks.scene",
+  "schema_version": 1,
+  "name": "g1_gym",
+  "rig": "unitree_g1",
+  "editor": {
+    "selected_item_id": 6,
+    "camera": {
+      "pos": [
+        1.3158558838255157,
+        4.088007802471593,
+        3.0661328607754847
+      ],
+      "pivot": [
+        1.7942775493069874,
+        5.148268467176856,
+        2.4349806209749962
+      ],
+      "pitch": -28.484203830036215,
+      "yaw": 65.71366455442579,
+      "fov": 45.0,
+      "near": 0.01,
+      "far": 1000.0
+    }
+  },
+  "character_start": {
+    "id": 1,
+    "transform": {
+      "translation": [
+        -6.281189441680908,
+        3.140594720840454,
+        0.0
+      ],
+      "rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "euler_degrees": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "smart_primitives": [
+    {
+      "id": 2,
+      "name": "SmallJumpSP",
+      "parent_id": null,
+      "transform": {
+        "translation": [
+          3.140594720840454,
+          0.0,
+          0.0
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          -0.707064688205719,
+          0.7071489095687866
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        -89.99317932128906
+      ],
+      "reference": "../smart_primitives/unitree_g1/jump_0_5m.smart_primitive.json",
+      "visibility": {
+        "target_poses": true,
+        "interaction_boxes": true
+      },
+      "target_pose_color": [
+        0.20000000298023224,
+        0.5529412031173706,
+        1.0
+      ],
+      "behavior": "VelocityMatchingSequenceBehavior"
+    },
+    {
+      "id": 5,
+      "name": "MidJumpSP",
+      "parent_id": null,
+      "transform": {
+        "translation": [
+          3.140594720840454,
+          6.281189441680908,
+          0.0
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          -0.7070855498313904,
+          0.7071279883384705
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        -89.9965591430664
+      ],
+      "reference": "../smart_primitives/unitree_g1/jump_0_75m.smart_primitive.json",
+      "visibility": {
+        "target_poses": true,
+        "interaction_boxes": true
+      },
+      "target_pose_color": [
+        0.20000000298023224,
+        0.5529412031173706,
+        1.0
+      ],
+      "behavior": "VelocityMatchingSequenceBehavior"
+    },
+    {
+      "id": 10,
+      "name": "SitSP",
+      "parent_id": null,
+      "transform": {
+        "translation": [
+          3.140594720840454,
+          -6.281189441680908,
+          0.0
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference": "../smart_primitives/unitree_g1/sit.smart_primitive.json",
+      "visibility": {
+        "target_poses": true,
+        "interaction_boxes": true
+      },
+      "target_pose_color": [
+        0.48819881677627563,
+        1.0,
+        0.19999998807907104
+      ],
+      "behavior": "SittingBehavior"
+    },
+    {
+      "id": 12,
+      "name": "AvoidanceSP",
+      "parent_id": null,
+      "transform": {
+        "translation": [
+          3.140594720840454,
+          12.562378883361816,
+          0.0
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          -0.7071067690849304,
+          0.7071067690849304
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        -89.99999237060547
+      ],
+      "reference": "../smart_primitives/unitree_g1/avoidance.smart_primitive.json",
+      "visibility": {
+        "target_poses": true,
+        "interaction_boxes": true
+      },
+      "target_pose_color": [
+        0.26708072423934937,
+        0.6176074147224426,
+        1.0
+      ],
+      "behavior": "VelocityMatchingSequenceBehavior"
+    }
+  ],
+  "solid_cubes": [
+    {
+      "id": 6,
+      "name": "Wall",
+      "parent_id": 5,
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.3086724877357483
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          0.7070855498313904,
+          0.7071279883384705
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        89.9965591430664
+      ],
+      "dimensions": {
+        "width": 0.18000000715255737,
+        "depth": 1.5700000524520874,
+        "height": 0.6673763990402222
+      },
+      "color": [
+        1.0,
+        0.9914740920066833,
+        0.31366461515426636
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Box",
+      "parent_id": 2,
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.15702974796295166
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          0.707064688205719,
+          0.7071489095687866
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        89.99317932128906
+      ],
+      "dimensions": {
+        "width": 0.4710892268454714,
+        "depth": 0.4710892268454714,
+        "height": 0.4710892268454714
+      },
+      "color": [
+        0.45098039507865906,
+        0.7019608020782471,
+        0.47058823704719543
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Seat",
+      "parent_id": 10,
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.15229403972625732
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "dimensions": {
+        "width": 0.31405947676389623,
+        "depth": 0.31405947676389623,
+        "height": 0.31405947676389623
+      },
+      "color": [
+        0.9299988150596619,
+        0.4068322777748108,
+        1.0
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Bar",
+      "parent_id": 12,
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          1.5310397148132324
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          0.7071067690849304,
+          0.7071067690849304
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        89.99999237060547
+      ],
+      "dimensions": {
+        "width": 0.39257434010505676,
+        "depth": 0.39257434010505676,
+        "height": 0.7851486802101135
+      },
+      "color": [
+        0.44999998807907104,
+        0.5928571224212646,
+        0.699999988079071
+      ]
+    }
+  ]
+}

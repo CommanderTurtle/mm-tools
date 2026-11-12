@@ -1043,6 +1043,24 @@ splits use it, while the default demucs htdemucs weights (~80 MB) are fetched
 by demucs itself on the first split into models/stemkit/torch-hub/checkpoints
 (the pinned TORCH_HOME), so they stay out of this inventory.
 
+74. NVlabs/motionbricks
+Bundle: motionbricks
+Revision: 54fc563aeaaf819a753d72cc9fdc6713989cdd43
+Cache: models/motionbricks/54fc563aeaaf819a753d72cc9fdc6713989cdd43
+Manifest: models/manifests/motionbricks.json (138 files, 2,395,031,994 bytes)
+
+SOMA and Unitree G1 ONNX models (FP32 and explicit mixed-FP16 alternatives),
+character geometry, motion clips, Smart Primitives and demonstration scenes.
+Pinned Git/LFS objects are resumed and SHA-256 checked; studio setup links the
+shared cache into the native source tree. TensorRT plans are built locally.
+
+Native code: Apache-2.0; model weights: NVIDIA Open Model License Agreement.
+Native bundled assets also carry CC-BY-4.0 notices; Three.js: MIT.
+Sample BVH/CSV motions: NVIDIA Sample Data Evaluation License, restricted to
+internal evaluation of NVIDIA technologies. Review these terms before using
+the bundled demonstrations. Independently authored studio: root AGPL-3.0.
+https://github.com/NVlabs/motionbricks/tree/54fc563aeaaf819a753d72cc9fdc6713989cdd43
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,

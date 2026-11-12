@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "name": "mmm_v6_soma_fp32",
+  "onnx_filename": "mmm_v6_soma_fp32.onnx",
+  "precision_variants": {
+    "fp16": {
+      "name": "mmm_v6_soma_fp16",
+      "onnx_filename": "mmm_v6_soma_fp16.onnx"
+    }
+  },
+  "onnx_opset": 17,
+  "batch_size": 1,
+  "sample_rate": 30.0,
+  "frames_per_token": 4,
+  "min_pred_tokens": 6,
+  "max_pred_tokens": 16,
+  "context_frames": 4,
+  "target_capacity": 4,
+  "joint_names": [
+    "Hips",
+    "Spine1",
+    "Spine2",
+    "Chest",
+    "Neck1",
+    "Neck2",
+    "Head",
+    "Jaw",
+    "LeftEye",
+    "RightEye",
+    "LeftShoulder",
+    "LeftArm",
+    "LeftForeArm",
+    "LeftHand",
+    "LeftHandThumbEnd",
+    "LeftHandMiddleEnd",
+    "RightShoulder",
+    "RightArm",
+    "RightForeArm",
+    "RightHand",
+    "RightHandThumbEnd",
+    "RightHandMiddleEnd",
+    "LeftLeg",
+    "LeftShin",
+    "LeftFoot",
+    "LeftToeBase",
+    "RightLeg",
+    "RightShin",
+    "RightFoot",
+    "RightToeBase"
+  ],
+  "tensor_specs": [
+    {
+      "name": "global_root_values",
+      "mode": "input",
+      "shape": [1, 8, 5],
+      "dtype": "float32"
+    },
+    {
+      "name": "has_global_root_values",
+      "mode": "input",
+      "shape": [1, 8],
+      "dtype": "int32"
+    },
+    {
+      "name": "local_root_values",
+      "mode": "input",
+      "shape": [1, 8, 4],
+      "dtype": "float32"
+    },
+    {
+      "name": "has_local_root_values",
+      "mode": "input",
+      "shape": [1, 8],
+      "dtype": "int32"
+    },
+    {
+      "name": "local_poses",
+      "mode": "input",
+      "shape": [1, 8, 267],
+      "dtype": "float32"
+    },
+    {
+      "name": "has_local_poses",
+      "mode": "input",
+      "shape": [1, 8],
+      "dtype": "int32"
+    },
+    {
+      "name": "allowed_pred_num_tokens",
+      "mode": "input",
+      "shape": [1, 11],
+      "dtype": "int32"
+    },
+    {
+      "name": "pred_global_motions",
+      "mode": "output",
+      "shape": [1, 64, 366],
+      "dtype": "float32"
+    },
+    {
+      "name": "pred_num_tokens",
+      "mode": "output",
+      "shape": [1],
+      "dtype": "int32"
+    }
+  ]
+}

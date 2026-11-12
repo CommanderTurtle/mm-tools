@@ -1,0 +1,834 @@
+{
+  "repository": "NVlabs/motionbricks",
+  "revision": "54fc563aeaaf819a753d72cc9fdc6713989cdd43",
+  "files": [
+    {
+      "path": "assets/motions/LICENSE.txt",
+      "sha256": "237a1d70dfd78d5aa0d6a4c9ced68827aa0e2eb2514f3148c993258f733de065",
+      "size": 9450,
+      "lfs": false
+    },
+    {
+      "path": "assets/motions/README.md",
+      "sha256": "094fb142e0283236c7de06aead9337153a7acd3e6cc1093c84357ac3ce8604ce",
+      "size": 5964,
+      "lfs": false
+    },
+    {
+      "path": "assets/motions/soma/avoidance/neutral_avoid_obstacle_bend_down_jog_ff_180_R_001__A544.bvh",
+      "sha256": "4560ddfc0a216e07356426ab1af83b3e13785ed76312a6657503d7bb97585cb9",
+      "size": 1577274,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/avoidance/neutral_avoid_obstacle_bend_down_walk_ff_180_R_001__A543.bvh",
+      "sha256": "1b9ad236e4b846b22c1f3b258d45b064f073f272759e254c7dd3386d8e471012",
+      "size": 2648450,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/jump/jump_over_obstacle_0_5m_R_001__A415.bvh",
+      "sha256": "40f11025af983acf94c7028bdaee0743be7b9641e57545e45b67c0ef42e4413d",
+      "size": 1428924,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/jump/jump_over_obstacle_0_5m_R_002__A437.bvh",
+      "sha256": "2ea888343a7adee808e96a792f704bbf7d058c4201c9476165eb3b61a62e9bc9",
+      "size": 1358894,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/jump/jump_over_obstacle_0_75m_R_102__A416.bvh",
+      "sha256": "74fa726177530e7eac029e879d1747529d5eb8cc71ec3d5dcf10f3b732bdb5d4",
+      "size": 1302608,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/jump/jump_over_obstacle_0_75m_R_103__A416.bvh",
+      "sha256": "2cf169575f4efc2687eb54f5d133e33286b1b853dc9afe6952bf9518338f032a",
+      "size": 1341652,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/jump/jump_over_obstacle_no_hand_0_75m_R_103__A416.bvh",
+      "sha256": "363ac41c75e741dde9dd047dc9a5ecf9bb9c94105876506f620309f3c277882b",
+      "size": 1331891,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/bs_1d_linear/Neutral_walk_forward_002__A057.bvh",
+      "sha256": "c0f4e63cec94c58196105a6d9f03a2ed1c94c8ff4fba15dd0a33cc512877904a",
+      "size": 2587387,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/bs_1d_linear/neutral_jog_ff_180_R_001__A534.bvh",
+      "sha256": "321883221739a6bad5f786bdcc8edc5ff6c7d7a443d47b08d1dac03036840e2a",
+      "size": 1568243,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/bs_1d_linear/neutral_walk_ff_180_R_002__A536_M.bvh",
+      "sha256": "e7c98757c2c95f3cbbbaa2a63e329a937b8a7549fed0856c066164b1a5200f31",
+      "size": 3203080,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/bs_1d_linear/run_loop_180_R_003__A326.bvh",
+      "sha256": "9151bb7ff149e62dc47d3beb555f890c72352f87980aedabbd4ce456a7f70976",
+      "size": 565877,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/bs_1d_linear/run_loop_180_R_003__A331.bvh",
+      "sha256": "155bebc7049b794f1629fb385cdfe81e981e51acc3ee05d015716fceceae75e0",
+      "size": 541594,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/bs_2d_directional/jog_ff_loop_270_R_very_fast_002__A455.bvh",
+      "sha256": "3c1f8b1657c053c8f7e2acb1dd015660a9e62cb2b3f28e231dead02a44b81054",
+      "size": 423599,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/bs_2d_directional/jog_ff_loop_270_R_very_fast_002__A455_M.bvh",
+      "sha256": "717b834da088e0190eff026997cec5c9872ebab7a27ba1dcd25a9b1f99cd4ec9",
+      "size": 421808,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/bs_2d_directional/jog_ff_loop_360_R_very_fast_001__A454.bvh",
+      "sha256": "bc6b95d3a731b56ea970cb41bb1e418384ef761e8c3995c3ff3dc4d6d44ff221",
+      "size": 516108,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/bs_2d_directional_crouch/crouch_ff_loop_180_R_001__A196.bvh",
+      "sha256": "3f1d559dd6a89ba3bca10da79a9ba9fad42957869142c6b0571037493536d056",
+      "size": 1391071,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/bs_2d_directional_crouch/crouch_ff_loop_270_R_002__A196.bvh",
+      "sha256": "8f0a9d3f2458294d0644d164d9be1c8ee20f7a62949d28a417e32388b8a5c964",
+      "size": 1633871,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/bs_2d_directional_crouch/crouch_ff_loop_270_R_002__A196_M.bvh",
+      "sha256": "3818877d62da85e21f4e87eefb707deb41c432cf1acfa961240f5457f6141081",
+      "size": 1633704,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/bs_2d_directional_crouch/crouch_ff_loop_360_R_001__A196.bvh",
+      "sha256": "a53411f725891508af99e5e3e4176b1b279d35d30ca0c59dc163b03224b017f7",
+      "size": 1833169,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/idle/crouch_idle_001__A529.bvh",
+      "sha256": "1c7ad4237ea40d54ca3658e441a46bfe614852d2154089efd667f9448858b660",
+      "size": 1733948,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/idle/idle_loop_001__A268.bvh",
+      "sha256": "defaa54c9eaa060f4c091868b86e6840ba4201edb6dcb89f7c496e997892ff80",
+      "size": 2710513,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/idle/legs_relax_002__A407.bvh",
+      "sha256": "1fea14a5b427c1a434b20cd291e339dc86af7d7a95ce5773ba5bb6d331dd215e",
+      "size": 2864654,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/idle/neutral_looking_around_R_001__A542.bvh",
+      "sha256": "0793dc27fc145c14b3a4ccbc9f2b5c95124cba903403aba329884f54c0fcd0f3",
+      "size": 2568791,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/locomotion/idle/warm_up_neck_001__A359.bvh",
+      "sha256": "cf436bcf201a993c15d284f2651f7be47836e57cfb6c8db5059820235da63929",
+      "size": 8017352,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/sitting/sit_on_chair_loop.bvh",
+      "sha256": "7fb7c39c9c7a89a51a4c22979d43289855d50fdd6cee5c08063a993e066f24c5",
+      "size": 1304791,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/sitting/sit_on_chair_start_R_001__A047.bvh",
+      "sha256": "c7833fb129622564e04b4cce6c3c4cec917aaab5792b2b52ac396fdb2868fa2c",
+      "size": 2248065,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/sitting/sit_on_chair_stop_R_001__A047.bvh",
+      "sha256": "30c34de41c680dd531a0a3dec0c5438dd655f3d63b9897597fd7b2d072ec6572",
+      "size": 1525805,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/variations/angry_combat_quickstep_ff_idle_090_R_001__A365.bvh",
+      "sha256": "7a55f4daa8b974b46663f58006d09cafa6656fc4a61fb27facd8f38438a94634",
+      "size": 1895332,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/variations/angry_combat_quickstep_ff_idle_090_R_001__A365_M.bvh",
+      "sha256": "37910baa14baa2107bcf374b8c70ca8fb2afbe46358b9bbd5e84d04d5cd042ad",
+      "size": 1888343,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/variations/angry_combat_quickstep_ff_idle_360_R_001__A365.bvh",
+      "sha256": "3f27edaf169be89a25ff417a13e0a5e353ea816e0b738623af1f242579b24076",
+      "size": 2200303,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/variations/angry_gun_walk_ff_loop_090_R_001__A393.bvh",
+      "sha256": "5a9667f4d45e1f28e17320ee535bd0697e302ba2e41b44a21cce2427c5c8b968",
+      "size": 824397,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/variations/combat_quickstep_ff_idle_180_R_002__A365.bvh",
+      "sha256": "5e175607b1aad62a779b03fbfff7e37320a763529147d6e5b5d3aae3ff7138fa",
+      "size": 2241123,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/variations/dance_vouge_vogue_sequence_180_R_002__A316.bvh",
+      "sha256": "3eb042573216e5b01e32fd8e3e7c8fbc5ea0adad0c79170ac66e63f28039a34d",
+      "size": 1769220,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/variations/dancecards1_AB_injured_L_leg_001__A005.bvh",
+      "sha256": "78678529a78e1b1288df3491e0d5506162520a98b6f6c997d2b104c61fbba14b",
+      "size": 32144465,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/variations/injured_L_leg_grab_walk_ff_180_002__A549.bvh",
+      "sha256": "581531db85a822a2dc3f52f3809783d76901cf168ac1b852ff284d01c5928470",
+      "size": 6077672,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/variations/injured_torso_grab_walk_ff_180_001__A549.bvh",
+      "sha256": "835405d588c5122a8c7dda5c96535419e62373081eab7cc19cd552839fb178ea",
+      "size": 7128875,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/variations/skipping_R_002__A360.bvh",
+      "sha256": "a20fcb9d92a27972dd31c23d6fac02bb1943608ec3c288ea0c7b7e82add9dada",
+      "size": 2884518,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/soma/variations/zombie_walk_180_R_003__A330.bvh",
+      "sha256": "57871838f6dc3446fbfe3dc79f944ca970890ba72a171e038e3952a637d749e8",
+      "size": 4307610,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/avoidance/neutral_avoid_obstacle_bend_down_jog_ff_180_R_001__A544.csv",
+      "sha256": "5ac8bd9863f2d8cc1169eb9ea2ca7ad85725f46440f669062cc7d64637207423",
+      "size": 274260,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/avoidance/neutral_avoid_obstacle_bend_down_walk_ff_180_R_001__A543.csv",
+      "sha256": "dfe2aa617dd3700ccc0ce04726d74eccf908690af0a19822109fd726990829bc",
+      "size": 462363,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/jump/jump_over_obstacle_0_5m_R_001__A415.csv",
+      "sha256": "d41da73bad909e976ba90ded038e18532992ce473b02931d0c07da1ca1f3fe5d",
+      "size": 248255,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/jump/jump_over_obstacle_0_5m_R_002__A437.csv",
+      "sha256": "abba2ef6c4184ead6a4ec3f5b2d60605de7ce1d2125500264092c1d4c44b905a",
+      "size": 236218,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/jump/jump_over_obstacle_0_75m_R_102__A416.csv",
+      "sha256": "0c8b3339fd5b4d8c3662befeb2d4e9d1c75341ea2dfdf91bd00336f7590e9074",
+      "size": 226867,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/jump/jump_over_obstacle_0_75m_R_103__A416.csv",
+      "sha256": "8f696fcca512713f0d9ab36dfe4fcfa46139240a815d486c081d883898f99c37",
+      "size": 232790,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/jump/jump_over_obstacle_no_hand_0_75m_R_103__A416.csv",
+      "sha256": "f49c3e4e46fd170d80f98422ea4eee3c808cb83739b2b587d7026c5a5ce59862",
+      "size": 231175,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/bs_1d_linear/Neutral_walk_forward_002__A057.csv",
+      "sha256": "45fb2407adffee1cd7cca30adae662368f7f63361688fc8e14737f0787fe0565",
+      "size": 447511,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/bs_1d_linear/neutral_jog_ff_180_R_001__A534.csv",
+      "sha256": "2c203a9814c503989cbedfbd3dc92dd01256bcc2ac1351f708d2bb9e7ec491e8",
+      "size": 270580,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/bs_1d_linear/neutral_walk_ff_180_R_002__A536_M.csv",
+      "sha256": "9931f72eabf4b6948bfa386ec5bd9229b49c86c3573da2c3febc3387f3cc32de",
+      "size": 554533,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/bs_1d_linear/run_loop_180_R_003__A326.csv",
+      "sha256": "1f6aed181181378ffacb79b7698a4e706b07a0b4328c5186d70e5ba6bac49f91",
+      "size": 97252,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/bs_1d_linear/run_loop_180_R_003__A331.csv",
+      "sha256": "1284d2588648dd56b2a410057d9a98d5ae2154d2fed2ecc4faff18a7013a1bd3",
+      "size": 92466,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/bs_2d_directional/jog_ff_loop_270_R_very_fast_002__A455.csv",
+      "sha256": "697c028cd81a7bc778996eac4f217ea1ef00fe4f90db81a3e9149531a42fce15",
+      "size": 71967,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/bs_2d_directional/jog_ff_loop_270_R_very_fast_002__A455_M.csv",
+      "sha256": "e23920b8939168c10be4559dda0b7f8e6d55e5217e1c09415dcaed5a153eaebb",
+      "size": 71596,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/bs_2d_directional/jog_ff_loop_360_R_very_fast_001__A454.csv",
+      "sha256": "fbaf0c6e4f8dea435736709f633ea64b3a8c79b7313dc07ac69f4baed8e0ac23",
+      "size": 89007,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/bs_2d_directional_crouch/crouch_ff_loop_180_R_001__A196.csv",
+      "sha256": "f993c628974a3cab0ff099d1829939ad66ddf71d39b698bba8dba260066033a9",
+      "size": 240375,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/bs_2d_directional_crouch/crouch_ff_loop_270_R_002__A196.csv",
+      "sha256": "08de28c4ed6deae20b9c6ce77cf8291ea91a84cf75cfa4e0de7c538aec7bdcd2",
+      "size": 283591,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/bs_2d_directional_crouch/crouch_ff_loop_270_R_002__A196_M.csv",
+      "sha256": "ae6a178dff90f9d77ac502781f30cc9110f911c0470b6f52a4b7d0f4f2b67768",
+      "size": 282304,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/bs_2d_directional_crouch/crouch_ff_loop_360_R_001__A196.csv",
+      "sha256": "045b74c14c9adb5bed5d5fa04ee52a4df43d6376834885097fffe000d3e63ff2",
+      "size": 318295,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/idle/crouch_idle_001__A529.csv",
+      "sha256": "03c787220c647e54d0629d63bf068932ef1198ab2d6cc94ffa012c64dfcd7803",
+      "size": 303404,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/idle/idle_loop_001__A268.csv",
+      "sha256": "3579da426d322c342fe6ec91a08239b33e4d2a2826caad71f7f854971b68a003",
+      "size": 478862,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/idle/legs_relax_002__A407.csv",
+      "sha256": "60fefbf8cb4ee7e62bc86aff429ad8339592b91272015ec527280c717e4a2ee4",
+      "size": 503025,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/locomotion/idle/neutral_looking_around_R_001__A542.csv",
+      "sha256": "5ade4f2259440d72f88c76c73919235190666d4aa3306b322c798778e75fbaeb",
+      "size": 447803,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/sitting/sit_on_chair_loop.csv",
+      "sha256": "a3dda499982b42772094ff1f36a2bb3e3355f0ec53a1f3c1bd22087072d551bc",
+      "size": 226276,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/sitting/sit_on_chair_start_R_001__A047.csv",
+      "sha256": "e1aece97a8a1aa5c99e0d51ddcfb802f5496c7c277138851a00ad84b4aaef198",
+      "size": 391726,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/sitting/sit_on_chair_stop_R_001__A047.csv",
+      "sha256": "9e8a1c3108312dc675ebed5db6ee0bb48b4e9da17187e7c4561fa3ca0f98c9e4",
+      "size": 266131,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/variations/angry_combat_quickstep_ff_idle_090_R_001__A365.csv",
+      "sha256": "c9e8a50774dc8aa573fe7a15568b3b5a4b19c054964ccab2af0151122475a073",
+      "size": 329149,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/variations/angry_combat_quickstep_ff_idle_090_R_001__A365_M.csv",
+      "sha256": "6b782622a631f94a37a52a90fd725e0295568b5d13d97bd5c92ab9fe97cc6a4e",
+      "size": 330190,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/variations/angry_combat_quickstep_ff_idle_360_R_001__A365.csv",
+      "sha256": "4dce5dfc44f761cb917c1406a50db5795f3b4da968606dd9c9f129f43a80ab83",
+      "size": 381273,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/variations/angry_gun_walk_ff_loop_090_R_001__A393.csv",
+      "sha256": "5e3dbf523c1e5797194b2537def1625826f14a57dc1081173aa2928a7e07a3cd",
+      "size": 142083,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/variations/combat_quickstep_ff_idle_180_R_002__A365.csv",
+      "sha256": "7e55a3dae40b87c079c19e468c4380aa28c9368a59b05fe88f1fe64a95ee632b",
+      "size": 388621,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/variations/dance_vouge_vogue_sequence_180_R_002__A316.csv",
+      "sha256": "2b28a3271ac199ad71d9b3aed230c172fe1ac5fb55d748b6d6ab86c007fd5c1c",
+      "size": 307690,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/variations/dancecards1_AB_injured_L_leg_001__A005.csv",
+      "sha256": "55484adc3f2d4686e4e59c956b8538639a4a235c930232f62afb0a6a08965631",
+      "size": 5613110,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/variations/injured_L_leg_grab_walk_ff_180_002__A549.csv",
+      "sha256": "7a9b2ece0214be5242aec98ccc2535fa23967b112d32b0cab70115d09e830ec0",
+      "size": 1056521,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/variations/injured_torso_grab_walk_ff_180_001__A549.csv",
+      "sha256": "67ddbf27a3a6abade1e01163ff7fdb5d0a8f0420f1d1d24b7a50651d2023e1fa",
+      "size": 1237111,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/variations/skipping_R_002__A360.csv",
+      "sha256": "18d5b6e6a7f0b653a20bab17f47990cce24f4e8038a076c288deddd79e371328",
+      "size": 499112,
+      "lfs": true
+    },
+    {
+      "path": "assets/motions/unitree_g1/variations/zombie_walk_180_R_003__A330.csv",
+      "sha256": "ddfa1a70b6216b0e1d489bcc364e0c61d06ff7f87bea035823f988096157aacd",
+      "size": 747370,
+      "lfs": true
+    },
+    {
+      "path": "assets/scenes/g1_gym.scene.json",
+      "sha256": "fbf65484fc60d3e94a535db1d6ed5f9273885103a428812b2689290643710d3f",
+      "size": 6452,
+      "lfs": false
+    },
+    {
+      "path": "assets/scenes/soma_gym.scene.json",
+      "sha256": "2b506861445bdb75e2b3e786e0e441d433473333c01f48ff2619da03597fb215",
+      "size": 6224,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/soma/avoidance.smart_primitive.json",
+      "sha256": "d6c9d00974c0906729cc9ec1f188b36b26398a390f03ccd9f162f6ad08733709",
+      "size": 13780,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/soma/jump_0_5m.smart_primitive.json",
+      "sha256": "cca3839f6d3bc427fb5e2afd281f8e88c1bd4adb355d566fc3db0c9229e40380",
+      "size": 18552,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/soma/jump_0_75m.smart_primitive.json",
+      "sha256": "564fc8475de552dc162e1073cafeae9a8b55a8fde5cda36f55a7099dde755481",
+      "size": 27752,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/soma/locomotion_bs1_linear.smart_primitive.json",
+      "sha256": "36c6263b25839547488c3886e04c0f8bb35cb63f9628a9ad91c9873d46c6fa71",
+      "size": 7121,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/soma/locomotion_bs2_directional.smart_primitive.json",
+      "sha256": "d4094cd92ac2c6dcbb50d0be750f5899c54ea773061f575495cf3081c150ad9f",
+      "size": 8625,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/soma/locomotion_bs2_directional_crouch.smart_primitive.json",
+      "sha256": "e0554d34998d34129c9e26954ce4ca91754391de889c07fb44ac5d2bf54edf49",
+      "size": 8610,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/soma/locomotion_style_variations_bs1_linear.smart_primitive.json",
+      "sha256": "ed99b100a422d16571710d8b5dbc550c0e3cb63e5a6de4cb1a0133b85edfffbb",
+      "size": 11686,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/soma/sit.smart_primitive.json",
+      "sha256": "6835f2604fd932e01e6c3dc43933c3962ed6b0664e64d0e4ec5e1ac6317396fb",
+      "size": 9358,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/unitree_g1/avoidance.smart_primitive.json",
+      "sha256": "9493c5e49dd6906ec70579de895d42649566169af0ef9db51dc239f902fc9ece",
+      "size": 13949,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/unitree_g1/jump_0_5m.smart_primitive.json",
+      "sha256": "dc0188902875ccca30bd482ab5b5bdea05d7f01ae1ae2eb53d84155bb61af46b",
+      "size": 18876,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/unitree_g1/jump_0_75m.smart_primitive.json",
+      "sha256": "c15012e1128810db845e5244b8c6b67dcc1efe4c7bb372e2222b61a76833ce42",
+      "size": 28092,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/unitree_g1/locomotion_bs1_linear.smart_primitive.json",
+      "sha256": "c652102e944d6d43c67788071d7db271eaba2f5eff6b0acffd71202d31f7b2a0",
+      "size": 6859,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/unitree_g1/locomotion_bs2_directional.smart_primitive.json",
+      "sha256": "e8c7da65c41aa2c9418f677e1edb1891ba41174338f53f1510fb0ebbcd1208fd",
+      "size": 8329,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/unitree_g1/locomotion_bs2_directional_crouch.smart_primitive.json",
+      "sha256": "aa26c8f93cd7ff9498601b252b407ba0512dbdc6f5d941c486240f3471d58cfc",
+      "size": 8315,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/unitree_g1/locomotion_style_variations_bs1_linear.smart_primitive.json",
+      "sha256": "eb2ca00f469be4a27149fc4c97aad846c9eb7ae3914a806e1455b125e658ee5f",
+      "size": 11733,
+      "lfs": false
+    },
+    {
+      "path": "assets/smart_primitives/unitree_g1/sit.smart_primitive.json",
+      "sha256": "fbf71ca27312ae5e7153ce3958805265b14655b85a4d84b2bf106f27555dddfc",
+      "size": 9480,
+      "lfs": false
+    },
+    {
+      "path": "motionbricks/assets/human/soma_base_skel_minimal_no_root.usd",
+      "sha256": "4ab93d78a0f1c06d3bcbedee5ceebb5d9d5b002fd0a88638e9399ed80b61871d",
+      "size": 2036435,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/onnx/LICENSE.md",
+      "sha256": "76c05aa5f17327631284b865bf71d4b61d8aadd6737b6cc24c33752641f2ee71",
+      "size": 547,
+      "lfs": false
+    },
+    {
+      "path": "motionbricks/assets/onnx/soma/mmm_v6_soma_fp16.onnx",
+      "sha256": "6c9f78e23decbda8e1cfd1b0cc96980ea4b24b3ca2c808d03b058f48f82fc9ef",
+      "size": 380327058,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/onnx/soma/mmm_v6_soma_fp32.onnx",
+      "sha256": "856419dc72aeb14e591eebf4dd0ea05734a2506ddb00bcd39dd6dac2ad60f4fb",
+      "size": 757864273,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/onnx/soma/soma_n1.json",
+      "sha256": "ed41ab5bf481383fa46bdf0322b0c1b96426973e5038b731bc31276121051aaa",
+      "size": 2061,
+      "lfs": false
+    },
+    {
+      "path": "motionbricks/assets/onnx/unitree_g1/mmm_v6_g1_fp16.onnx",
+      "sha256": "3ddfc4d7305b805005d782d3db0bd95941f0d3111118865821c6800785a0aa5a",
+      "size": 368832561,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/onnx/unitree_g1/mmm_v6_g1_fp32.onnx",
+      "sha256": "79258d3613988b74ab84a530352ea600bbe78a1048584f059e231e44641cea16",
+      "size": 734253102,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/onnx/unitree_g1/unitree_g1_n1.json",
+      "sha256": "72c5b6226bc12227122d756d6174bb81bf8ea2ea06b061006229cdfb19dcffb2",
+      "size": 2351,
+      "lfs": false
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/g1_29dof_rev_1_0.xml",
+      "sha256": "5f9118483faf22d64ddefb7445dda33f2261cd5cd0901849017d65f02496b8ca",
+      "size": 25500,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/head_link.STL",
+      "sha256": "005fb67fbd3eff94aa8bf4a6e83238174e9f91b6721f7111594322f223724411",
+      "size": 932784,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_ankle_pitch_link.STL",
+      "sha256": "d49e3abc6f5b12e532062cd575b87b5ef40cd2a3fc18f54a1ca5bba4f773d51d",
+      "size": 71184,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_ankle_roll_link.STL",
+      "sha256": "c4092af943141d4d9f74232f3cfa345afc6565f46a077793b8ae0e68b39dc33f",
+      "size": 653384,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_elbow_link.STL",
+      "sha256": "fa752198accd104d5c4c3a01382e45165b944fbbc5acce085059223324e5bed3",
+      "size": 88784,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_hip_pitch_link.STL",
+      "sha256": "4725168105ee768ee31638ef22b53f6be2d7641bfd7cfefe803488d884776fa4",
+      "size": 181684,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_hip_roll_link.STL",
+      "sha256": "91f25922ee8a7c3152790051bebad17b4d9cd243569c38fe340285ff93a97acf",
+      "size": 192184,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_hip_yaw_link.STL",
+      "sha256": "a16d88aa6ddac8083aa7ad55ed317bea44b1fa003d314fba88965b7ed0f3b55b",
+      "size": 296284,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_knee_link.STL",
+      "sha256": "8d92b9e3d3a636761150bb8025e32514c4602b91c7028d523ee42b3e632de477",
+      "size": 854884,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_rubber_hand.STL",
+      "sha256": "cff2221a690fa69303f61fce68f2d155c1517b52efb6ca9262dd56e0bc6e70fe",
+      "size": 2287484,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_shoulder_pitch_link.STL",
+      "sha256": "f0d1cfd02fcf0d42f95e678eeca33da3afbcc366ffba5c052847773ec4f31d52",
+      "size": 176784,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_shoulder_roll_link.STL",
+      "sha256": "fb9df21687773522598dc384f1a2945c7519f11cbc8bd372a49170316d6eee88",
+      "size": 400284,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_shoulder_yaw_link.STL",
+      "sha256": "1aa97e9748e924336567992181f78c7cd0652fd52a4afcca3df6b2ef6f9e712e",
+      "size": 249184,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_wrist_pitch_link.STL",
+      "sha256": "b251d8e05047f695d0f536cd78c11973cfa4e78d08cfe82759336cc3471de3a9",
+      "size": 85984,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_wrist_roll_link.STL",
+      "sha256": "edc387c9a0ba8c2237e9b296d32531426fabeb6f53e58df45c76106bca74148c",
+      "size": 356184,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/left_wrist_yaw_link.STL",
+      "sha256": "83f8fb3a726bf9613d65dd14f0f447cb918c3c95b3938042a0c9c09749267d3b",
+      "size": 318684,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/pelvis.STL",
+      "sha256": "5ba6bbc888e630550140d3c26763f10206da8c8bd30ed886b8ede41c61f57a31",
+      "size": 1060884,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/pelvis_contour_link.STL",
+      "sha256": "5cc5c2c7a312329e3feeb2b03d3fc09fc29705bd01864f6767e51be959662420",
+      "size": 1805184,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_ankle_pitch_link.STL",
+      "sha256": "15be426539ec1be70246d4d82a168806db64a41301af8b35c197a33348c787a9",
+      "size": 71184,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_ankle_roll_link.STL",
+      "sha256": "4b66222ea56653e627711b56d0a8949b4920da5df091da0ceb343f54e884e3a5",
+      "size": 653784,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_elbow_link.STL",
+      "sha256": "1be925d7aa268bb8fddf5362b9173066890c7d32092c05638608126e59d1e2ab",
+      "size": 88784,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_hip_pitch_link.STL",
+      "sha256": "e4f3c99d7f4a7d34eadbef9461fc66e3486cb5442db1ec50c86317d459f1a9c6",
+      "size": 181284,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_hip_roll_link.STL",
+      "sha256": "4c254ef66a356f492947f360dd931965477b631e3fcc841f91ccc46d945d54f6",
+      "size": 192684,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_hip_yaw_link.STL",
+      "sha256": "e479c2936ca2057e9eb2f7dff6c189b7419d7b8484dea0b298cbb36a2a6aa668",
+      "size": 296284,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_knee_link.STL",
+      "sha256": "63c4008449c9bbe701a6e2b557b7a252e90cf3a5abcf54cee46862b9a69f8ec8",
+      "size": 852284,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_rubber_hand.STL",
+      "sha256": "99533b778bca6246144fa511bb9d4e555e075c641f2a0251e04372869cd99d67",
+      "size": 2192684,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_shoulder_pitch_link.STL",
+      "sha256": "24cdb387e0128dfe602770a81c56cdce3a0181d34d039a11d1aaf8819b7b8c02",
+      "size": 176784,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_shoulder_roll_link.STL",
+      "sha256": "962b97c48f9ce9e8399f45dd9522e0865d19aa9fd299406b2d475a8fc4a53e81",
+      "size": 401884,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_shoulder_yaw_link.STL",
+      "sha256": "a0b76489271da0c72461a344c9ffb0f0c6e64f019ea5014c1624886c442a2fe5",
+      "size": 249984,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_wrist_pitch_link.STL",
+      "sha256": "d22f8f3b3127f15a63e5be1ee273cd5075786c3142f1c3d9f76cbf43d2a26477",
+      "size": 79584,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_wrist_roll_link.STL",
+      "sha256": "a7ee9212ff5b94d6cb7f52bb1bbf3f352194d5b598acff74f4c77d340c5b344f",
+      "size": 356084,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/right_wrist_yaw_link.STL",
+      "sha256": "bc9dece2d12509707e0057ba2e48df8f3d56db0c79410212963a25e8a50f61a6",
+      "size": 341484,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/torso_link_rev_1_0.STL",
+      "sha256": "11ddb46f2098efbbd8816b1d65893632d8e78be936376c7cdcd6771899ccc723",
+      "size": 2570584,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/waist_roll_link_rev_1_0.STL",
+      "sha256": "b67c347a05abc3e8ddae600d98a082bee273bb39f8e651647708b0a7140a8a97",
+      "size": 85884,
+      "lfs": true
+    },
+    {
+      "path": "motionbricks/assets/robots/unitree_g1/meshes/waist_yaw_link_rev_1_0.STL",
+      "sha256": "ec6db442b11f25eed898b5add07940c85d804f300de24dcbd264ccd8be7d554c",
+      "size": 619984,
+      "lfs": true
+    }
+  ]
+}

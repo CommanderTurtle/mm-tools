@@ -4,10 +4,15 @@ import argparse
 import filecmp
 import hashlib
 import inspect
+import json
 import os
 import shutil
+import stat
 import sys
+import tempfile
 import urllib.request
+import zipfile
+from urllib.parse import quote
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
@@ -69,6 +74,27 @@ def repo_path(relative: str) -> Path:
 
 
 A = Artifact
+
+
+def motionbricks_artifacts() -> tuple[Artifact, ...]:
+    manifest = json.loads((MODELS / "manifests/motionbricks.json").read_text())
+    repository, revision = manifest["repository"], manifest["revision"]
+    artifacts = []
+    for file in manifest["files"]:
+        path = Path(file["path"])
+        host = "media.githubusercontent.com/media" if file["lfs"] else "raw.githubusercontent.com"
+        artifacts.append(A(
+            repository,
+            model_path(f"motionbricks/{revision}") / path.parent,
+            revision=revision,
+            direct_url=f"https://{host}/{repository}/{revision}/{quote(file['path'])}",
+            direct_filename=path.name,
+            sha256=file["sha256"],
+            expected_size=file["size"],
+        ))
+    return tuple(artifacts)
+
+
 QWEN_GUIDE = A(
     "SergiusFlavius/Qwen3-VL-4B-Instruct-heretic-NVFP4",
     model_path("qwen/text-encoder-vl-nvfp4"),
@@ -790,6 +816,23 @@ BUNDLES: tuple[Bundle, ...] = (
             ),
         ),
     ),
+    Bundle(
+        "motionbricks",
+        "MotionBricks SOMA / Unitree G1 models, rigs, motions and scenes",
+        "74",
+        motionbricks_artifacts(),
+    ),
+)
+
+
+UNDERDOG = json.loads((MODELS / "manifests/underdog.json").read_text())
+BUNDLES += tuple(
+    Bundle(f"underdog-{key}", f"{row['name']} English STT ({row['download']})", row["inventory"], (
+        A(row["repo"], model_path(f"underdog/{key}"), tuple(row["files"]), revision=row["revision"]),
+        A(UNDERDOG["processor"]["repo"], model_path("underdog/processor"),
+          tuple(UNDERDOG["processor"]["files"]), revision=UNDERDOG["processor"]["revision"]),
+    ))
+    for key, row in UNDERDOG["variants"].items()
 )
 
 

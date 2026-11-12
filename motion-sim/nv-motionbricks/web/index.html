@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MotionBricks · studio</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/build/three.module.js",
+          "three/addons/": "/vendor/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span class="mark">M</span><strong>MotionBricks</strong
+        ><span>studio</span>
+      </div>
+      <div class="engine">
+        <select id="rig" aria-label="Character rig">
+          <option value="soma">SOMA</option>
+          <option value="unitree_g1">Unitree G1</option></select
+        ><select id="precision" aria-label="Model precision">
+          <option value="fp32">FP32</option>
+          <option value="fp16">Mixed FP16</option></select
+        ><button id="load" class="accent">Load rig</button
+        ><button id="unload">Unload / cancel</button
+        ><span id="engine-state" class="badge">Offline</span>
+      </div>
+    </header>
+    <nav id="modes" aria-label="Workspace">
+      <button data-mode="inbetween" aria-selected="true">
+        01 <b>Inbetweener</b></button
+      ><button data-mode="primitive">02 <b>Smart Primitive</b></button
+      ><button data-mode="scene">03 <b>Scene editor</b></button
+      ><button data-mode="preview">04 <b>Scene preview</b></button>
+    </nav>
+    <main>
+      <aside class="left">
+        <div class="panel-head">
+          <span>LIBRARY</span
+          ><button id="refresh" title="Refresh local files">↻</button>
+        </div>
+        <input
+          id="search"
+          type="search"
+          placeholder="Filter clips and documents"
+          aria-label="Filter assets"
+        /><select id="library" size="9" aria-label="Local assets"></select>
+        <div class="row">
+          <button id="open">Open</button
+          ><button id="import">Import files</button
+          ><button id="folder">Folder</button>
+        </div>
+        <input
+          id="upload"
+          type="file"
+          multiple
+          accept=".bvh,.csv,.json"
+          hidden
+        /><input id="directory" type="file" multiple webkitdirectory hidden />
+        <div class="panel-head">
+          <span id="tree-title">TARGETS</span><button id="new">New</button>
+        </div>
+        <div id="tree" role="tree"></div>
+        <div id="additions" class="row wrap"></div>
+        <section id="sequences"></section>
+        <div class="local-note">
+          <span class="dot"></span> Local workspace <small id="pin"></small>
+        </div>
+      </aside>
+      <section class="stage">
+        <div class="toolbar">
+          <button id="translate" aria-pressed="true">Move <kbd>W</kbd></button
+          ><button id="rotate">Rotate <kbd>E</kbd></button
+          ><button id="frame">Frame <kbd>F</kbd></button
+          ><button id="undo" title="Undo Ctrl+Z">↶</button
+          ><button id="redo" title="Redo Ctrl+Shift+Z">↷</button
+          ><span class="spacer"></span><button id="save">Save</button
+          ><button id="package">Export project</button>
+        </div>
+        <div id="viewport" tabindex="0" aria-label="3D workspace">
+          <div id="empty">
+            <span class="orbit-mark">◇</span>
+            <h1>Load a rig</h1>
+            <p>Select SOMA or Unitree G1, then load the rig.</p>
+            <small>Models stay unloaded until requested.</small>
+          </div>
+          <div id="view-info">Z ↑ · meters · 30 fps</div>
+          <div id="live-hint" hidden>
+            WASD / arrows · Space run · I interact · O strafe · P crouch · [ / ]
+            style
+          </div>
+        </div>
+        <div class="timeline">
+          <div class="row">
+            <button id="play" class="accent">Play</button
+            ><button id="stop">Stop</button
+            ><button id="generate">Generate</button
+            ><button id="record" hidden>Record</button
+            ><button id="return-live" hidden>Return to live</button
+            ><label
+              >Speed
+              <select id="speed">
+                <option>.25</option>
+                <option>.5</option>
+                <option selected>1</option>
+                <option>2</option>
+              </select></label
+            ><span class="spacer"></span><span id="time">0 / 0</span
+            ><a id="export" hidden>Download motion</a>
+          </div>
+          <input
+            id="scrub"
+            type="range"
+            min="0"
+            max="0"
+            value="0"
+            step="1"
+            aria-label="Playback frame"
+          />
+          <div id="segments"></div>
+        </div>
+        <footer>
+          <span id="status" role="status">Ready</span><span id="timing"></span>
+        </footer>
+      </section>
+      <aside class="right">
+        <div class="panel-head">
+          <span>INSPECTOR</span><button id="delete">Delete</button>
+        </div>
+        <div id="properties"></div>
+        <details open>
+          <summary>Viewport</summary>
+          <div id="view-options"></div>
+        </details>
+        <details>
+          <summary>Scene controls</summary>
+          <label>Locomotion<select id="locomotion"></select></label
+          ><label class="check"
+            ><input id="auto" type="checkbox" checked /> Auto interact</label
+          ><label class="check"
+            ><input id="follow" type="checkbox" checked /> Follow
+            character</label
+          ><button id="interact">Interact</button>
+        </details>
+        <details>
+          <summary>Document</summary>
+          <textarea
+            id="json"
+            rows="12"
+            spellcheck="false"
+            aria-label="Document JSON"
+          ></textarea>
+          <div class="row">
+            <button id="apply-json">Apply</button
+            ><button id="validate">Native preview</button>
+          </div>
+        </details>
+      </aside>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

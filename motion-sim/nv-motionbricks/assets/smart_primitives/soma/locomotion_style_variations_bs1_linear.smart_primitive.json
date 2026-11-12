@@ -1,0 +1,483 @@
+{
+  "format": "motionbricks.smart_primitive.authoring",
+  "schema_version": 1,
+  "name": "locomotion_style_variations_bs1_linear",
+  "rig": "soma",
+  "editor": {
+    "selected_node_id": 6,
+    "camera": {
+      "pos": [
+        1.0404224395751953,
+        4.580280303955078,
+        1.7830442190170288
+      ],
+      "pivot": [
+        -4.069553886384255,
+        -5.721371933551332,
+        -0.037505216816704046
+      ],
+      "pitch": -9.036557461407048,
+      "yaw": -121.7612385254833,
+      "fov": 45.0,
+      "near": 0.01,
+      "far": 1000.0
+    }
+  },
+  "sequences": [],
+  "root": {
+    "id": 1,
+    "name": "Root",
+    "local_transform": {
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "euler_degrees": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "visible": true,
+    "translation_locks": [
+      false,
+      false,
+      false
+    ],
+    "rotation_locks": [
+      false,
+      false,
+      false
+    ],
+    "components": [],
+    "children": [
+      {
+        "id": 15,
+        "name": "Idle",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            -0.7071067690849304,
+            0.7071067690849304
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          -89.99999237060547
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 16,
+            "clip": "../../motions/soma/locomotion/bs_1d_linear/neutral_walk_ff_180_R_002__A536_M.bvh",
+            "sample_time_seconds": 0.6200000047683716,
+            "frame_index": 74,
+            "playback_mode": "time",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": false,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.949999988079071,
+              0.6086490750312805,
+              0.33250001072883606
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 2,
+        "name": "Skipping",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            -0.7071066498756409,
+            0.7071066498756409
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          -89.99998474121094
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 3,
+            "clip": "../../motions/soma/variations/skipping_R_002__A360.bvh",
+            "sample_time_seconds": 3.191666666666667,
+            "frame_index": 383,
+            "playback_mode": "frames",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": false,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.845718264579773,
+              0.33250001072883606,
+              0.949999988079071
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 4,
+        "name": "Vogue",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.7071066498756409,
+            0.7071066498756409
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          89.99998474121094
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 5,
+            "clip": "../../motions/soma/variations/dance_vouge_vogue_sequence_180_R_002__A316.bvh",
+            "sample_time_seconds": 3.130000114440918,
+            "frame_index": 376,
+            "playback_mode": "time",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": false,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.949999988079071,
+              0.919316828250885,
+              0.33250001072883606
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 6,
+        "name": "Injured Torso",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            -0.7071066498756409,
+            0.7071066498756409
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          -89.99998474121094
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 7,
+            "clip": "../../motions/soma/variations/injured_torso_grab_walk_ff_180_001__A549.bvh",
+            "sample_time_seconds": 2.441666666666667,
+            "frame_index": 293,
+            "playback_mode": "frames",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": false,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.3363354802131653,
+              0.949999988079071,
+              0.33250001072883606
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 9,
+        "name": "Injured Leg",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            -0.7071066498756409,
+            0.7071066498756409
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          -89.99998474121094
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 10,
+            "clip": "../../motions/soma/variations/injured_L_leg_grab_walk_ff_180_002__A549.bvh",
+            "sample_time_seconds": 5.550000190734863,
+            "frame_index": 666,
+            "playback_mode": "time",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": false,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.949999988079071,
+              0.33250001072883606,
+              0.5150863528251648
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 11,
+        "name": "Zombie",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            -0.7071066498756409,
+            0.7071066498756409
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          -89.99998474121094
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 12,
+            "clip": "../../motions/soma/variations/zombie_walk_180_R_003__A330.bvh",
+            "sample_time_seconds": 6.039999961853027,
+            "frame_index": 725,
+            "playback_mode": "time",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": false,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.33250001072883606,
+              0.949999988079071,
+              0.8349377512931824
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 13,
+        "name": "Combat",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            -0.7071066498756409,
+            0.7071066498756409
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          -89.99998474121094
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 14,
+            "clip": "../../motions/soma/variations/combat_quickstep_ff_idle_180_R_002__A365.bvh",
+            "sample_time_seconds": 3.6600000858306885,
+            "frame_index": 439,
+            "playback_mode": "time",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": false,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.9720497131347656,
+              0.24754062294960022,
+              0.2745410203933716
+            ]
+          }
+        ],
+        "children": []
+      }
+    ]
+  }
+}

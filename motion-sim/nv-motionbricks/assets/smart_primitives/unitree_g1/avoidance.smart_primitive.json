@@ -1,0 +1,502 @@
+{
+  "format": "motionbricks.smart_primitive.authoring",
+  "schema_version": 1,
+  "name": "avoidance",
+  "rig": "unitree_g1",
+  "editor": {
+    "selected_node_id": 7,
+    "camera": {
+      "pos": [
+        3.142475729403955,
+        -1.168818026312481,
+        2.303248754147673
+      ],
+      "pivot": [
+        -1.2464800765702868,
+        0.4447611704491608,
+        -0.44359468317270456
+      ],
+      "pitch": -30.5,
+      "yaw": -200.1999999999998,
+      "fov": 45.0,
+      "near": 0.01,
+      "far": 1000.0
+    }
+  },
+  "sequences": [
+    {
+      "id": 15,
+      "name": "Walk",
+      "node_ids": [
+        5,
+        6
+      ],
+      "pivot_node_id": 11
+    },
+    {
+      "id": 17,
+      "name": "Jog",
+      "node_ids": [
+        7,
+        8
+      ],
+      "pivot_node_id": 11
+    }
+  ],
+  "root": {
+    "id": 1,
+    "name": "Root",
+    "local_transform": {
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "euler_degrees": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "visible": true,
+    "translation_locks": [
+      false,
+      false,
+      false
+    ],
+    "rotation_locks": [
+      false,
+      false,
+      false
+    ],
+    "components": [],
+    "children": [
+      {
+        "id": 2,
+        "name": "Box",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            1.5375934839248657
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "interaction_box",
+            "id": 9,
+            "width": 0.39257434010505676,
+            "depth": 0.39257434010505676,
+            "height": 0.7851486802101135,
+            "color": [
+              0.33250001072883606,
+              0.949999988079071,
+              0.6372032761573792
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 11,
+        "name": "Pivot",
+        "local_transform": {
+          "translation": [
+            -0.06320859491825104,
+            0.07480783760547638,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          true,
+          true,
+          false
+        ],
+        "components": [
+          {
+            "type": "pivot",
+            "id": 16,
+            "motion_direction": [
+              0.0,
+              1.0,
+              0.0
+            ],
+            "operation_order": "rotation_then_translation",
+            "translation_axis": "x",
+            "translation_constraint": "line_projection",
+            "line_min_offset": -0.15702973838194811,
+            "line_max_offset": 0.15702973838194811,
+            "rotation_axis": "z",
+            "rotation_constraint": "unconstrained",
+            "cone_half_angle_degrees": 45.0,
+            "cone_side": "forward",
+            "show_motion_direction": true,
+            "show_translation_constraint": true,
+            "show_rotation_constraint": true
+          }
+        ],
+        "children": [
+          {
+            "id": 3,
+            "name": "Variation 0",
+            "local_transform": {
+              "translation": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation_xyzw": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "euler_degrees": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "visible": true,
+            "translation_locks": [
+              false,
+              false,
+              false
+            ],
+            "rotation_locks": [
+              false,
+              false,
+              false
+            ],
+            "components": [],
+            "children": [
+              {
+                "id": 5,
+                "name": "Entry0",
+                "local_transform": {
+                  "translation": [
+                    -0.000589326024055481,
+                    -0.9261252284049988,
+                    0.0
+                  ],
+                  "rotation_xyzw": [
+                    0.0,
+                    0.0,
+                    0.3007056713104248,
+                    -0.9537169933319092
+                  ]
+                },
+                "euler_degrees": [
+                  0.0,
+                  0.0,
+                  -34.99998474121094
+                ],
+                "visible": true,
+                "translation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "rotation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "components": [
+                  {
+                    "type": "target_pose",
+                    "id": 10,
+                    "clip": "../../motions/unitree_g1/avoidance/neutral_avoid_obstacle_bend_down_walk_ff_180_R_001__A543.csv",
+                    "sample_time_seconds": 1.659999966621399,
+                    "frame_index": 199,
+                    "playback_mode": "time",
+                    "hips_constrained": false,
+                    "num_poses_to_use": 4,
+                    "transition_early_by_frames": 8,
+                    "min_tokens": 6,
+                    "max_tokens": 14,
+                    "ik_pin_mask": 0,
+                    "show_mesh": true,
+                    "show_skeletons": false,
+                    "show_velocity": false,
+                    "show_trajectory": false,
+                    "trajectory_scale": 2.0,
+                    "color": [
+                      0.949999988079071,
+                      0.33250001072883606,
+                      0.6297270655632019
+                    ]
+                  }
+                ],
+                "children": [
+                  {
+                    "id": 6,
+                    "name": "Action0",
+                    "local_transform": {
+                      "translation": [
+                        -0.0070029497146606445,
+                        0.007735729217529297,
+                        0.0
+                      ],
+                      "rotation_xyzw": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                      ]
+                    },
+                    "euler_degrees": [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "visible": true,
+                    "translation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "rotation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "components": [
+                      {
+                        "type": "target_pose",
+                        "id": 12,
+                        "clip": "../../motions/unitree_g1/avoidance/neutral_avoid_obstacle_bend_down_walk_ff_180_R_001__A543.csv",
+                        "sample_time_seconds": 2.7300000190734863,
+                        "frame_index": 328,
+                        "playback_mode": "time",
+                        "hips_constrained": false,
+                        "num_poses_to_use": 4,
+                        "transition_early_by_frames": 1,
+                        "min_tokens": 6,
+                        "max_tokens": 14,
+                        "ik_pin_mask": 0,
+                        "show_mesh": true,
+                        "show_skeletons": false,
+                        "show_velocity": false,
+                        "show_trajectory": false,
+                        "trajectory_scale": 2.0,
+                        "color": [
+                          0.6052522659301758,
+                          0.33250001072883606,
+                          0.949999988079071
+                        ]
+                      }
+                    ],
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "name": "Variation 1",
+            "local_transform": {
+              "translation": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation_xyzw": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "euler_degrees": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "visible": true,
+            "translation_locks": [
+              false,
+              false,
+              false
+            ],
+            "rotation_locks": [
+              false,
+              false,
+              false
+            ],
+            "components": [],
+            "children": [
+              {
+                "id": 7,
+                "name": "Entry1",
+                "local_transform": {
+                  "translation": [
+                    -0.2620046138763428,
+                    -2.390129327774048,
+                    0.0
+                  ],
+                  "rotation_xyzw": [
+                    0.0,
+                    0.0,
+                    0.9238795042037964,
+                    0.3826833963394165
+                  ]
+                },
+                "euler_degrees": [
+                  0.0,
+                  0.0,
+                  135.0
+                ],
+                "visible": true,
+                "translation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "rotation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "components": [
+                  {
+                    "type": "target_pose",
+                    "id": 13,
+                    "clip": "../../motions/unitree_g1/avoidance/neutral_avoid_obstacle_bend_down_jog_ff_180_R_001__A544.csv",
+                    "sample_time_seconds": 1.840000033378601,
+                    "frame_index": 221,
+                    "playback_mode": "time",
+                    "hips_constrained": false,
+                    "num_poses_to_use": 4,
+                    "transition_early_by_frames": 8,
+                    "min_tokens": 6,
+                    "max_tokens": 14,
+                    "ik_pin_mask": 0,
+                    "show_mesh": true,
+                    "show_skeletons": false,
+                    "show_velocity": false,
+                    "show_trajectory": false,
+                    "trajectory_scale": 2.0,
+                    "color": [
+                      0.33250001072883606,
+                      0.8532445430755615,
+                      0.949999988079071
+                    ]
+                  }
+                ],
+                "children": [
+                  {
+                    "id": 8,
+                    "name": "Action1",
+                    "local_transform": {
+                      "translation": [
+                        0.007033944129943848,
+                        -0.008751392364501953,
+                        0.0
+                      ],
+                      "rotation_xyzw": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.9999999403953552
+                      ]
+                    },
+                    "euler_degrees": [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "visible": true,
+                    "translation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "rotation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "components": [
+                      {
+                        "type": "target_pose",
+                        "id": 14,
+                        "clip": "../../motions/unitree_g1/avoidance/neutral_avoid_obstacle_bend_down_jog_ff_180_R_001__A544.csv",
+                        "sample_time_seconds": 2.2899999618530273,
+                        "frame_index": 275,
+                        "playback_mode": "time",
+                        "hips_constrained": false,
+                        "num_poses_to_use": 4,
+                        "transition_early_by_frames": 1,
+                        "min_tokens": 6,
+                        "max_tokens": 14,
+                        "ik_pin_mask": 0,
+                        "show_mesh": true,
+                        "show_skeletons": false,
+                        "show_velocity": false,
+                        "show_trajectory": false,
+                        "trajectory_scale": 2.0,
+                        "color": [
+                          0.949999988079071,
+                          0.8900744915008545,
+                          0.33250001072883606
+                        ]
+                      }
+                    ],
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,319 @@
+{
+  "format": "motionbricks.scene",
+  "schema_version": 1,
+  "name": "soma_gym",
+  "rig": "soma",
+  "editor": {
+    "selected_item_id": 12,
+    "camera": {
+      "pos": [
+        -28.627241134643555,
+        4.96978759765625,
+        23.381349563598633
+      ],
+      "pivot": [
+        1.6044341125431316,
+        -0.7897408613204506,
+        -2.4278371523663935
+      ],
+      "pitch": -39.98420383003624,
+      "yaw": -10.786335445574181,
+      "fov": 45.0,
+      "near": 0.01,
+      "far": 1000.0
+    }
+  },
+  "character_start": {
+    "id": 1,
+    "transform": {
+      "translation": [
+        -8.0,
+        4.0,
+        0.0
+      ],
+      "rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "euler_degrees": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "smart_primitives": [
+    {
+      "id": 2,
+      "name": "SmallJumpSP",
+      "parent_id": null,
+      "transform": {
+        "translation": [
+          4.0,
+          0.0,
+          0.0
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          -0.707064688205719,
+          0.7071489095687866
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        -89.99317932128906
+      ],
+      "reference": "../smart_primitives/soma/jump_0_5m.smart_primitive.json",
+      "visibility": {
+        "target_poses": true,
+        "interaction_boxes": true
+      },
+      "target_pose_color": [
+        0.20000000298023224,
+        0.5529412031173706,
+        1.0
+      ],
+      "behavior": "VelocityMatchingSequenceBehavior"
+    },
+    {
+      "id": 5,
+      "name": "MidJumpSP",
+      "parent_id": null,
+      "transform": {
+        "translation": [
+          4.0,
+          8.0,
+          0.0
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          -0.7070855498313904,
+          0.7071279883384705
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        -89.9965591430664
+      ],
+      "reference": "../smart_primitives/soma/jump_0_75m.smart_primitive.json",
+      "visibility": {
+        "target_poses": true,
+        "interaction_boxes": true
+      },
+      "target_pose_color": [
+        0.20000000298023224,
+        0.5529412031173706,
+        1.0
+      ],
+      "behavior": "VelocityMatchingSequenceBehavior"
+    },
+    {
+      "id": 10,
+      "name": "SitSP",
+      "parent_id": null,
+      "transform": {
+        "translation": [
+          4.0,
+          -8.0,
+          0.0
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference": "../smart_primitives/soma/sit.smart_primitive.json",
+      "visibility": {
+        "target_poses": true,
+        "interaction_boxes": true
+      },
+      "target_pose_color": [
+        0.48819881677627563,
+        1.0,
+        0.19999998807907104
+      ],
+      "behavior": "SittingBehavior"
+    },
+    {
+      "id": 12,
+      "name": "AvoidanceSP",
+      "parent_id": null,
+      "transform": {
+        "translation": [
+          4.0,
+          16.0,
+          0.0
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          -0.7071067690849304,
+          0.7071067690849304
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        -89.99999237060547
+      ],
+      "reference": "../smart_primitives/soma/avoidance.smart_primitive.json",
+      "visibility": {
+        "target_poses": true,
+        "interaction_boxes": true
+      },
+      "target_pose_color": [
+        0.26708072423934937,
+        0.6176074147224426,
+        1.0
+      ],
+      "behavior": "VelocityMatchingSequenceBehavior"
+    }
+  ],
+  "solid_cubes": [
+    {
+      "id": 6,
+      "name": "Wall",
+      "parent_id": 5,
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.39313891530036926
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          0.7070855498313904,
+          0.7071279883384705
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        89.9965591430664
+      ],
+      "dimensions": {
+        "width": 0.25,
+        "depth": 2.0,
+        "height": 0.8500000238418579
+      },
+      "color": [
+        1.0,
+        0.9914740920066833,
+        0.31366461515426636
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Box",
+      "parent_id": 2,
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.20000003278255463
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          0.707064688205719,
+          0.7071489095687866
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        89.99317932128906
+      ],
+      "dimensions": {
+        "width": 0.6000000238418579,
+        "depth": 0.6000000238418579,
+        "height": 0.6000000238418579
+      },
+      "color": [
+        0.45098039507865906,
+        0.7019608020782471,
+        0.47058823704719543
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Seat",
+      "parent_id": 10,
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.19396841526031494
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "dimensions": {
+        "width": 0.4000000059604645,
+        "depth": 0.4000000059604645,
+        "height": 0.4000000059604645
+      },
+      "color": [
+        0.9299988150596619,
+        0.4068322777748108,
+        1.0
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Bar",
+      "parent_id": 12,
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          1.9499998092651367
+        ],
+        "rotation_xyzw": [
+          0.0,
+          0.0,
+          0.7071067690849304,
+          0.7071067690849304
+        ]
+      },
+      "euler_degrees": [
+        0.0,
+        0.0,
+        89.99999237060547
+      ],
+      "dimensions": {
+        "width": 0.5,
+        "depth": 0.5,
+        "height": 1.0
+      },
+      "color": [
+        0.44999998807907104,
+        0.5928571224212646,
+        0.699999988079071
+      ]
+    }
+  ]
+}

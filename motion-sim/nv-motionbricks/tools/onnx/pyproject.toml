@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools >= 77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "motionbricks-onnx"
+dynamic = ["version"]
+description = "Export MotionBricks checkpoints to batched ONNX models"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy==1.26.4",
+    "onnx==1.23.2",
+    "safetensors==0.8.0",
+    "torch==2.14.0+cpu",
+]
+
+[project.scripts]
+motionbricks-onnx = "motionbricks_onnx.export:main"
+
+[tool.setuptools]
+package-dir = { motionbricks_onnx = "." }
+include-package-data = false
+
+[tool.setuptools.package-data]
+motionbricks_onnx = ["assets/**/*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "motionbricks_onnx.__version__" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[tool.uv]
+managed = true

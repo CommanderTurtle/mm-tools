@@ -1,0 +1,363 @@
+{
+  "format": "motionbricks.smart_primitive.authoring",
+  "schema_version": 1,
+  "name": "locomotion_bs2_directional_crouch",
+  "rig": "soma",
+  "editor": {
+    "selected_node_id": 6,
+    "camera": {
+      "pos": [
+        4.231281280517578,
+        -0.8333141207695007,
+        3.113799810409546
+      ],
+      "pivot": [
+        -9.199428457286295,
+        2.3333025855984717,
+        -3.2719604842863514
+      ],
+      "pitch": -24.82934435391735,
+      "yaw": 166.7108980693576,
+      "fov": 45.0,
+      "near": 0.01,
+      "far": 1000.0
+    }
+  },
+  "sequences": [],
+  "root": {
+    "id": 1,
+    "name": "Root",
+    "local_transform": {
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "euler_degrees": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "visible": true,
+    "translation_locks": [
+      false,
+      false,
+      false
+    ],
+    "rotation_locks": [
+      false,
+      false,
+      false
+    ],
+    "components": [],
+    "children": [
+      {
+        "id": 2,
+        "name": "Idle",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.7071067690849304,
+            0.7071067690849304
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          89.99999237060547
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 7,
+            "clip": "../../motions/soma/locomotion/idle/crouch_idle_001__A529.bvh",
+            "sample_time_seconds": 0.0,
+            "frame_index": 0,
+            "playback_mode": "frames",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": false,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.6641780138015747,
+              0.949999988079071,
+              0.33250001072883606
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 3,
+        "name": "Forward",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.7071067690849304,
+            -0.7071068286895752
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          270.00000762939453
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 8,
+            "clip": "../../motions/soma/locomotion/bs_2d_directional_crouch/crouch_ff_loop_180_R_001__A196.bvh",
+            "sample_time_seconds": 1.55,
+            "frame_index": 186,
+            "playback_mode": "frames",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": true,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.8562536239624023,
+              0.33250001072883606,
+              0.949999988079071
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 4,
+        "name": "Backward",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.7071067690849304,
+            0.7071067690849304
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          89.99999237060547
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 9,
+            "clip": "../../motions/soma/locomotion/bs_2d_directional_crouch/crouch_ff_loop_360_R_001__A196.bvh",
+            "sample_time_seconds": 2.575,
+            "frame_index": 309,
+            "playback_mode": "frames",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": true,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.631855845451355,
+              0.949999988079071,
+              0.33250001072883606
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 5,
+        "name": "Left",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            6.532761290145572e-06,
+            1.0
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          0.0007485992973670363
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 10,
+            "clip": "../../motions/soma/locomotion/bs_2d_directional_crouch/crouch_ff_loop_270_R_002__A196_M.bvh",
+            "sample_time_seconds": 2.1,
+            "frame_index": 252,
+            "playback_mode": "frames",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": true,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.949999988079071,
+              0.33250001072883606,
+              0.5850575566291809
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 6,
+        "name": "Right",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            1.0,
+            2.0188339476590045e-05
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          179.9976806640625
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "target_pose",
+            "id": 11,
+            "clip": "../../motions/soma/locomotion/bs_2d_directional_crouch/crouch_ff_loop_270_R_002__A196.bvh",
+            "sample_time_seconds": 2.1,
+            "frame_index": 252,
+            "playback_mode": "frames",
+            "hips_constrained": true,
+            "num_poses_to_use": 4,
+            "transition_early_by_frames": 0,
+            "min_tokens": 6,
+            "max_tokens": 14,
+            "ik_pin_mask": 0,
+            "show_mesh": true,
+            "show_skeletons": false,
+            "show_velocity": true,
+            "show_trajectory": false,
+            "trajectory_scale": 2.0,
+            "color": [
+              0.5451549887657166,
+              0.33250001072883606,
+              0.949999988079071
+            ]
+          }
+        ],
+        "children": []
+      }
+    ]
+  }
+}

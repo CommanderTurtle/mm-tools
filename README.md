@@ -54,8 +54,8 @@ deactivate # when done
 
 The downloader is resumable. Run it again after an interrupted transfer. New
 source-import bundles are named `4d`, `lingbot`, `lingbot-5090`, `fire3d`,
-`aukspeech`, `sculpting`, `worldsculpt`, `nvidia-sim`, `v2v`, and
-`yue2`; use `uv run download_models.py --list` for the complete current menu.
+`aukspeech`, `sculpting`, `worldsculpt`, `nvidia-sim`, `v2v`, `yue2`, and
+`motionbricks`; use `uv run download_models.py --list` for the complete current menu.
 The source imports, single-GPU adapters, setup/start contracts, and private
 browser studios are included here; model artifacts remain external and
 resumable. LingBot deliberately separates its shared encoder/VAE bundle from
@@ -93,6 +93,12 @@ https://github.com/user-attachments/assets/cb2c3b6d-60e5-4599-9be7-ad5472342b7e
 *compatible with vox*
 
 https://github.com/user-attachments/assets/944a9918-28dd-4a29-8e2b-76d1d80cd4e7
+
+# Motion authoring
+
+Motion authoring: [MotionBricks studio](motion-sim/nv-motionbricks/README.md)
+provides SOMA and Unitree G1 inbetweening, Smart Primitive authoring, scene editing
+and interactive character preview through the pinned native runtime.
 
 # Video Compression
 
@@ -440,3 +446,6 @@ The only Yue2 frontend with stem splitting!
 Another:
 
 https://a.shel.sh/#media:rZ9jBas~g*mK]Q-()SB$IFDo]Xl-b5y[P,/@f/FwenhdLmh~Aaw
+
+| `8292` | Underdog Bark HTTP |
+| `8293` | Underdog Bark studio |

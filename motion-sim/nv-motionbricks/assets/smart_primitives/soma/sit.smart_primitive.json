@@ -1,0 +1,368 @@
+{
+  "format": "motionbricks.smart_primitive.authoring",
+  "schema_version": 1,
+  "name": "sit",
+  "rig": "soma",
+  "editor": {
+    "selected_node_id": 3,
+    "camera": {
+      "pos": [
+        2.154998779296875,
+        0.14840075373649597,
+        0.48017385601997375
+      ],
+      "pivot": [
+        -2.669849499793556,
+        -0.24827196389527656,
+        0.2434084729020971
+      ],
+      "pitch": -2.799929021090284,
+      "yaw": -175.29992380546045,
+      "fov": 45.0,
+      "near": 0.01,
+      "far": 1000.0
+    }
+  },
+  "sequences": [
+    {
+      "id": 9,
+      "name": "Sit",
+      "node_ids": [
+        12,
+        5
+      ],
+      "pivot_node_id": 3
+    },
+    {
+      "id": 10,
+      "name": "Stand",
+      "node_ids": [
+        6
+      ],
+      "pivot_node_id": null
+    }
+  ],
+  "root": {
+    "id": 1,
+    "name": "Root",
+    "local_transform": {
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "euler_degrees": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "visible": true,
+    "translation_locks": [
+      false,
+      false,
+      false
+    ],
+    "rotation_locks": [
+      false,
+      false,
+      false
+    ],
+    "components": [],
+    "children": [
+      {
+        "id": 2,
+        "name": "InteractionBox",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.20079441368579865
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "interaction_box",
+            "id": 4,
+            "width": 0.30000001192092896,
+            "depth": 0.30000001192092896,
+            "height": 0.4000000059604645,
+            "color": [
+              0.8164187073707581,
+              0.949999988079071,
+              0.33250001072883606
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 3,
+        "name": "Pivot",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "pivot",
+            "id": 11,
+            "motion_direction": [
+              -0.9803921565960564,
+              -0.19705638605468664,
+              0.0
+            ],
+            "operation_order": "translation_then_rotation",
+            "translation_axis": "none",
+            "translation_constraint": "unconstrained",
+            "line_min_offset": -0.5,
+            "line_max_offset": 0.5,
+            "rotation_axis": "z",
+            "rotation_constraint": "unconstrained",
+            "cone_half_angle_degrees": 45.0,
+            "cone_side": "forward",
+            "show_motion_direction": true,
+            "show_translation_constraint": true,
+            "show_rotation_constraint": true
+          }
+        ],
+        "children": [
+          {
+            "id": 5,
+            "name": "Sit",
+            "local_transform": {
+              "translation": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation_xyzw": [
+                0.0,
+                0.0,
+                0.7071067690849304,
+                0.7071067690849304
+              ]
+            },
+            "euler_degrees": [
+              0.0,
+              0.0,
+              89.99999237060547
+            ],
+            "visible": true,
+            "translation_locks": [
+              false,
+              false,
+              false
+            ],
+            "rotation_locks": [
+              false,
+              false,
+              false
+            ],
+            "components": [
+              {
+                "type": "target_pose",
+                "id": 7,
+                "clip": "../../motions/soma/sitting/sit_on_chair_loop.bvh",
+                "sample_time_seconds": 0.0,
+                "frame_index": 0,
+                "playback_mode": "time",
+                "hips_constrained": true,
+                "num_poses_to_use": 1,
+                "transition_early_by_frames": 0,
+                "min_tokens": 6,
+                "max_tokens": 14,
+                "ik_pin_mask": 0,
+                "show_mesh": true,
+                "show_skeletons": false,
+                "show_velocity": false,
+                "show_trajectory": false,
+                "trajectory_scale": 2.0,
+                "color": [
+                  0.5966143608093262,
+                  0.949999988079071,
+                  0.33250001072883606
+                ]
+              }
+            ],
+            "children": [
+              {
+                "id": 6,
+                "name": "ToStand",
+                "local_transform": {
+                  "translation": [
+                    -0.015297919511795044,
+                    0.0,
+                    0.0
+                  ],
+                  "rotation_xyzw": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                  ]
+                },
+                "euler_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "visible": true,
+                "translation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "rotation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "components": [
+                  {
+                    "type": "target_pose",
+                    "id": 8,
+                    "clip": "../../motions/soma/sitting/sit_on_chair_stop_R_001__A047.bvh",
+                    "sample_time_seconds": 1.9900000095367432,
+                    "frame_index": 239,
+                    "playback_mode": "time",
+                    "hips_constrained": false,
+                    "num_poses_to_use": 4,
+                    "transition_early_by_frames": 0,
+                    "min_tokens": 6,
+                    "max_tokens": 14,
+                    "ik_pin_mask": 0,
+                    "show_mesh": true,
+                    "show_skeletons": true,
+                    "show_velocity": false,
+                    "show_trajectory": false,
+                    "trajectory_scale": 2.0,
+                    "color": [
+                      0.33250001072883606,
+                      0.949999988079071,
+                      0.41747766733169556
+                    ]
+                  }
+                ],
+                "children": []
+              },
+              {
+                "id": 12,
+                "name": "ToSit",
+                "local_transform": {
+                  "translation": [
+                    0.020531408488750458,
+                    -0.4032357633113861,
+                    0.0
+                  ],
+                  "rotation_xyzw": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                  ]
+                },
+                "euler_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "visible": true,
+                "translation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "rotation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "components": [
+                  {
+                    "type": "target_pose",
+                    "id": 13,
+                    "clip": "../../motions/soma/sitting/sit_on_chair_start_R_001__A047.bvh",
+                    "sample_time_seconds": 1.850000023841858,
+                    "frame_index": 222,
+                    "playback_mode": "time",
+                    "hips_constrained": false,
+                    "num_poses_to_use": 4,
+                    "transition_early_by_frames": 10,
+                    "min_tokens": 6,
+                    "max_tokens": 14,
+                    "ik_pin_mask": 0,
+                    "show_mesh": true,
+                    "show_skeletons": false,
+                    "show_velocity": false,
+                    "show_trajectory": false,
+                    "trajectory_scale": 2.0,
+                    "color": [
+                      0.9285714030265808,
+                      0.4556344449520111,
+                      0.808134138584137
+                    ]
+                  }
+                ],
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

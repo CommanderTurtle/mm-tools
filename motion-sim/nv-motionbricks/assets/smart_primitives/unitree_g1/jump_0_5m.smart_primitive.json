@@ -1,0 +1,626 @@
+{
+  "format": "motionbricks.smart_primitive.authoring",
+  "schema_version": 1,
+  "name": "jump_0_5m",
+  "rig": "unitree_g1",
+  "editor": {
+    "selected_node_id": 3,
+    "camera": {
+      "pos": [
+        3.5726426666250006,
+        -1.4901082102511722,
+        2.527019292901187
+      ],
+      "pivot": [
+        1.0107321909316556,
+        0.5385013557126093,
+        -0.09370802635791428
+      ],
+      "pitch": -39.372808780797484,
+      "yaw": 153.23098019458195,
+      "fov": 45.0,
+      "near": 0.01,
+      "far": 1000.0
+    }
+  },
+  "sequences": [
+    {
+      "id": 20,
+      "name": "Jump",
+      "node_ids": [
+        14,
+        15,
+        16
+      ],
+      "pivot_node_id": 3
+    },
+    {
+      "id": 28,
+      "name": "Jump2",
+      "node_ids": [
+        22,
+        23,
+        24
+      ],
+      "pivot_node_id": 3
+    }
+  ],
+  "root": {
+    "id": 1,
+    "name": "Root",
+    "local_transform": {
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "euler_degrees": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "visible": true,
+    "translation_locks": [
+      false,
+      false,
+      false
+    ],
+    "rotation_locks": [
+      false,
+      false,
+      false
+    ],
+    "components": [],
+    "children": [
+      {
+        "id": 2,
+        "name": "Box",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.19785746932029724
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "interaction_box",
+            "id": 7,
+            "width": 0.5496040667873778,
+            "depth": 0.5496040667873778,
+            "height": 0.39257434010505676,
+            "color": [
+              0.6054707169532776,
+              0.949999988079071,
+              0.33250001072883606
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": 3,
+        "name": "Pivot",
+        "local_transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "euler_degrees": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "visible": true,
+        "translation_locks": [
+          false,
+          false,
+          false
+        ],
+        "rotation_locks": [
+          false,
+          false,
+          false
+        ],
+        "components": [
+          {
+            "type": "pivot",
+            "id": 29,
+            "motion_direction": [
+              0.0,
+              1.0,
+              0.0
+            ],
+            "operation_order": "rotation_then_translation",
+            "translation_axis": "x",
+            "translation_constraint": "line_projection",
+            "line_min_offset": -0.2355446134227357,
+            "line_max_offset": 0.2355446134227357,
+            "rotation_axis": "z",
+            "rotation_constraint": "unconstrained",
+            "cone_half_angle_degrees": 45.0,
+            "cone_side": "forward",
+            "show_motion_direction": true,
+            "show_translation_constraint": true,
+            "show_rotation_constraint": true
+          }
+        ],
+        "children": [
+          {
+            "id": 13,
+            "name": "Variation1",
+            "local_transform": {
+              "translation": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation_xyzw": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "euler_degrees": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "visible": true,
+            "translation_locks": [
+              false,
+              false,
+              false
+            ],
+            "rotation_locks": [
+              false,
+              false,
+              false
+            ],
+            "components": [],
+            "children": [
+              {
+                "id": 14,
+                "name": "Entry1",
+                "local_transform": {
+                  "translation": [
+                    -0.0023678233847022057,
+                    -2.9048373699188232,
+                    0.0
+                  ],
+                  "rotation_xyzw": [
+                    0.0,
+                    0.0,
+                    0.9999999403953552,
+                    8.89897346496582e-05
+                  ]
+                },
+                "euler_degrees": [
+                  0.0,
+                  0.0,
+                  179.98980712890625
+                ],
+                "visible": true,
+                "translation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "rotation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "components": [
+                  {
+                    "type": "target_pose",
+                    "id": 17,
+                    "clip": "../../motions/unitree_g1/jump/jump_over_obstacle_0_5m_R_002__A437.csv",
+                    "sample_time_seconds": 1.5916666666666666,
+                    "frame_index": 191,
+                    "playback_mode": "frames",
+                    "hips_constrained": false,
+                    "num_poses_to_use": 4,
+                    "transition_early_by_frames": 8,
+                    "min_tokens": 6,
+                    "max_tokens": 14,
+                    "ik_pin_mask": 0,
+                    "show_mesh": true,
+                    "show_skeletons": false,
+                    "show_velocity": true,
+                    "show_trajectory": false,
+                    "trajectory_scale": 2.0,
+                    "color": [
+                      0.949999988079071,
+                      0.7006987929344177,
+                      0.33250001072883606
+                    ]
+                  }
+                ],
+                "children": [
+                  {
+                    "id": 15,
+                    "name": "Action1",
+                    "local_transform": {
+                      "translation": [
+                        -0.0029376449529081583,
+                        -0.0367279052734375,
+                        0.0
+                      ],
+                      "rotation_xyzw": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.9999998807907104
+                      ]
+                    },
+                    "euler_degrees": [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "visible": true,
+                    "translation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "rotation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "components": [
+                      {
+                        "type": "target_pose",
+                        "id": 18,
+                        "clip": "../../motions/unitree_g1/jump/jump_over_obstacle_0_5m_R_002__A437.csv",
+                        "sample_time_seconds": 2.1600000858306885,
+                        "frame_index": 259,
+                        "playback_mode": "time",
+                        "hips_constrained": false,
+                        "num_poses_to_use": 4,
+                        "transition_early_by_frames": 1,
+                        "min_tokens": 6,
+                        "max_tokens": 14,
+                        "ik_pin_mask": 0,
+                        "show_mesh": true,
+                        "show_skeletons": false,
+                        "show_velocity": true,
+                        "show_trajectory": false,
+                        "trajectory_scale": 2.0,
+                        "color": [
+                          0.41935068368911743,
+                          0.15002314746379852,
+                          0.9472049474716187
+                        ]
+                      }
+                    ],
+                    "children": [
+                      {
+                        "id": 16,
+                        "name": "Exit1",
+                        "local_transform": {
+                          "translation": [
+                            -0.0036697499454021454,
+                            -0.021448850631713867,
+                            0.0
+                          ],
+                          "rotation_xyzw": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.9999997615814209
+                          ]
+                        },
+                        "euler_degrees": [
+                          0.0,
+                          0.0,
+                          0.0
+                        ],
+                        "visible": true,
+                        "translation_locks": [
+                          false,
+                          false,
+                          false
+                        ],
+                        "rotation_locks": [
+                          false,
+                          false,
+                          false
+                        ],
+                        "components": [
+                          {
+                            "type": "target_pose",
+                            "id": 19,
+                            "clip": "../../motions/unitree_g1/jump/jump_over_obstacle_0_5m_R_002__A437.csv",
+                            "sample_time_seconds": 2.700000047683716,
+                            "frame_index": 324,
+                            "playback_mode": "time",
+                            "hips_constrained": false,
+                            "num_poses_to_use": 4,
+                            "transition_early_by_frames": 8,
+                            "min_tokens": 6,
+                            "max_tokens": 14,
+                            "ik_pin_mask": 0,
+                            "show_mesh": true,
+                            "show_skeletons": false,
+                            "show_velocity": true,
+                            "show_trajectory": false,
+                            "trajectory_scale": 2.0,
+                            "color": [
+                              0.4283851385116577,
+                              0.949999988079071,
+                              0.33250001072883606
+                            ]
+                          }
+                        ],
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": 21,
+            "name": "Variation2",
+            "local_transform": {
+              "translation": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation_xyzw": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "euler_degrees": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "visible": true,
+            "translation_locks": [
+              false,
+              false,
+              false
+            ],
+            "rotation_locks": [
+              false,
+              false,
+              false
+            ],
+            "components": [],
+            "children": [
+              {
+                "id": 22,
+                "name": "Entry2",
+                "local_transform": {
+                  "translation": [
+                    -0.0002806121192406863,
+                    -3.1954925060272217,
+                    0.0
+                  ],
+                  "rotation_xyzw": [
+                    0.0,
+                    0.0,
+                    0.9999999403953552,
+                    8.89897346496582e-05
+                  ]
+                },
+                "euler_degrees": [
+                  0.0,
+                  0.0,
+                  179.98980712890625
+                ],
+                "visible": true,
+                "translation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "rotation_locks": [
+                  false,
+                  false,
+                  false
+                ],
+                "components": [
+                  {
+                    "type": "target_pose",
+                    "id": 25,
+                    "clip": "../../motions/unitree_g1/jump/jump_over_obstacle_0_5m_R_001__A415.csv",
+                    "sample_time_seconds": 2.5999999046325684,
+                    "frame_index": 312,
+                    "playback_mode": "time",
+                    "hips_constrained": false,
+                    "num_poses_to_use": 4,
+                    "transition_early_by_frames": 8,
+                    "min_tokens": 6,
+                    "max_tokens": 14,
+                    "ik_pin_mask": 0,
+                    "show_mesh": true,
+                    "show_skeletons": false,
+                    "show_velocity": false,
+                    "show_trajectory": false,
+                    "trajectory_scale": 2.0,
+                    "color": [
+                      0.33250001072883606,
+                      0.949999988079071,
+                      0.8760449886322021
+                    ]
+                  }
+                ],
+                "children": [
+                  {
+                    "id": 23,
+                    "name": "Action2",
+                    "local_transform": {
+                      "translation": [
+                        -0.008173716254532337,
+                        -0.040985107421875,
+                        0.0
+                      ],
+                      "rotation_xyzw": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.9999998807907104
+                      ]
+                    },
+                    "euler_degrees": [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "visible": true,
+                    "translation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "rotation_locks": [
+                      false,
+                      false,
+                      false
+                    ],
+                    "components": [
+                      {
+                        "type": "target_pose",
+                        "id": 26,
+                        "clip": "../../motions/unitree_g1/jump/jump_over_obstacle_0_5m_R_001__A415.csv",
+                        "sample_time_seconds": 3.25,
+                        "frame_index": 390,
+                        "playback_mode": "time",
+                        "hips_constrained": false,
+                        "num_poses_to_use": 4,
+                        "transition_early_by_frames": 1,
+                        "min_tokens": 6,
+                        "max_tokens": 14,
+                        "ik_pin_mask": 0,
+                        "show_mesh": true,
+                        "show_skeletons": false,
+                        "show_velocity": false,
+                        "show_trajectory": false,
+                        "trajectory_scale": 2.0,
+                        "color": [
+                          0.33250001072883606,
+                          0.7384169697761536,
+                          0.949999988079071
+                        ]
+                      }
+                    ],
+                    "children": [
+                      {
+                        "id": 24,
+                        "name": "Exit2",
+                        "local_transform": {
+                          "translation": [
+                            0.010094057768583298,
+                            -0.012274980545043945,
+                            0.0
+                          ],
+                          "rotation_xyzw": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.9999997615814209
+                          ]
+                        },
+                        "euler_degrees": [
+                          0.0,
+                          0.0,
+                          0.0
+                        ],
+                        "visible": true,
+                        "translation_locks": [
+                          false,
+                          false,
+                          false
+                        ],
+                        "rotation_locks": [
+                          false,
+                          false,
+                          false
+                        ],
+                        "components": [
+                          {
+                            "type": "target_pose",
+                            "id": 27,
+                            "clip": "../../motions/unitree_g1/jump/jump_over_obstacle_0_5m_R_001__A415.csv",
+                            "sample_time_seconds": 3.869999885559082,
+                            "frame_index": 464,
+                            "playback_mode": "time",
+                            "hips_constrained": false,
+                            "num_poses_to_use": 4,
+                            "transition_early_by_frames": 8,
+                            "min_tokens": 6,
+                            "max_tokens": 14,
+                            "ik_pin_mask": 0,
+                            "show_mesh": true,
+                            "show_skeletons": false,
+                            "show_velocity": false,
+                            "show_trajectory": false,
+                            "trajectory_scale": 2.0,
+                            "color": [
+                              0.5244588255882263,
+                              0.33250001072883606,
+                              0.949999988079071
+                            ]
+                          }
+                        ],
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
