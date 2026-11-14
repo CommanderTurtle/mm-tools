@@ -513,17 +513,47 @@ model load/unload health, an output library, side-by-side comparison, and API
 examples. There are no hosted assets, analytics, CORS opt-ins, or automatic
 model downloads at runtime.
 
-| Project | Canonical surface | Default port |
-| --- | --- | ---: |
-| AuK | 16 speech generation, cloning, editing, emotion, timing, and nonverbal workflows; Vox-compatible speech route | 8260 |
-| 4DAnyone | monocular 4D human reconstruction and reusable result inspection | 8261 |
-| TRELLIS.2 + Pixal3D | image/multiview sculpting, local refinement, and interactive GLB inspection | 8262 |
-| WorldSculpt | complete multi-object scene reconstruction and scene inspection | 8263 |
-| ID-V2V | identity-preserving transfer, normal/depth guidance, and reusable preprocessing | 8265 |
-| ARDY + SOMA-X | text-to-motion, motion inspection, parametric bodies, and hands | 8266 |
-| LingBot World V2 | 1.3B single-5090 world generation and visual camera-path authoring | 8267 |
-| Fire3D | RGB/RGBD scene reconstruction, native-release evaluation, and GLB inspection | 8268 |
-| YuE2 | composition, planning, continuation/cover, score realization/editing, transcription, resume, and VAE decode | 8270 |
+| Project | Canonical surface | Default port | VRAM (approx) |
+| --- | --- | ---: | ---: |
+| AuK | 16 speech generation, cloning, editing, emotion, timing, and nonverbal workflows; Vox-compatible speech route | 8260 | ~10 GB |
+| 4DAnyone | monocular 4D human reconstruction and reusable result inspection | 8261 | ~14 GB |
+| TRELLIS.2 + Pixal3D | image/multiview sculpting, local refinement, and interactive GLB inspection | 8262 | ~20 GB |
+| WorldSculpt | complete multi-object scene reconstruction and scene inspection | 8263 | ~18 GB |
+| ID-V2V | identity-preserving transfer, normal/depth guidance, and reusable preprocessing | 8265 | ~22 GB |
+| ARDY + SOMA-X | text-to-motion, motion inspection, parametric bodies, and hands | 8266 | ~8 GB |
+| LingBot World V2 | 1.3B single-5090 world generation and visual camera-path authoring | 8267 | 32 GB |
+| Fire3D | RGB/RGBD scene reconstruction, native-release evaluation, and GLB inspection | 8268 | ~20 GB |
+| YuE2 | composition, planning, continuation/cover, score realization/editing, transcription, resume, and VAE decode | 8270 | ~24 GB |
+
+### Update 11-12, more local creative studios
+
+This expansion folds thirteen additional runtimes into the same shared,
+dependency-light product surface with project-native adapters: motion repair
+and video-to-character animation, geometry, scene, and world generation,
+optical character recognition and natural-language image editing, plus speech
+synthesis, transcription, and podcast generation. Every studio keeps
+responsive dark/light themes, searchable task cards, complete native controls,
+presets and drafts, raw streaming uploads, the persistent single-GPU queue,
+cancellation, SSE progress, model load/unload health, an output library,
+side-by-side comparison, and API examples. Pinned upstream source snapshots
+now ride in-tree, so a fresh checkout restores any runtime with dependency
+installation alone; only checkpoint bytes route through the shared downloader.
+
+| Project | Canonical surface | Default port | VRAM (approx) |
+| --- | --- | ---: | ---: |
+| Audio8 | speech synthesis | 8179 | ~8 GB |
+| MotionBricks | motion repair, inpainting, outpainting, and trajectory steering | 8272 | ~10 GB |
+| FlowHMR | video and reference to animated character meshes | 8273 | ~12 GB |
+| PhysAg3D | physics-grounded 3D human scenes | 8275 | ~16 GB |
+| Idol | video to 3D character generation and inspection | 8276 | ~22 GB |
+| Hy3D | image and video to high-fidelity 3D geometry | 8277 | ~22 GB |
+| SceneBloom | procedural 3D scene generation with Blender-MCP refinement | 8278 | ~12 GB |
+| Hy-Nomas | interactive generated worlds with first-person play | 8279 | ~28 GB |
+| Unlimited OCR 2 | document and scene text extraction | 8280 | ~12 GB |
+| Pixel Wizard | natural-language image editing | 8281 | ~24 GB |
+| Nemotron | long-form transcription | 8282 | ~6 GB |
+| Ming3 | speech synthesis and podcast generation | 8291 | ~16 GB |
+| Underdog | Bark speech behind plain HTTP and studio surfaces | 8292/8293 | ~6 GB |
 
 </details>
 
