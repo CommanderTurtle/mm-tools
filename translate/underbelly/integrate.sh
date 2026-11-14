@@ -43,8 +43,166 @@ fi
 # shellcheck disable=SC1090
 source "$CONFIG_FILE"
 
-: "${ANYDOC_INSTALL_LOCATION:?missing ANYDOC_INSTALL_LOCATION in config}"
-: "${FIRECRAWL_CLI_INSTALL_LOCATION:?missing FIRECRAWL_CLI_INSTALL_LOCATION in config}"
+# The Bun global root moves: a hand-set BUN_INSTALL prefix here, Bun preferring
+# bunfig's [install] globalDir there. Pinning either directory in config froze a
+# stale tree while live installs moved elsewhere, so the root is resolved per
+# run. Omarchy installs Bun through Mise and neither sets BUN_INSTALL, so the
+# canonical root is whatever the effective Bun uses: an explicit
+# BUN_INSTALL_GLOBAL_DIR, then bunfig's globalDir, then the tree the launchers on
+# PATH execute from, then the prefix defaults. Sandwich owns that resolution, so
+# its answer is preferred when Sandwich is installed; only an explicit value in
+# config.env overrides it.
+ub_bunfig_global_dir() {
+  local file section="" line value
+  for file in "${UNDERBELLY_BUNFIG:-$HOME/.bunfig.toml}" /etc/bunfig.toml; do
+    [[ -r "$file" ]] || continue
+    section=""
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      line="${line%%#*}"
+      line="${line#"${line%%[![:space:]]*}"}"
+      line="${line%"${line##*[![:space:]]}"}"
+      [[ -n "$line" ]] || continue
+      if [[ "$line" == \[*\] ]]; then
+        section="${line:1:${#line}-2}"
+        section="${section%"${section%%[![:space:]]*}"}"
+        continue
+      fi
+      [[ "$section" == install ]] || continue
+      [[ "$line" == globalDir[[:space:]]*=* ]] || continue
+      value="${line#*=}"
+      value="${value#"${value%%[![:space:]]*}"}"
+      value="${value%\"}"; value="${value#\"}"
+      value="${value%\'}"; value="${value#\'}"
+      case "$value" in
+        '~') value="$HOME" ;;
+        '~/'*) value="$HOME/${value#\~/}" ;;
+      esac
+      [[ "$value" == /* ]] || continue
+      printf '%s\n' "$value"
+      return 0
+    done <"$file"
+  done
+  return 1
+}
+
+ub_bun_root_installed() {
+  local root="$1"
+  [[ -n "$root" && -f "$root/package.json" ]] || return 1
+  [[ -d "$root/node_modules" || -f "$root/bun.lock" || -f "$root/bun.lockb" ]]
+}
+
+# Installed Bun global roots, most authoritative first. A directory counts only
+# when it holds package.json plus node_modules or a lockfile, so exactly one
+# root resolves unless an older prefix is still installed alongside it.
+ub_bun_global_roots() {
+  local -a candidates=() found=() path_dirs=() reported=()
+  local directory sibling candidate root
+
+  if command -v sandwich >/dev/null 2>&1; then
+    mapfile -t reported < <(sandwich bunRoot --all 2>/dev/null)
+    if (( ${#reported[@]} > 0 )) && ub_bun_root_installed "${reported[0]}"; then
+      printf '%s\n' "${reported[@]}"
+      return 0
+    fi
+  fi
+
+  candidates=()
+  ub_bun_offer() {
+    local offered="$1" existing
+    [[ -n "$offered" ]] || return 0
+    for existing in "${candidates[@]}"; do
+      [[ "$existing" == "$offered" ]] && return 0
+    done
+    candidates+=("$offered")
+  }
+  ub_bun_offer "${BUN_INSTALL_GLOBAL_DIR:-}"
+  if directory="$(ub_bunfig_global_dir)"; then
+    ub_bun_offer "$directory"
+  fi
+  IFS=: read -r -a path_dirs <<<"$PATH"
+  for directory in "${path_dirs[@]}"; do
+    [[ -n "$directory" ]] || directory="$PWD"
+    case "${directory%/}" in
+      */bin)
+        sibling="${directory%/bin}/install/global"
+        ub_bun_root_installed "$sibling" && ub_bun_offer "$sibling"
+        ;;
+    esac
+  done
+  ub_bun_offer "${BUN_INSTALL:-$HOME/.bun}/install/global"
+  ub_bun_offer "$HOME/.bun/install/global"
+  ub_bun_offer "${XDG_CACHE_HOME:-$HOME/.cache}/.bun/install/global"
+
+  found=()
+  for candidate in "${candidates[@]}"; do
+    ub_bun_root_installed "$candidate" && found+=("$candidate")
+  done
+  if (( ${#found[@]} )); then
+    for root in "${found[@]}"; do
+      printf '%s\n' "$root"
+    done
+    return 0
+  fi
+  printf '%s\n' "${BUN_INSTALL_GLOBAL_DIR:-${BUN_INSTALL:-$HOME/.bun}/install/global}"
+}
+
+# Resolve one package directory: an explicit config value wins, otherwise the
+# single resolved root. A package that only exists in a duplicate root is an
+# error with the fix, never a silent second patched tree.
+UB_BUN_RESOLVED=""
+UB_BUN_RESOLVED_ROOTS=()
+
+ub_package_location() {
+  local configured="$1" package="$2" root primary alternate=""
+  local -a roots=()
+  if [[ -z "$UB_BUN_RESOLVED" ]]; then
+    mapfile -t UB_BUN_RESOLVED_ROOTS < <(ub_bun_global_roots)
+    UB_BUN_RESOLVED=1
+  fi
+  roots=("${UB_BUN_RESOLVED_ROOTS[@]}")
+  primary="${roots[0]:-${BUN_INSTALL:-$HOME/.bun}/install/global}"
+  if [[ -n "$configured" ]]; then
+    printf '%s\n' "${configured%/}"
+    return 0
+  fi
+  for root in "${roots[@]:1}"; do
+    [[ -d "$root/node_modules/$package" ]] && alternate="$root"
+  done
+  if [[ -d "$primary/node_modules/$package" ]]; then
+    printf '%s\n' "$primary/node_modules/$package"
+    return 0
+  fi
+  if [[ "$MODE" == uninstall ]]; then
+    printf '%s\n' "$primary/node_modules/$package"
+    return 0
+  fi
+  printf 'underbelly: %s is not installed in the resolved Bun global root %s\n' "$package" "$primary" >&2
+  if [[ -n "$alternate" ]]; then
+    printf 'underbelly:   it is installed in the duplicate root %s\n' "$alternate" >&2
+  fi
+  printf 'underbelly:   fix: cd %s && bun install -g %s\n' "$primary" "$package" >&2
+  return 1
+}
+
+ANYDOC_INSTALL_LOCATION="$(ub_package_location "${ANYDOC_INSTALL_LOCATION:-}" "@firecrawl/anydoc")"
+FIRECRAWL_CLI_INSTALL_LOCATION="$(ub_package_location "${FIRECRAWL_CLI_INSTALL_LOCATION:-}" "firecrawl-cli")"
+readonly BUN_GLOBAL_ROOT="${UB_BUN_RESOLVED_ROOTS[0]:-$(dirname -- "$(dirname -- "$FIRECRAWL_CLI_INSTALL_LOCATION")")}"
+
+# A launcher that runs from another root would leave the patched copy behind.
+ub_check_launcher() {
+  local command_name="$1" package="$2" location="$3" launcher resolved
+  launcher="$(command -v "$command_name" 2>/dev/null)" || return 0
+  resolved="$(readlink -f -- "$launcher" 2>/dev/null)" || return 0
+  if [[ "$resolved" == *"/node_modules/$package/"* && "$resolved" != "$location"* ]]; then
+    printf 'underbelly: warning: %s on PATH runs from another root: %s\n' "$command_name" "$launcher" >&2
+    printf 'underbelly:          patching %s; retire the other root and its PATH entry\n' "$location" >&2
+  fi
+  return 0
+}
+ub_check_launcher firecrawl firecrawl-cli "$FIRECRAWL_CLI_INSTALL_LOCATION"
+ub_check_launcher anydoc "@firecrawl/anydoc" "$ANYDOC_INSTALL_LOCATION"
+printf 'underbelly: bun global root: %s\n' "$BUN_GLOBAL_ROOT"
+
 : "${FIRECRAWL_SERVICE_IS_DOCKER:?missing FIRECRAWL_SERVICE_IS_DOCKER in config}"
 : "${FIRECRAWL_INSTALL_LOCATION:?missing FIRECRAWL_INSTALL_LOCATION in config}"
 : "${NATIVE_LANGUAGE:?missing NATIVE_LANGUAGE in config}"

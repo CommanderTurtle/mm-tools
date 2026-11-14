@@ -62,8 +62,8 @@ Edit `config.env` when an installation path, native language, or port differs:
 
 | Variable | Meaning |
 | --- | --- |
-| `ANYDOC_INSTALL_LOCATION` | installed `@firecrawl/anydoc` package directory |
-| `FIRECRAWL_CLI_INSTALL_LOCATION` | installed `firecrawl-cli` package directory |
+| `ANYDOC_INSTALL_LOCATION` | installed `@firecrawl/anydoc` package directory; leave empty to resolve it |
+| `FIRECRAWL_CLI_INSTALL_LOCATION` | installed `firecrawl-cli` package directory; leave empty to resolve it |
 | `FIRECRAWL_INSTALL_LOCATION` | root of the real Firecrawl Git checkout containing `docker-compose.yaml` |
 | `FIRECRAWL_SERVICE_IS_DOCKER` | rebuild/restart and verify the Compose `api` service when `true` |
 | `NATIVE_LANGUAGE` | default translation destination and the language used to query other search languages |
@@ -71,6 +71,21 @@ Edit `config.env` when an installation path, native language, or port differs:
 | `CAMOFOX_HTTP_SERVICE_PORT` | optional Camofox fallback port for YouTube transcript extraction; defaults to `9377` |
 
 Paths are sourced by Bash and may use `$HOME`. Run the installer as the same unprivileged user that owns the checkout and Bun global installation.
+
+### One Bun global root
+
+Both package directories default to empty. `integrate.sh` resolves the Bun global
+root that is actually in use and patches the copy the launchers on `PATH`
+execute, in this order: `sandwich bunRoot` when Sandwich is installed, then
+bunfig's `[install] globalDir`, then an `install/global` tree beside a `bin`
+directory already on `PATH`, then the `$BUN_INSTALL`, `~/.bun`, and
+`${XDG_CACHE_HOME:-~/.cache}/.bun` prefixes. Only a directory holding
+`package.json` plus `node_modules` or a lockfile qualifies, so exactly one root
+resolves unless an older prefix is still installed next to it. A package missing
+from that root fails with the duplicate root named and the `bun install -g`
+command that moves it: Underbelly never creates a second patched tree, and a
+launcher running out of another root is reported as a warning. Sandwich reports
+the same duplicates in `sandwich doctor` and `sandwich bunRoot --all`.
 
 ### Independent component handling
 
@@ -135,6 +150,8 @@ git -C ~/Hermes/firecrawl/firecrawl pull --ff-only
 While integrated, the Firecrawl checkout is intentionally dirty at Underbelly's route and YouTube postprocessor blocks, Compose blocks, and generated runtime files. `--uninstall` cleans those owned changes; it does not discard unrelated Compose, package, environment, or application edits. Resolve any other dirty paths through their owning workflow before pulling.
 
 A Bun global upgrade normally replaces the patched compiled files. After upgrading either package, simply rerun the three `--dry-run`, install, and `--verify` commands. The installer evaluates Firecrawl CLI, AnyDoc, and Firecrawl independently, so one updated component does not force rewrites or rebuilds of the other two.
+
+Resolution runs again on every invocation, so an upgrade that lands in a different prefix is reported rather than leaving the old patched copy live: install the package into the resolved root, retire the duplicate prefix and its `PATH` entry, then rerun.
 
 Do not uninstall all three integrations for a Bun-only update. Upgrade the desired global package or packages, then rerun the installer; the still-current Firecrawl component will be reported as `already patched` and Compose will be left alone. Full unintegration is primarily for cleaning the Firecrawl Git checkout before a pull or for removing Underbelly altogether.
 
