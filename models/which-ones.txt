@@ -1074,10 +1074,13 @@ This user-supplied body file is required for reconstruction.
 76. FlowHMR optional physics tracking
 Bundle: flowhmr-physics
 Cache: models/flowhmr/output/HumanoidIm and models/flowhmr/assets/example
-Official PHC Drive checkpoint IDs and AMASS shape statistics are declared in
-the picker. Upstream publishes no digests for these files: the first download
-records a local SHA-256 receipt; later runs reuse and verify those exact bytes.
-Install gdown==5.2.0 in the downloader environment for this optional bundle.
+Official PHC checkpoints and AMASS shape statistics are served from
+sHEL1562/shelling @ b7e899fd313b8040f1bbc6d13e4bb0bd6169052a
+(src/kr3ahardtofinds/bodymesh), byte-for-byte copies of the original Drive
+releases, SHA-256: Humanoid_00023501 98ed45fc91b7dd723fca121d20f250263899b658fd16949921d9ffd147fcbf52
+(phc_comp_3), Humanoid_00258000 6ba462b07542b4b45f00d1ccfbb3b1afb2427bd8c050c9f8360a76c0d3f9692b
+(phc_3), amass_isaac_gender_betas 96ef0daa385ff47fb5be350bac63cdfd1aa135642a6d42f1ec578c77fc5b5e78,
+amass_isaac_gender_betas_unique 9c289a027f74348599ad4ec75cf7d6a802a065d85e245cb7f4fd03088d95d20f.
 Supply SMPL 1.1 neutral/male/female files as models/flowhmr/data/smpl/SMPL_NEUTRAL.pkl,
 SMPL_MALE.pkl and SMPL_FEMALE.pkl. Isaac Gym Preview 4 is a separate native
 physics stack with its own GPU compatibility constraints: install it in its own
