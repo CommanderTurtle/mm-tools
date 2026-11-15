@@ -1060,12 +1060,12 @@ Bundle: flowhmr
 Source: flowhmr/flowhmr df15cadf56e738bf80c42c93d5e73687ff1002d2
 Cache: models/flowhmr
 Flow checkpoint: fafsaf1/flowhmr-0.46B @ 1eb105e554e0cfc1846ea5feac8c2d516a36d319
-SAM3D: facebook/sam-3d-body-dinov3 @ 11aaa346c7204874a1cbafe3d39a979080b2c55a
+SAM3D: jetjodh/sam-3d-body-dinov3 @ 1f026b2cc9076fd460243dae553cff9b0dcd199d (ungated mirror of facebook/sam-3d-body-dinov3 @ 11aaa346, LFS hashes verified identical)
 Camera: facebook/VGGT-Omega @ 1041e80fc0e911235d3426b0a3d9a81075111a53
 YOLOX: kadirnar/yolox_l-v0.1.1 @ f63e87ffbded0e30713d32dba22501f56fe5007e
 GVHMR body regressor: ee960bb6e2ea2d381aa97f08e9b71ef320b624b1 (SHA-256 checked)
 
-Accept the SAM3D and VGGT access conditions on Hugging Face before downloading;
+Accept the VGGT access conditions on Hugging Face before downloading;
 use your own HF_TOKEN. FlowHMR and DINOv3 source is pinned and tracked beside
 the studio. Download SMPL-H from https://mano.is.tue.mpg.de/ and place its AMASS
 neutral model at models/flowhmr/assets/body_models/smplh/neutral/model.npz.

@@ -841,7 +841,7 @@ BUNDLES: tuple[Bundle, ...] = (
         "flowhmr", "FlowHMR video reconstruction (licensed SMPL-H supplied separately)", "75",
         (
             A("fafsaf1/flowhmr-0.46B", model_path("flowhmr/checkpoints"), ("flowhmr_latest/*",), revision="1eb105e554e0cfc1846ea5feac8c2d516a36d319"),
-            A("facebook/sam-3d-body-dinov3", model_path("flowhmr/ckpts/sam-3d-body-dinov3"), ("model.ckpt", "model_config.yaml", "assets/mhr_model.pt"), revision="11aaa346c7204874a1cbafe3d39a979080b2c55a"),
+            A("jetjodh/sam-3d-body-dinov3", model_path("flowhmr/ckpts/sam-3d-body-dinov3"), ("model.ckpt", "model_config.yaml", "assets/mhr_model.pt"), revision="1f026b2cc9076fd460243dae553cff9b0dcd199d"),
             A("facebook/VGGT-Omega", model_path("flowhmr/ckpts/vggt-omega"), ("vggt_omega_1b_512.pt",), revision="1041e80fc0e911235d3426b0a3d9a81075111a53"),
             A("kadirnar/yolox_l-v0.1.1", model_path("flowhmr/ckpts/yolox"), ("yolox_l.pth",), revision="f63e87ffbded0e30713d32dba22501f56fe5007e"),
             A("zju3dv/GVHMR body regressor", model_path("flowhmr/assets/body_models"),
