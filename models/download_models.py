@@ -82,6 +82,11 @@ MODELSCOPE_NOTE = (
     "Because of this, the progress bar will not show progress. hf_transfer has no way to "
     "print progress, although just assume it's probably working"
 )
+FLUX_MODELSCOPE_NOTE = (
+    "note: black-forest-labs mirrors this FLUX release ungated on modelscope, pinned by commit "
+    "hash. Because of the direct download, the progress bar will not show progress. hf_transfer "
+    "has no way to print progress, although just assume it's probably working"
+)
 
 
 def motionbricks_artifacts() -> tuple[Artifact, ...]:
@@ -1234,7 +1239,8 @@ def download_direct_artifact(artifact: Artifact, number: int, total: int) -> Non
     print(f"  release: {artifact.direct_url}")
     print(f"  destination: {destination}")
     if artifact.direct_url.startswith("https://modelscope.cn/"):
-        print(f"  {MODELSCOPE_NOTE}")
+        note = MODELSCOPE_NOTE if artifact.repo_id.startswith("facebook/") else FLUX_MODELSCOPE_NOTE
+        print(f"  {note}")
     with urllib.request.urlopen(urllib.request.Request(artifact.direct_url, headers=headers), timeout=60) as response:
         resumed = offset > 0 and getattr(response, "status", 200) == 206
         mode = "ab" if resumed else "wb"

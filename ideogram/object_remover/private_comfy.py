@@ -15,6 +15,8 @@ import uuid
 
 import requests
 
+from .ideogram_graph import MAIN_MODEL, UNCOND_MODEL, CLIP_MODEL, VAE_MODEL
+
 ROOT = Path(__file__).resolve().parents[1]
 MODELS = Path(os.getenv("MULTIMEDIA_MODELS", "~/multimedia/models")).expanduser()
 
@@ -25,7 +27,7 @@ class PrivateComfy:
         bundled_python = ROOT.parent / "music/minimax/.venv/bin/python"
         self.python = Path(os.getenv("IDEOGRAM_COMFY_PYTHON", str(bundled_python) if bundled_python.is_file() else sys.executable)).expanduser()
         self.state = Path(os.getenv("IDEOGRAM_COMFY_STATE", str(ROOT / ".runtime/editing"))).expanduser()
-        self.model = Path(os.getenv("IDEOGRAM4_FP8_MODEL", str(MODELS / "ideogram-ai--ideogram-4-fp8"))).expanduser()
+        self.model = Path(os.getenv("IDEOGRAM4_COMFY_MODEL", str(MODELS / "comfy--Ideogram-4"))).expanduser()
         self.caption_model = Path(os.getenv("IDEOGRAM_CAPTION_MODEL", str(MODELS / "qwen/text-encoder-vl-nvfp4/qwen3_vl_4b_nvfp4_full.safetensors"))).expanduser()
         self.port = int(os.getenv("IDEOGRAM_PRIVATE_PORT", "8175"))
         if not 1024 <= self.port <= 65535:
@@ -44,10 +46,10 @@ class PrivateComfy:
 
     def status(self):
         required = [self.runtime / "main.py", self.python,
-                    self.model / "transformer/diffusion_pytorch_model.safetensors",
-                    self.model / "unconditional_transformer/diffusion_pytorch_model.safetensors",
-                    self.model / "text_encoder/model.safetensors",
-                    self.model / "vae/diffusion_pytorch_model.safetensors"]
+                    self.model / "diffusion_models" / MAIN_MODEL,
+                    self.model / "diffusion_models" / UNCOND_MODEL,
+                    self.model / "text_encoders" / CLIP_MODEL,
+                    self.model / "vae" / VAE_MODEL]
         missing = [str(p) for p in required if not p.is_file()]
         return {"loaded": self.running, "available": not missing, "missing": missing,
                 "model_path": str(self.model), "caption_available": self.caption_model.is_file(),
@@ -69,21 +71,21 @@ class PrivateComfy:
             with socket.socket() as probe:
                 if probe.connect_ex(("127.0.0.1", self.port)) == 0:
                     raise RuntimeError(f"Port {self.port} is occupied; refusing to use another Comfy process.")
-            for name in ("input", "output", "temp", "user", "custom_nodes"):
+            for name in ("input", "output", "temp", "user"):
                 (self.state / name).mkdir(parents=True, exist_ok=True)
             import yaml
             config = self.state / "paths.yaml"
-            config.write_text(yaml.safe_dump({"mmtools_ideogram": {
-                "custom_nodes": str(ROOT / "object_remover"),
-                "text_encoders": str(self.caption_model.parent),
-            }}), encoding="utf-8")
+            config.write_text(yaml.safe_dump({
+                "mmtools_caption": {"text_encoders": str(self.caption_model.parent)},
+                "mmtools_ideogram": {"base_path": str(self.model)},
+            }), encoding="utf-8")
             env = os.environ.copy()
             env.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1", HF_HUB_DISABLE_TELEMETRY="1",
-                       DO_NOT_TRACK="1", TOKENIZERS_PARALLELISM="false", IDEOGRAM4_FP8_MODEL=str(self.model))
+                       DO_NOT_TRACK="1", TOKENIZERS_PARALLELISM="false")
             command = [str(self.python), str(self.runtime / "main.py"), "--listen", "127.0.0.1", "--port", str(self.port),
                        "--base-directory", str(self.state),
                        "--extra-model-paths-config", str(config), "--disable-auto-launch", "--disable-api-nodes",
-                       "--disable-metadata", "--disable-all-custom-nodes", "--whitelist-custom-nodes", "comfy_nodes",
+                       "--disable-metadata", "--disable-all-custom-nodes",
                        "--database-url", f"sqlite:///{self.state / 'user' / 'comfyui.db'}",
                        "--fast-disk"]
             if os.getenv("IDEOGRAM_COMFY_DEVICE", "auto") == "cpu":
@@ -100,8 +102,9 @@ class PrivateComfy:
                         raise RuntimeError(f"Private engine exited. See {self.state / 'engine.log'}")
                     try:
                         info = self.request("GET", "/object_info", timeout=2).json()
-                        if "MMToolsIdeogramLocal" not in info or "Ideogram4Scheduler" not in info:
-                            raise RuntimeError("Private engine is missing its Ideogram nodes; check engine.log")
+                        if not {"UNETLoader", "CLIPLoader", "VAELoader", "DualModelGuider",
+                                "Ideogram4Scheduler", "CFGOverride"} <= set(info):
+                            raise RuntimeError("Private engine is missing its sampler nodes; check engine.log")
                         return
                     except requests.RequestException:
                         time.sleep(.25)
