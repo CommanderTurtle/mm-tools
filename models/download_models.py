@@ -77,6 +77,13 @@ def repo_path(relative: str) -> Path:
 A = Artifact
 
 
+MODELSCOPE_NOTE = (
+    "note: this checkpoint originates from facebook's ungated commit hash on modelscope. "
+    "Because of this, the progress bar will not show progress. hf_transfer has no way to "
+    "print progress, although just assume it's probably working"
+)
+
+
 def motionbricks_artifacts() -> tuple[Artifact, ...]:
     manifest = json.loads((MODELS / "manifests/motionbricks.json").read_text())
     repository, revision = manifest["repository"], manifest["revision"]
@@ -309,11 +316,10 @@ BUNDLES: tuple[Bundle, ...] = (
                 repo_path("visual-modeling/redesign/weights"),
                 ("groundingdino_swinb_cogcoor.pth",),
             ),
-            A(
-                "facebook/sam2.1-hiera-large",
-                repo_path("visual-modeling/redesign/weights"),
-                ("sam2.1_hiera_large.pt",),
-            ),
+            A("facebook/sam2.1-hiera-large", repo_path("visual-modeling/redesign/weights"),
+              direct_url="https://modelscope.cn/models/facebook/sam2.1-hiera-large/resolve/5d3a27da5fe71a9c4e2c87d8322a73fe6359f2bf/sam2.1_hiera_large.pt",
+              direct_filename="sam2.1_hiera_large.pt", expected_size=898083611,
+              sha256="2647878d5dfa5098f2f8649825738a9345572bae2d4350a2468587ece47dd318"),
             A(
                 "GoGiants1/Hi-SAM",
                 repo_path("visual-modeling/redesign/weights"),
@@ -879,17 +885,47 @@ BUNDLES: tuple[Bundle, ...] = (
         ),
     ),
     Bundle(
-        "idol", "Idol image-to-splats (gated DINOv3 / FLUX.2 VAE, Space examples)", "78",
+        "idol", "Idol image-to-splats (FLUX.2 VAE, Space examples)", "78",
         (
             A("speridlabs/idol", model_path("idol/weights"),
               ("config.json", "*.safetensors", "README.md"),
               revision="2731c2291fc65a797c5cb627a5e5526fc1490902"),
             A("facebook/dinov3-vith16plus-pretrain-lvd1689m", model_path("idol/dinov3"),
-              ("config.json", "model.safetensors", "preprocessor_config.json", "LICENSE.md", "README.md"),
-              revision="c807c9eeea853df70aec4069e6f56b28ddc82acc"),
+              direct_url="https://modelscope.cn/models/facebook/dinov3-vith16plus-pretrain-lvd1689m/resolve/a7e110a46be5aab90d0d369a986728826fec06ee/model.safetensors",
+              direct_filename="model.safetensors", expected_size=3362432800,
+              sha256="3e1d4d18b9bfa9f28fad8e9de6a783f1313532d3460efa4cd0b12521d81d1a4d"),
+            A("facebook/dinov3-vith16plus-pretrain-lvd1689m", model_path("idol/dinov3"),
+              direct_url="https://modelscope.cn/models/facebook/dinov3-vith16plus-pretrain-lvd1689m/resolve/b9b800e3218a3ae46bc4adeabd7b733f47d1332d/config.json",
+              direct_filename="config.json", expected_size=744,
+              sha256="35770e98e425c9383534bcbfa7f3b7a3cb1d943f6d26a37d7d19fea0735eab57"),
+            A("facebook/dinov3-vith16plus-pretrain-lvd1689m", model_path("idol/dinov3"),
+              direct_url="https://modelscope.cn/models/facebook/dinov3-vith16plus-pretrain-lvd1689m/resolve/b9b800e3218a3ae46bc4adeabd7b733f47d1332d/preprocessor_config.json",
+              direct_filename="preprocessor_config.json", expected_size=585,
+              sha256="960c41d1f3a7778b936365769a2d90550b318a6c0a53a0296957adacfe5e0dd7"),
+            A("facebook/dinov3-vith16plus-pretrain-lvd1689m", model_path("idol/dinov3"),
+              direct_url="https://modelscope.cn/models/facebook/dinov3-vith16plus-pretrain-lvd1689m/resolve/98b7096b2938406ade58801a0bf75eca3198b5bd/LICENSE.md",
+              direct_filename="LICENSE.md", expected_size=7503,
+              sha256="25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e"),
+            A("facebook/dinov3-vith16plus-pretrain-lvd1689m", model_path("idol/dinov3"),
+              direct_url="https://modelscope.cn/models/facebook/dinov3-vith16plus-pretrain-lvd1689m/resolve/98b7096b2938406ade58801a0bf75eca3198b5bd/README.md",
+              direct_filename="README.md", expected_size=14528,
+              sha256="c5b22ecac789a9c2de7c3115b975f9b00351f68a141d5de175fdfd5c2858b99e"),
+            A("black-forest-labs/FLUX.2-dev", model_path("idol/flux2/vae"),
+              direct_url="https://modelscope.cn/models/black-forest-labs/FLUX.2-dev/resolve/d72c4754e67efcaca88832fc18ea694547a28bd2/vae/diffusion_pytorch_model.safetensors",
+              direct_filename="diffusion_pytorch_model.safetensors", expected_size=336213556,
+              sha256="d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5"),
+            A("black-forest-labs/FLUX.2-dev", model_path("idol/flux2/vae"),
+              direct_url="https://modelscope.cn/models/black-forest-labs/FLUX.2-dev/resolve/d72c4754e67efcaca88832fc18ea694547a28bd2/vae/config.json",
+              direct_filename="config.json", expected_size=770,
+              sha256="7948580b2d53da578d49b9fed61b45d94a4c037ded5057ebd3adb4040bb5aef5"),
             A("black-forest-labs/FLUX.2-dev", model_path("idol/flux2"),
-              ("vae/config.json", "vae/diffusion_pytorch_model.safetensors", "LICENSE.md", "README.md"),
-              revision="26afe3a78bb242c0a8bb181dcc8937bb16e5c66c"),
+              direct_url="https://modelscope.cn/models/black-forest-labs/FLUX.2-dev/resolve/03c3c9bb08cfd1a5122386c77a61fca5ebcdd0a1/LICENSE.md",
+              direct_filename="LICENSE.md", expected_size=18158,
+              sha256="468d9f4332c0c895e9132c035982a40a12750092603a2e910913cb49aa887d3b"),
+            A("black-forest-labs/FLUX.2-dev", model_path("idol/flux2"),
+              direct_url="https://modelscope.cn/models/black-forest-labs/FLUX.2-dev/resolve/03c3c9bb08cfd1a5122386c77a61fca5ebcdd0a1/README.md",
+              direct_filename="README.md", expected_size=9439,
+              sha256="f161ac5822374c29c1df2ba13ea8567a7a5318d3b0ec6ac0b1b9f00c596f300b"),
             A("speridlabs/idol", model_path("idol/demo"),
               ("examples/*", "README.md"), repo_type="space",
               revision="2fd68f6aaa69df7c178503a788ad8deb4c7d3117"),
@@ -904,8 +940,21 @@ BUNDLES: tuple[Bundle, ...] = (
                "AUTHORS", "THIRD_PARTY_LICENSES.md", "sparc3d/ops/flexicubes/LICENSE.txt"),
               revision="d502e938cbedc6e87aba8884614c5ca6d177a4b6"),
             A("facebook/dinov2-large", model_path("hy3d/dinov2"),
-              ("config.json", "model.safetensors", "preprocessor_config.json", "README.md"),
-              revision="47b73eefe95e8d44ec3623f8890bd894b6ea2d6c"),
+              direct_url="https://modelscope.cn/models/facebook/dinov2-large/resolve/b8c1ab6eb90a82f1fd5f228985cd8b80efffc0fc/model.safetensors",
+              direct_filename="model.safetensors", expected_size=1217522888,
+              sha256="399fba97a95f22c36834418bc69373364a99af3a1153da1c0fb31db567c92e23"),
+            A("facebook/dinov2-large", model_path("hy3d/dinov2"),
+              direct_url="https://modelscope.cn/models/facebook/dinov2-large/resolve/5aba9c6dd22a59bf62a21e9193bccd0a70231eaa/config.json",
+              direct_filename="config.json", expected_size=549,
+              sha256="12df51c069a2dc1305e34ba71ef58bc2407ea553b75f4722a1715c1bce3bbed0"),
+            A("facebook/dinov2-large", model_path("hy3d/dinov2"),
+              direct_url="https://modelscope.cn/models/facebook/dinov2-large/resolve/5aba9c6dd22a59bf62a21e9193bccd0a70231eaa/preprocessor_config.json",
+              direct_filename="preprocessor_config.json", expected_size=436,
+              sha256="14e780d86fa1861f8751f868d7f45425b5feb55c38ca26f152ca5097ab30f828"),
+            A("facebook/dinov2-large", model_path("hy3d/dinov2"),
+              direct_url="https://modelscope.cn/models/facebook/dinov2-large/resolve/5aba9c6dd22a59bf62a21e9193bccd0a70231eaa/README.md",
+              direct_filename="README.md", expected_size=3033,
+              sha256="0be39948cdb4f4c364c505c039cffe26ba8097b7300bf55f361952c8b17a5fee"),
             A("openai/clip-vit-large-patch14", model_path("hy3d/clip"),
               ("config.json", "model.safetensors", "preprocessor_config.json", "README.md"),
               revision="32bd64288804d66eefd0ccbe215aa642df71cc41"),
@@ -1180,9 +1229,7 @@ def download_direct_artifact(artifact: Artifact, number: int, total: int) -> Non
     print(f"  release: {artifact.direct_url}")
     print(f"  destination: {destination}")
     if artifact.direct_url.startswith("https://modelscope.cn/"):
-        print("  note: this checkpoint originates from facebook's ungated commit hash on modelscope. "
-              "Because of this, the progress bar will not show progress. hf_transfer has no way to "
-              "print progress, although just assume it's probably working")
+        print(f"  {MODELSCOPE_NOTE}")
     with urllib.request.urlopen(urllib.request.Request(artifact.direct_url, headers=headers), timeout=60) as response:
         resumed = offset > 0 and getattr(response, "status", 200) == 206
         mode = "ab" if resumed else "wb"

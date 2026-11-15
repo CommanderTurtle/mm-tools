@@ -409,7 +409,7 @@ visual-modeling/redesign/weights/
 Used by: visual-modeling/redesign/ReDesign/tool_gpu_manager.py and the detect CLI primitive for
 open-vocabulary object detection.
 
-25. facebook/sam2.1-hiera-large
+25. facebook/sam2.1-hiera-large (modelscope.cn @ 5d3a27da, SHA-256 pinned)
 Expected folder: visual-modeling/redesign/weights
 
 ```text
@@ -1106,19 +1106,20 @@ https://github.com/Supra-3D/PhysAg3D/tree/3b0dab92e82e8c53b4596e89aea0f6139c4d03
 Bundle: idol
 Source: speridlabs/idol-sdk @ 8db700349a5570aac390e4780fa32e3eed6b587a (Apache-2.0)
 Idol weights @ 2731c2291fc65a797c5cb627a5e5526fc1490902 (Apache-2.0)
-DINOv3 ViT-H+ @ c807c9eeea853df70aec4069e6f56b28ddc82acc (Meta DINOv3 license)
-FLUX.2-dev VAE only @ 26afe3a78bb242c0a8bb181dcc8937bb16e5c66c (FLUX noncommercial license)
+DINOv3 ViT-H+ via modelscope.cn @ a7e110a4 weights / 98b7096b docs (Meta DINOv3 license,
+SHA-256 pinned; byte-for-byte with facebook @ c807c9ee, weights size-verified)
+FLUX.2-dev VAE only via modelscope.cn @ d72c4754 weights / 03c3c9bb docs
+(FLUX noncommercial license, SHA-256 pinned; byte-for-byte with HF @ 26afe3a7)
 Space presets / example PLY @ 2fd68f6aaa69df7c178503a788ad8deb4c7d3117 (Apache-2.0)
-Accept DINOv3 and FLUX.2-dev access terms with your own Hugging Face account,
-then use hf auth login before selecting this bundle. DINO access requires approval.
+All Idol weights download ungated; no access grants or hf auth login needed.
 The FLUX transformer is excluded; only its VAE is used. Cached files live under
 models/idol; sculpting/idol/models is a relative link created during setup.
 Independent studio: root AGPL-3.0. GaussianSplats3D / Three.js: MIT;
 Inter / IBM Plex Mono: OFL-1.1. Native preprocessing, precision and PLY export
 remain with the pinned SDK. Generation uses local files and offline Hub mode.
 https://github.com/speridlabs/idol-sdk/tree/8db700349a5570aac390e4780fa32e3eed6b587a
-https://huggingface.co/facebook/dinov3-vith16plus-pretrain-lvd1689m
-https://huggingface.co/black-forest-labs/FLUX.2-dev
+https://modelscope.cn/models/facebook/dinov3-vith16plus-pretrain-lvd1689m
+https://modelscope.cn/models/black-forest-labs/FLUX.2-dev
 
 79. Hi3D refinement (bundle: hy3d)
 Source: hi3d-official/Hi3Dv1.0 @ 13657ad09afaa92e350b461a1cd66399e44a59c4
@@ -1130,7 +1131,8 @@ Copyright © 2026 OCEANO HK HOLDING LIMITED. All rights not expressly granted
 are reserved. The Hi3D trademarks are owned by OCEANO HK HOLDING LIMITED or
 its applicable affiliate(s).
 https://github.com/hi3d-official/Hi3Dv1.0/blob/13657ad09afaa92e350b461a1cd66399e44a59c4/LICENSE
-External DINOv2-large @ 47b73eefe95e8d44ec3623f8890bd894b6ea2d6c (Apache-2.0),
+External DINOv2-large via modelscope.cn @ b8c1ab6e (Apache-2.0, SHA-256 pinned;
+byte-for-byte with HF @ 47b73eefe95e8d44ec3623f8890bd894b6ea2d6c),
 CLIP ViT-L/14 @ 32bd64288804d66eefd0ccbe215aa642df71cc41 (MIT),
 U2Net ONNX from rembg v0.0.0 release (Apache-2.0 model / MIT adapter),
 175997641 bytes; upstream MD5 60024c5c889badc19c04ad937298a77b verified on use.
