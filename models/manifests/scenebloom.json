@@ -54,7 +54,7 @@
       "patterns": ["depth_pro.pt", "LICENSE"]
     },
     {
-      "repo": "bert-base-uncased",
+      "repo": "google-bert/bert-base-uncased",
       "revision": "86b5e0934494bd15c9632b12f734a8a67f723594",
       "dest": "checkpoints/huggingface",
       "cache": true,

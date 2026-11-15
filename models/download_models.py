@@ -1485,9 +1485,16 @@ def prepare_scenebloom_assets(models: Path) -> None:
             root / "materials" / material / f"{material}_2K-JPG_Color.jpg"
         ).is_file():
             raise ValueError(f"Missing material colour map: {material}")
-    bert = root / "checkpoints/huggingface/models--bert-base-uncased/refs"
-    bert.mkdir(parents=True, exist_ok=True)
-    (bert / "main").write_text("86b5e0934494bd15c9632b12f734a8a67f723594")
+    # Grounding-DINO-lineage code asks for the legacy bare "bert-base-uncased" id, but only
+    # the canonical google-bert/ id resolves xet download tokens. Link the legacy cache
+    # directory name onto the downloaded canonical snapshot so offline lookups hit it.
+    hf_cache = root / "checkpoints/huggingface"
+    canonical = hf_cache / "models--google-bert--bert-base-uncased"
+    legacy = hf_cache / "models--bert-base-uncased"
+    if not canonical.is_dir():
+        raise ValueError(f"Missing canonical bert cache: {canonical}")
+    if not legacy.exists():
+        legacy.symlink_to(canonical.name)
     (root / "assets-ready.json").write_text(json.dumps(dict(source=manifest["source"])))
 
 
