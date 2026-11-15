@@ -1216,6 +1216,10 @@ def download_direct_artifact(artifact: Artifact, number: int, total: int) -> Non
     print(f"\n[{number}/{total}] {artifact.repo_id}")
     print(f"  release: {artifact.direct_url}")
     print(f"  destination: {destination}")
+    if artifact.direct_url.startswith("https://modelscope.cn/"):
+        print("  note: this checkpoint originates from facebook's ungated commit hash on modelscope. "
+              "Because of this, the progress bar will not show progress. hf_transfer has no way to "
+              "print progress, although just assume it's probably working")
     with urllib.request.urlopen(urllib.request.Request(artifact.direct_url, headers=headers), timeout=60) as response:
         resumed = offset > 0 and getattr(response, "status", 200) == 206
         mode = "ab" if resumed else "wb"
