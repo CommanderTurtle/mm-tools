@@ -199,7 +199,12 @@ BUNDLES: tuple[Bundle, ...] = (
         "Ideogram generation and editing",
         "1-3, 40",
         (
-            A("ideogram-ai/ideogram-4-fp8", model_path("ideogram-ai--ideogram-4-fp8")),
+            A("Comfy-Org/Ideogram-4", model_path("comfy--Ideogram-4"),
+              ("diffusion_models/ideogram4_int8_convrot.safetensors",
+               "diffusion_models/ideogram4_unconditional_nvfp4_mixed.safetensors",
+               "text_encoders/qwen3vl_8b_fp8_scaled.safetensors",
+               "vae/flux2-vae.safetensors"),
+              revision="2aa6c75ce6d5fabded0ca4d0f76abbfaf8edc87d"),
             A("jixin0101/ObjectClear", model_path("jixin0101--ObjectClear")),
             A("ZhengPeng7/BiRefNet", model_path("ZhengPeng7--BiRefNet")),
             QWEN_GUIDE,

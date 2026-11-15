@@ -80,23 +80,26 @@ ungated comfyicu LTX-2.5 mirror, whose re-committed files track main without a
 pin. Model use remains governed by each upstream model license and access
 agreement.
 
-1. ideogram-ai/ideogram-4-fp8
-Expected folder: models/ideogram-ai--ideogram-4-fp8
+1. Comfy-Org/Ideogram-4 (Comfy-Org/Ideogram-4 @ 2aa6c75c, ungated)
+Expected folder: models/comfy--Ideogram-4
 
 ```text
-models/ideogram-ai--ideogram-4-fp8/
-├── model_index.json
-├── scheduler/
-├── text_encoder/
-├── tokenizer/
-├── transformer/
-├── unconditional_transformer/
+models/comfy--Ideogram-4/
+├── diffusion_models/
+│   ├── ideogram4_int8_convrot.safetensors            (main model)
+│   └── ideogram4_unconditional_nvfp4_mixed.safetensors (CFG unconditional)
+├── text_encoders/
+│   └── qwen3vl_8b_fp8_scaled.safetensors
 └── vae/
+    └── flux2-vae.safetensors
 ```
 
-Used by: ideogram/local_generate.py through IDEOGRAM4_FP8_MODEL for native
-Ideogram generation, and the optional private-Comfy masked editing engine in
-ideogram/object_remover. The same weights serve both lanes.
+Per Kijai (Comfy-Org/Ideogram-4 discussion 1): both the main and the
+unconditional model are meant to load together; running main-only loses
+quality most of the time, while the unconditional side tolerates the nvfp4
+quantization because its quality is not critical. Sampling follows the
+corrected template: CFG override starting at 0.7 with plain euler.
+No access grants or hf auth login are required for any of these files.
 
 2. jixin0101/ObjectClear
 Expected folder: models/jixin0101--ObjectClear
