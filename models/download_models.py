@@ -842,7 +842,10 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A("fafsaf1/flowhmr-0.46B", model_path("flowhmr/checkpoints"), ("flowhmr_latest/*",), revision="1eb105e554e0cfc1846ea5feac8c2d516a36d319"),
             A("jetjodh/sam-3d-body-dinov3", model_path("flowhmr/ckpts/sam-3d-body-dinov3"), ("model.ckpt", "model_config.yaml", "assets/mhr_model.pt"), revision="1f026b2cc9076fd460243dae553cff9b0dcd199d"),
-            A("facebook/VGGT-Omega", model_path("flowhmr/ckpts/vggt-omega"), ("vggt_omega_1b_512.pt",), revision="1041e80fc0e911235d3426b0a3d9a81075111a53"),
+            A("facebook/VGGT-Omega", model_path("flowhmr/ckpts/vggt-omega"),
+              direct_url="https://modelscope.cn/models/facebook/VGGT-Omega/resolve/f4fe2040e400351980060e5391e12f00a6c037b2/vggt_omega_1b_512.pt",
+              direct_filename="vggt_omega_1b_512.pt", expected_size=4576706117,
+              sha256="c02da418b18bb01d0392598d3f6147366bcde1bb70fd08a5e3bf7925b0667934"),
             A("kadirnar/yolox_l-v0.1.1", model_path("flowhmr/ckpts/yolox"), ("yolox_l.pth",), revision="f63e87ffbded0e30713d32dba22501f56fe5007e"),
             A("zju3dv/GVHMR body regressor", model_path("flowhmr/assets/body_models"),
               direct_url="https://raw.githubusercontent.com/zju3dv/GVHMR/ee960bb6e2ea2d381aa97f08e9b71ef320b624b1/hmr4d/utils/body_model/smpl_neutral_J_regressor.pt",
