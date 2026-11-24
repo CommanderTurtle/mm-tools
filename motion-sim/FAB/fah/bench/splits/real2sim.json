@@ -1,0 +1,354 @@
+{
+ "version": "real2sim",
+ "definition": "Real-to-sim study (supplementary material): dev = the 8 clips the pipeline was developed on (excluded from every reported rate); eval_old = the other 33 candidates of an earlier round; eval_new = 15 clips picked by the rules below before any was run, plus the 6 HOT3D clips of `screened`. DexYCB clips: converted tars (bench.datasets.build_dexycb), clips/<subject>/<sequence>_<camera>.tar; HOT3D clips: HOT3D-Clips train_aria/<clip>.tar (all of them HaWoR validation sequences, never trained on), with the manipulated object's HOT3D name (prep_clip.py --object, the text prompt's source).",
+ "rule_dexycb_new": "s0 test sequences only (bench/splits/dexycb_s0_test_full.json), camera 836212060125, sequences not used in round 1; objects / hands fixed for shape and grasp variety: (DexYCB id, hand) = (1 left, 12 right, 11 left, 16 right, 13 left, 6 right, 10 left, 20 left); the i-th object starts at the i-th s0 test subject (next subject if none), first sequence by name",
+ "rule_hot3d_new": "local HOT3D-Clips train_aria tars (= hot3d_bench clips) never prepared in round 1; exactly one object moving >= 8 cm in the clip (GT), median modelled visibility >= 0.8, moved >= 15 cm, a GT wrist within 15 cm of it; objects not in round 1 first, one clip per object, by visibility then displacement; first 7",
+ "screened": [
+  "h3_mug",
+  "h3_sauce",
+  "h3_coffeepot",
+  "h3_bowl",
+  "h3_spoon",
+  "h3_soupcan"
+ ],
+ "disclosure": "The 6 `screened` HOT3D clips were prepared in the earlier round and dropped after their input frames were looked at, before any stage ran; they are back in eval_new and also reported as their own line. The input frames of clip-003086 and clip-003132 had been seen in a screening sheet (never run before the evaluation).",
+ "protocol": "Strict success rule fixed before any clip ran (scripts/real2sim/sim.py page_success) and a relaxed variant with an 8 cm tracking term (candidates.secondary). Each clip replayed 3 times per controller (CoACD seeds 0 / 1 / 2: the simulation is not bit-reproducible); a pass = the rule holds in >= 2 of 3. Primary controller = joint-space closing (sim.py --ctrl_flex 1), fixed before the evaluation; on the dev clips it was at parity with or slightly below the Cartesian controller of the earlier round (--ctrl_flex 0), which is reported on the same inputs.",
+ "dev": {
+  "mug": {
+   "source": "dexycb",
+   "clip": "20200908-subject-05/20200908_150859_839512060362",
+   "ycb_id": 14
+  },
+  "meatcan": {
+   "source": "dexycb",
+   "clip": "20200820-subject-03/20200820_141628_836212060125",
+   "ycb_id": 9
+  },
+  "gelatin": {
+   "source": "dexycb",
+   "clip": "20200918-subject-06/20200918_114548_836212060125",
+   "ycb_id": 8
+  },
+  "clamp": {
+   "source": "dexycb",
+   "clip": "20200908-subject-05/20200908_152303_836212060125",
+   "ycb_id": 20
+  },
+  "scissors2": {
+   "source": "dexycb",
+   "clip": "20200908-subject-05/20200908_151757_836212060125",
+   "ycb_id": 17
+  },
+  "h3_ranch": {
+   "source": "hot3d",
+   "clip": "clip-002479",
+   "object": "bottle_ranch"
+  },
+  "h3_oj": {
+   "source": "hot3d",
+   "clip": "clip-002002",
+   "object": "carton_oj"
+  },
+  "h3_vase": {
+   "source": "hot3d",
+   "clip": "clip-002985",
+   "object": "vase"
+  }
+ },
+ "eval_old": {
+  "drill": {
+   "source": "dexycb",
+   "clip": "20200918-subject-06/20200918_120131_836212060125",
+   "ycb_id": 15
+  },
+  "mustard": {
+   "source": "dexycb",
+   "clip": "20200918-subject-06/20200918_114030_836212060125",
+   "ycb_id": 5
+  },
+  "banana": {
+   "source": "dexycb",
+   "clip": "20201022-subject-10/20201022_112718_839512060362",
+   "ycb_id": 10
+  },
+  "marker": {
+   "source": "dexycb",
+   "clip": "20200928-subject-07/20200928_155616_836212060125",
+   "ycb_id": 18
+  },
+  "scissors": {
+   "source": "dexycb",
+   "clip": "20201022-subject-10/20201022_114133_932122061900",
+   "ycb_id": 17
+  },
+  "bleach": {
+   "source": "dexycb",
+   "clip": "20200928-subject-07/20200928_154054_836212060125",
+   "ycb_id": 12
+  },
+  "pitcher": {
+   "source": "dexycb",
+   "clip": "20200918-subject-06/20200918_115412_836212060125",
+   "ycb_id": 11
+  },
+  "bowl": {
+   "source": "dexycb",
+   "clip": "20200908-subject-05/20200908_150735_932122061900",
+   "ycb_id": 13
+  },
+  "brick": {
+   "source": "dexycb",
+   "clip": "20201022-subject-10/20201022_114909_839512060362",
+   "ycb_id": 21
+  },
+  "soupcan": {
+   "source": "dexycb",
+   "clip": "20200918-subject-06/20200918_113824_839512060362",
+   "ycb_id": 4
+  },
+  "chefcan": {
+   "source": "dexycb",
+   "clip": "20200709-subject-01/20200709_141841_836212060125",
+   "ycb_id": 1
+  },
+  "cracker": {
+   "source": "dexycb",
+   "clip": "20200908-subject-05/20200908_143617_836212060125",
+   "ycb_id": 2
+  },
+  "sugar": {
+   "source": "dexycb",
+   "clip": "20200903-subject-04/20200903_104228_839512060362",
+   "ycb_id": 3
+  },
+  "tuna": {
+   "source": "dexycb",
+   "clip": "20201022-subject-10/20201022_111832_839512060362",
+   "ycb_id": 6
+  },
+  "pudding": {
+   "source": "dexycb",
+   "clip": "20200820-subject-03/20200820_141116_836212060125",
+   "ycb_id": 7
+  },
+  "woodblock": {
+   "source": "dexycb",
+   "clip": "20200908-subject-05/20200908_151645_836212060125",
+   "ycb_id": 16
+  },
+  "marker2": {
+   "source": "dexycb",
+   "clip": "20200928-subject-07/20200928_155503_839512060362",
+   "ycb_id": 18
+  },
+  "drill2": {
+   "source": "dexycb",
+   "clip": "20200820-subject-03/20200820_143614_836212060125",
+   "ycb_id": 15
+  },
+  "mustard2": {
+   "source": "dexycb",
+   "clip": "20200928-subject-07/20200928_144300_836212060125",
+   "ycb_id": 5
+  },
+  "mug2": {
+   "source": "dexycb",
+   "clip": "20201002-subject-08/20201002_111710_836212060125",
+   "ycb_id": 14
+  },
+  "banana2": {
+   "source": "dexycb",
+   "clip": "20201002-subject-08/20201002_110741_839512060362",
+   "ycb_id": 10
+  },
+  "soupcan2": {
+   "source": "dexycb",
+   "clip": "20200820-subject-03/20200820_140223_839512060362",
+   "ycb_id": 4
+  },
+  "h3_sauce1": {
+   "source": "hot3d",
+   "clip": "clip-001991",
+   "object": "can_tomato_sauce"
+  },
+  "h3_ranch2": {
+   "source": "hot3d",
+   "clip": "clip-002599",
+   "object": "bottle_ranch"
+  },
+  "h3_milk": {
+   "source": "hot3d",
+   "clip": "clip-001910",
+   "object": "carton_milk"
+  },
+  "h3_sauce3": {
+   "source": "hot3d",
+   "clip": "clip-002031",
+   "object": "can_tomato_sauce"
+  },
+  "h3_sauce4": {
+   "source": "hot3d",
+   "clip": "clip-002038",
+   "object": "can_tomato_sauce"
+  },
+  "h3_eraser": {
+   "source": "hot3d",
+   "clip": "clip-002745",
+   "object": "whiteboard_eraser"
+  },
+  "h3_parmesan": {
+   "source": "hot3d",
+   "clip": "clip-002007",
+   "object": "can_parmesan"
+  },
+  "h3_parmesan2": {
+   "source": "hot3d",
+   "clip": "clip-001990",
+   "object": "can_parmesan"
+  },
+  "h3_mug2": {
+   "source": "hot3d",
+   "clip": "clip-002207",
+   "object": "mug_white"
+  },
+  "h3_vase2": {
+   "source": "hot3d",
+   "clip": "clip-002736",
+   "object": "vase"
+  },
+  "h3_masher": {
+   "source": "hot3d",
+   "clip": "clip-002511",
+   "object": "potato_masher"
+  }
+ },
+ "eval_new": {
+  "n_chefcan_l": {
+   "source": "dexycb",
+   "clip": "20200903-subject-04/20200903_103828_836212060125",
+   "ycb_id": 1
+  },
+  "n_bleach": {
+   "source": "dexycb",
+   "clip": "20200903-subject-04/20200903_111858_836212060125",
+   "ycb_id": 12
+  },
+  "n_pitcher_l": {
+   "source": "dexycb",
+   "clip": "20200908-subject-05/20200908_150219_836212060125",
+   "ycb_id": 11
+  },
+  "n_woodblock": {
+   "source": "dexycb",
+   "clip": "20200918-subject-06/20200918_120513_836212060125",
+   "ycb_id": 16
+  },
+  "n_bowl_l": {
+   "source": "dexycb",
+   "clip": "20200928-subject-07/20200928_154458_836212060125",
+   "ycb_id": 13
+  },
+  "n_tuna": {
+   "source": "dexycb",
+   "clip": "20201002-subject-08/20201002_105951_836212060125",
+   "ycb_id": 6
+  },
+  "n_banana_l": {
+   "source": "dexycb",
+   "clip": "20201022-subject-10/20201022_112834_836212060125",
+   "ycb_id": 10
+  },
+  "n_xlclamp_l": {
+   "source": "dexycb",
+   "clip": "20201022-subject-10/20201022_114717_836212060125",
+   "ycb_id": 20
+  },
+  "n3_cellphone": {
+   "source": "hot3d",
+   "clip": "clip-003247",
+   "object": "cellphone"
+  },
+  "n3_keyboard": {
+   "source": "hot3d",
+   "clip": "clip-002635",
+   "object": "keyboard"
+  },
+  "n3_holder": {
+   "source": "hot3d",
+   "clip": "clip-003086",
+   "object": "holder_gray"
+  },
+  "n3_coffeepot": {
+   "source": "hot3d",
+   "clip": "clip-003031",
+   "object": "coffee_pot"
+  },
+  "n3_aria": {
+   "source": "hot3d",
+   "clip": "clip-003254",
+   "object": "aria_small"
+  },
+  "n3_vegetables": {
+   "source": "hot3d",
+   "clip": "clip-002508",
+   "object": "food_vegetables"
+  },
+  "n3_waffles": {
+   "source": "hot3d",
+   "clip": "clip-003132",
+   "object": "food_waffles"
+  },
+  "h3_mug": {
+   "source": "hot3d",
+   "clip": "clip-001884",
+   "object": "mug_white"
+  },
+  "h3_sauce": {
+   "source": "hot3d",
+   "clip": "clip-002981",
+   "object": "can_tomato_sauce"
+  },
+  "h3_coffeepot": {
+   "source": "hot3d",
+   "clip": "clip-002514",
+   "object": "coffee_pot"
+  },
+  "h3_bowl": {
+   "source": "hot3d",
+   "clip": "clip-003140",
+   "object": "bowl"
+  },
+  "h3_spoon": {
+   "source": "hot3d",
+   "clip": "clip-002863",
+   "object": "spoon_wooden"
+  },
+  "h3_soupcan": {
+   "source": "hot3d",
+   "clip": "clip-002974",
+   "object": "can_soup"
+  }
+ },
+ "fah_seen": [
+  "drill",
+  "banana",
+  "scissors",
+  "bleach",
+  "chefcan",
+  "cracker",
+  "sugar",
+  "tuna",
+  "pudding",
+  "marker2",
+  "drill2",
+  "mustard2",
+  "mug2",
+  "banana2",
+  "soupcan2",
+  "mug",
+  "meatcan",
+  "gelatin",
+  "clamp",
+  "scissors2"
+ ]
+}

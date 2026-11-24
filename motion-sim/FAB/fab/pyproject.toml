@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fab"
+version = "1.0.0"
+description = "FAB: Fast and Accurate Body estimation (3D human pose, SMPL / MHR meshes, body parts, contacts and Unitree G1 motion from images, videos and world space)"
+requires-python = ">=3.10"
+# readme omitted: docs are not published
+
+dynamic = ["dependencies"]
+
+[project.optional-dependencies]
+retarget = ["mujoco==4.0.1"]  # fab-retarget (the G1 solver, stance pin and terrain clean)
+world = ["open3d==0.20.0", "transformers>=4.40", "imageio>=2.34", "imageio-ffmpeg>=0.5", "trimesh>=4.0"]  # fab-world (+ MoGe-2 and the separate camera environments: docs/world.md)
+eval = ["pycocotools>=2.0.7", "pandas>=2.0", "trimesh>=4.0", "scikit-learn>=1.3", "smplx>=0.1.28",
+        "ultralytics==8.4.211"]  # bench/ (smplx: non-commercial MPI licence; ultralytics AGPL-3.0: bench/detected_boxes.py)
+train = ["wandb>=0.17"]  # optional logging for train.train_fab (off unless --wandb_project is set)
+engine = ["tensorrt-cu12==11.4.0.106", "tensorrt-cu12-bindings==11.4.0.106", "tensorrt-cu12-libs==11.4.0.106", "onnx==1.21.0",
+          "onnx-graphsurgeon==0.6.1", "onnxslim==0.1.99", "onnxruntime-gpu==1.30.0", "onnxconverter-common==1.16.0", "polygraphy==0.53.6",
+          "nvidia-modelopt==0.48.0", "cupy-cuda13x==14.2.0", "pulp==3.3.2", "lief==1.0.0", "cppimport==26.4.17", "mako==1.4.3",
+          "ninja==1.13.2", "pybind11==3.1.0", "onnxscript==0.7.2",
+          "ultralytics==8.4.211"]  # fab-build-trt: the versions the released TensorRT timings were measured with;
+          # ultralytics (AGPL-3.0) builds and runs the detector engine, and is the reference of scripts/check_detector.py
+          # (inference without an engine needs no ultralytics: fab/yolo.py)
+
+[project.scripts]
+fab = "fab.cli:main"
+fab-video = "fab.video:main"
+fab-world = "fab.entry:world"
+fab-multiview = "fab.multiview:main"
+fab-retarget = "fab.entry:retarget"
+fab-retarget-ee = "fab.entry:retarget_ee"
+fab-build-trt = "fab.entry:build_trt"
+
+[tool.setuptools]
+
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+include = ["fab*", "bench*", "train*", "scripts*"]
+
+[tool.setuptools.package-data]
+scripts = ["*.sh"]
+bench = ["baselines/*.sh", "videomimic/*.sh"]

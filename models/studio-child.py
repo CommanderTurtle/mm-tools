@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-"""Own the native process group until the studio closes its control pipe."""
+"""Own a studio's native process group until the studio closes its control pipe."""
 import os
 import select
 import signal

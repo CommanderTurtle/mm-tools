@@ -1,0 +1,14 @@
+{
+ "asset": "qc",
+ "note": "ID lists of the label / mask checks read by train.finetune (fields it reads only); <pool>/<name>.jsonl.gz -> <crops>/<pool>/<name>.jsonl (train.fetch_qc)",
+ "files": {
+  "cmu_lab_kin/mask_qc.jsonl.gz": {"sha256": "73b598962ecc2f0dca37812cd2a775b744781135abb7c7659c10a8c5679d66d9", "bytes": 26327, "rows": 1912},
+  "coco_wb_kin/mask_qc.jsonl.gz": {"sha256": "cf0754399d99dbec48a683de9a9676564c146e7cae0dda1d13cbf8348a2318b1", "bytes": 809891, "rows": 59265},
+  "egodex_part1_mano/qc.0.jsonl.gz": {"sha256": "f104034fa22fb195683eaa4342634541bbfebcb99001b9a47c51a751597e4ce8", "bytes": 3224028, "rows": 243806},
+  "egodex_part1_mano/qc.1.jsonl.gz": {"sha256": "b326a609baaeaf124d8cb106e39cf5e0756ade5fce9cc339539be7463a2a4df3", "bytes": 3225764, "rows": 243806},
+  "egodex_part1_mano/qc.2.jsonl.gz": {"sha256": "68c3ee899bee1ea79406e918101e279d2e14ad82c56047a054bfd05ba80a4919", "bytes": 3223879, "rows": 243806},
+  "egodex_part1_mano/qc.3.jsonl.gz": {"sha256": "894fe1b19f9609a62d24c0fe9c11250c9ff09f902d3329edbcc3935973bac683", "bytes": 3224499, "rows": 243805},
+  "egodex_test_mano/mask_qc.jsonl.gz": {"sha256": "77e8f87a6e9795e00d9324d0e5a1071dd8f4f78954c8efd60db2bdd60c0c99a0", "bytes": 1960932, "rows": 150989},
+  "hint_lab_kin/mask_qc.jsonl.gz": {"sha256": "3e438015859d9413990eedee6fd2c06f5d1617e61f2dc0e3c8349d6b2f15fd97", "bytes": 171600, "rows": 12327}
+ }
+}

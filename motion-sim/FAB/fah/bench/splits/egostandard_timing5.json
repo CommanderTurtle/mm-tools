@@ -1,0 +1,73 @@
+{
+ "source": "HF bucket LightwheelAI/EgoStandard (EgoStandard, EgoStandard-body), head_left camera",
+ "license": "LightwheelAI commercial-training-no-resale-v1.0 (eval/benchmark OK; no redistribution of frames/records)",
+ "rule": "test tasks: crc32(task) % 25 == 0; never train on any episode of a test task",
+ "test_mod": 25,
+ "num_tasks": 4313,
+ "num_episodes": 327654,
+ "note": "timing subset of egostandard_bench (the paper's world-space fps): the first clip is a warm-up (model loading, not timed), then 4 timed clips of 900 frames",
+ "clips": [
+  "3977e167-4e9c-439d-a3e3-89f7d5dde3b4",
+  "2e82e5f6-5bfe-4143-892f-36f0fd946ebc",
+  "98a3fe8c-a694-4164-a0e1-94edce5ffab2",
+  "0b67279e-c39c-415e-beba-0f75a320ca13",
+  "05eb7b34-4ad6-44d1-ae6f-6317207ee8f9"
+ ],
+ "episodes": {
+  "3977e167-4e9c-439d-a3e3-89f7d5dde3b4": {
+   "path": "EgoStandard/mcap/refill tissue box/3977e167-4e9c-439d-a3e3-89f7d5dde3b4.mcap",
+   "subset": "EgoStandard",
+   "task": "refill tissue box",
+   "size": 61592284,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "2e82e5f6-5bfe-4143-892f-36f0fd946ebc": {
+   "path": "EgoStandard-body/mcap/Stock Cleaning Cloths and Scouring Pads/2e82e5f6-5bfe-4143-892f-36f0fd946ebc.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Stock Cleaning Cloths and Scouring Pads",
+   "size": 294303945,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "98a3fe8c-a694-4164-a0e1-94edce5ffab2": {
+   "path": "EgoStandard/mcap/Insert the charging cable into the charger/98a3fe8c-a694-4164-a0e1-94edce5ffab2.mcap",
+   "subset": "EgoStandard",
+   "task": "Insert the charging cable into the charger",
+   "size": 56687229,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "0b67279e-c39c-415e-beba-0f75a320ca13": {
+   "path": "EgoStandard/mcap/Photo Frame Cleaning and Photo Replacement/0b67279e-c39c-415e-beba-0f75a320ca13.mcap",
+   "subset": "EgoStandard",
+   "task": "Photo Frame Cleaning and Photo Replacement",
+   "size": 189108349,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "05eb7b34-4ad6-44d1-ae6f-6317207ee8f9": {
+   "path": "EgoStandard-body/mcap/Tempelkan Label pada Paket Pengiriman/05eb7b34-4ad6-44d1-ae6f-6317207ee8f9.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Tempelkan Label pada Paket Pengiriman",
+   "size": 201780194,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  }
+ }
+}

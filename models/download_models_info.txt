@@ -108,4 +108,5 @@ snapshot_download(
 ```
 
 `uv run above-script.py` will download with those explicit instructions.
-- Sophon Realtime (sophon-agent): permissive upstream terms for code and talker weights; the community NVFP4A16 thinker keeps the same terms.
+- FAB and FAH (fab): permissive upstream terms for code; FAB and FAH model weights are research and non-commercial only.
+- FAB third-party components: SAM-derived modules and MHR follow Meta research terms; pymomentum, DPVO, DROID-SLAM, TRAM and torchvision are permissive; Metric3D and RoMa carry attribution-style terms.

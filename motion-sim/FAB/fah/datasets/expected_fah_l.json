@@ -1,0 +1,59 @@
+{
+ "note": "FAH-L (fah, image mode), stored predictions of the paper tables, scored with bench.custom_eval. 'expected' = the values a run on the released / rebuilt set should give; 'paper_evaluated_set' = the paper's cells where the paper's set differs.",
+ "bench2d_v2": {
+  "expected": {
+   "pck10": 0.8322925802490792,
+   "pck10_all": 0.8128215523591451,
+   "fit3d": 0.8276676606443314,
+   "overlap": 0.637104712686108
+  },
+  "expected_set": "identical to the paper's set"
+ },
+ "hard_mined_v2": {
+  "expected": {
+   "recall": 1.0,
+   "pck10": 0.9843616718794427,
+   "pck10_all": 0.9843616718794427
+  },
+  "expected_set": "identical to the paper's set"
+ },
+ "shadow_v1": {
+  "expected": {
+   "images": 166,
+   "hands": 274,
+   "recall": 0.9963503649635036,
+   "pck10": 0.9891854177568463,
+   "pck10_all": 0.9855752519986096,
+   "pck05": 0.9480202337345195,
+   "tip_pck10": 0.9831501831501831,
+   "side": 1.0
+  },
+  "expected_set": "the 166 released images",
+  "paper_evaluated_set": {
+   "images": 170,
+   "recall": 0.9964028776978417,
+   "pck10": 0.989341585009455,
+   "pck10_all": 0.9857828023295649
+  }
+ },
+ "low_light": {
+  "expected": {
+   "images": 6364,
+   "hands": 8582,
+   "recall": 0.9653926823584246,
+   "pck10": 0.8067216953241408,
+   "pck10_all": 0.7790689042808933,
+   "pck05": 0.5623684397246991,
+   "tip_pck10": 0.7402037617554859,
+   "side": 0.9874471937235969
+  },
+  "expected_set": "synthetic low-light copy of bench2d_v2 (this folder); the value to reproduce",
+  "paper_evaluated_set": {
+   "images": 6383,
+   "recall": 0.964318813716404,
+   "pck10": 0.8072543677437198,
+   "pck10_all": 0.778689129435271,
+   "note": "paper cells: 19 real dark photos (50 hands, one unlabelled; not redistributable) + the synthetic copy"
+  }
+ }
+}

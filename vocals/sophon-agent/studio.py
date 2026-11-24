@@ -55,7 +55,7 @@ async def lifecycle(app):
            "SOPHON_VOICES":str(VOICES),"FLASHINFER_WORKSPACE_BASE":str(LOCAL),"COSYVOICE3_BATCH_FLOW":"1",
            "SOPHON_FLOW_STEPS":"4","SOPHON_FLOW_CFG":"0","SOPHON_FLOW_ONNX":str(MODEL/"talker/flow.decoder.estimator.fp32.onnx"),
            "COSYVOICE3_TRT":str(int(importlib.util.find_spec("tensorrt") is not None))}
-    proc = await asyncio.create_subprocess_exec(sys.executable,str(ROOT/'engine.py'),str(Path(sys.executable).with_name("vllm")),"serve",str(MODEL),
+    proc = await asyncio.create_subprocess_exec(sys.executable,str(ROOT.parents[1]/"models/studio-child.py"),str(Path(sys.executable).with_name("vllm")),"serve",str(MODEL),
         "--omni","--host","127.0.0.1","--port",str(PORT),"--trust-remote-code","--init-timeout","3000",
         "--stage-init-timeout","3000","--deploy-config",str(deploy),env=env,cwd=TAG,stdin=asyncio.subprocess.PIPE,start_new_session=True)
     app.state.proc=proc

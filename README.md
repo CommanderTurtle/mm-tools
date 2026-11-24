@@ -505,6 +505,7 @@ cd vocals/stt/underdog
 | `8296` | `world-gen/fastframes` · FastFrames (`fastframes-live / fastframes-l`) |
 | `8297` | `vocals/inworld-isolator` · Voice Isolator (`inworld-isolator`) |
 | `8298` | `vocals/sophon-agent` · Sophon duplex speech studio (`sophon-agent`) |
+| `8299` | `motion-sim/FAB` · FAB motion studio (`fab`) |
 
 The new studios default to loopback; existing services retain their configured private-LAN interfaces. Keep network-exposed services behind the host firewall or set the supported bearer token where provided.
 

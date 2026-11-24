@@ -1303,6 +1303,8 @@ Reconstruction, world geometry, optional sky segmentation and the original examp
 
 100. Sophon duplex speech studio (sophon-agent). Tag talker, vocoder and voices; community NVFP4A16 thinker, no duplicate FP8 weights. Separate Apache-2.0 dependencies.
 
+101. FAB motion studio (fab). Camera-space FAB-S/L, SOMA-X and the real G1 rig; companion FAH for head-mounted footage. Accept the SAM body model access terms before the picker. Set FAB_SMPL_SOURCE to licensed SMPL 1.1.0 for setup; optional MANO_SOURCE enables MANO hand fitting. FAB/FAH weights are research/non-commercial.
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,

@@ -1,0 +1,25 @@
+{
+  "data_root": "",
+  "ckpt_root": "output/checkpoints",
+  "weights": "~/.cache/fah/weights",
+  "mano_dir": "~/.cache/fah/mano",
+  "sam_checkpoint": "checkpoints/sam-3d-body-dinov3/model.ckpt",
+  "model": "fah",
+  "train_processes": null,
+  "train_batch_size": null,
+  "train_devices": "",
+  "output_dir": "output/fah",
+  "inference": {
+    "backend": "torch",
+    "device": "auto",
+    "dense": false,
+    "parts": false,
+    "contact": false,
+    "masks": false
+  },
+  "world": {},
+  "pose_tracks": "",
+  "contact_tracks": "",
+  "mesh_data": "",
+  "mhr_data": ""
+}

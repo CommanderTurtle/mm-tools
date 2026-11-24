@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fah"
+version = "1.0.0"
+description = "FAH: Fast and Accurate Hand estimation (3D hand joints, MANO mesh and hand parts from images and videos)"
+requires-python = ">=3.10"
+# readme omitted: docs are not published
+
+dynamic = ["dependencies"]
+
+[project.optional-dependencies]
+trt = ["tensorrt-cu12==11.4.0.106"]  # TensorRT runtime (CUDA 12 build of PyTorch)
+world = ["moge @ git+https://github.com/microsoft/MoGe.git"]  # camera model scale calls in this env (DPVO: its own env, docs/world.md)
+offline = ["mmengine", "pytorch-minimize", "timm"]  # offline camera, in the DROID-SLAM env (+ TRAM's DROID-SLAM, Metric3D: docs/world.md)
+engine = ["onnx", "nvidia-modelopt[onnx]"]  # fah-build-trt
+coreml = ["coremltools>=9.0"]  # Apple silicon: fah-build-coreml, fah --coreml, fah-live
+train = ["wandb", "ultralytics"]  # + detector training (train.train_detector, train.build_det_seg); inference runs the detector without it (fah.yolo)
+contact = ["open3d", "libigl", "trimesh"]  # contact data builders (train.contact_sdf, train.build_hoi4d_contact / build_arctic_*)
+eval = ["hand_tracking_toolkit @ git+https://github.com/facebookresearch/hand_tracking_toolkit", "mcap", "mcap-protobuf-support",
+        "protobuf", "gdown", "pyyaml", "ultralytics"]  # ultralytics: the baselines' detectors (bench/methods)
+
+[project.scripts]
+fah = "fah.cli:main"
+fah-build-trt = "fah.build_trt:main"
+fah-build-coreml = "fah.build_coreml:main"
+fah-live = "fah.live:main"
+fah-video = "fah.video_demo:main"
+
+[tool.setuptools]
+
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+include = ["fah*", "bench*", "train*", "scripts*"]
+
+[tool.setuptools.package-data]
+fah = ["assets/*.npz"]
+bench = ["splits/*.json"]
+train = ["assets/*.json", "assets/*.npz", "lists/*.json"]
+scripts = ["*.sh", "dynhamr/*.sh", "real2sim/*.sh"]
+
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { file = "requirements.txt" }]  # dependencies come from requirements.txt

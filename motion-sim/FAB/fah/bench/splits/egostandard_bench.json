@@ -1,0 +1,1641 @@
+{
+ "source": "HF bucket LightwheelAI/EgoStandard (EgoStandard, EgoStandard-body), head_left camera",
+ "license": "LightwheelAI commercial-training-no-resale-v1.0 (eval/benchmark OK; no redistribution of frames/records)",
+ "rule": "test tasks: crc32(task) % 25 == 0; never train on any episode of a test task",
+ "test_mod": 25,
+ "num_tasks": 4313,
+ "num_episodes": 327654,
+ "test_tasks": [
+  "Align and Place Silicone Spatula",
+  "Arrange Exercise Balls",
+  "Arrange Wet Wipes",
+  "Assemble Circular Snap",
+  "Assemble the electric mosquito repellent liquid device and plug it in",
+  "Attach Takeaway Cup Label",
+  "Bersihkan Gunting",
+  "Boil Water",
+  "Book Film Application",
+  "Brew a cup of instant coffee",
+  "Button and Zipper Pull Sorting",
+  "Cable Tidying and Bundling",
+  "Clean Baseboards",
+  "Clean Coffee Grounds Collection Bin",
+  "Clean Door Panel",
+  "Clean Printer",
+  "Clean Stirring Spoons",
+  "Clean items on the desk",
+  "Clean tabletop debris",
+  "Clean the bath mat",
+  "Cleaning Product Price Tag Verification",
+  "Clip loose papers with a binder clip",
+  "Coiling and Securing (Loose Cables)",
+  "Collar Interfacing",
+  "Comb Hair Residue Cleaning",
+  "Cooking Oil Transport and Shelving",
+  "Courier Box Folding, Forming, and Bottom Sealing",
+  "Desktop Wipe Refill",
+  "Disinfect Training Bench",
+  "Dressing Table Drawer Reorganization",
+  "Fill Electric Kettle with Water",
+  "Fill Shelf Gaps with Same-Category Items",
+  "First Aid Kit Consumables Restocking",
+  "Flatten Draining Mat in Pantry",
+  "Fold Blanket",
+  "Fold a disposable shower cap",
+  "Folding Recycling (Empty Parcel Boxes)",
+  "Full-Layer Cleaning and Reorganization of Storage Cabinet",
+  "Guest Room Garbage Bag Replacement and Collection",
+  "Gunakan Klip Kertas untuk Mengikat Dokumen",
+  "Handle and Drip Tray Cleaning and Reinstallation",
+  "Hang Towels",
+  "Harness Tool Clamp Assembly",
+  "Headphone Brand Grouping",
+  "Ink Stamp and Apply Seal",
+  "Insert the charging cable into the charger",
+  "Install Cell Holder",
+  "Install Dining Chair Leg Caps",
+  "Install Engine Spark Plug",
+  "Install heat-shrink tubing",
+  "Isi cerek elektrik dengan air",
+  "Isih dan Klasifikasikan Tisu Basah Pembasmi Kuman",
+  "Kosongkan Nampan Penampung Air",
+  "Lap Kerusi Peralatan Senaman",
+  "Lap Meja Pelanggan",
+  "Lap permukaan kaunter bar",
+  "Large-Pack Snack Separation",
+  "Layered Towel Placement",
+  "Lock Cylinder and Number Wheel Assembly",
+  "Melipat Tuala Gim",
+  "Membersihkan besen sinki",
+  "Membersihkan mangkuk singki",
+  "Mengatur ulang area penyimpanan di bawah wastafel",
+  "Mengemas kabel pengecas ke dalam laci",
+  "Mengembalikan dan Mengatur Air Botol",
+  "Menggosok Loyang",
+  "Menyusun Wadah Penyimpanan Makanan",
+  "Neatly Coil Extension Cord",
+  "Neatly Stack Scattered Documents_plum",
+  "Neatly coil headphone cable",
+  "Open and Close Dining Room Window",
+  "Open the curtain",
+  "Organize Desk Cable Management Tray",
+  "Organize Desktop Cable Management Slot",
+  "Organize Jump Ropes into Storage Box",
+  "Organize Napkins",
+  "Organize Olive Oil Bottle Cap",
+  "Organize Scattered Desk Items",
+  "Organize Whiteboard Markers and Erasers",
+  "Organize and Deliver to File Slots",
+  "Organize and straighten umbrella stand",
+  "Organize chairs around the stage",
+  "Pack Backpack",
+  "Panaskan sandwich yang didinginkan",
+  "Pembersihan Eksterior Mesin Cuci",
+  "Photo Frame Cleaning and Photo Replacement",
+  "Pick up fruits from the table and place them into the fruit tray",
+  "Pick up the key and unlock the lock",
+  "Pick up trash from the table",
+  "Place Tableware into Utensil Holder",
+  "Place the projector remote into the storage pouch",
+  "Post-Cleaning Segregated Storage of Knives and Cutting Boards",
+  "Post-Meal Table and Chair Reset Arrangement",
+  "Pour Coffee Powder",
+  "Pour Soup Seasoning",
+  "Pre-baking Preparation",
+  "Put back the medicated oil",
+  "Put the pencil case into the backpack",
+  "Recycle Meeting Paper Cups",
+  "Refill Cold Water Pitcher",
+  "Refill and Organize Stirrer Jar",
+  "Refill disposable paper cups",
+  "Reinforcing Damaged Cardboard Box with Tape Wrapping",
+  "Relocate Hand Soap in Pantry",
+  "Remove Material Bin",
+  "Replace Tablecloth Clips",
+  "Replace Toilet Brush Head",
+  "Replacement of Press-Type Bottle Pump Head_plum",
+  "Reset Customer Chair After Cleaning",
+  "Restock Wet Wipes onto Shelf",
+  "Return Basketball Protective Gear",
+  "Return Curtain Tiebacks to Place",
+  "Return Hair Ties and Headbands to Storage",
+  "Return Individually Wrapped Candies",
+  "Return Notepads and Sticky Notes to Place",
+  "Return Washbasin",
+  "Return and Arrange Seasoning Bottles",
+  "Return the toaster to its place",
+  "Snack Resealing",
+  "Sort Paper Clips and Clamps",
+  "Sorting and Storing Defective Wine Bottles",
+  "Spot Cleaning of Corridor Carpet",
+  "Spray and Wipe Glass Door",
+  "Stack Cookware",
+  "Stack Material Bins",
+  "Stack Shopping Bags",
+  "Stack toilet paper rolls",
+  "Stapler Reload",
+  "Stir the solution with a glass rod",
+  "Stock Cleaning Cloths and Scouring Pads",
+  "Stock Paper Cups and Lids in the Preparation Area",
+  "Stocking Instant Noodles on Shelves",
+  "Stocking Plastic Wrap from Shopping Cart onto Shelf",
+  "Store Conference Remote",
+  "Store Cooking Utensils",
+  "Store Kitchen Cloths",
+  "Store Obstacles from the Passage",
+  "Store Remote Control and Laser Pointer",
+  "Susun syampu ke rak",
+  "Table Tidying After Stirring a Drink",
+  "Take out a fork",
+  "Take the stapler out to the desktop",
+  "Tegakkan dan Susun Buku",
+  "Tempelkan Label pada Paket Pengiriman",
+  "Tidy clothes on the bed",
+  "Tie Bundled Packaged Clothes",
+  "Tighten Seasoning Bottle Caps",
+  "Tighten the drinking bottle cap",
+  "Turn on the kitchen faucet",
+  "Ujian Tulis Pen Penanda, Tutup, Kembalikan, Susun",
+  "Under-Bed Storage Box Organizer",
+  "Waste Sorting",
+  "Wipe Balcony Railings",
+  "Wipe Bar Counter - v07",
+  "Wipe Bar Countertop",
+  "Wipe Edges and Corners of Countertop",
+  "Wipe Office Chair Armrests",
+  "Wipe Stovetop Surface",
+  "Wipe Wall Tiles",
+  "Wipe Water Marks from Faucet",
+  "Wipe Water Stains on Mirror Edge",
+  "Wipe dining table",
+  "Wipe dirt off the tabletop",
+  "Wipe glassware",
+  "Wipe mini-bar countertop",
+  "Wipe the bedroom mirror",
+  "Wipe the outer surface of the kettle dry",
+  "Wipe windowsill and window tracks",
+  "Workstation Floor Packaging Debris Sweeping",
+  "Wring and Hang Towel on Drying Rack",
+  "coil the charging cable",
+  "move milk to tabletop",
+  "organize and close bar drawer",
+  "put back hallway trash bin",
+  "re-store bar corner items",
+  "refill tissue box",
+  "replace tabletop notice sign",
+  "return exercise mat",
+  "stack the trays",
+  "stick down the desk label",
+  "store the cleaning rag",
+  "sweep up floor debris",
+  "unfasten security chain",
+  "wipe strength equipment handles",
+  "wipe the ac vent",
+  "wipe the condiment station",
+  "wipe the ping pong table"
+ ],
+ "clips": [
+  "2e82e5f6-5bfe-4143-892f-36f0fd946ebc",
+  "3977e167-4e9c-439d-a3e3-89f7d5dde3b4",
+  "94e0bd48-a358-4296-8c11-057004386f33",
+  "784b6d64-36f6-4e96-bfb0-b6e913e4cc92",
+  "98a3fe8c-a694-4164-a0e1-94edce5ffab2",
+  "d03f274e-6139-490f-85d0-4d00b801c75d",
+  "016ff171-7910-4d5c-9c4c-881a34de35e3",
+  "045761ac-bc43-4347-b6fc-b3e87a39cc29",
+  "0b67279e-c39c-415e-beba-0f75a320ca13",
+  "5b771d6e-2d3c-4dd2-b4d7-2f2a6f596495",
+  "60d874af-151f-49df-8c95-35e4223ccbb0",
+  "b06c8745-865c-4a5a-ad81-e94ca5df1e16",
+  "05eb7b34-4ad6-44d1-ae6f-6317207ee8f9",
+  "46466fd7-0d3b-445f-9e0c-b7f774010b02",
+  "d574b2ff-99c5-42ab-8a5d-62e25b655d2a",
+  "2410c20e-9bd6-44a7-b894-d7db0eaa6942",
+  "118b370f-48cf-4031-ad43-c4a103a5be71",
+  "e2b35952-c948-4633-931b-91d6c027837d",
+  "24789b09-2a9e-43eb-ad8c-df542e4ac5f8",
+  "c2411b38-c6ad-4acd-b8ca-641d6613ac5a",
+  "145c6f17-040f-4acd-b97e-d945db507303",
+  "60559ef1-90d4-421b-9074-3938c011e1bf",
+  "6923bb57-45ab-4c0d-8e09-97913d3c523d",
+  "27b3fac9-56b9-4e91-93f6-9110c557ae4d",
+  "048a57d4-f2e0-4fce-903d-6fa054356ec4",
+  "0e10e58f-4a99-4dc9-92b3-124bd5bf8369",
+  "e1a21cf3-181f-4b6f-9a4e-0ce892abe60d",
+  "d4433206-59ca-4163-a8b8-23e495161db2",
+  "105ab950-fc30-4b92-9f67-3a74d32198ec",
+  "37dc8827-1950-4e97-afc8-1d9357018180",
+  "27c70a5f-40d8-4fc4-91a2-c1b8e3fb8d9e",
+  "663dfc30-c939-4496-9147-5c204f2965bd",
+  "62656e5d-975a-4cb9-9a01-8fb2deda1704",
+  "0f652cde-7137-4ee5-8fb0-5fe9210c67de",
+  "2fabbfd8-f8a7-4adb-bb5a-9f1cc45e055f",
+  "0fe40411-bd1c-42f9-816c-f71d296eb3f2",
+  "5834b64f-bd9a-4d3b-832b-d093fade1ed7",
+  "c8a684e8-918b-4e14-9ebf-08d94aaa9e9f",
+  "65a746f4-e2b6-4e9c-9827-11ff84302442",
+  "f1c47b2a-8565-4f4c-b5de-2aed8cea22da",
+  "db0cca81-c0c3-44b1-964e-3e419e590a07",
+  "f91e4e41-945a-46e1-a9c6-f17cb667595c",
+  "9a05b780-02a1-40d9-bb93-596bc44cee9b",
+  "2bf3c572-5402-4afe-93da-539fbbdc952c",
+  "e00d0944-1cdb-4d8e-b581-7067d3610b29",
+  "411dfb70-d4d8-4371-b595-ca8bda43c805",
+  "4d890805-a506-4666-89d3-57fa82178984",
+  "4b31c33b-1e4d-4a74-8d03-ceaebb534620",
+  "2044dee0-0bca-4fca-9b93-e1f39c8437c3",
+  "6bfa0635-c586-4e0f-99d0-40fc132aa92f",
+  "38bc2cb4-b75a-4c50-949f-f7cb43ea0ad9",
+  "9b954fae-3524-42ee-9afa-a189545c47bd",
+  "089db2a8-56a5-4106-9cfa-ab62bc4f47a4",
+  "014f1dec-3f2d-46d9-945a-3144041eb2ff",
+  "009e7ca3-bcbd-4e83-96d1-6f7cf027f9e7",
+  "f81c221d-a996-4f62-ad56-b64e328f0b2d",
+  "0d36f17e-483f-4877-922a-e37befa32c65",
+  "871d2f29-c0e3-433f-a1a3-0537da0600d9",
+  "107be85f-9533-48e5-b22a-f30fd4b82b6b",
+  "80124d2a-dc35-4d6d-b2c0-012c4b387d47",
+  "04079ba2-20cf-478c-8ab0-2ad2270fb454",
+  "2632b63c-3ee4-42ea-93d2-d028583f1f15",
+  "cb3db233-d57e-415a-a7a7-eea3520cc50d",
+  "03c062c9-393c-4d41-b291-cb3b6add7fcd",
+  "d9e1e8bf-475d-47f9-be4b-ce18ebbd405d",
+  "c177f6fe-41a1-4b63-ad88-cc8c1c50278c",
+  "d2367b0d-c99f-4167-80da-54c42df9bd2f",
+  "7704bedd-19d5-4c92-a0cf-e77d219f0861",
+  "afbbfea3-0248-4b7e-8108-801df486bd86",
+  "cec33e9e-9135-432e-9046-d89d6a09e2fb",
+  "382bb37d-17ab-43ab-87b4-6c452a8c3f22",
+  "cd51ebea-f75a-4f63-b250-f7343df755f4",
+  "167a9285-0ed7-4d48-8e11-ca5ecb2e04b4",
+  "5d877604-ad42-4ce0-89eb-4250b7d317f3",
+  "a0bb1c3e-7628-4eb4-aef1-647b638e794b",
+  "10018eb8-1c6a-4983-b375-caae7fa4317c",
+  "e75469df-0644-4e67-a6ca-e26319f09be5",
+  "162bf11d-c00b-4141-ac0d-862dfd9d001e",
+  "37c0562a-f46c-41e4-8ceb-6957510cc29d",
+  "1a2b5ad5-220b-4add-8c8e-16197a8f0531",
+  "29277313-a7c7-4264-9b6c-5e001b345cf3",
+  "eaca68c2-a4b0-49c1-8f72-04e64b6cb8ae",
+  "21d81359-cec5-4f06-bb68-fb307fa5ffac",
+  "29c9add9-4a7a-4870-b9fc-2ffc7b428c35",
+  "e5c95b12-d065-4809-ae7e-c0853faceb8d",
+  "18c82605-d6ef-41e9-b7f9-710740d3250e",
+  "0a0d3d11-f39b-4c24-87bc-197e7d572c80",
+  "e31acfe8-a7be-4db4-8801-6a652ffee98b",
+  "be5ad896-bbfb-4a5c-ba05-598b19220b45",
+  "632d2fde-73de-4e55-9b97-31dab2561bd1",
+  "15c49c37-009d-4aba-af73-ae16d0d02696",
+  "2421f104-7682-43b5-a850-1b25a92340b3",
+  "16503cb3-2cc3-4a0a-872d-09dbcb6a7f46",
+  "3045af0e-e749-4015-8243-31f6ceb30767",
+  "59a267df-8c03-42d9-8319-d2b4c0c6b9ef",
+  "141ca78e-e8de-4890-8124-f56966ed4348",
+  "ef709536-50d1-46c7-b091-6fe424bb6055",
+  "eab738f3-87af-48d4-b9b4-2b726b048733",
+  "5b251461-6319-45b7-b5c3-71416dbc7019",
+  "b7895c3e-821c-4940-ba80-df5d4034feac",
+  "088ba7b2-7c35-4f3c-adde-99beaffacc88",
+  "11f35862-09f9-4230-bc96-67e018a1e985",
+  "58030733-ed3d-492a-a0d8-6240354817f4",
+  "5c51e500-05b0-4359-833d-753c69e01c6c",
+  "1dcaed9c-6f81-492a-96e1-e9e9bda2a329",
+  "1fcccff8-e8a9-4537-bc4b-6a359af7cf67",
+  "f36b319c-a52b-4ef4-b6d9-044705f726c2",
+  "ed1ee9ed-d387-4a0f-a5b1-d6434440fae0",
+  "c6d60e3d-26f4-4945-abd9-a76d183dca70",
+  "82073e6b-19a7-4084-83eb-ebe6f78ee5b0",
+  "51f8f3d3-ea12-4f8f-aaf9-25bd94c6435e",
+  "2ed8a4dc-1c8f-4978-9fec-e612ea877701",
+  "ec31623c-261d-4e69-96a0-b49a6f11b98c",
+  "ea8ee7d5-4670-4153-995f-ab31d60ff6fa",
+  "cc3e2951-bbea-47d6-a737-2bd31be03c38",
+  "520778cf-ed40-4bef-898a-9d079bf8423b",
+  "280bb232-db42-4a80-968d-46c611011c7c",
+  "8adb7a0a-44f4-43a6-ab96-b9da523d015f",
+  "4cf0af7c-6e13-4c4f-8399-c647d4535a35",
+  "dfc53f28-3a17-4eef-8ae6-32138ef38d53"
+ ],
+ "episodes": {
+  "2e82e5f6-5bfe-4143-892f-36f0fd946ebc": {
+   "path": "EgoStandard-body/mcap/Stock Cleaning Cloths and Scouring Pads/2e82e5f6-5bfe-4143-892f-36f0fd946ebc.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Stock Cleaning Cloths and Scouring Pads",
+   "size": 294303945,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "3977e167-4e9c-439d-a3e3-89f7d5dde3b4": {
+   "path": "EgoStandard/mcap/refill tissue box/3977e167-4e9c-439d-a3e3-89f7d5dde3b4.mcap",
+   "subset": "EgoStandard",
+   "task": "refill tissue box",
+   "size": 61592284,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "94e0bd48-a358-4296-8c11-057004386f33": {
+   "path": "EgoStandard/mcap/Fold a disposable shower cap/94e0bd48-a358-4296-8c11-057004386f33.mcap",
+   "subset": "EgoStandard",
+   "task": "Fold a disposable shower cap",
+   "size": 243396226,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "784b6d64-36f6-4e96-bfb0-b6e913e4cc92": {
+   "path": "EgoStandard/mcap/Remove Material Bin/784b6d64-36f6-4e96-bfb0-b6e913e4cc92.mcap",
+   "subset": "EgoStandard",
+   "task": "Remove Material Bin",
+   "size": 60532489,
+   "window": [
+    105,
+    1005
+   ],
+   "convention": "optical"
+  },
+  "98a3fe8c-a694-4164-a0e1-94edce5ffab2": {
+   "path": "EgoStandard/mcap/Insert the charging cable into the charger/98a3fe8c-a694-4164-a0e1-94edce5ffab2.mcap",
+   "subset": "EgoStandard",
+   "task": "Insert the charging cable into the charger",
+   "size": 56687229,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "d03f274e-6139-490f-85d0-4d00b801c75d": {
+   "path": "EgoStandard/mcap/Dressing Table Drawer Reorganization/d03f274e-6139-490f-85d0-4d00b801c75d.mcap",
+   "subset": "EgoStandard",
+   "task": "Dressing Table Drawer Reorganization",
+   "size": 120542695,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "016ff171-7910-4d5c-9c4c-881a34de35e3": {
+   "path": "EgoStandard/mcap/Workstation Floor Packaging Debris Sweeping/016ff171-7910-4d5c-9c4c-881a34de35e3.mcap",
+   "subset": "EgoStandard",
+   "task": "Workstation Floor Packaging Debris Sweeping",
+   "size": 295881320,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "045761ac-bc43-4347-b6fc-b3e87a39cc29": {
+   "path": "EgoStandard-body/mcap/Lap permukaan kaunter bar/045761ac-bc43-4347-b6fc-b3e87a39cc29.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Lap permukaan kaunter bar",
+   "size": 132361267,
+   "window": [
+    0,
+    750
+   ],
+   "convention": "optical"
+  },
+  "0b67279e-c39c-415e-beba-0f75a320ca13": {
+   "path": "EgoStandard/mcap/Photo Frame Cleaning and Photo Replacement/0b67279e-c39c-415e-beba-0f75a320ca13.mcap",
+   "subset": "EgoStandard",
+   "task": "Photo Frame Cleaning and Photo Replacement",
+   "size": 189108349,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "5b771d6e-2d3c-4dd2-b4d7-2f2a6f596495": {
+   "path": "EgoStandard/mcap/Wipe dining table/5b771d6e-2d3c-4dd2-b4d7-2f2a6f596495.mcap",
+   "subset": "EgoStandard",
+   "task": "Wipe dining table",
+   "size": 139828400,
+   "window": [
+    676,
+    1576
+   ],
+   "convention": "optical"
+  },
+  "60d874af-151f-49df-8c95-35e4223ccbb0": {
+   "path": "EgoStandard/mcap/Sort Paper Clips and Clamps/60d874af-151f-49df-8c95-35e4223ccbb0.mcap",
+   "subset": "EgoStandard",
+   "task": "Sort Paper Clips and Clamps",
+   "size": 55527489,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "b06c8745-865c-4a5a-ad81-e94ca5df1e16": {
+   "path": "EgoStandard-body/mcap/Wipe Bar Countertop/b06c8745-865c-4a5a-ad81-e94ca5df1e16.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Wipe Bar Countertop",
+   "size": 140551402,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "05eb7b34-4ad6-44d1-ae6f-6317207ee8f9": {
+   "path": "EgoStandard-body/mcap/Tempelkan Label pada Paket Pengiriman/05eb7b34-4ad6-44d1-ae6f-6317207ee8f9.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Tempelkan Label pada Paket Pengiriman",
+   "size": 201780194,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "46466fd7-0d3b-445f-9e0c-b7f774010b02": {
+   "path": "EgoStandard-body/mcap/Arrange Exercise Balls/46466fd7-0d3b-445f-9e0c-b7f774010b02.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Arrange Exercise Balls",
+   "size": 276203281,
+   "window": [
+    631,
+    1381
+   ],
+   "convention": "optical"
+  },
+  "d574b2ff-99c5-42ab-8a5d-62e25b655d2a": {
+   "path": "EgoStandard-body/mcap/Lap Kerusi Peralatan Senaman/d574b2ff-99c5-42ab-8a5d-62e25b655d2a.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Lap Kerusi Peralatan Senaman",
+   "size": 106687253,
+   "window": [
+    0,
+    750
+   ],
+   "convention": "optical"
+  },
+  "2410c20e-9bd6-44a7-b894-d7db0eaa6942": {
+   "path": "EgoStandard/mcap/Organize chairs around the stage/2410c20e-9bd6-44a7-b894-d7db0eaa6942.mcap",
+   "subset": "EgoStandard",
+   "task": "Organize chairs around the stage",
+   "size": 366706334,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "118b370f-48cf-4031-ad43-c4a103a5be71": {
+   "path": "EgoStandard-body/mcap/Menggosok Loyang/118b370f-48cf-4031-ad43-c4a103a5be71.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Menggosok Loyang",
+   "size": 149339018,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "e2b35952-c948-4633-931b-91d6c027837d": {
+   "path": "EgoStandard/mcap/sweep up floor debris/e2b35952-c948-4633-931b-91d6c027837d.mcap",
+   "subset": "EgoStandard",
+   "task": "sweep up floor debris",
+   "size": 59004777,
+   "window": [
+    309,
+    1209
+   ],
+   "convention": "optical"
+  },
+  "24789b09-2a9e-43eb-ad8c-df542e4ac5f8": {
+   "path": "EgoStandard-body/mcap/Pack Backpack/24789b09-2a9e-43eb-ad8c-df542e4ac5f8.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Pack Backpack",
+   "size": 302108545,
+   "window": [
+    1963,
+    2863
+   ],
+   "convention": "optical"
+  },
+  "c2411b38-c6ad-4acd-b8ca-641d6613ac5a": {
+   "path": "EgoStandard-body/mcap/Mengembalikan dan Mengatur Air Botol/c2411b38-c6ad-4acd-b8ca-641d6613ac5a.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Mengembalikan dan Mengatur Air Botol",
+   "size": 95220925,
+   "window": [
+    754,
+    1654
+   ],
+   "convention": "optical"
+  },
+  "145c6f17-040f-4acd-b97e-d945db507303": {
+   "path": "EgoStandard/mcap/Organize and Deliver to File Slots/145c6f17-040f-4acd-b97e-d945db507303.mcap",
+   "subset": "EgoStandard",
+   "task": "Organize and Deliver to File Slots",
+   "size": 171020138,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "60559ef1-90d4-421b-9074-3938c011e1bf": {
+   "path": "EgoStandard-body/mcap/Lap Meja Pelanggan/60559ef1-90d4-421b-9074-3938c011e1bf.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Lap Meja Pelanggan",
+   "size": 66637835,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "6923bb57-45ab-4c0d-8e09-97913d3c523d": {
+   "path": "EgoStandard/mcap/Wipe Office Chair Armrests/6923bb57-45ab-4c0d-8e09-97913d3c523d.mcap",
+   "subset": "EgoStandard",
+   "task": "Wipe Office Chair Armrests",
+   "size": 98313042,
+   "window": [
+    0,
+    750
+   ],
+   "convention": "optical"
+  },
+  "27b3fac9-56b9-4e91-93f6-9110c557ae4d": {
+   "path": "EgoStandard/mcap/Pour Coffee Powder/27b3fac9-56b9-4e91-93f6-9110c557ae4d.mcap",
+   "subset": "EgoStandard",
+   "task": "Pour Coffee Powder",
+   "size": 117225414,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "048a57d4-f2e0-4fce-903d-6fa054356ec4": {
+   "path": "EgoStandard/mcap/Recycle Meeting Paper Cups/048a57d4-f2e0-4fce-903d-6fa054356ec4.mcap",
+   "subset": "EgoStandard",
+   "task": "Recycle Meeting Paper Cups",
+   "size": 79302257,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "0e10e58f-4a99-4dc9-92b3-124bd5bf8369": {
+   "path": "EgoStandard/mcap/organize and close bar drawer/0e10e58f-4a99-4dc9-92b3-124bd5bf8369.mcap",
+   "subset": "EgoStandard",
+   "task": "organize and close bar drawer",
+   "size": 129475180,
+   "window": [
+    202,
+    1102
+   ],
+   "convention": "optical"
+  },
+  "e1a21cf3-181f-4b6f-9a4e-0ce892abe60d": {
+   "path": "EgoStandard/mcap/Replace Tablecloth Clips/e1a21cf3-181f-4b6f-9a4e-0ce892abe60d.mcap",
+   "subset": "EgoStandard",
+   "task": "Replace Tablecloth Clips",
+   "size": 132577546,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "d4433206-59ca-4163-a8b8-23e495161db2": {
+   "path": "EgoStandard-body/mcap/coil the charging cable/d4433206-59ca-4163-a8b8-23e495161db2.mcap",
+   "subset": "EgoStandard-body",
+   "task": "coil the charging cable",
+   "size": 61941737,
+   "window": [
+    2,
+    902
+   ],
+   "convention": "optical"
+  },
+  "105ab950-fc30-4b92-9f67-3a74d32198ec": {
+   "path": "EgoStandard/mcap/Coiling and Securing (Loose Cables)/105ab950-fc30-4b92-9f67-3a74d32198ec.mcap",
+   "subset": "EgoStandard",
+   "task": "Coiling and Securing (Loose Cables)",
+   "size": 388396615,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "37dc8827-1950-4e97-afc8-1d9357018180": {
+   "path": "EgoStandard-body/mcap/Comb Hair Residue Cleaning/37dc8827-1950-4e97-afc8-1d9357018180.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Comb Hair Residue Cleaning",
+   "size": 371036752,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "27c70a5f-40d8-4fc4-91a2-c1b8e3fb8d9e": {
+   "path": "EgoStandard/mcap/Neatly Coil Extension Cord/27c70a5f-40d8-4fc4-91a2-c1b8e3fb8d9e.mcap",
+   "subset": "EgoStandard",
+   "task": "Neatly Coil Extension Cord",
+   "size": 323953516,
+   "window": [
+    6601,
+    7501
+   ],
+   "convention": "optical"
+  },
+  "663dfc30-c939-4496-9147-5c204f2965bd": {
+   "path": "EgoStandard/mcap/Snack Resealing/663dfc30-c939-4496-9147-5c204f2965bd.mcap",
+   "subset": "EgoStandard",
+   "task": "Snack Resealing",
+   "size": 66974109,
+   "window": [
+    0,
+    750
+   ],
+   "convention": "optical"
+  },
+  "62656e5d-975a-4cb9-9a01-8fb2deda1704": {
+   "path": "EgoStandard/mcap/Assemble Circular Snap/62656e5d-975a-4cb9-9a01-8fb2deda1704.mcap",
+   "subset": "EgoStandard",
+   "task": "Assemble Circular Snap",
+   "size": 113727458,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "0f652cde-7137-4ee5-8fb0-5fe9210c67de": {
+   "path": "EgoStandard/mcap/Guest Room Garbage Bag Replacement and Collection/0f652cde-7137-4ee5-8fb0-5fe9210c67de.mcap",
+   "subset": "EgoStandard",
+   "task": "Guest Room Garbage Bag Replacement and Collection",
+   "size": 113417801,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "2fabbfd8-f8a7-4adb-bb5a-9f1cc45e055f": {
+   "path": "EgoStandard/mcap/Clean tabletop debris/2fabbfd8-f8a7-4adb-bb5a-9f1cc45e055f.mcap",
+   "subset": "EgoStandard",
+   "task": "Clean tabletop debris",
+   "size": 235558359,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "0fe40411-bd1c-42f9-816c-f71d296eb3f2": {
+   "path": "EgoStandard/mcap/Headphone Brand Grouping/0fe40411-bd1c-42f9-816c-f71d296eb3f2.mcap",
+   "subset": "EgoStandard",
+   "task": "Headphone Brand Grouping",
+   "size": 45412304,
+   "window": [
+    0,
+    835
+   ],
+   "convention": "optical"
+  },
+  "5834b64f-bd9a-4d3b-832b-d093fade1ed7": {
+   "path": "EgoStandard/mcap/Wipe Water Stains on Mirror Edge/5834b64f-bd9a-4d3b-832b-d093fade1ed7.mcap",
+   "subset": "EgoStandard",
+   "task": "Wipe Water Stains on Mirror Edge",
+   "size": 46087931,
+   "window": [
+    0,
+    870
+   ],
+   "convention": "optical"
+  },
+  "c8a684e8-918b-4e14-9ebf-08d94aaa9e9f": {
+   "path": "EgoStandard/mcap/Disinfect Training Bench/c8a684e8-918b-4e14-9ebf-08d94aaa9e9f.mcap",
+   "subset": "EgoStandard",
+   "task": "Disinfect Training Bench",
+   "size": 209999732,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "65a746f4-e2b6-4e9c-9827-11ff84302442": {
+   "path": "EgoStandard/mcap/Organize Scattered Desk Items/65a746f4-e2b6-4e9c-9827-11ff84302442.mcap",
+   "subset": "EgoStandard",
+   "task": "Organize Scattered Desk Items",
+   "size": 278687815,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "f1c47b2a-8565-4f4c-b5de-2aed8cea22da": {
+   "path": "EgoStandard/mcap/wipe the condiment station/f1c47b2a-8565-4f4c-b5de-2aed8cea22da.mcap",
+   "subset": "EgoStandard",
+   "task": "wipe the condiment station",
+   "size": 116295998,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "db0cca81-c0c3-44b1-964e-3e419e590a07": {
+   "path": "EgoStandard/mcap/Store Obstacles from the Passage/db0cca81-c0c3-44b1-964e-3e419e590a07.mcap",
+   "subset": "EgoStandard",
+   "task": "Store Obstacles from the Passage",
+   "size": 363363968,
+   "window": [
+    1378,
+    2278
+   ],
+   "convention": "optical"
+  },
+  "f91e4e41-945a-46e1-a9c6-f17cb667595c": {
+   "path": "EgoStandard/mcap/Pick up trash from the table/f91e4e41-945a-46e1-a9c6-f17cb667595c.mcap",
+   "subset": "EgoStandard",
+   "task": "Pick up trash from the table",
+   "size": 56248206,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "9a05b780-02a1-40d9-bb93-596bc44cee9b": {
+   "path": "EgoStandard-body/mcap/Organize Desktop Cable Management Slot/9a05b780-02a1-40d9-bb93-596bc44cee9b.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Organize Desktop Cable Management Slot",
+   "size": 111604916,
+   "window": [
+    417,
+    1317
+   ],
+   "convention": "optical"
+  },
+  "2bf3c572-5402-4afe-93da-539fbbdc952c": {
+   "path": "EgoStandard/mcap/Post-Meal Table and Chair Reset Arrangement/2bf3c572-5402-4afe-93da-539fbbdc952c.mcap",
+   "subset": "EgoStandard",
+   "task": "Post-Meal Table and Chair Reset Arrangement",
+   "size": 89545373,
+   "window": [
+    30,
+    930
+   ],
+   "convention": "optical"
+  },
+  "e00d0944-1cdb-4d8e-b581-7067d3610b29": {
+   "path": "EgoStandard/mcap/Store Kitchen Cloths/e00d0944-1cdb-4d8e-b581-7067d3610b29.mcap",
+   "subset": "EgoStandard",
+   "task": "Store Kitchen Cloths",
+   "size": 200934149,
+   "window": [
+    632,
+    1382
+   ],
+   "convention": "optical"
+  },
+  "411dfb70-d4d8-4371-b595-ca8bda43c805": {
+   "path": "EgoStandard/mcap/Stapler Reload/411dfb70-d4d8-4371-b595-ca8bda43c805.mcap",
+   "subset": "EgoStandard",
+   "task": "Stapler Reload",
+   "size": 59676221,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "4d890805-a506-4666-89d3-57fa82178984": {
+   "path": "EgoStandard-body/mcap/Cable Tidying and Bundling/4d890805-a506-4666-89d3-57fa82178984.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Cable Tidying and Bundling",
+   "size": 170083506,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "4b31c33b-1e4d-4a74-8d03-ceaebb534620": {
+   "path": "EgoStandard/mcap/Fold Blanket/4b31c33b-1e4d-4a74-8d03-ceaebb534620.mcap",
+   "subset": "EgoStandard",
+   "task": "Fold Blanket",
+   "size": 50943392,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "2044dee0-0bca-4fca-9b93-e1f39c8437c3": {
+   "path": "EgoStandard/mcap/Clean the bath mat/2044dee0-0bca-4fca-9b93-e1f39c8437c3.mcap",
+   "subset": "EgoStandard",
+   "task": "Clean the bath mat",
+   "size": 216683174,
+   "window": [
+    495,
+    1395
+   ],
+   "convention": "optical"
+  },
+  "6bfa0635-c586-4e0f-99d0-40fc132aa92f": {
+   "path": "EgoStandard/mcap/Brew a cup of instant coffee/6bfa0635-c586-4e0f-99d0-40fc132aa92f.mcap",
+   "subset": "EgoStandard",
+   "task": "Brew a cup of instant coffee",
+   "size": 60336659,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "38bc2cb4-b75a-4c50-949f-f7cb43ea0ad9": {
+   "path": "EgoStandard/mcap/Clean Coffee Grounds Collection Bin/38bc2cb4-b75a-4c50-949f-f7cb43ea0ad9.mcap",
+   "subset": "EgoStandard",
+   "task": "Clean Coffee Grounds Collection Bin",
+   "size": 57204805,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "9b954fae-3524-42ee-9afa-a189545c47bd": {
+   "path": "EgoStandard/mcap/Handle and Drip Tray Cleaning and Reinstallation/9b954fae-3524-42ee-9afa-a189545c47bd.mcap",
+   "subset": "EgoStandard",
+   "task": "Handle and Drip Tray Cleaning and Reinstallation",
+   "size": 124708374,
+   "window": [
+    869,
+    1769
+   ],
+   "convention": "optical"
+  },
+  "089db2a8-56a5-4106-9cfa-ab62bc4f47a4": {
+   "path": "EgoStandard/mcap/Reset Customer Chair After Cleaning/089db2a8-56a5-4106-9cfa-ab62bc4f47a4.mcap",
+   "subset": "EgoStandard",
+   "task": "Reset Customer Chair After Cleaning",
+   "size": 89472770,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "014f1dec-3f2d-46d9-945a-3144041eb2ff": {
+   "path": "EgoStandard/mcap/Wipe mini-bar countertop/014f1dec-3f2d-46d9-945a-3144041eb2ff.mcap",
+   "subset": "EgoStandard",
+   "task": "Wipe mini-bar countertop",
+   "size": 76327347,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "009e7ca3-bcbd-4e83-96d1-6f7cf027f9e7": {
+   "path": "EgoStandard/mcap/Return Hair Ties and Headbands to Storage/009e7ca3-bcbd-4e83-96d1-6f7cf027f9e7.mcap",
+   "subset": "EgoStandard",
+   "task": "Return Hair Ties and Headbands to Storage",
+   "size": 66290681,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "f81c221d-a996-4f62-ad56-b64e328f0b2d": {
+   "path": "EgoStandard/mcap/Pre-baking Preparation/f81c221d-a996-4f62-ad56-b64e328f0b2d.mcap",
+   "subset": "EgoStandard",
+   "task": "Pre-baking Preparation",
+   "size": 259693871,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "0d36f17e-483f-4877-922a-e37befa32c65": {
+   "path": "EgoStandard/mcap/Store Remote Control and Laser Pointer/0d36f17e-483f-4877-922a-e37befa32c65.mcap",
+   "subset": "EgoStandard",
+   "task": "Store Remote Control and Laser Pointer",
+   "size": 47596159,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "871d2f29-c0e3-433f-a1a3-0537da0600d9": {
+   "path": "EgoStandard/mcap/Post-Cleaning Segregated Storage of Knives and Cutting Boards/871d2f29-c0e3-433f-a1a3-0537da0600d9.mcap",
+   "subset": "EgoStandard",
+   "task": "Post-Cleaning Segregated Storage of Knives and Cutting Boards",
+   "size": 232293184,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "107be85f-9533-48e5-b22a-f30fd4b82b6b": {
+   "path": "EgoStandard-body/mcap/Wipe Bar Counter - v07/107be85f-9533-48e5-b22a-f30fd4b82b6b.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Wipe Bar Counter - v07",
+   "size": 235579222,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "80124d2a-dc35-4d6d-b2c0-012c4b387d47": {
+   "path": "EgoStandard/mcap/Wipe glassware/80124d2a-dc35-4d6d-b2c0-012c4b387d47.mcap",
+   "subset": "EgoStandard",
+   "task": "Wipe glassware",
+   "size": 74551158,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "04079ba2-20cf-478c-8ab0-2ad2270fb454": {
+   "path": "EgoStandard/mcap/Organize Whiteboard Markers and Erasers/04079ba2-20cf-478c-8ab0-2ad2270fb454.mcap",
+   "subset": "EgoStandard",
+   "task": "Organize Whiteboard Markers and Erasers",
+   "size": 53012436,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "2632b63c-3ee4-42ea-93d2-d028583f1f15": {
+   "path": "EgoStandard/mcap/Refill and Organize Stirrer Jar/2632b63c-3ee4-42ea-93d2-d028583f1f15.mcap",
+   "subset": "EgoStandard",
+   "task": "Refill and Organize Stirrer Jar",
+   "size": 54155813,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "cb3db233-d57e-415a-a7a7-eea3520cc50d": {
+   "path": "EgoStandard/mcap/Install Dining Chair Leg Caps/cb3db233-d57e-415a-a7a7-eea3520cc50d.mcap",
+   "subset": "EgoStandard",
+   "task": "Install Dining Chair Leg Caps",
+   "size": 111761121,
+   "window": [
+    814,
+    1714
+   ],
+   "convention": "optical"
+  },
+  "03c062c9-393c-4d41-b291-cb3b6add7fcd": {
+   "path": "EgoStandard/mcap/Clean Printer/03c062c9-393c-4d41-b291-cb3b6add7fcd.mcap",
+   "subset": "EgoStandard",
+   "task": "Clean Printer",
+   "size": 53503030,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "d9e1e8bf-475d-47f9-be4b-ce18ebbd405d": {
+   "path": "EgoStandard/mcap/Return Individually Wrapped Candies/d9e1e8bf-475d-47f9-be4b-ce18ebbd405d.mcap",
+   "subset": "EgoStandard",
+   "task": "Return Individually Wrapped Candies",
+   "size": 85184714,
+   "window": [
+    45,
+    945
+   ],
+   "convention": "optical"
+  },
+  "c177f6fe-41a1-4b63-ad88-cc8c1c50278c": {
+   "path": "EgoStandard/mcap/Restock Wet Wipes onto Shelf/c177f6fe-41a1-4b63-ad88-cc8c1c50278c.mcap",
+   "subset": "EgoStandard",
+   "task": "Restock Wet Wipes onto Shelf",
+   "size": 232432146,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "d2367b0d-c99f-4167-80da-54c42df9bd2f": {
+   "path": "EgoStandard/mcap/Tidy clothes on the bed/d2367b0d-c99f-4167-80da-54c42df9bd2f.mcap",
+   "subset": "EgoStandard",
+   "task": "Tidy clothes on the bed",
+   "size": 294608869,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "7704bedd-19d5-4c92-a0cf-e77d219f0861": {
+   "path": "EgoStandard/mcap/Return Curtain Tiebacks to Place/7704bedd-19d5-4c92-a0cf-e77d219f0861.mcap",
+   "subset": "EgoStandard",
+   "task": "Return Curtain Tiebacks to Place",
+   "size": 180335716,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "afbbfea3-0248-4b7e-8108-801df486bd86": {
+   "path": "EgoStandard/mcap/wipe strength equipment handles/afbbfea3-0248-4b7e-8108-801df486bd86.mcap",
+   "subset": "EgoStandard",
+   "task": "wipe strength equipment handles",
+   "size": 124236430,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "cec33e9e-9135-432e-9046-d89d6a09e2fb": {
+   "path": "EgoStandard/mcap/Clean Baseboards/cec33e9e-9135-432e-9046-d89d6a09e2fb.mcap",
+   "subset": "EgoStandard",
+   "task": "Clean Baseboards",
+   "size": 116686045,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "382bb37d-17ab-43ab-87b4-6c452a8c3f22": {
+   "path": "EgoStandard/mcap/Folding Recycling (Empty Parcel Boxes)/382bb37d-17ab-43ab-87b4-6c452a8c3f22.mcap",
+   "subset": "EgoStandard",
+   "task": "Folding Recycling (Empty Parcel Boxes)",
+   "size": 304529234,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "cd51ebea-f75a-4f63-b250-f7343df755f4": {
+   "path": "EgoStandard/mcap/Relocate Hand Soap in Pantry/cd51ebea-f75a-4f63-b250-f7343df755f4.mcap",
+   "subset": "EgoStandard",
+   "task": "Relocate Hand Soap in Pantry",
+   "size": 58532732,
+   "window": [
+    0,
+    750
+   ],
+   "convention": "optical"
+  },
+  "167a9285-0ed7-4d48-8e11-ca5ecb2e04b4": {
+   "path": "EgoStandard/mcap/Boil Water/167a9285-0ed7-4d48-8e11-ca5ecb2e04b4.mcap",
+   "subset": "EgoStandard",
+   "task": "Boil Water",
+   "size": 91738759,
+   "window": [
+    603,
+    1503
+   ],
+   "convention": "optical"
+  },
+  "5d877604-ad42-4ce0-89eb-4250b7d317f3": {
+   "path": "EgoStandard/mcap/re-store bar corner items/5d877604-ad42-4ce0-89eb-4250b7d317f3.mcap",
+   "subset": "EgoStandard",
+   "task": "re-store bar corner items",
+   "size": 119307813,
+   "window": [
+    1336,
+    2236
+   ],
+   "convention": "optical"
+  },
+  "a0bb1c3e-7628-4eb4-aef1-647b638e794b": {
+   "path": "EgoStandard/mcap/Refill Cold Water Pitcher/a0bb1c3e-7628-4eb4-aef1-647b638e794b.mcap",
+   "subset": "EgoStandard",
+   "task": "Refill Cold Water Pitcher",
+   "size": 183564778,
+   "window": [
+    0,
+    1080
+   ],
+   "convention": "optical"
+  },
+  "10018eb8-1c6a-4983-b375-caae7fa4317c": {
+   "path": "EgoStandard/mcap/Full-Layer Cleaning and Reorganization of Storage Cabinet/10018eb8-1c6a-4983-b375-caae7fa4317c.mcap",
+   "subset": "EgoStandard",
+   "task": "Full-Layer Cleaning and Reorganization of Storage Cabinet",
+   "size": 381966257,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "e75469df-0644-4e67-a6ca-e26319f09be5": {
+   "path": "EgoStandard/mcap/Clean Stirring Spoons/e75469df-0644-4e67-a6ca-e26319f09be5.mcap",
+   "subset": "EgoStandard",
+   "task": "Clean Stirring Spoons",
+   "size": 113536856,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "162bf11d-c00b-4141-ac0d-862dfd9d001e": {
+   "path": "EgoStandard-body/mcap/Melipat Tuala Gim/162bf11d-c00b-4141-ac0d-862dfd9d001e.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Melipat Tuala Gim",
+   "size": 258822172,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "37c0562a-f46c-41e4-8ceb-6957510cc29d": {
+   "path": "EgoStandard/mcap/Wipe dirt off the tabletop/37c0562a-f46c-41e4-8ceb-6957510cc29d.mcap",
+   "subset": "EgoStandard",
+   "task": "Wipe dirt off the tabletop",
+   "size": 159324603,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "1a2b5ad5-220b-4add-8c8e-16197a8f0531": {
+   "path": "EgoStandard/mcap/Wipe windowsill and window tracks/1a2b5ad5-220b-4add-8c8e-16197a8f0531.mcap",
+   "subset": "EgoStandard",
+   "task": "Wipe windowsill and window tracks",
+   "size": 162964580,
+   "window": [
+    1308,
+    2208
+   ],
+   "convention": "optical"
+  },
+  "29277313-a7c7-4264-9b6c-5e001b345cf3": {
+   "path": "EgoStandard-body/mcap/Mengatur ulang area penyimpanan di bawah wastafel/29277313-a7c7-4264-9b6c-5e001b345cf3.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Mengatur ulang area penyimpanan di bawah wastafel",
+   "size": 321375638,
+   "window": [
+    2072,
+    2972
+   ],
+   "convention": "optical"
+  },
+  "eaca68c2-a4b0-49c1-8f72-04e64b6cb8ae": {
+   "path": "EgoStandard-body/mcap/Ujian Tulis Pen Penanda, Tutup, Kembalikan, Susun/eaca68c2-a4b0-49c1-8f72-04e64b6cb8ae.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Ujian Tulis Pen Penanda, Tutup, Kembalikan, Susun",
+   "size": 211354176,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "21d81359-cec5-4f06-bb68-fb307fa5ffac": {
+   "path": "EgoStandard/mcap/Wipe the outer surface of the kettle dry/21d81359-cec5-4f06-bb68-fb307fa5ffac.mcap",
+   "subset": "EgoStandard",
+   "task": "Wipe the outer surface of the kettle dry",
+   "size": 82898889,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "29c9add9-4a7a-4870-b9fc-2ffc7b428c35": {
+   "path": "EgoStandard-body/mcap/Kosongkan Nampan Penampung Air/29c9add9-4a7a-4870-b9fc-2ffc7b428c35.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Kosongkan Nampan Penampung Air",
+   "size": 71345304,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "e5c95b12-d065-4809-ae7e-c0853faceb8d": {
+   "path": "EgoStandard/mcap/replace tabletop notice sign/e5c95b12-d065-4809-ae7e-c0853faceb8d.mcap",
+   "subset": "EgoStandard",
+   "task": "replace tabletop notice sign",
+   "size": 58868056,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "18c82605-d6ef-41e9-b7f9-710740d3250e": {
+   "path": "EgoStandard/mcap/Large-Pack Snack Separation/18c82605-d6ef-41e9-b7f9-710740d3250e.mcap",
+   "subset": "EgoStandard",
+   "task": "Large-Pack Snack Separation",
+   "size": 272925978,
+   "window": [
+    568,
+    1468
+   ],
+   "convention": "optical"
+  },
+  "0a0d3d11-f39b-4c24-87bc-197e7d572c80": {
+   "path": "EgoStandard/mcap/Stock Paper Cups and Lids in the Preparation Area/0a0d3d11-f39b-4c24-87bc-197e7d572c80.mcap",
+   "subset": "EgoStandard",
+   "task": "Stock Paper Cups and Lids in the Preparation Area",
+   "size": 263806409,
+   "window": [
+    1648,
+    2548
+   ],
+   "convention": "optical"
+  },
+  "e31acfe8-a7be-4db4-8801-6a652ffee98b": {
+   "path": "EgoStandard-body/mcap/Refill disposable paper cups/e31acfe8-a7be-4db4-8801-6a652ffee98b.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Refill disposable paper cups",
+   "size": 288802710,
+   "window": [
+    585,
+    1485
+   ],
+   "convention": "optical"
+  },
+  "be5ad896-bbfb-4a5c-ba05-598b19220b45": {
+   "path": "EgoStandard/mcap/Table Tidying After Stirring a Drink/be5ad896-bbfb-4a5c-ba05-598b19220b45.mcap",
+   "subset": "EgoStandard",
+   "task": "Table Tidying After Stirring a Drink",
+   "size": 74087847,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "632d2fde-73de-4e55-9b97-31dab2561bd1": {
+   "path": "EgoStandard-body/mcap/Pembersihan Eksterior Mesin Cuci/632d2fde-73de-4e55-9b97-31dab2561bd1.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Pembersihan Eksterior Mesin Cuci",
+   "size": 52318121,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "15c49c37-009d-4aba-af73-ae16d0d02696": {
+   "path": "EgoStandard/mcap/Organize Jump Ropes into Storage Box/15c49c37-009d-4aba-af73-ae16d0d02696.mcap",
+   "subset": "EgoStandard",
+   "task": "Organize Jump Ropes into Storage Box",
+   "size": 125512951,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "2421f104-7682-43b5-a850-1b25a92340b3": {
+   "path": "EgoStandard/mcap/Reinforcing Damaged Cardboard Box with Tape Wrapping/2421f104-7682-43b5-a850-1b25a92340b3.mcap",
+   "subset": "EgoStandard",
+   "task": "Reinforcing Damaged Cardboard Box with Tape Wrapping",
+   "size": 346073954,
+   "window": [
+    0,
+    1080
+   ],
+   "convention": "optical"
+  },
+  "16503cb3-2cc3-4a0a-872d-09dbcb6a7f46": {
+   "path": "EgoStandard-body/mcap/Put the pencil case into the backpack/16503cb3-2cc3-4a0a-872d-09dbcb6a7f46.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Put the pencil case into the backpack",
+   "size": 125081806,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "3045af0e-e749-4015-8243-31f6ceb30767": {
+   "path": "EgoStandard/mcap/Fill Shelf Gaps with Same-Category Items/3045af0e-e749-4015-8243-31f6ceb30767.mcap",
+   "subset": "EgoStandard",
+   "task": "Fill Shelf Gaps with Same-Category Items",
+   "size": 54227405,
+   "window": [
+    0,
+    520
+   ],
+   "convention": "optical"
+  },
+  "59a267df-8c03-42d9-8319-d2b4c0c6b9ef": {
+   "path": "EgoStandard/mcap/Return and Arrange Seasoning Bottles/59a267df-8c03-42d9-8319-d2b4c0c6b9ef.mcap",
+   "subset": "EgoStandard",
+   "task": "Return and Arrange Seasoning Bottles",
+   "size": 47575798,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "141ca78e-e8de-4890-8124-f56966ed4348": {
+   "path": "EgoStandard-body/mcap/Stocking Instant Noodles on Shelves/141ca78e-e8de-4890-8124-f56966ed4348.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Stocking Instant Noodles on Shelves",
+   "size": 353715491,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "ef709536-50d1-46c7-b091-6fe424bb6055": {
+   "path": "EgoStandard/mcap/Return Washbasin/ef709536-50d1-46c7-b091-6fe424bb6055.mcap",
+   "subset": "EgoStandard",
+   "task": "Return Washbasin",
+   "size": 47845189,
+   "window": [
+    0,
+    751
+   ],
+   "convention": "optical"
+  },
+  "eab738f3-87af-48d4-b9b4-2b726b048733": {
+   "path": "EgoStandard/mcap/wipe the ac vent/eab738f3-87af-48d4-b9b4-2b726b048733.mcap",
+   "subset": "EgoStandard",
+   "task": "wipe the ac vent",
+   "size": 50692800,
+   "window": [
+    0,
+    750
+   ],
+   "convention": "optical"
+  },
+  "5b251461-6319-45b7-b5c3-71416dbc7019": {
+   "path": "EgoStandard-body/mcap/Menyusun Wadah Penyimpanan Makanan/5b251461-6319-45b7-b5c3-71416dbc7019.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Menyusun Wadah Penyimpanan Makanan",
+   "size": 105190483,
+   "window": [
+    996,
+    1896
+   ],
+   "convention": "optical"
+  },
+  "b7895c3e-821c-4940-ba80-df5d4034feac": {
+   "path": "EgoStandard/mcap/return exercise mat/b7895c3e-821c-4940-ba80-df5d4034feac.mcap",
+   "subset": "EgoStandard",
+   "task": "return exercise mat",
+   "size": 132033662,
+   "window": [
+    1605,
+    2355
+   ],
+   "convention": "optical"
+  },
+  "088ba7b2-7c35-4f3c-adde-99beaffacc88": {
+   "path": "EgoStandard/mcap/store the cleaning rag/088ba7b2-7c35-4f3c-adde-99beaffacc88.mcap",
+   "subset": "EgoStandard",
+   "task": "store the cleaning rag",
+   "size": 167248501,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "11f35862-09f9-4230-bc96-67e018a1e985": {
+   "path": "EgoStandard-body/mcap/Tegakkan dan Susun Buku/11f35862-09f9-4230-bc96-67e018a1e985.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Tegakkan dan Susun Buku",
+   "size": 158319140,
+   "window": [
+    0,
+    750
+   ],
+   "convention": "optical"
+  },
+  "58030733-ed3d-492a-a0d8-6240354817f4": {
+   "path": "EgoStandard/mcap/Wipe Wall Tiles/58030733-ed3d-492a-a0d8-6240354817f4.mcap",
+   "subset": "EgoStandard",
+   "task": "Wipe Wall Tiles",
+   "size": 178863318,
+   "window": [
+    1461,
+    2361
+   ],
+   "convention": "optical"
+  },
+  "5c51e500-05b0-4359-833d-753c69e01c6c": {
+   "path": "EgoStandard/mcap/Wipe Edges and Corners of Countertop/5c51e500-05b0-4359-833d-753c69e01c6c.mcap",
+   "subset": "EgoStandard",
+   "task": "Wipe Edges and Corners of Countertop",
+   "size": 193938704,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "1dcaed9c-6f81-492a-96e1-e9e9bda2a329": {
+   "path": "EgoStandard/mcap/Wipe Water Marks from Faucet/1dcaed9c-6f81-492a-96e1-e9e9bda2a329.mcap",
+   "subset": "EgoStandard",
+   "task": "Wipe Water Marks from Faucet",
+   "size": 67918158,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "1fcccff8-e8a9-4537-bc4b-6a359af7cf67": {
+   "path": "EgoStandard/mcap/Clean Door Panel/1fcccff8-e8a9-4537-bc4b-6a359af7cf67.mcap",
+   "subset": "EgoStandard",
+   "task": "Clean Door Panel",
+   "size": 335866269,
+   "window": [
+    736,
+    1636
+   ],
+   "convention": "optical"
+  },
+  "f36b319c-a52b-4ef4-b6d9-044705f726c2": {
+   "path": "EgoStandard/mcap/Organize Desk Cable Management Tray/f36b319c-a52b-4ef4-b6d9-044705f726c2.mcap",
+   "subset": "EgoStandard",
+   "task": "Organize Desk Cable Management Tray",
+   "size": 284909288,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "ed1ee9ed-d387-4a0f-a5b1-d6434440fae0": {
+   "path": "EgoStandard/mcap/Pour Soup Seasoning/ed1ee9ed-d387-4a0f-a5b1-d6434440fae0.mcap",
+   "subset": "EgoStandard",
+   "task": "Pour Soup Seasoning",
+   "size": 59166603,
+   "window": [
+    22,
+    922
+   ],
+   "convention": "optical"
+  },
+  "c6d60e3d-26f4-4945-abd9-a76d183dca70": {
+   "path": "EgoStandard/mcap/Stack Material Bins/c6d60e3d-26f4-4945-abd9-a76d183dca70.mcap",
+   "subset": "EgoStandard",
+   "task": "Stack Material Bins",
+   "size": 263538339,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "82073e6b-19a7-4084-83eb-ebe6f78ee5b0": {
+   "path": "EgoStandard/mcap/Stocking Plastic Wrap from Shopping Cart onto Shelf/82073e6b-19a7-4084-83eb-ebe6f78ee5b0.mcap",
+   "subset": "EgoStandard",
+   "task": "Stocking Plastic Wrap from Shopping Cart onto Shelf",
+   "size": 122798859,
+   "window": [
+    337,
+    1087
+   ],
+   "convention": "optical"
+  },
+  "51f8f3d3-ea12-4f8f-aaf9-25bd94c6435e": {
+   "path": "EgoStandard/mcap/Layered Towel Placement/51f8f3d3-ea12-4f8f-aaf9-25bd94c6435e.mcap",
+   "subset": "EgoStandard",
+   "task": "Layered Towel Placement",
+   "size": 56670973,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "2ed8a4dc-1c8f-4978-9fec-e612ea877701": {
+   "path": "EgoStandard-body/mcap/Panaskan sandwich yang didinginkan/2ed8a4dc-1c8f-4978-9fec-e612ea877701.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Panaskan sandwich yang didinginkan",
+   "size": 131434032,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "ec31623c-261d-4e69-96a0-b49a6f11b98c": {
+   "path": "EgoStandard-body/mcap/Susun syampu ke rak/ec31623c-261d-4e69-96a0-b49a6f11b98c.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Susun syampu ke rak",
+   "size": 368223465,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "ea8ee7d5-4670-4153-995f-ab31d60ff6fa": {
+   "path": "EgoStandard-body/mcap/Cleaning Product Price Tag Verification/ea8ee7d5-4670-4153-995f-ab31d60ff6fa.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Cleaning Product Price Tag Verification",
+   "size": 277699515,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "cc3e2951-bbea-47d6-a737-2bd31be03c38": {
+   "path": "EgoStandard/mcap/Organize and straighten umbrella stand/cc3e2951-bbea-47d6-a737-2bd31be03c38.mcap",
+   "subset": "EgoStandard",
+   "task": "Organize and straighten umbrella stand",
+   "size": 48236646,
+   "window": [
+    0,
+    751
+   ],
+   "convention": "optical"
+  },
+  "520778cf-ed40-4bef-898a-9d079bf8423b": {
+   "path": "EgoStandard/mcap/Neatly coil headphone cable/520778cf-ed40-4bef-898a-9d079bf8423b.mcap",
+   "subset": "EgoStandard",
+   "task": "Neatly coil headphone cable",
+   "size": 155288565,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "280bb232-db42-4a80-968d-46c611011c7c": {
+   "path": "EgoStandard-body/mcap/Clip loose papers with a binder clip/280bb232-db42-4a80-968d-46c611011c7c.mcap",
+   "subset": "EgoStandard-body",
+   "task": "Clip loose papers with a binder clip",
+   "size": 50537028,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  },
+  "8adb7a0a-44f4-43a6-ab96-b9da523d015f": {
+   "path": "EgoStandard/mcap/Clean items on the desk/8adb7a0a-44f4-43a6-ab96-b9da523d015f.mcap",
+   "subset": "EgoStandard",
+   "task": "Clean items on the desk",
+   "size": 297924976,
+   "window": [
+    87,
+    987
+   ],
+   "convention": "optical"
+  },
+  "4cf0af7c-6e13-4c4f-8399-c647d4535a35": {
+   "path": "EgoStandard/mcap/Replace Toilet Brush Head/4cf0af7c-6e13-4c4f-8399-c647d4535a35.mcap",
+   "subset": "EgoStandard",
+   "task": "Replace Toilet Brush Head",
+   "size": 79585664,
+   "window": [
+    769,
+    1669
+   ],
+   "convention": "optical"
+  },
+  "dfc53f28-3a17-4eef-8ae6-32138ef38d53": {
+   "path": "EgoStandard/mcap/Stack Shopping Bags/dfc53f28-3a17-4eef-8ae6-32138ef38d53.mcap",
+   "subset": "EgoStandard",
+   "task": "Stack Shopping Bags",
+   "size": 289282432,
+   "window": [
+    0,
+    900
+   ],
+   "convention": "optical"
+  }
+ }
+}

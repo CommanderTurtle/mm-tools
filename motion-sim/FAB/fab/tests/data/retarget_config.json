@@ -1,0 +1,32 @@
+{
+ "PIN": {
+  "cap_eps": 0.001,
+  "drift_cap": 0.08,
+  "foot_k": 20,
+  "lift": 0.01,
+  "lr_root": 0.2,
+  "retry_mm": 3,
+  "rot_cap_deg": 15,
+  "w_jump": 10000000,
+  "w_smooth": 30000
+ },
+ "SIGMA_IN": 8.0,
+ "SOLVE": {
+  "contact_groups": "lfoot,rfoot,lheel,ltoe,rheel,rtoe",
+  "flex_init": 1,
+  "hum_up": "template",
+  "iters": 1600,
+  "lr_t": 0.002,
+  "root_init": "terrain",
+  "root_lowest": 0,
+  "self_legs": 1,
+  "swing_clear": 0.03,
+  "terr_grad_sigma_m": 0.033,
+  "w_acc": 120.0,
+  "w_foot_h": 0.0,
+  "w_self": 1000.0,
+  "w_swing": 0.0,
+  "world_support": "contact"
+ },
+ "W_PTS": 1000.0
+}

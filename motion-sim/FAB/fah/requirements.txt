@@ -1,0 +1,16 @@
+torch>=2.1
+torchvision
+numpy
+opencv-python
+roma
+einops
+yacs
+omegaconf
+huggingface_hub
+scipy
+pillow
+# student encoders (DINOv3 ViT-S / B / L / H+ in timm)
+timm>=1.0.20
+dill
+# MANO layer (MANO itself is downloaded separately, see README)
+smplx

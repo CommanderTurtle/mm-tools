@@ -1,0 +1,501 @@
+{
+ "about": "Visual checks behind the supplementary comparison figure (scripts/compare_figure.py select). Per stratum: the crop scale of its column, how its order is drawn (mode; licence: figure-safe sources only; exclude_seqs: the source sequences of the other columns when the stratum was drawn), whether FAH-L must gain >= 0.1 PCK@0.1 (gain), and the inspected prefix of its order: per candidate (key, GT hand) whether it passed the visual check on its input-only crop (no predictions shown) and why not. The pick is the first candidate that passed (and, with gain, also passes the PCK rule).",
+ "columns": [
+  "s1_ego_closeup",
+  "s2_ego_scene_small",
+  "s3_third_object",
+  "s4_outdoor_scene",
+  "s5_darker_skin",
+  "s6_hard_pose_noobj",
+  "s7_two_hands",
+  "s8_back_selfocc",
+  "s9_low_light",
+  "s10_motion_blur"
+ ],
+ "strata": {
+  "s1_ego_closeup": {
+   "scale": 1.5,
+   "check": "egocentric close-up of the hand",
+   "checks": [
+    {
+     "i": 0,
+     "key": "hot3d/clip-003029_000060",
+     "gi": 1,
+     "visual": true
+    }
+   ]
+  },
+  "s2_ego_scene_small": {
+   "scale": 4.0,
+   "check": "small hand in an egocentric scene",
+   "checks": [
+    {
+     "i": 0,
+     "key": "hint_epick/EK_0133_P18_02_frame_0000005994",
+     "gi": 0,
+     "visual": true
+    }
+   ]
+  },
+  "s3_third_object": {
+   "scale": 2.0,
+   "check": "third-person hand holding or using an object",
+   "checks": [
+    {
+     "i": 0,
+     "key": "hint_nd/ND_l5_T4kWXEd0_frame014951",
+     "gi": 0,
+     "visual": false,
+     "reason": "no object"
+    },
+    {
+     "i": 1,
+     "key": "hint_nd/ND_CK5r_QkD_eg_frame024818",
+     "gi": 0,
+     "visual": false,
+     "reason": "no object"
+    },
+    {
+     "i": 2,
+     "key": "hint_nd/ND_DJnh5wqcr04_frame016745",
+     "gi": 0,
+     "visual": true
+    }
+   ]
+  },
+  "s4_outdoor_scene": {
+   "scale": 4.0,
+   "check": "clearly outdoor (grass / sky / road / vegetation visible)",
+   "mode": "order_then_filter",
+   "licence": true,
+   "gain": true,
+   "exclude_seqs": [
+    "coco/317999",
+    "hint_epick/EK_0097_P09_02",
+    "hint_epick/EK_0133_P18_02",
+    "hint_nd/ND_DJnh5wqcr04",
+    "hint_nd/ND_Uh5yhms9Zi4",
+    "hint_nd/ND_YgnSpdJBNtc",
+    "hot3d/clip-002044",
+    "hot3d/clip-003029"
+   ],
+   "checks": [
+    {
+     "i": 0,
+     "key": "coco/10707",
+     "gi": 2,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 1,
+     "key": "coco/323355",
+     "gi": 0,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 2,
+     "key": "coco/415727",
+     "gi": 0,
+     "visual": true
+    },
+    {
+     "i": 3,
+     "key": "coco/374083",
+     "gi": 2,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 4,
+     "key": "coco/401244",
+     "gi": 0,
+     "visual": true
+    },
+    {
+     "i": 5,
+     "key": "coco/402720",
+     "gi": 0,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 6,
+     "key": "coco/561256",
+     "gi": 0,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 7,
+     "key": "coco/287347",
+     "gi": 0,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 8,
+     "key": "coco/412362",
+     "gi": 0,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 9,
+     "key": "coco/323355",
+     "gi": 1,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 10,
+     "key": "coco/64718",
+     "gi": 0,
+     "visual": false,
+     "reason": "indoor (tennis court)"
+    },
+    {
+     "i": 11,
+     "key": "coco/213547",
+     "gi": 1,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 12,
+     "key": "coco/80932",
+     "gi": 1,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 13,
+     "key": "coco/439773",
+     "gi": 1,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 14,
+     "key": "coco/5001",
+     "gi": 1,
+     "visual": false,
+     "reason": "not clearly outdoor (ribbon cutting)"
+    },
+    {
+     "i": 15,
+     "key": "coco/412362",
+     "gi": 2,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 16,
+     "key": "coco/462371",
+     "gi": 0,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 17,
+     "key": "coco/301718",
+     "gi": 2,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 18,
+     "key": "coco/433103",
+     "gi": 3,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 19,
+     "key": "coco/229553",
+     "gi": 0,
+     "visual": false,
+     "reason": "ambiguous (glove on grey ground)"
+    },
+    {
+     "i": 20,
+     "key": "coco/84674",
+     "gi": 0,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 21,
+     "key": "coco/371529",
+     "gi": 1,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 22,
+     "key": "coco/84674",
+     "gi": 3,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 23,
+     "key": "coco/242946",
+     "gi": 1,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 24,
+     "key": "coco/537270",
+     "gi": 2,
+     "visual": false,
+     "reason": "indoor or not clearly outdoor"
+    },
+    {
+     "i": 25,
+     "key": "coco/142620",
+     "gi": 1,
+     "visual": true
+    },
+    {
+     "i": 26,
+     "key": "coco/566923",
+     "gi": 1,
+     "visual": true
+    },
+    {
+     "i": 27,
+     "key": "coco/400815",
+     "gi": 0,
+     "visual": true
+    }
+   ]
+  },
+  "s5_darker_skin": {
+   "scale": 1.4,
+   "check": "darker skin tone visible",
+   "checks": [
+    {
+     "i": 0,
+     "key": "cmu/000973096_03",
+     "gi": 1,
+     "visual": false,
+     "reason": "skin tone not darker"
+    },
+    {
+     "i": 1,
+     "key": "hint_nd/ND_e5Bllz6Xu3g_frame005501",
+     "gi": 0,
+     "visual": false,
+     "reason": "skin tone not darker"
+    },
+    {
+     "i": 2,
+     "key": "hint_nd/ND_BEkAgPRzHM8_frame003888",
+     "gi": 0,
+     "visual": false,
+     "reason": "skin tone not darker"
+    },
+    {
+     "i": 3,
+     "key": "hint_nd/ND_Kuh8StycMX0_frame002094",
+     "gi": 0,
+     "visual": false,
+     "reason": "skin tone not darker"
+    },
+    {
+     "i": 4,
+     "key": "cmu/Berry_sermon_story.flv_000011",
+     "gi": 0,
+     "visual": false,
+     "reason": "skin tone not darker"
+    },
+    {
+     "i": 5,
+     "key": "coco/63047",
+     "gi": 1,
+     "visual": false,
+     "reason": "skin tone not darker"
+    },
+    {
+     "i": 6,
+     "key": "hint_nd/ND_YgnSpdJBNtc_frame060601",
+     "gi": 0,
+     "visual": true
+    }
+   ]
+  },
+  "s6_hard_pose_noobj": {
+   "scale": 1.8,
+   "check": "posed hand that does not hold, press or reach for an object",
+   "mode": "filter_then_order",
+   "licence": true,
+   "exclude_seqs": [
+    "coco/317999",
+    "coco/415727",
+    "hint_epick/EK_0097_P09_02",
+    "hint_epick/EK_0112_P02_12",
+    "hint_epick/EK_0133_P18_02",
+    "hint_nd/ND_DJnh5wqcr04",
+    "hint_nd/ND_YgnSpdJBNtc",
+    "hot3d/clip-002044",
+    "hot3d/clip-003029"
+   ],
+   "checks": [
+    {
+     "i": 0,
+     "key": "hot3d/clip-001996_000030",
+     "gi": 1,
+     "visual": false,
+     "reason": "holds a tube"
+    },
+    {
+     "i": 1,
+     "key": "hint_epick/EK_0078_P02_09_frame_0000053502",
+     "gi": 0,
+     "visual": false,
+     "reason": "hand on food at a chopping board"
+    },
+    {
+     "i": 2,
+     "key": "hint_nd/ND_i7o0eVKpbls_frame013179",
+     "gi": 0,
+     "visual": false,
+     "reason": "holds a small object"
+    },
+    {
+     "i": 3,
+     "key": "hot3d/clip-001892_000120",
+     "gi": 0,
+     "visual": false,
+     "reason": "reaching for a device below"
+    },
+    {
+     "i": 4,
+     "key": "hint_epick/EK_0044_P30_110_frame_0000001826",
+     "gi": 0,
+     "visual": false,
+     "reason": "holds a container"
+    },
+    {
+     "i": 5,
+     "key": "hint_epick/EK_0026_P09_104_frame_0000027061",
+     "gi": 0,
+     "visual": false,
+     "reason": "hand on a pan"
+    },
+    {
+     "i": 6,
+     "key": "hint_epick/EK_0145_P28_05_frame_0000000334",
+     "gi": 0,
+     "visual": false,
+     "reason": "pressing a tray"
+    },
+    {
+     "i": 7,
+     "key": "hint_epick/EK_0132_P18_01_frame_0000007824",
+     "gi": 0,
+     "visual": false,
+     "reason": "reaching into a bag"
+    },
+    {
+     "i": 8,
+     "key": "hint_epick/EK_0060_P37_102_frame_0000030907",
+     "gi": 0,
+     "visual": false,
+     "reason": "pressing a hob button"
+    },
+    {
+     "i": 9,
+     "key": "coco/25394",
+     "gi": 1,
+     "visual": false,
+     "reason": "holding a towel"
+    },
+    {
+     "i": 10,
+     "key": "hint_nd/ND_Uh5yhms9Zi4_frame002991",
+     "gi": 0,
+     "visual": true
+    }
+   ]
+  },
+  "s7_two_hands": {
+   "scale": 1.6,
+   "check": "two interacting hands, from a source no other column uses",
+   "checks": [
+    {
+     "i": 0,
+     "key": "cmu/Berry_roof_story.flv_000101",
+     "gi": 0,
+     "visual": false,
+     "reason": "same signer as the hard-pose column's pick at the time (CMU sign language; that column was later redrawn from figure-safe sources)"
+    },
+    {
+     "i": 1,
+     "key": "coco/317999",
+     "gi": 0,
+     "visual": true
+    }
+   ]
+  },
+  "s8_back_selfocc": {
+   "scale": 1.5,
+   "check": "back of the hand with self-occlusion",
+   "checks": [
+    {
+     "i": 0,
+     "key": "hint_epick/EK_0097_P09_02_frame_0000006972",
+     "gi": 0,
+     "visual": true
+    }
+   ]
+  },
+  "s9_low_light": {
+   "scale": 2.0,
+   "check": "low-light copy with the hand visible",
+   "checks": [
+    {
+     "i": 0,
+     "key": "syn_hot3d/clip-002044_000110",
+     "gi": 1,
+     "visual": true
+    }
+   ]
+  },
+  "s10_motion_blur": {
+   "scale": 1.8,
+   "check": "visible motion blur on the hand",
+   "mode": "blur",
+   "licence": true,
+   "gain": true,
+   "exclude_seqs": [
+    "coco/317999",
+    "hint_epick/EK_0097_P09_02",
+    "hint_epick/EK_0133_P18_02",
+    "hint_nd/ND_DJnh5wqcr04",
+    "hint_nd/ND_Uh5yhms9Zi4",
+    "hint_nd/ND_YgnSpdJBNtc",
+    "hot3d/clip-002044",
+    "hot3d/clip-003029"
+   ],
+   "checks": [
+    {
+     "i": 0,
+     "key": "hot3d/clip-002895_000040",
+     "gi": 0,
+     "visual": false,
+     "reason": "sharp (no visible motion blur)"
+    },
+    {
+     "i": 1,
+     "key": "hint_epick/EK_0016_P07_101_frame_0000016822",
+     "gi": 0,
+     "visual": true
+    }
+   ]
+  }
+ }
+}

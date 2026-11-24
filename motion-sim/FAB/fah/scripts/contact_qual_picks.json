@@ -1,0 +1,341 @@
+{
+ "figure": "the supplement's contact figure: panels 1-12 (HOT3D held-out benchmark clips 1-5, 10-12; COCO train2017 photos 6-9)",
+ "hot3d": [
+  {
+   "i": 98,
+   "file": "clip-001884/0140_r.jpg",
+   "clip": "clip-001884",
+   "key": "000140",
+   "is_right": true,
+   "box": [
+    934.09912109375,
+    997.3502807617188,
+    1106.1534423828125,
+    1201.916748046875
+   ],
+   "obj": "mug_white",
+   "min_mm": -2.01,
+   "n10": 151,
+   "npred": 158,
+   "f1": 0.970873786407767,
+   "flag": 0.9999839067459106,
+   "fingers": [
+    false,
+    true,
+    true,
+    true,
+    false,
+    false
+   ],
+   "vis_contact": 0.32450331125827814,
+   "side": 204.56646728515625,
+   "label": "pinch",
+   "title": "HOT3D: pinch (mug)",
+   "both": false,
+   "panel": 1
+  },
+  {
+   "i": 566,
+   "file": "clip-001917/0100_r.jpg",
+   "clip": "clip-001917",
+   "key": "000100",
+   "is_right": true,
+   "box": [
+    930.8784790039062,
+    743.853759765625,
+    1194.2650146484375,
+    898.5027465820312
+   ],
+   "obj": "carton_milk",
+   "min_mm": -11.88,
+   "n10": 104,
+   "npred": 103,
+   "f1": 0.966183574879227,
+   "flag": 0.9985048770904541,
+   "fingers": [
+    false,
+    true,
+    true,
+    false,
+    false,
+    false
+   ],
+   "vis_contact": 0.19230769230769232,
+   "side": 263.38653564453125,
+   "label": "pinch",
+   "title": "HOT3D: pinch (milk carton)",
+   "both": false,
+   "panel": 2
+  },
+  {
+   "i": 1470,
+   "file": "clip-002207/0095_l.jpg",
+   "clip": "clip-002207",
+   "key": "000095",
+   "is_right": false,
+   "box": [
+    419.21380615234375,
+    1019.0441284179688,
+    585.079833984375,
+    1315.7362060546875
+   ],
+   "obj": "dumbbell_5lb",
+   "min_mm": -7.43,
+   "n10": 442,
+   "npred": 481,
+   "f1": 0.9209100758396533,
+   "flag": 0.9999996423721313,
+   "fingers": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "vis_contact": 0.3212669683257919,
+   "side": 296.69207763671875,
+   "label": "power",
+   "title": "HOT3D: power grasp (dumbbell)",
+   "both": false,
+   "panel": 3
+  },
+  {
+   "i": 2330,
+   "file": "clip-002511/0045_r.jpg",
+   "clip": "clip-002511",
+   "key": "000045",
+   "is_right": true,
+   "box": [
+    804.644287109375,
+    945.057861328125,
+    967.3919677734375,
+    1168.7601318359375
+   ],
+   "obj": "potato_masher",
+   "min_mm": -5.15,
+   "n10": 393,
+   "npred": 432,
+   "f1": 0.9357575757575758,
+   "flag": 0.9999990463256836,
+   "fingers": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "vis_contact": 0.3511450381679389,
+   "side": 223.7022705078125,
+   "label": "power",
+   "title": "HOT3D: power grasp (masher)",
+   "both": false,
+   "panel": 4
+  },
+  {
+   "i": 2052,
+   "file": "clip-002486/0020_r.jpg",
+   "clip": "clip-002486",
+   "key": "000020",
+   "is_right": true,
+   "box": [
+    1021.6278076171875,
+    921.7553100585938,
+    1376.557861328125,
+    1173.0419921875
+   ],
+   "obj": "plate_bamboo",
+   "min_mm": -3.12,
+   "n10": 322,
+   "npred": 329,
+   "f1": 0.967741935483871,
+   "flag": 0.999998927116394,
+   "fingers": [
+    false,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "vis_contact": 0.2329192546583851,
+   "side": 354.9300537109375,
+   "label": "two_hand",
+   "title": "HOT3D: two hands (plate)",
+   "both": true,
+   "panel": 5
+  },
+  {
+   "i": 3664,
+   "file": "clip-002892/0015_r.jpg",
+   "clip": "clip-002892",
+   "key": "000015",
+   "is_right": true,
+   "box": [
+    740.9324340820312,
+    350.7738952636719,
+    1152.541015625,
+    624.3185424804688
+   ],
+   "obj": "vase",
+   "min_mm": 10.84,
+   "n10": 0,
+   "npred": 124,
+   "f1": 0.0,
+   "flag": 0.9990019202232361,
+   "fingers": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "vis_contact": 1.0,
+   "side": 411.60858154296875,
+   "label": "fail_hover",
+   "title": "failure: hovering 11 mm (vase)",
+   "both": false,
+   "panel": 10
+  },
+  {
+   "i": 4080,
+   "file": "clip-002985/0120_r.jpg",
+   "clip": "clip-002985",
+   "key": "000120",
+   "is_right": true,
+   "box": [
+    782.4747314453125,
+    810.94970703125,
+    1209.5804443359375,
+    1220.555419921875
+   ],
+   "obj": "vase",
+   "min_mm": -6.91,
+   "n10": 172,
+   "npred": 0,
+   "f1": 0.0,
+   "flag": 0.2507290244102478,
+   "fingers": [
+    false,
+    true,
+    true,
+    true,
+    false,
+    false
+   ],
+   "vis_contact": 0.1569767441860465,
+   "side": 427.105712890625,
+   "label": "fail_occluded",
+   "title": "failure: hidden fingertips",
+   "both": false,
+   "panel": 11
+  },
+  {
+   "clip": "clip-002025",
+   "key": "000100",
+   "is_right": false,
+   "obj": "no HOT3D pose",
+   "file": "clip-002025/0100_l.jpg",
+   "label": "fail_nopose",
+   "title": "failure: object without pose",
+   "both": false,
+   "panel": 12
+  }
+ ],
+ "coco": [
+  {
+   "image_id": 142565,
+   "file": "train2017/000000142565.jpg",
+   "license": "Attribution License",
+   "flickr_url": "http://farm9.staticflickr.com/8363/8352212112_e42ea54b0b_z.jpg",
+   "box": [
+    0.0,
+    179.875,
+    131.0,
+    351.125
+   ],
+   "is_right": true,
+   "score": 0.99998939037323,
+   "ncontact": 386,
+   "label": "in the wild: snack jar",
+   "title": "in the wild: snack jar",
+   "panel": 6,
+   "credit": {
+    "author": "Eden, Janine and Jim",
+    "licence": "CC BY 2.0",
+    "photo_page": "https://www.flickr.com/photos/edenpictures/8352212112"
+   }
+  },
+  {
+   "image_id": 47904,
+   "file": "train2017/000000047904.jpg",
+   "license": "Attribution License",
+   "flickr_url": "http://farm6.staticflickr.com/5466/9062942544_2de8f747d3_z.jpg",
+   "box": [
+    256.25,
+    253.5,
+    389.25,
+    475.5
+   ],
+   "is_right": true,
+   "score": 0.9999901056289673,
+   "ncontact": 361,
+   "label": "in the wild: phone (thumb)",
+   "title": "in the wild: phone (thumb)",
+   "panel": 7,
+   "credit": {
+    "author": "David Mellis",
+    "licence": "CC BY 2.0",
+    "photo_page": "https://www.flickr.com/photos/mellis/9062942544"
+   }
+  },
+  {
+   "image_id": 527970,
+   "file": "train2017/000000527970.jpg",
+   "license": "Attribution-ShareAlike License",
+   "flickr_url": "http://farm1.staticflickr.com/82/274657051_1aa532ae61_z.jpg",
+   "box": [
+    213.5,
+    61.375,
+    316.0,
+    244.875
+   ],
+   "is_right": true,
+   "score": 0.9998290538787842,
+   "ncontact": 374,
+   "label": "in the wild: ketchup bottle",
+   "title": "in the wild: ketchup bottle",
+   "panel": 8,
+   "credit": {
+    "author": "brooke",
+    "licence": "CC BY-SA 2.0",
+    "photo_page": "https://www.flickr.com/photos/brookage/274657051"
+   }
+  },
+  {
+   "image_id": 21500,
+   "file": "train2017/000000021500.jpg",
+   "license": "Attribution-ShareAlike License",
+   "flickr_url": "http://farm3.staticflickr.com/2702/4382389355_efd279d256_z.jpg",
+   "box": [
+    372.375,
+    118.5,
+    583.625,
+    383.5
+   ],
+   "is_right": true,
+   "score": 0.9998866319656372,
+   "ncontact": 342,
+   "label": "in the wild: donut",
+   "title": "in the wild: donut",
+   "panel": 9,
+   "credit": {
+    "author": "..::Fluckr You::..",
+    "licence": "CC BY-SA 2.0",
+    "photo_page": "https://www.flickr.com/photos/esquinerr/4382389355"
+   }
+  }
+ ]
+}

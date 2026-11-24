@@ -1137,6 +1137,14 @@ BUNDLES += (Bundle("sophon-agent","Sophon Realtime Tag + NVFP4A16 thinker","100"
 )),)
 
 
+BUNDLES += (Bundle("fab", "FAB motion, SOMA & ego hands", "101", (
+    A("noahcao/FAB",model_path("fab/weights"),("fab-l/*","fab-s/*","shared/*","*LICENSE*"),revision="f2e204f280aa27944b98fbf783f618a4bea2c223"),
+    A("noahcao/FAH",model_path("fab/hands"),("fah/*","shared/*","*LICENSE*"),revision="c2e67a5779c104f85c33c147e8d4c6a8ebdc28b4"),
+    A("facebook/sam-3d-body-dinov3",model_path("fab/sam3d"),("model_config.yaml","assets/mhr_model.pt","LICENSE"),revision="11aaa346c7204874a1cbafe3d39a979080b2c55a"),
+    A("nvidia/SOMA-X",model_path("fab/soma"),("SMPL/*.obj","SOMA_neutral.npz","SOMA_template_rig.usda","SOMA_procedural_transforms.json","correctives_model.pt","*LICENSE*"),revision="32f0ab41a0db0f2710d6542a435f90ad452c3b73"),
+)),)
+
+
 def print_menu() -> None:
     print("\nMM Tools model downloader")
     print(f"Destination root: {MODELS}")

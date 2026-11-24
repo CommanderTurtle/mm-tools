@@ -1,0 +1,66 @@
+{
+ "figure": "supplementary benchmark samples (custom sets): shadow_v1 types A / B and the synthetic low light of bench2d v2; GT 2D keypoints",
+ "rule": "licence-clean images only: an open CC licence and a credited author; excluded: the challenging-pose stock sheets, the real dark photos, shadow us01-us04, EgoStandard and user-video frames",
+ "shadow": {
+  "candidates": "shadow_v1 images from Open Images V7, Openverse (Flickr) or Wikimedia Commons, not borderline, with annotated hands; one list per type (A: shadow on the hand, B: hand next to its own cast shadow)",
+  "pick_rule": "visual pick from the per-type candidate sheets: a clear shadow on the hand (A) or the hand next to its own cast shadow (B), no dominant face",
+  "picks": [
+   {"id": "sh026.jpg", "type": "A", "scale": 1.3},
+   {"id": "sh029.jpg", "type": "A", "scale": 1.8},
+   {"id": "sh053.jpg", "type": "B", "scale": 1.8},
+   {"id": "sh058.jpg", "type": "B", "scale": 1.8}
+  ]
+ },
+ "dark": {
+  "candidates": "bench2d v2 COCO val2017 images (synthetic low-light copy, bench/bench2d/make_dark.py --level dark) whose COCO / Flickr licence id is 4, 5, 7 or 8 (CC BY, CC BY-SA, no known copyright restriction, US Government work); hands with a box side >= 80 px and >= 15 visible joints; images with >= 1 such hand",
+  "licences": [4, 5, 7, 8],
+  "min_side": 80,
+  "min_visible": 15,
+  "seed": 0,
+  "eligible": 49,
+  "check": "in the fixed random order: a single clearly visible hand, plausible labels, no dominant or child face, a Flickr page that still shows author and licence; and (stricter check after review) one open or clearly articulated hand with all five fingers readable",
+  "scale": 1.9,
+  "decisions": [
+   {"rank": 0, "id": "coco/294350", "pass": false, "reason": "implausible thumb label"},
+   {"rank": 1, "id": "coco/168883", "pass": false, "reason": "face"},
+   {"rank": 2, "id": "coco/384136", "pass": false, "reason": "Flickr page gone"},
+   {"rank": 3, "id": "coco/50811", "pass": false, "reason": "two tangled hands"},
+   {"rank": 4, "id": "coco/25394", "pass": false, "reason": "Flickr page gone"},
+   {"rank": 5, "id": "coco/42528", "pass": false, "reason": "Flickr login required"},
+   {"rank": 6, "id": "coco/263969", "pass": false, "reason": "two tangled hands"},
+   {"rank": 7, "id": "coco/286523", "pass": false, "reason": "face"},
+   {"rank": 8, "id": "coco/544519", "pass": false, "reason": "child's face"},
+   {"rank": 9, "id": "coco/412362", "pass": true, "reason": ""},
+   {"rank": 10, "id": "coco/23899", "pass": false, "reason": "not recorded"},
+   {"rank": 11, "id": "coco/297084", "pass": false, "reason": "Flickr page gone"},
+   {"rank": 12, "id": "coco/284991", "pass": false, "reason": "stricter check: implausible GT (a fist with vertical finger chains)"},
+   {"rank": 13, "id": "coco/162415", "pass": false, "reason": "not recorded"},
+   {"rank": 14, "id": "coco/322944", "pass": false, "reason": "stricter check: implausible GT (crossed arms)"},
+   {"rank": 15, "id": "coco/329456", "pass": true, "reason": ""},
+   {"rank": 16, "id": "coco/347254", "pass": false, "reason": "stricter check"},
+   {"rank": 17, "id": "coco/100624", "pass": false, "reason": "face / child"},
+   {"rank": 18, "id": "coco/413552", "pass": false, "reason": "stricter check"},
+   {"rank": 19, "id": "coco/284764", "pass": false, "reason": "stricter check"},
+   {"rank": 20, "id": "coco/502737", "pass": false, "reason": "stricter check"},
+   {"rank": 21, "id": "coco/210230", "pass": false, "reason": "stricter check"},
+   {"rank": 22, "id": "coco/532690", "pass": true, "reason": ""},
+   {"rank": 23, "id": "coco/356424", "pass": false, "reason": "face / child"},
+   {"rank": 24, "id": "coco/321214", "pass": false, "reason": "face / child"},
+   {"rank": 25, "id": "coco/345252", "pass": false, "reason": "Flickr page gone"},
+   {"rank": 26, "id": "coco/117425", "pass": false, "reason": "face / child"},
+   {"rank": 27, "id": "coco/415882", "pass": false, "reason": "stricter check"},
+   {"rank": 28, "id": "coco/546717", "pass": true, "reason": ""}
+  ],
+  "tile_order": ["coco/412362", "coco/532690", "coco/546717", "coco/329456"]
+ },
+ "credits": [
+  {"n": 1, "id": "shadow_v1 sh026 (Open Images V7 eefe0089c06046d5)", "title": "Delta_100_Ring_Park073", "author": "Maggie Brauer", "url": "https://www.flickr.com/photos/slowlyinhale/16893976709", "licence": "CC BY 2.0"},
+  {"n": 2, "id": "shadow_v1 sh029 (Openverse 5a1b3963-5d61-4cad-b54b-e44c88878e5d)", "title": "Zebra hand", "author": "Zepfanman.com", "url": "https://www.flickr.com/photos/83233184@N00/364945406", "licence": "CC BY 2.0"},
+  {"n": 3, "id": "shadow_v1 sh053 (Open Images V7 6e16429a6fd82cc2)", "title": "Kinu as Capsicum", "author": "Nagarjun Kandukuru", "url": "https://www.flickr.com/photos/nagarjun/5397705982", "licence": "CC BY 2.0"},
+  {"n": 4, "id": "shadow_v1 sh058 (Open Images V7 a10e792963f3a9c5)", "title": "bratmobile", "author": "super awesome", "url": "https://www.flickr.com/photos/thorntocon/4852445520", "licence": "CC BY 2.0"},
+  {"n": 5, "id": "bench2d v2 coco/412362 (COCO val2017, licence 4), darkened", "title": "20111005-first lady host wine tasting for nga staff-jb", "author": "Maryland GovPics", "url": "https://www.flickr.com/photos/mdgovpics/6220306659", "licence": "CC BY 2.0"},
+  {"n": 6, "id": "bench2d v2 coco/532690 (COCO val2017, licence 4), darkened", "title": "wii bowling", "author": "rachaelvoorhees", "url": "https://www.flickr.com/photos/rachaelvoorhees/353485795", "licence": "CC BY 2.0"},
+  {"n": 7, "id": "bench2d v2 coco/546717 (COCO val2017, licence 4), darkened", "title": "68/365 - I'm too sexy to match.", "author": "Becky Wetherington", "url": "https://www.flickr.com/photos/macbeck/4117004152", "licence": "CC BY 2.0"},
+  {"n": 8, "id": "bench2d v2 coco/329456 (COCO val2017, licence 4), darkened", "title": "Jelly Doughnut Incident", "author": "Brad Greenlee", "url": "https://www.flickr.com/photos/bgreenlee/2561836272", "licence": "CC BY 2.0"}
+ ]
+}

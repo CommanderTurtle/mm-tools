@@ -1,0 +1,21 @@
+# core inference (tested versions in comments; PyTorch from https://pytorch.org for your CUDA)
+torch>=2.4            # tested 2.11.0 (CUDA 12.8)
+torchvision>=0.19     # tested 0.26.0
+numpy>=1.26           # tested 2.5.4
+opencv-python-headless>=4.9  # tested 5.0.0.93
+roma>=1.4             # tested 1.8.0
+einops>=0.7           # tested 0.8.2
+yacs>=0.1.8
+omegaconf>=2.3        # tested 2.4.0
+pytorch-lightning>=2.2  # tested 2.6.6 (SAM 3D Body's checkpoint utilities)
+huggingface_hub>=0.24 # tested 2.4.0
+scipy>=1.11           # tested 1.18.1
+timm>=1.0             # tested 1.0.31
+pillow>=10            # tested 13.0.0
+braceexpand>=0.1.7
+pyyaml>=6.0
+trimesh>=4.0          # tested 5.2.1 (MHR -> SMPL conversion meshes)
+# ultralytics (AGPL-3.0; see THIRD_PARTY_NOTICES.md) is not needed for inference: the person detector runs in
+# fab/yolo.py (FABPredictor detector_backend="fab", the default). It is in the [engine] extra (fab-build-trt's
+# detector engine, which runs through it; detector_backend="ultralytics"; scripts/check_detector.py) and the [eval]
+# extra (bench/detected_boxes.py): pip install -e ".[engine]"
