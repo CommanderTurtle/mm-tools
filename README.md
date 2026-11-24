@@ -24,7 +24,7 @@ This repo was created for protecting open-source runtimes under a documentable h
 | `world-gen` | World generation |
 | `visual-modeling` | Image understanding and decomposition |
 
-`translate`, `ideogram`, `img2svg`, `video-compact`, `models`, `workflows`, and
+`translate`, `img2svg`, `video-compact`, `models`, `workflows`, and
 `tests` remain at the root. GIF/AVIF conversion lives in `video-compact/gif-avif`.
 
 Install the host tools required by the projects you plan to run:
@@ -222,12 +222,12 @@ For Python projects, choose the setup entrypoint in that project only. No root s
 Local Ideogram 4 generation source plus the fuzzy-mask editing browser: ObjectClear, BiRefNet, OpenCV, and optional private-Comfy Ideogram masked editing.
 
 ```bash
-cd ~/multimedia/ideogram
+cd ~/multimedia/visual-modeling/background-removal/ideogram
 ./setupwithuv.sh
 ./startwithuv.sh                             # http://127.0.0.1:8174
 ```
 
-The standalone Ideogram generator is `local_generate.py`; add `src` to `PYTHONPATH` or install the local package when using that lane. The editor loads Ideogram only when explicitly selected. Its private engine reuses bundled Comfy code (not the Minimax service), supports local caption drafting and configurable crop processing, and preserves the original image outside the feathered mask. See [Ideogram architecture and setup](ideogram/ARCHITECTURE.md).
+The standalone Ideogram generator is `local_generate.py`; add `src` to `PYTHONPATH` or install the local package when using that lane. The editor loads Ideogram only when explicitly selected. Its private engine reuses bundled Comfy code (not the Minimax service), supports local caption drafting and configurable crop processing, and preserves the original image outside the feathered mask. See [Ideogram architecture and setup](visual-modeling/background-removal/ideogram/ARCHITECTURE.md).
 
 ### img2svg
 
@@ -507,6 +507,7 @@ cd vocals/stt/underdog
 | `8298` | `vocals/sophon-agent` · Sophon duplex speech studio (`sophon-agent`) |
 | `8299` | `motion-sim/FAB` · FAB motion studio (`fab`) |
 | `8300` | `visual-modeling/jevertion` · Jeveration image desk (`jeveration`) |
+| `8301` | `visual-modeling/background-removal/RMBG-3.0` · BRIA matte studio (`bria-rmbg3`) |
 
 The new studios default to loopback; existing services retain their configured private-LAN interfaces. Keep network-exposed services behind the host firewall or set the supported bearer token where provided.
 

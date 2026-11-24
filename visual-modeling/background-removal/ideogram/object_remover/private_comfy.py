@@ -18,13 +18,13 @@ import requests
 from .ideogram_graph import MAIN_MODEL, UNCOND_MODEL, CLIP_MODEL, VAE_MODEL
 
 ROOT = Path(__file__).resolve().parents[1]
-MODELS = Path(os.getenv("MULTIMEDIA_MODELS", "~/multimedia/models")).expanduser()
+MODELS = Path(os.getenv("MULTIMEDIA_MODELS", str(ROOT.parents[2] / "models"))).expanduser()
 
 
 class PrivateComfy:
     def __init__(self):
-        self.runtime = Path(os.getenv("IDEOGRAM_COMFY_RUNTIME", str(ROOT.parent / "music/minimax/runtime"))).expanduser()
-        bundled_python = ROOT.parent / "music/minimax/.venv/bin/python"
+        self.runtime = Path(os.getenv("IDEOGRAM_COMFY_RUNTIME", str(ROOT.parents[2] / "music/minimax/runtime"))).expanduser()
+        bundled_python = ROOT.parents[2] / "music/minimax/.venv/bin/python"
         self.python = Path(os.getenv("IDEOGRAM_COMFY_PYTHON", str(bundled_python) if bundled_python.is_file() else sys.executable)).expanduser()
         self.state = Path(os.getenv("IDEOGRAM_COMFY_STATE", str(ROOT / ".runtime/editing"))).expanduser()
         self.model = Path(os.getenv("IDEOGRAM4_COMFY_MODEL", str(MODELS / "comfy--Ideogram-4"))).expanduser()

@@ -85,7 +85,7 @@ This integration does not claim a published automatic Ideogram alpha-matting mod
 ## First setup (fresh environment only)
 
 ```bash
-cd ~/multimedia/ideogram
+cd ~/multimedia/visual-modeling/background-removal/ideogram
 uv venv --python 3.12.10 --seed --managed-python .venv
 source .venv/bin/activate
 uv pip install --torch-backend auto torch torchvision
@@ -102,7 +102,7 @@ New settings are documented in `.env.local.example`; omitted settings have defau
 ## Checks
 
 ```bash
-cd ~/multimedia/ideogram
+cd ~/multimedia/visual-modeling/background-removal/ideogram
 .venv/bin/python -m unittest discover -s tests -v
 ../minimax/.venv/bin/python tests/comfy_contract.py
 bun tests/selection_contract.js

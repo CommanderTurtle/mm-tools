@@ -10,7 +10,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODELS = Path(os.getenv("MULTIMEDIA_MODELS", "~/multimedia/models")).expanduser()
+MODELS = Path(os.getenv("MULTIMEDIA_MODELS", str(ROOT.parents[2] / "models"))).expanduser()
 OBJECTCLEAR_SOURCE = Path(
     os.getenv("OBJECTCLEAR_SOURCE", str(ROOT))
 ).expanduser()

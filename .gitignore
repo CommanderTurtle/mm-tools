@@ -155,11 +155,13 @@
 !/music/acestep/setupwithuv.sh
 !/music/acestep/startwithuv.sh
 
-!/ideogram/
-/ideogram/*
-!/ideogram/setupwithuv.sh
-!/ideogram/startwithuv.sh
-!/ideogram/start-object-remover.sh
+!/visual-modeling/background-removal/
+/visual-modeling/background-removal/*
+!/visual-modeling/background-removal/ideogram/
+/visual-modeling/background-removal/ideogram/*
+!/visual-modeling/background-removal/ideogram/setupwithuv.sh
+!/visual-modeling/background-removal/ideogram/startwithuv.sh
+!/visual-modeling/background-removal/ideogram/start-object-remover.sh
 
 !/img2svg/
 /img2svg/*
@@ -958,10 +960,10 @@
 /music/minimax/runtime/comfy/text_encoders/t5_pile_tokenizer/
 /music/minimax/runtime/comfy/text_encoders/t5_tokenizer/
 
-!/ideogram/ComfyUI-Ideogram4/
-/ideogram/ComfyUI-Ideogram4/*
-/ideogram/vendor/*
-/ideogram/vendor/ObjectClear/*
+!/visual-modeling/background-removal/ideogram/ComfyUI-Ideogram4/
+/visual-modeling/background-removal/ideogram/ComfyUI-Ideogram4/*
+/visual-modeling/background-removal/ideogram/vendor/*
+/visual-modeling/background-removal/ideogram/vendor/ObjectClear/*
 !/music/muscriptor/README.md
 /music/musvit/vendor/*
 /music/musvit/vendor/SMT/*
@@ -976,19 +978,19 @@
 **/*.py[cod]
 
 # Private Ideogram editor source only; never its subprocess state or artifacts.
-!/ideogram/object_remover/
-/ideogram/object_remover/*
-!/ideogram/object_remover/*.py
-!/ideogram/object_remover/web/
-/ideogram/object_remover/web/*
-!/ideogram/object_remover/web/*.html
-!/ideogram/object_remover/web/*.css
-!/ideogram/object_remover/web/*.js
-!/ideogram/object_remover/comfy_nodes/
-/ideogram/object_remover/comfy_nodes/*
-!/ideogram/object_remover/comfy_nodes/__init__.py
-/ideogram/tests/*
-/ideogram/.runtime/
+!/visual-modeling/background-removal/ideogram/object_remover/
+/visual-modeling/background-removal/ideogram/object_remover/*
+!/visual-modeling/background-removal/ideogram/object_remover/*.py
+!/visual-modeling/background-removal/ideogram/object_remover/web/
+/visual-modeling/background-removal/ideogram/object_remover/web/*
+!/visual-modeling/background-removal/ideogram/object_remover/web/*.html
+!/visual-modeling/background-removal/ideogram/object_remover/web/*.css
+!/visual-modeling/background-removal/ideogram/object_remover/web/*.js
+!/visual-modeling/background-removal/ideogram/object_remover/comfy_nodes/
+/visual-modeling/background-removal/ideogram/object_remover/comfy_nodes/*
+!/visual-modeling/background-removal/ideogram/object_remover/comfy_nodes/__init__.py
+/visual-modeling/background-removal/ideogram/tests/*
+/visual-modeling/background-removal/ideogram/.runtime/
 
 # Editable installs regenerate these beside project sources; they are never
 # part of a pruned runtime checkout.

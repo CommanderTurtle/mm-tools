@@ -1,6 +1,6 @@
 """Explicit CPU-only checks with the bundled Comfy environment. No weight loading.
 
-cd ideogram && ../music/minimax/.venv/bin/python tests/comfy_contract.py
+cd visual-modeling/background-removal/ideogram && ../../../music/minimax/.venv/bin/python tests/comfy_contract.py
 Run after the pinned Comfy-Org/Ideogram-4 set is present (see models/which-ones.txt).
 """
 import asyncio
@@ -11,7 +11,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path[:0] = [str(ROOT), str(ROOT.parent / "music/minimax/runtime")]
+sys.path[:0] = [str(ROOT), str(ROOT.parents[2] / "music/minimax/runtime")]
 sys.argv = [sys.argv[0], "--cpu"]
 os.environ.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1", HF_HUB_DISABLE_TELEMETRY="1")
 import nodes
@@ -34,7 +34,7 @@ class ContractTests(unittest.TestCase):
         import folder_paths
         import execution
         async def check():
-            extras = ROOT.parent / "music/minimax/runtime/comfy_extras"
+            extras = ROOT.parents[2] / "music/minimax/runtime/comfy_extras"
             for filename in ("nodes_custom_sampler.py", "nodes_differential_diffusion.py", "nodes_ideogram4.py",
                              "nodes_textgen.py", "nodes_preview_any.py", "nodes_mask.py"):
                 self.assertTrue(await nodes.load_custom_node(str(extras / filename), module_parent="comfy_extras"))

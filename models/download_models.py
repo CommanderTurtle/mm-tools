@@ -1156,6 +1156,12 @@ BUNDLES += (Bundle("jeveration", "Jeveration generate, edit & dense", "102", (
 )),)
 
 
+BUNDLES += (Bundle("bria-rmbg3", "BRIA RMBG-3.0 cutouts", "103", (
+    A("briaai/RMBG-3.0",model_path("bria-rmbg3/matte"),("model_index.json","transformer/*","assets/rmbg3_example_input_dog.jpg","LICENSE*"),revision="87330e3f87d9d856a21453e5acd120219984a66b"),
+    A("briaai/Fibo-2.0-edit-turbo",model_path("bria-rmbg3/fibo"),("model_index.json","processor/*","text_encoder/*","vae/*","scheduler/*","fonts/*","LICENSE*"),revision="f14db8d1c94a314a5cb803d2fafb9db5664e1ddc"),
+)),)
+
+
 def print_menu() -> None:
     print("\nMM Tools model downloader")
     print(f"Destination root: {MODELS}")

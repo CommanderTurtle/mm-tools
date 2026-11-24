@@ -118,7 +118,7 @@ models/jixin0101--ObjectClear/
 └── vae/
 ```
 
-Used by: ideogram/object_remover through OBJECTCLEAR_MODEL for masked object
+Used by: visual-modeling/background-removal/ideogram/object_remover through OBJECTCLEAR_MODEL for masked object
 removal in the browser workbench.
 
 3. ZhengPeng7/BiRefNet
@@ -133,7 +133,7 @@ models/ZhengPeng7--BiRefNet/
 └── requirements.txt
 ```
 
-Used by: ideogram/object_remover through BIREFNET_MODEL for transparent
+Used by: visual-modeling/background-removal/ideogram/object_remover through BIREFNET_MODEL for transparent
 background removal.
 
 4. meituan-longcat/LongCat-AudioDiT-3.5B
@@ -1306,6 +1306,8 @@ Reconstruction, world geometry, optional sky segmentation and the original examp
 101. FAB motion studio (fab). Camera-space FAB-S/L, SOMA-X and the real G1 rig; companion FAH for head-mounted footage. Accept the SAM body model access terms before the picker. Set FAB_SMPL_SOURCE to licensed SMPL 1.1.0 for setup; optional MANO_SOURCE enables MANO hand fitting. FAB/FAH weights are research/non-commercial.
 
 102. Jeveration image desk (jeveration). Generator, decoders, Qwen, TA-TiTok, CLIP, photo annotators and workflow graph.
+
+103. BRIA matte studio (bria-rmbg3). Accept gated access on both BRIA repos before download; weights CC BY-NC 4.0, commercial use separately licensed. BF16 CUDA: auto stages submodules when less than 30 GiB is free. RMBG_MEMORY=auto|sequential|model|resident. Sequential reduces VRAM at the cost of time; image resolution still affects peak usage.
 
 Workflows section (workflows/download_models.py)
 ------------------------------------------------

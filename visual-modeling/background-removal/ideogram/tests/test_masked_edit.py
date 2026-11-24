@@ -1,6 +1,6 @@
 """CPU-only regression checks; no weights, network, or model inference.
 
-cd ideogram && .venv/bin/python -m unittest discover -s tests
+cd visual-modeling/background-removal/ideogram && .venv/bin/python -m unittest discover -s tests
 """
 import io
 import json

@@ -108,4 +108,4 @@ snapshot_download(
 ```
 
 `uv run above-script.py` will download with those explicit instructions.
-- Jeveration (jeveration): community research terms for the generator and decoders; Qwen and CLIP components are permissive; annotator and depth checkpoints carry research or non-commercial terms.
+- BRIA RMBG-3.0 (bria-rmbg3): BRIA community terms; commercial use needs BRIA registration.
