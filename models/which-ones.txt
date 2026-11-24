@@ -1284,14 +1284,18 @@ Playground reference: hugging-apps/underdog-bark-3-0-pro
 the model repositories' current terms. Hosted examples and Gradio assets are excluded.
 Stored in models/underdog/{base,plus,clean,pro,processor}; linked into vocals/stt/underdog.
 
-94–95. BudgetAny/Budget3D-Idol and Budget3D-Idol-Turbo (bud3d / bud3d-turbo).
-Budget3D: MIT code, Apache-2.0 checkpoints. Shared Idol, DINOv3 and FLUX.2 assets retain their original terms. Turbo adds speridlabs/idol-turbo phase LoRA.
 
 Independent studio: root AGPL-3.0. Transformers/Safetensors: Apache-2.0;
 PyTorch/NumPy/SoundFile/librosa: BSD/ISC; Constriction: MIT/Apache-2.0;
 SoXR/libsndfile: LGPL; FastAPI/python-multipart: MIT; Uvicorn/Starlette: BSD;
 FFmpeg: LGPL/GPL depending on installed build. English only; Clean changes speech style.
 https://huggingface.co/ConwayResearch/Underdog-Bark-3.0-Pro
+
+94–95. BudgetAny/Budget3D-Idol and Budget3D-Idol-Turbo (bud3d / bud3d-turbo).
+Budget3D: MIT code, Apache-2.0 checkpoints. Shared Idol, DINOv3 and FLUX.2 assets retain their original terms. Turbo adds speridlabs/idol-turbo phase LoRA.
+
+96. SplatAnything (splat-v3) and optional prebuilt scenes (splat-v3-showcase).
+Reconstruction, world geometry, optional sky segmentation and the original example inputs. Upstream ZJU3DV Project Registration License; see the checkout's License.txt.
 
 Workflows section (workflows/download_models.py)
 ------------------------------------------------

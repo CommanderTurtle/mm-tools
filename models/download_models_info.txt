@@ -108,8 +108,4 @@ snapshot_download(
 ```
 
 `uv run above-script.py` will download with those explicit instructions.
-
-## Upstream notices
-
-Notices for bundled upstreams are consolidated here; per-studio trees carry none.
-- Budget3D and Idol SDK (bud3d, bud3d-turbo): permissive upstream terms for code and weights.
+- SplatAnything / InfiniSplat (splat-v3): custom registration-based upstream terms for code and checkpoints.

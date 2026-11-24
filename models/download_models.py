@@ -1096,6 +1096,23 @@ BUNDLES += tuple(
 )
 
 
+BUNDLES += (Bundle("splat-v3", "SplatAnything reconstruction and example scenes", "96", (
+    A("ritianyu/SplatAnything", model_path("splat-v3"), ("*.ckpt", "*.safetensors", "*.onnx", "README.md"),
+      revision="cea57139b63da978424b5faca31e06573261215e"),
+    A("ritianyu/SplatAnything_Demo", model_path("splat-v3/demo"), ("examples/**", "README.md"),
+      revision="360fcaa98af2b9f1b8539d550365b3910d9206ba", repo_type="dataset"),
+    A("ritianyu/SplatAnything", model_path("splat-v3/demo"), ("assets/scene-previews/*", "Notice.txt", "License.txt"),
+      revision="bcb83eb8e25b3fafbe52ca319b5c6a050796610a", repo_type="space"),
+)),)
+
+
+BUNDLES += (Bundle("splat-v3-showcase", "SplatAnything offline fly-through gallery (optional)", "96b", (
+    A("ritianyu/SplatAnything_Demo", model_path("splat-v3/showcase"),
+      tuple(f"{category}/{number}/*.html" for category in ("object","indoor","street","aerial","rig","pano")
+            for number in range(1,5)), revision="4e2f7cc7b3191600ccbd7a7f0de0eb20b6676402", repo_type="dataset"),
+)),)
+
+
 def print_menu() -> None:
     print("\nMM Tools model downloader")
     print(f"Destination root: {MODELS}")
