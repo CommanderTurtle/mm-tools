@@ -77,16 +77,15 @@ def repo_path(relative: str) -> Path:
 A = Artifact
 
 
-MODELSCOPE_NOTE = (
-    "note: this checkpoint originates from facebook's ungated commit hash on modelscope. "
-    "Because of this, the progress bar will not show progress. hf_transfer has no way to "
-    "print progress, although just assume it's probably working"
-)
-FLUX_MODELSCOPE_NOTE = (
-    "note: black-forest-labs mirrors this FLUX release ungated on modelscope, pinned by commit "
-    "hash. Because of the direct download, the progress bar will not show progress. hf_transfer "
-    "has no way to print progress, although just assume it's probably working"
-)
+def bria_artifacts() -> tuple[Artifact, ...]:
+    manifest = json.loads((MODELS / "manifests/bria-rmbg3.json").read_text())
+    return tuple(
+        A(group["repository"], model_path(f"bria-rmbg3/{dest}") / Path(row["path"]).parent,
+          revision=row["revision"], direct_url=(
+              f"https://modelscope.cn/models/{group['repository']}/resolve/{row['revision']}/{quote(row['path'])}"
+          ), direct_filename=Path(row["path"]).name, sha256=row["sha256"], expected_size=row["size"])
+        for dest, group in manifest.items() for row in group["files"]
+    )
 
 
 def motionbricks_artifacts() -> tuple[Artifact, ...]:
@@ -1156,10 +1155,7 @@ BUNDLES += (Bundle("jeveration", "Jeveration generate, edit & dense", "102", (
 )),)
 
 
-BUNDLES += (Bundle("bria-rmbg3", "BRIA RMBG-3.0 cutouts", "103", (
-    A("briaai/RMBG-3.0",model_path("bria-rmbg3/matte"),("model_index.json","transformer/*","assets/rmbg3_example_input_dog.jpg","LICENSE*"),revision="87330e3f87d9d856a21453e5acd120219984a66b"),
-    A("briaai/Fibo-2.0-edit-turbo",model_path("bria-rmbg3/fibo"),("model_index.json","processor/*","text_encoder/*","vae/*","scheduler/*","fonts/*","LICENSE*"),revision="f14db8d1c94a314a5cb803d2fafb9db5664e1ddc"),
-)),)
+BUNDLES += (Bundle("bria-rmbg3", "BRIA RMBG-3.0 cutouts", "103", bria_artifacts()),)
 
 
 BUNDLES += (Bundle("wemm-video","WeMM-Video 35B-A3B AWQ","104",(
@@ -1327,8 +1323,7 @@ def download_direct_artifact(artifact: Artifact, number: int, total: int) -> Non
     print(f"  release: {artifact.direct_url}")
     print(f"  destination: {destination}")
     if artifact.direct_url.startswith("https://modelscope.cn/"):
-        note = MODELSCOPE_NOTE if artifact.repo_id.startswith("facebook/") else FLUX_MODELSCOPE_NOTE
-        print(f"  {note}")
+        print("  ModelScope direct download; SHA-256 verified on completion.")
     with urllib.request.urlopen(urllib.request.Request(artifact.direct_url, headers=headers), timeout=60) as response:
         resumed = offset > 0 and getattr(response, "status", 200) == 206
         mode = "ab" if resumed else "wb"

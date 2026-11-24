@@ -1,0 +1,162 @@
+{
+  "matte": {
+    "repository": "briaai/RMBG-3.0",
+    "files": [
+      {
+        "path": "LICENSE",
+        "revision": "6f324cbeb8f598c4ab6e87ba2df36c8c95cde6b8",
+        "sha256": "41003d4a74749c0220e33dd415042164b5a1093ed401f36277234f772d22d3d0",
+        "size": 19347
+      },
+      {
+        "path": "assets/rmbg3_example_input_dog.jpg",
+        "revision": "6f324cbeb8f598c4ab6e87ba2df36c8c95cde6b8",
+        "sha256": "defbeaba2c5979e31f43d2cafd7ba28cf173cffe8572aa938853d98b489b26e0",
+        "size": 295179
+      },
+      {
+        "path": "transformer/config.json",
+        "revision": "6f324cbeb8f598c4ab6e87ba2df36c8c95cde6b8",
+        "sha256": "2fd8dd1787a014c46a5cb23f119c33c219a1111de12263e75279d158c9194c87",
+        "size": 623
+      },
+      {
+        "path": "transformer/diffusion_pytorch_model-00001-of-00004.safetensors",
+        "revision": "6f324cbeb8f598c4ab6e87ba2df36c8c95cde6b8",
+        "sha256": "51eb0fdada5641207ac896407b7cbc20aef5dbe20c1e6746fe5baa257e916507",
+        "size": 4996274842
+      },
+      {
+        "path": "transformer/diffusion_pytorch_model-00002-of-00004.safetensors",
+        "revision": "6f324cbeb8f598c4ab6e87ba2df36c8c95cde6b8",
+        "sha256": "c0ce25f35dda1d3ee9c1aca8ac573e29b163aa2837f7398da62118906ba29461",
+        "size": 4999943404
+      },
+      {
+        "path": "transformer/diffusion_pytorch_model-00003-of-00004.safetensors",
+        "revision": "6f324cbeb8f598c4ab6e87ba2df36c8c95cde6b8",
+        "sha256": "e19da4c3d63101c68bbd5b65e225cd26434d9d62a8fd87a541b12b7c08ed0d44",
+        "size": 4999944124
+      },
+      {
+        "path": "transformer/diffusion_pytorch_model-00004-of-00004.safetensors",
+        "revision": "6f324cbeb8f598c4ab6e87ba2df36c8c95cde6b8",
+        "sha256": "4ef85b4d5db2e189ba8d5e3d1e218ee0a4009621a7862590ae63403d9b789c41",
+        "size": 1258606904
+      },
+      {
+        "path": "transformer/diffusion_pytorch_model.safetensors.index.json",
+        "revision": "6f324cbeb8f598c4ab6e87ba2df36c8c95cde6b8",
+        "sha256": "2624b032454257ba2a1652daa7df81b33f4a16103effaf9b4cc71f4c7838a6f9",
+        "size": 74064
+      }
+    ]
+  },
+  "fibo": {
+    "repository": "briaai/Fibo-2.0-edit-turbo",
+    "files": [
+      {
+        "path": "README.md",
+        "revision": "3227caad7536c3510758d3a0d0df17ed84f1a1d1",
+        "sha256": "419d490045823d4ff24d845d5c4f4961c193dee144745b443be99e82be65c06e",
+        "size": 14974
+      },
+      {
+        "path": "fonts/Aileron-Regular.otf",
+        "revision": "b81bb34e6a413e8a79752bd520876fad3037538d",
+        "sha256": "2762f4fc2ebad8323264aea52ffa2260b86c9677493d3ce2dc4f34e5851d2aa2",
+        "size": 27644
+      },
+      {
+        "path": "fonts/DejaVuSans.ttf",
+        "revision": "b81bb34e6a413e8a79752bd520876fad3037538d",
+        "sha256": "437a5ecec2ec177cba9284cbffc56055311347f3e9fe4f2b4b40323d0290a6db",
+        "size": 757076
+      },
+      {
+        "path": "fonts/LICENSE-Aileron.txt",
+        "revision": "71df68478219bceae9a84a47185c42341e280e9c",
+        "sha256": "d9f3c3a524f8f3d671de2bfb42a924e9ca8aa4afb66fbee04441ad6e7f623fd2",
+        "size": 673
+      },
+      {
+        "path": "fonts/LICENSE-DejaVu.txt",
+        "revision": "71df68478219bceae9a84a47185c42341e280e9c",
+        "sha256": "c67177807098edcacec9f10f724eb9f79d93fab5c9ad7422ca7e351a3376de97",
+        "size": 3844
+      },
+      {
+        "path": "fonts/README.md",
+        "revision": "7ddd0373da6645e9544f7562439aab38128c75d4",
+        "sha256": "1787088f27e72b314c9cfc20831fef4cf9a0cbd24630162c1a2a123236112e47",
+        "size": 1059
+      },
+      {
+        "path": "model_index.json",
+        "revision": "7ddd0373da6645e9544f7562439aab38128c75d4",
+        "sha256": "6b126ec03c0509890b290903cc1738b2e3b7cb6a87f89ce3f1e7758db0306d9c",
+        "size": 438
+      },
+      {
+        "path": "processor/chat_template.jinja",
+        "revision": "305585a15e33c7465a1a72120c57d77629cb2029",
+        "sha256": "3636d0f0bd6bef02654cdffdc447b79cb2cef8ab02cc75267345946291a489e4",
+        "size": 5292
+      },
+      {
+        "path": "processor/processor_config.json",
+        "revision": "305585a15e33c7465a1a72120c57d77629cb2029",
+        "sha256": "11924a8c5152ade8b15d25d3e4464fcc961f86cf856d168c4fe1535ea0a29702",
+        "size": 1218
+      },
+      {
+        "path": "processor/tokenizer.json",
+        "revision": "c26ebb955ca325c57a72ca51b2d1def40375e63f",
+        "sha256": "be75606093db2094d7cd20f3c2f385c212750648bd6ea4fb2bf507a6a4c55506",
+        "size": 11422650
+      },
+      {
+        "path": "processor/tokenizer_config.json",
+        "revision": "c26ebb955ca325c57a72ca51b2d1def40375e63f",
+        "sha256": "7ce86d685d3fb775073b9b1c0f576dd89b7943194c771dd2573cc10e5cae4a48",
+        "size": 734
+      },
+      {
+        "path": "scheduler/scheduler_config.json",
+        "revision": "6e02714833dc0147f442f105ff9f4629b00347e3",
+        "sha256": "1d030c3b5f422e08a49aed14a3a1c78e57f3721a7be1fd9ab2404787af22a32c",
+        "size": 486
+      },
+      {
+        "path": "text_encoder/config.json",
+        "revision": "6e02714833dc0147f442f105ff9f4629b00347e3",
+        "sha256": "9b3743efc786f7c2fe428615549920b6d285c27ff0df3acf2ba2aad8aa953ea8",
+        "size": 1674
+      },
+      {
+        "path": "text_encoder/generation_config.json",
+        "revision": "41b07a737543a2fd1c3289e40963861274142b14",
+        "sha256": "5cd5c00e03e8197b1991aafbb6b4583075c55a46788b7d3262aec98d6a49ba64",
+        "size": 242
+      },
+      {
+        "path": "text_encoder/model.safetensors",
+        "revision": "41b07a737543a2fd1c3289e40963861274142b14",
+        "sha256": "f0b24fc5c8d7c0ea6ca909da14c20af5cac53f22506be942c6c956f838b9630f",
+        "size": 8875719408
+      },
+      {
+        "path": "vae/config.json",
+        "revision": "987fb240a959a67462766bf13a1faff16d619d8c",
+        "sha256": "b5f9c47863e68fc4d851c187e7bd8646cb90811e859333a8b133793bbe415f2d",
+        "size": 915
+      },
+      {
+        "path": "vae/diffusion_pytorch_model.safetensors",
+        "revision": "987fb240a959a67462766bf13a1faff16d619d8c",
+        "sha256": "d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+        "size": 336213556
+      }
+    ]
+  }
+}

@@ -761,6 +761,7 @@
 /models/manifests/*
 !/models/manifests/motionbricks.json
 !/models/manifests/scenebloom.json
+!/models/manifests/bria-rmbg3.json
 !/models/manifests/underdog.json
 
 !/sculpting/scenebloom/

@@ -108,4 +108,3 @@ snapshot_download(
 ```
 
 `uv run above-script.py` will download with those explicit instructions.
-- WeMM-Video (wemm-video): Tencent community terms for code and AWQ weights; vLLM, SGLang and LAVIS overlay patches keep their own permissive upstream terms.

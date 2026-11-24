@@ -25,8 +25,8 @@ pipe = None
 
 def load():
     from diffusers import AutoModel, BriaFibo2Pipeline
-    transformer = AutoModel.from_pretrained(MODELS/"matte", subfolder="transformer", dtype=torch.bfloat16, local_files_only=True)
-    model = BriaFibo2Pipeline.from_pretrained(BASE, transformer=transformer, dtype=torch.bfloat16, local_files_only=True)
+    transformer = AutoModel.from_pretrained(str(MODELS/"matte"), subfolder="transformer", dtype=torch.bfloat16, local_files_only=True)
+    model = BriaFibo2Pipeline.from_pretrained(str(BASE), transformer=transformer, dtype=torch.bfloat16, local_files_only=True)
     mode = os.environ.get("RMBG_MEMORY", "auto")
     if mode == "auto":
         if torch.cuda.mem_get_info()[0] < 30 * 1024**3: mode = "sequential"

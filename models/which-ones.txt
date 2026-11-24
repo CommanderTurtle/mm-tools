@@ -1307,7 +1307,7 @@ Reconstruction, world geometry, optional sky segmentation and the original examp
 
 102. Jeveration image desk (jeveration). Generator, decoders, Qwen, TA-TiTok, CLIP, photo annotators and workflow graph.
 
-103. BRIA matte studio (bria-rmbg3). Accept gated access on both BRIA repos before download; weights CC BY-NC 4.0, commercial use separately licensed. BF16 CUDA: auto stages submodules when less than 30 GiB is free. RMBG_MEMORY=auto|sequential|model|resident. Sequential reduces VRAM at the cost of time; image resolution still affects peak usage.
+103. BRIA matte studio (bria-rmbg3). The picker downloads the RMBG transformer, Fibo companion components and fonts directly from ModelScope. See the accompanying model notices. BF16 CUDA: auto stages submodules when less than 30 GiB is free. RMBG_MEMORY=auto|sequential|model|resident. Sequential reduces VRAM at the cost of time; image resolution still affects peak usage.
 
 104. WeMM video desk (wemm-video). AWQ W4A16 with Tencent’s patched vLLM 0.18.0 (Python 3.12, Linux x86-64, CUDA 12.9 and FFmpeg with shared libraries).
 
