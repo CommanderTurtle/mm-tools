@@ -1,0 +1,22 @@
+# Tested versions (CUDA 12.8), Idol's dependencies included.  Idol's own code is imported from a checkout of
+# https://github.com/speridlabs/idol-sdk at commit 956439f (third_party/idol-sdk, or IDOL_ROOT); later commits pass
+# dtype= to diffusers, which needs diffusers >= 0.40 (and with it huggingface_hub >= 1.0, which transformers 4.57 rejects).
+torch==2.9.1
+torchvision==0.24.1
+transformers==4.57.6            # DINOv3
+diffusers==0.36.0               # the newest release exporting AutoencoderKLFlux2 that still allows huggingface_hub < 1.0
+huggingface_hub==0.35.3
+safetensors==0.8.0
+tensordict==0.10.0
+accelerate==1.14.0
+numpy==2.2.6
+scipy==1.17.0
+pillow==12.1.1
+opencv-python-headless==4.13.0.92
+pyarrow==23.0.0
+einops==0.8.2
+tqdm==4.67.1
+plyfile==1.1.5                  # Idol's .ply output (idol/gaussian.py)
+pyyaml                          # configs/*.yaml
+imageio-ffmpeg                  # an ffmpeg with libx264 for scripts/to_mp4.py (or set FFMPEG)
+lpips                           # scripts/eval_budget.py (optional)

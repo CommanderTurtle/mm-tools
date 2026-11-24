@@ -1283,6 +1283,10 @@ Playground reference: hugging-apps/underdog-bark-3-0-pro
 @ 9cc2dc0ce2eccd76e286d665907e104a5887545e. Its older CC-BY label is superseded by
 the model repositories' current terms. Hosted examples and Gradio assets are excluded.
 Stored in models/underdog/{base,plus,clean,pro,processor}; linked into vocals/stt/underdog.
+
+94–95. BudgetAny/Budget3D-Idol and Budget3D-Idol-Turbo (bud3d / bud3d-turbo).
+Budget3D: MIT code, Apache-2.0 checkpoints. Shared Idol, DINOv3 and FLUX.2 assets retain their original terms. Turbo adds speridlabs/idol-turbo phase LoRA.
+
 Independent studio: root AGPL-3.0. Transformers/Safetensors: Apache-2.0;
 PyTorch/NumPy/SoundFile/librosa: BSD/ISC; Constriction: MIT/Apache-2.0;
 SoXR/libsndfile: LGPL; FastAPI/python-multipart: MIT; Uvicorn/Starlette: BSD;

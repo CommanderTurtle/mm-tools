@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "budget3d"
+version = "1.0.0"
+description = "Budget3D: Idol and Idol-turbo image-to-3D generation at any token budget (unofficial, open-source)"
+# readme omitted: docs are not published
+license = { text = "MIT" }
+requires-python = ">=3.11"
+# The tested, pinned environment is requirements.txt; Idol's own code comes from a checkout of
+# https://github.com/speridlabs/idol-sdk at commit 956439f (third_party/idol-sdk or IDOL_ROOT).
+
+[tool.setuptools.packages.find]
+include = ["budget3d", "budget3d.*"]

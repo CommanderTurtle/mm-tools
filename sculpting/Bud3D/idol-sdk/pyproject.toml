@@ -1,0 +1,30 @@
+[project]
+name = "idol"
+version = "0.1.0"
+description = "Idol: a single image to 3D Gaussians"
+# readme omitted: docs are not published
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.5",
+    "torchvision>=0.20",
+    "transformers>=4.56",
+    "diffusers>=0.36",
+    "huggingface_hub>=0.34",
+    "safetensors>=0.4",
+    "tensordict>=0.8",
+    "numpy>=1.26",
+    "pillow>=10.0",
+    "plyfile>=1.0",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+demo = ["gradio==5.49.1", "spaces"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["idol"]

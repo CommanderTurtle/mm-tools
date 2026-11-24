@@ -1,0 +1,30 @@
+# Budget3D-Idol: the recipe of the released checkpoint (online teacher-rollout distillation from speridlabs/idol).
+# Global batch 64 = batch_per_gpu x grad_accum x GPUs (4 x 4 x 4); on another number of GPUs adjust grad_accum.
+max_steps: 20000
+batch_per_gpu: 4
+grad_accum: 4
+backbone_lr: 5.0e-5
+adapter_mult: 6.0
+warmup_steps: 300
+min_lr_ratio: 0.2
+weight_decay: 1.0e-4
+grad_clip: 0.5
+ema_decay: 0.9995
+rollout_steps: 25          # teacher trajectories: Idol's 25-step guided Euler sampler
+rollout_cfg: 3.0
+rescale_t: 3.0
+grid_jitter: 0.4
+k0_stay_p: 0.70
+cfg_dropout: 0.12
+coarse_boost: 0.5          # loss weight on points a merged token paints: 1 + 0.5
+cam_weight: 0.2
+feat_weight: 0.2
+feat_cos_weight: 0.15
+anchor_p: 0.12             # layout mixture: dense
+uniform_coarse_p: 0.10     # one coarse scale everywhere
+budget_p: 0.65             # a budget log-uniform in [6.25 %, 100 %]; the rest: a random threshold offset
+random_placement_p: 0.15   # content-independent salience
+num_workers: 6
+log_every: 20
+save_every: 500
+snapshot_every: 2500

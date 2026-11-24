@@ -1079,6 +1079,23 @@ BUNDLES += tuple(
 )
 
 
+# Budget3D reuses Idol's frozen encoders, matting, and decoders in place.
+_IDOL_CORE = tuple(a for a in next(b for b in BUNDLES if b.key == "idol").artifacts
+                   if a.repo_type != "space")
+BUNDLES += tuple(
+    Bundle(key, f"Budget3D {variant} image-to-splats", number, _IDOL_CORE + (
+        A(f"BudgetAny/Budget3D-{variant}", model_path(f"bud3d/{variant}"),
+          ("*.safetensors", "config.json", "README.md"), revision=rev),
+    ) + ((A("speridlabs/idol-turbo", model_path("bud3d/Idol-Turbo"),
+            ("idol_turbo_lora.safetensors",), revision="45cdd41f1f4d6d70496daa7d619f57ad79307a37"),)
+         if variant == "Idol-Turbo" else ()))
+    for key, variant, number, rev in (
+        ("bud3d", "Idol", "94", "2dd6d83c57e7853234dbbb24c54b78edc842d074"),
+        ("bud3d-turbo", "Idol-Turbo", "95", "ba76450efdc888310741659665ec72b8c7d0ebc0"),
+    )
+)
+
+
 def print_menu() -> None:
     print("\nMM Tools model downloader")
     print(f"Destination root: {MODELS}")

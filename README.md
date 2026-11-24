@@ -500,6 +500,7 @@ cd vocals/stt/underdog
 | `8291` | Ming3 speech and podcast studio |
 | `8292` | Underdog Bark HTTP |
 | `8293` | Underdog Bark studio |
+| `8294` | `sculpting/Bud3D` · Budget3D image-to-splats (`bud3d` / `bud3d-turbo`) |
 
 The new studios default to loopback; existing services retain their configured private-LAN interfaces. Keep network-exposed services behind the host firewall or set the supported bearer token where provided.
 
