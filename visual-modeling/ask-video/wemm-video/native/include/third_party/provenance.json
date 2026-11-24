@@ -1,0 +1,19 @@
+{
+  "source": "vendor/llama.cpp/tools/mtmd/mtmd-image.cpp",
+  "source_sha256": "2552b9200162160ccb29122371601586c8cd29e5c07f075f0c156f1c47ac38e6",
+  "pinned_revision": "88aaf325a7026ac1127d0897394b0a3d6413dc2a",
+  "extraction": "Only img_tool::resize_pillow, renamed to wemm_pillow_resize::resize; no numeric changes",
+  "header_sha256": "6709aa11c09c18042bc23b28ae0ffe0c624823c1da8f1ca94b4264ff82fc3464",
+  "adaptation": "Standalone wrapper and required type includes only; copied resampling arithmetic unchanged",
+  "torch_u8_resize": {
+    "file": "torch_u8_resize.h",
+    "sha256": "293b3c0582a9f1060d64d93833567ae200a1d0acab50a3d02942aa4fbd9efc32",
+    "derived_from": [
+      "pillow_resize.h",
+      "https://github.com/pytorch/pytorch/blob/v2.10.0/aten/src/ATen/native/cpu/UpSampleKernel.cpp"
+    ],
+    "method": "Separable RGB uint8 antialiased bicubic, global normalized maximum per axis chooses signed int16 coefficient precision, half-away rounding, horizontal then vertical saturation. No Torch library linked.",
+    "pytorch_source_sha256": "3ccfb91f9782362fe2794a25c372f19477d4c568a54351100e430e2470feb234",
+    "pytorch_license": "LICENSE.pytorch"
+  }
+}

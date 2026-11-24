@@ -1162,6 +1162,11 @@ BUNDLES += (Bundle("bria-rmbg3", "BRIA RMBG-3.0 cutouts", "103", (
 )),)
 
 
+BUNDLES += (Bundle("wemm-video","WeMM-Video 35B-A3B AWQ","104",(
+    A("tencent/WeMM-Video-35BA3B-AWQ",model_path("wemm-video/awq"),(),revision="205c63375c223610f99e62d432b816b67b258de0"),
+)),)
+
+
 def print_menu() -> None:
     print("\nMM Tools model downloader")
     print(f"Destination root: {MODELS}")

@@ -1,0 +1,14 @@
+torch==2.13.0+cu129
+torchaudio==2.11.0+cu129
+torchvision==0.28.0+cu129
+torchcodec==0.15.0+cu129
+transformers==5.12.1
+sglang-kernel @ https://github.com/sgl-project/whl/releases/download/v0.4.6.post1/sglang_kernel-0.4.6.post1+cu129-cp310-abi3-manylinux2014_x86_64.whl#sha256=9d400246b3f2512e2c33611e1bb6a2f252c499c5019e9f331f9c9ee215be95ab
+sgl-deep-gemm @ https://github.com/sgl-project/whl/releases/download/v0.1.7/sgl_deep_gemm-0.1.7+cu129-py3-none-manylinux2014_x86_64.whl#sha256=80e988147f773f4490ac443775480a56d98ec9147b393623c9ce4bf03a0e03c5
+cuda-python==12.9.4
+flashinfer-python==0.6.18
+humming-kernels==0.1.12
+nvidia-cutlass-dsl==4.6.2
+nvidia-cudnn-frontend==1.18.0
+quack-kernels==0.6.4
+flash-attn-4==4.0.0b18

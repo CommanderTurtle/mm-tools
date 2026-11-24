@@ -1,0 +1,91 @@
+{
+  "kind": "wemm_native_standalone_source",
+  "upstream_revision": "88aaf325a7026ac1127d0897394b0a3d6413dc2a",
+  "model_weights_included": false,
+  "files": {
+    ".gitignore": {
+      "bytes": 53,
+      "sha256": "bbd76f5a9eb92d8d9bd82621434e776aac1e4ebb19b35e0ea91a197364f05eba"
+    },
+    "CMakeLists.txt": {
+      "bytes": 2316,
+      "sha256": "d45b6b64318afb5e4e3d3b78887bc3135d14500319d8a8a8f4d7ff2e51a50150"
+    },
+    "THIRD_PARTY_NOTICES.md": {
+      "bytes": 1047,
+      "sha256": "d132af7b8389f9da69b5a26b4e7f57e30517a84fd0a85ce2e630bc3ef85e0efb"
+    },
+    "build.py": {
+      "bytes": 2811,
+      "sha256": "07f8000ab92573e122aea7fb4f335a512fe72e94f5fbbabb22f1b27db6cf75ba"
+    },
+    "include/native_audio_config.h": {
+      "bytes": 1824,
+      "sha256": "ffdba76986a69479fc96b60bbc5f835a40a26b1c32d71f95733d0f639187fb02"
+    },
+    "include/native_audio_encoder.h": {
+      "bytes": 11756,
+      "sha256": "8ccfe391c1a69373ed78dfc78d4a43303ddbc05a023ed3db9e3759ccb86cdbec"
+    },
+    "include/native_audio_features.h": {
+      "bytes": 7654,
+      "sha256": "495fce3d05c23df543cb021e7155a0ffad2b0105ccc63a62d07903cf3813b1d0"
+    },
+    "include/native_audio_layout.h": {
+      "bytes": 7223,
+      "sha256": "8e675a96e912ff90d5fe4a401521eb90b6030f015b33be2d5399af70b9b6a7b6"
+    },
+    "include/native_audio_pipeline.h": {
+      "bytes": 15335,
+      "sha256": "9c859e790613fc8990b19913a0cd47a6044be6907d84899c7cba8ccc830dc6b4"
+    },
+    "include/native_cli.h": {
+      "bytes": 9245,
+      "sha256": "dc2e9408df52118fac42c19ffb5d079e29056e63c4c3a19a4b46a77cb6cc1798"
+    },
+    "include/native_video.h": {
+      "bytes": 10817,
+      "sha256": "d18dc0796f92d9c876874d1a378ddb514f04649f037d5571e90190e072e4c043"
+    },
+    "include/third_party/LICENSE.llama.cpp": {
+      "bytes": 1078,
+      "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+    },
+    "include/third_party/LICENSE.pytorch": {
+      "bytes": 3464,
+      "sha256": "bd018feef8825e88181c84eb7e3aa4eafb8f08a20d9fd6ef948569610c4a3e43"
+    },
+    "include/third_party/pillow_resize.h": {
+      "bytes": 13181,
+      "sha256": "6709aa11c09c18042bc23b28ae0ffe0c624823c1da8f1ca94b4264ff82fc3464"
+    },
+    "include/third_party/provenance.json": {
+      "bytes": 1171,
+      "sha256": "35d8f72fd7e69c988d44b0bb8a5bcef9794b4274d669a3cf26c4376fc708a674"
+    },
+    "include/third_party/torch_u8_resize.h": {
+      "bytes": 13652,
+      "sha256": "293b3c0582a9f1060d64d93833567ae200a1d0acab50a3d02942aa4fbd9efc32"
+    },
+    "llama.cpp.lock.json": {
+      "bytes": 1565,
+      "sha256": "feefc44b52c38442a5d149a6fadbaed8dbe34de316845f0e51c858a0e496cf7c"
+    },
+    "run_hf.py": {
+      "bytes": 3751,
+      "sha256": "f3cdd5208227363548a877a5376e106c1f1a41181e5106ac215ad9ed06e7f9df"
+    },
+    "src/native_audio_tool.cpp": {
+      "bytes": 4029,
+      "sha256": "5b23a6fe8da141e7f4434114207d15144f0cc8a66eab4cb55dcf2c23cbdaa47f"
+    },
+    "src/native_runner.cpp": {
+      "bytes": 23306,
+      "sha256": "cccd945db28b4b556bfd52d87d855305c13d9ab1f1c161a5f28554dda9c75b0e"
+    },
+    "verify.py": {
+      "bytes": 1830,
+      "sha256": "5426fe38b93f00fe341c5fe2d07f99dab7155a18155fc23ea375e8172c7fa9ed"
+    }
+  }
+}

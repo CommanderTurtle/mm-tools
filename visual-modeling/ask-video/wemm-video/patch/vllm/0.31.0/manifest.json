@@ -1,0 +1,71 @@
+{
+  "compatibility": {
+    "vllm/model_executor/models/qwen3_5.py": "d261726aae3ce5d52c37b868c317d9377d5e1d7c344961707acc07785a4ec4ab",
+    "vllm/model_executor/models/qwen3_vl.py": "8081274b53fd41f0bf386e5c3f4c9438d00b2e4400c2acd98a53261ff3228465",
+    "vllm/multimodal/audio.py": "818d5c0e3a21dce7b5207565fe1666ae53450ede909f1a4e732efda4a9d19a8a",
+    "vllm/multimodal/media/connector.py": "6c58eba2564a0e1e6470458d5c2279e34f87ad0ce75940e93edb62a7245125c0",
+    "vllm/multimodal/parse.py": "deb26b02631df848aa6562ffd0ff2a4430d827957c79cf3d9d0b01d75ab584c5",
+    "vllm/multimodal/video.py": "9f95055a897458b877989a2f850dcce28b23d605500cd482323f1cd28d420977"
+  },
+  "files": {
+    "vllm/entrypoints/chat_utils.py": {
+      "sha256": "158dcf3c17f0d2ff299a08dfc35290625d8b19912dfaf6eb1bd57cb26e338548",
+      "upstream_sha256": "4d442ec6bc7783f2ed37e7400390631a5f39c27e3a48add89991d1669fef13bd"
+    },
+    "vllm/model_executor/models/config.py": {
+      "sha256": "727c56b5901bb76799cac3846ee0b736be8de16ed4f05ba2b50b3917f5b8b764",
+      "upstream_sha256": "03bec47631bfd2b70614bfec2b208d87cbcc3ee2a785656e3723574c51f96d03"
+    },
+    "vllm/model_executor/models/registry.py": {
+      "sha256": "1b50341e2093d1a00e9e85e2ebb7932e28930c930e2bccfd24d547dc0bd96f13",
+      "upstream_sha256": "7f1d56e2f4c24ff7a949b0d4e796d6af70fa85a2b97c224652949f8d993dcc22"
+    },
+    "vllm/model_executor/models/wemm_bert.py": {
+      "sha256": "4759fe872a35b71f705ca839ddd5fc41f103765d35ee1b222e2b842f2c834e94",
+      "upstream_sha256": null
+    },
+    "vllm/model_executor/models/wemm_omni.py": {
+      "sha256": "94e7fde4339fd25a12655ce0e97e9df808414a1190be23b6873a039fabad4aee",
+      "source_sha256": "66498070d323c38040432acf241db16b7f9d30cc2a78874b33782bd797f37f08",
+      "upstream_sha256": null
+    },
+    "vllm/model_executor/models/wemm_processor.py": {
+      "sha256": "6e9c957f494b2f4d515b49cfd8fc3a1bd5df5e644f998f9171c22859e485f695",
+      "upstream_sha256": null
+    },
+    "vllm/model_executor/models/wemm_whisper.py": {
+      "sha256": "265370eed3ec5ff11f34d3e7ce9347268e8ed712bc0f24b6fdd66c49405cd09e",
+      "upstream_sha256": null
+    },
+    "vllm/multimodal/media/wemm.py": {
+      "sha256": "eeb528bde77b34af931d7d9d249041cfdd7b4cc5e28cb3de69ed1e93fc8054aa",
+      "upstream_sha256": null
+    },
+    "vllm/multimodal/wemm_audio.py": {
+      "sha256": "ba0a78a5bf50d7d03f0b4662665ec635f977dd94d9619b7c1ac953d22f1969ea",
+      "upstream_sha256": null
+    },
+    "vllm/multimodal/wemm_timestamps.py": {
+      "sha256": "b1647467e8b55ac19894826455ff4bbd1e2205c6b3ee20da55862ba95b876278",
+      "upstream_sha256": null
+    },
+    "vllm/multimodal/wemm_video.py": {
+      "sha256": "349f48b556b925dc35333d346ed1daa32c8bf906ce53831a8250cdd63d1be973",
+      "upstream_sha256": null
+    },
+    "vllm/multimodal/wemm_video_policy.py": {
+      "sha256": "5a08358f04b011c401d6355cf396caebae4536442df76ae17dc89470c2b1a50e",
+      "upstream_sha256": null
+    },
+    "vllm/multimodal/wemm_zip.py": {
+      "sha256": "016d7a2bc9b50cf2bed2e901d7ec445260eff890751e94683c8fac0be09eecdb",
+      "upstream_sha256": null
+    },
+    "vllm/multimodal/wemm_zip_policy.py": {
+      "sha256": "f4029f5015cf6342da1bfacaa6b4847d7f20ca450019ff7bc5f4ad899e3706c8",
+      "upstream_sha256": null
+    }
+  },
+  "source_revision": "1b75e58943083b3b155649a030b319c37e3011e8",
+  "upstream_tag": "v0.31.0"
+}

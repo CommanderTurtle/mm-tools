@@ -508,6 +508,7 @@ cd vocals/stt/underdog
 | `8299` | `motion-sim/FAB` · FAB motion studio (`fab`) |
 | `8300` | `visual-modeling/jevertion` · Jeveration image desk (`jeveration`) |
 | `8301` | `visual-modeling/background-removal/RMBG-3.0` · BRIA matte studio (`bria-rmbg3`) |
+| `8302` | `visual-modeling/ask-video` · WeMM video desk (`wemm-video`) |
 
 The new studios default to loopback; existing services retain their configured private-LAN interfaces. Keep network-exposed services behind the host firewall or set the supported bearer token where provided.
 

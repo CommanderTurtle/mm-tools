@@ -1,0 +1,7 @@
+# The WeMM processor uses Transformers 5 APIs.
+transformers==5.2.0
+torch==2.10.0+cu129
+torchaudio==2.10.0+cu129
+torchvision==0.25.0+cu129
+nvidia-cutlass-dsl==4.4.2
+quack-kernels==0.2.7

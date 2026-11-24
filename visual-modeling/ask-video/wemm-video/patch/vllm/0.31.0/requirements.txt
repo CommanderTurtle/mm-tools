@@ -1,0 +1,2 @@
+vllm[audio] @ https://github.com/vllm-project/vllm/releases/download/v0.31.0/vllm-0.31.0+cu129-cp38-abi3-manylinux_2_28_x86_64.whl#sha256=5176ab746f4e736c4a354a11d0620abf0a941de287cad937ac34039293ca6f5f
+torchcodec==0.15.0+cu129

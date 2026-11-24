@@ -1,0 +1,6 @@
+*
+!Dockerfile
+!patch/
+!patch/**
+**/__pycache__/
+**/*.py[cod]

@@ -1,0 +1,80 @@
+{
+  "compatibility": {
+    "sglang/srt/models/qwen3_vl.py": "520f12f9dc4ba62d053706ad94ccdfe9708bb07118811af1214df36c66f05079",
+    "sglang/srt/models/registry.py": "3c5b4e87c5943147c28cb5b68e187cdf8f8f9d880c42f1f6941fce99fe757e41",
+    "sglang/srt/multimodal/processors/qwen_vl.py": "58c161b43959f4a014d7c815b6a6e7c8cacf997cbe7006d2b938721eeee230ee"
+  },
+  "files": {
+    "sglang/srt/arg_groups/model_hook.py": {
+      "sha256": "f233b68b5cbbdd23302c65d6d8fccd28da48c77b521d160635a930028b928bf0",
+      "upstream_sha256": "395d03d17c182f21600ed6169e5280f0cb197adad6fa59f9c7b511954a76512f"
+    },
+    "sglang/srt/arg_groups/model_overrides/qwen3_5.py": {
+      "sha256": "45e93d751efe101f73f68cc7d3f5c4ceaf4d5dd4f1d283ff4a397a893406a3fb",
+      "upstream_sha256": "e782c63b52ed3a86d96d4120edaec45b5f3f867d2cdaba6b8521e4a94e23e294"
+    },
+    "sglang/srt/arg_groups/model_overrides/qwen3_moe.py": {
+      "sha256": "ae620d71a81617f9f4cd1ddf1366afaf0219dab285f5b12dc5e57e897c57b2ac",
+      "upstream_sha256": "89bc45db17b9ffdbd7d5d5c5cf4565cdd0c1d4a13cb3de2cffbff90cdd183dcf"
+    },
+    "sglang/srt/arg_groups/overrides.py": {
+      "sha256": "ab8322f992bf78e8283c870ceecb92aafe8c7a7377780876d5f4cacc80203290",
+      "upstream_sha256": "af4086d5c3bbfc8789d82b196240226785c104809c48cb1f9a24f6962cafe4ac"
+    },
+    "sglang/srt/configs/model_config.py": {
+      "sha256": "ef7dd4084e4f7b0ed5cd66099562c3577282f53d73f37b6f427dd0c77d9061ee",
+      "upstream_sha256": "da8db3fd906bc4fdf412cd8cd2ea1787a3385a948bea41cbc66c6fd75664d6b7"
+    },
+    "sglang/srt/entrypoints/openai/protocol.py": {
+      "sha256": "d073148527fb1e0a4e9fe1ef3a96696b7c0e613649b25cef16d43d6f294a3ced",
+      "upstream_sha256": "a7cf91c1db5d076b9ad647248351f10b0249153998b974ed4d00610306b01653"
+    },
+    "sglang/srt/entrypoints/openai/serving_chat.py": {
+      "sha256": "c4ab371f4c75cdc0c5d5a598fcfbde51f7489ca979c4cc674af00f05986dd386",
+      "upstream_sha256": "7b05e6ab1d09a71ce253040c9cd62ea7c55a52020b44cf9b76d91c8df9e23240"
+    },
+    "sglang/srt/layers/sampler.py": {
+      "sha256": "56159f95154b6df098a55dcd3613765986b7772a9c07a3aec987adc9c396c767",
+      "upstream_sha256": "78fdd9348ac6fc35696061ecf8e1a992414028dd7cdab47436e5c87bd3f58316"
+    },
+    "sglang/srt/models/qwen3_5.py": {
+      "sha256": "5d10020b39da47919a1ee4f1489f2a0da21094fa7e718bee6f69e845b73d3afe",
+      "upstream_sha256": "51e1902fc211202d198c53940ab28b9d21bc5496bd185d1a90325b541bb9b1f2"
+    },
+    "sglang/srt/models/wemm_omni.py": {
+      "sha256": "4929d8a17792ff4bac3ae695ae5f820395bb56e902c6330e8c9504545d2a99e2",
+      "upstream_sha256": null
+    },
+    "sglang/srt/models/wemm_qformer_bert.py": {
+      "sha256": "15ee31c72a943910e6d85f7cef2c14cfa623c3d884c54769990712fc01d8833d",
+      "upstream_sha256": null
+    },
+    "sglang/srt/models/wemm_sampling.py": {
+      "sha256": "45e8c73f3adeabafdd0db7f54a22ed956bccc095ce4e34d121fbf64ce5d9b884",
+      "upstream_sha256": null
+    },
+    "sglang/srt/models/wemm_whisper.py": {
+      "sha256": "6cc20e3b2e73bb1b192e67c5ced3e2689f9fca08311ca8b83f2d82444bcc19e4",
+      "source_sha256": "0d4d89b4f0a2ff68b5c98e7e12b2c0a8f21b2916f60337f1017c3f455a3a1846",
+      "upstream_sha256": null
+    },
+    "sglang/srt/multimodal/processors/wemm.py": {
+      "sha256": "4180eaa0c437c43310c2f8ec41fa18d85bf01a33f5b93719437e7ca557b49ccb",
+      "upstream_sha256": null
+    },
+    "sglang/srt/parser/jinja_template_utils.py": {
+      "sha256": "4aa2419006b1ced3eaa34b35b16f2dd0249d9d4e3f4b4255efc9702fa672fc7e",
+      "upstream_sha256": "27759425d3b5856095de117e1c431645d4e61e548cec3517be8f237cf0de65be"
+    },
+    "sglang/srt/sampling/sampling_batch_info.py": {
+      "sha256": "47f94e4258c0e47d404ec13cae9b13947c7b55f2a9060665759e76fcd16bc695",
+      "upstream_sha256": "e2eae72a069bd7e0e6da93b1ad7e050120f4ac7f9050ff861e60602c89ef9004"
+    },
+    "sglang/srt/server_args.py": {
+      "sha256": "87de563861b2e3aca25378c9e5c5c96306f9ca4468187571901f65bdf7e9c79a",
+      "upstream_sha256": "204fe57ba81acc25b7badcabf3b4b741021767c91f1d64e0df949cb175464b7c"
+    }
+  },
+  "source_revision": "1b75e58943083b3b155649a030b319c37e3011e8",
+  "upstream_tag": "v0.5.19"
+}

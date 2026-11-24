@@ -1,0 +1,2 @@
+vllm[audio]==0.18.0
+torchcodec==0.10.0+cu129

@@ -1,0 +1,38 @@
+x-environment: &environment
+  platform: linux/amd64
+  stdin_open: true
+  tty: true
+  shm_size: 8gb
+
+services:
+  vllm-018:
+    <<: *environment
+    image: wemm-video:vllm-0.18.0-cu129
+    build:
+      context: .
+      args:
+        WEMM_PROFILE: vllm-0.18.0
+
+  vllm-031:
+    <<: *environment
+    image: wemm-video:vllm-0.31.0-cu129
+    build:
+      context: .
+      args:
+        WEMM_PROFILE: vllm-0.31.0
+
+  sglang-0516:
+    <<: *environment
+    image: wemm-video:sglang-0.5.16-cu129
+    build:
+      context: .
+      args:
+        WEMM_PROFILE: sglang-0.5.16
+
+  sglang-0519:
+    <<: *environment
+    image: wemm-video:sglang-0.5.19-cu129
+    build:
+      context: .
+      args:
+        WEMM_PROFILE: sglang-0.5.19

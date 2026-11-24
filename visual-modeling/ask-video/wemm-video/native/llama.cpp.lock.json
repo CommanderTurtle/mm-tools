@@ -1,0 +1,46 @@
+{
+  "repository": "https://github.com/ggml-org/llama.cpp.git",
+  "revision": "88aaf325a7026ac1127d0897394b0a3d6413dc2a",
+  "files": {
+    "CMakeLists.txt": {
+      "bytes": 10918,
+      "sha256": "90e76c2730386449ccf924b87d974f1862bbda31125249ff34ee1f8947d53818"
+    },
+    "include/llama.h": {
+      "bytes": 90731,
+      "sha256": "961430f89e2553dbcd99e3e6c59826af9ec143f05911520c74f804d986ff3cd2"
+    },
+    "src/models/qwen35moe.cpp": {
+      "bytes": 32557,
+      "sha256": "c19275029802ea7acdf53a430492d4357ad13fd0b638d2f0e56a310ed3fe2717"
+    },
+    "src/llama-quant.cpp": {
+      "bytes": 67444,
+      "sha256": "66fa2a0865207e81f69dbb69c81bd0bbc3c5d76fac78769a6b042a030e99dc04"
+    },
+    "tools/mtmd/mtmd.cpp": {
+      "bytes": 129663,
+      "sha256": "4ea82d48fad89cd45133ce5f966539d926e1e9dacccd1d708f921c0bc4c5ee06"
+    },
+    "tools/mtmd/mtmd-helper.cpp": {
+      "bytes": 35887,
+      "sha256": "fd24441c391d1d8669bc865c27fc64ee76ffdec0f0df9737ed3a1097a9ee2f08"
+    },
+    "tools/mtmd/models/qwen3vl.cpp": {
+      "bytes": 6702,
+      "sha256": "5a248956cc965ec1229538585f66a0010fa03a5d5dd164bd495c522ecede0c7b"
+    },
+    "conversion/qwen.py": {
+      "bytes": 49588,
+      "sha256": "dde6d81179a077d963f54e99c713ae02bb11d3484fecce4cd5bce85727eb5f4e"
+    },
+    "conversion/qwen3vl.py": {
+      "bytes": 18195,
+      "sha256": "f66aae7ccadf323825b4ccc265ee8e6be1a5a1b62328ebff4420e48c5caaec21"
+    },
+    "src/models/qwen35.cpp": {
+      "bytes": 28960,
+      "sha256": "d35673cbb968b062928481d70d3ffa555675fb90a3ddd0df482f9613547e544f"
+    }
+  }
+}
