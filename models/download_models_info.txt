@@ -108,3 +108,17 @@ snapshot_download(
 ```
 
 `uv run above-script.py` will download with those explicit instructions.
+
+## Upstream notices
+
+Notices for bundled upstreams are consolidated here.
+
+- Budget3D and Idol SDK (bud3d, bud3d-turbo): permissive upstream terms for code and weights.
+- SplatAnything / InfiniSplat (splat-v3): custom registration-based upstream terms for code and checkpoints.
+- FastFrames (fastframes-live, fastframes-l): Apple sample-code terms for code, Apple research-only terms for the FastFrames checkpoints. LingBot World (bundled with fastframes-live): non-commercial attribution terms for code and DiT weights.
+- Inworld Voice Isolator (inworld-isolator): permissive upstream terms for code and both checkpoints.
+- Sophon Realtime (sophon-agent): permissive upstream terms for code and talker weights; the community NVFP4A16 thinker keeps the same terms.
+- FAB and FAH (fab): permissive upstream terms for code; FAB and FAH model weights are research and non-commercial only. Third-party components: SAM-derived modules and MHR follow Meta research terms; pymomentum, DPVO, DROID-SLAM, TRAM and torchvision are permissive; Metric3D and RoMa carry attribution-style terms.
+- Jeveration (jeveration): community research terms for the generator and decoders; Qwen and CLIP components are permissive; annotator and depth checkpoints carry research or non-commercial terms.
+- BRIA RMBG-3.0 (bria-rmbg3): BRIA community terms; commercial use needs BRIA registration.
+- WeMM-Video (wemm-video): Tencent community terms for code and AWQ weights; vLLM, SGLang and LAVIS overlay patches keep their own permissive upstream terms.
