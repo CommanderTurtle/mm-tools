@@ -1145,6 +1145,17 @@ BUNDLES += (Bundle("fab", "FAB motion, SOMA & ego hands", "101", (
 )),)
 
 
+BUNDLES += (Bundle("jeveration", "Jeveration generate, edit & dense", "102", (
+    A("linlinlinlinsdada/Jeveration",model_path("jeveration/weights"),("*.pt","*LICENSE*"),revision="48c66dceebe76fbfa588072547d5360f8029ee29"),
+    A("Qwen/Qwen3.5-4B",model_path("jeveration/qwen"),("*.safetensors","*.json","*.txt","*.jinja","LICENSE*"),revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"),
+    A("turkeyju/tokenizer_tatitok_bl128_vq",model_path("jeveration/tokens"),(),revision="7650d466a955c754265d20e57513518a4e049f00"),
+    A("timm/vit_large_patch14_clip_336.openai",model_path("jeveration/clip"),("open_clip_model.safetensors","*LICENSE*"),revision="81e38efc4637de5023b10e75a7f9bd1c6fa6b010"),
+    A("lllyasviel/Annotators",model_path("jeveration/hub"),("ControlNetHED.pth",),cache_layout=True,revision="982e7edaec38759d914a963c48c4726685de7d96"),
+    A("depth-anything/Depth-Anything-V2-Small-hf",model_path("jeveration/hub"),("config.json","preprocessor_config.json","model.safetensors"),cache_layout=True,revision="5426e4f0f36572d16453bbda7a8389317b1bef99"),
+    A("linlinlinlinsdada/Jeveration",model_path("jeveration/space"),("workflow.json","requirements.txt"),repo_type="space",revision="1cc6c16ef4a532863219fcb86f07a90e9487f914"),
+)),)
+
+
 def print_menu() -> None:
     print("\nMM Tools model downloader")
     print(f"Destination root: {MODELS}")

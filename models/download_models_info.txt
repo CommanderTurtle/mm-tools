@@ -108,5 +108,4 @@ snapshot_download(
 ```
 
 `uv run above-script.py` will download with those explicit instructions.
-- FAB and FAH (fab): permissive upstream terms for code; FAB and FAH model weights are research and non-commercial only.
-- FAB third-party components: SAM-derived modules and MHR follow Meta research terms; pymomentum, DPVO, DROID-SLAM, TRAM and torchvision are permissive; Metric3D and RoMa carry attribution-style terms.
+- Jeveration (jeveration): community research terms for the generator and decoders; Qwen and CLIP components are permissive; annotator and depth checkpoints carry research or non-commercial terms.

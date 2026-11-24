@@ -1,0 +1,42 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Jeveration</title>
+<style>
+:root{color-scheme:dark;font:15px system-ui;background:#121319;color:#e7e6ee}*{box-sizing:border-box}body{margin:auto;max-width:1440px;padding:clamp(14px,3vw,40px)}header,nav,.bar{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}header{justify-content:space-between;border-bottom:1px solid #44414f;padding-bottom:14px}h1{font:600 clamp(24px,4vw,42px)/1 system-ui;margin:0}h2,figcaption,small{font:600 12px/1.4 ui-monospace,monospace;letter-spacing:.09em;text-transform:uppercase;color:#b7abcc}main{display:grid;grid-template-columns:minmax(230px,1fr) 2fr;gap:24px;margin-top:20px}aside,article{min-width:0}aside>*{margin:0 0 12px}input,button,textarea,select,a.button{font:inherit;padding:.55rem .75rem;border:1px solid #474858;border-radius:7px;color:inherit;background:#24262f}button,a.button{cursor:pointer;text-decoration:none}button[aria-pressed=true],button.primary{background:#d3ff97;color:#202716}select,textarea{width:100%}label{display:block;margin:.4rem 0}input[type=number]{width:10em}textarea{resize:vertical;min-height:5em}canvas{display:block;width:100%;aspect-ratio:1;object-fit:contain;touch-action:none;background:#1b1e24;border-radius:8px;cursor:crosshair}#results{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(160px,100%),1fr));gap:10px}figure{margin:0}figure img,#compare img{width:100%;display:block}#compare{position:relative;background:#191b20}#compare img+img{position:absolute;inset:0}#past button{padding:2px}#past img{height:52px;display:block}#status{min-height:2em}output{display:block;padding:.5rem;color:#c4d9c2}a{color:#c6e2ff}[hidden]{display:none!important}@media(max-width:700px){main{grid-template-columns:1fr}}
+</style><header><h1>Jeveration</h1><nav id="tabs" aria-label="Mode"></nav></header>
+<main><aside><select id="examples" aria-label="Examples"></select><section id="source" hidden>
+<label>Source <input type="file" id="file" accept="image/*"></label><canvas id="pad" width="512" height="512" aria-label="Drawing surface"></canvas>
+<div class="bar"><button id="clear">Blank sketch</button><label>Brush <input type="range" id="size" min="1" max="36" value="5"></label></div></section>
+<div id="editing" hidden><label>Operation <select id="task"></select></label><label><input id="photo" type="checkbox"> Derive edge / depth from photo</label></div>
+<div id="text"><label>Prompt<textarea id="prompt"></textarea></label><div class="bar"><label>Seed <input id="seed" type="number" min="0" max="4294967295" value="42"></label><button id="dice" aria-label="Randomize seed">Roll</button></div></div>
+<div class="bar"><button class="primary" id="run">Render</button><label><input id="live" type="checkbox"> Live preview</label></div><output id="status" role="status">Ready</output></aside>
+<article><div id="compare" hidden><img alt="Edited result"><img alt="Prepared source"></div><label id="wipe" hidden>Compare source and edit <input type="range" value="50" id="split"></label><div id="results" aria-live="polite"></div><h2>Session frames</h2><div id="past" class="bar"></div></article></main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id), pad=$('pad'), ctx=pad.getContext('2d');
+let mode='Generate',cfg,asset=null,history=[],busy=false,queued=false,version=0,timer,pointer=null;
+function blank(){asset=null;pad.width=pad.height=512;ctx.fillStyle='#000';ctx.fillRect(0,0,512,512)}
+function drawImage(im){pad.width=im.naturalWidth;pad.height=im.naturalHeight;ctx.drawImage(im,0,0);asset=true;changed()}
+function load(src){const im=new Image();im.onload=()=>{drawImage(im);if(src.startsWith('blob:'))URL.revokeObjectURL(src)};im.onerror=()=>$('status').textContent='Image could not be opened.';im.src=src}
+function spot(e){const r=pad.getBoundingClientRect(),k=Math.min(r.width/pad.width,r.height/pad.height);return [(e.clientX-r.x-(r.width-pad.width*k)/2)/k,(e.clientY-r.y-(r.height-pad.height*k)/2)/k]}
+pad.onpointerdown=e=>{pad.setPointerCapture(e.pointerId);pointer=spot(e);ctx.lineCap='round';ctx.strokeStyle='white';ctx.lineWidth=+$('size').value*pad.width/512;pad.onpointermove(e)};
+pad.onpointermove=e=>{if(!pointer)return;let p=spot(e);ctx.beginPath();ctx.moveTo(pointer[0]-.01,pointer[1]);ctx.lineTo(...p);ctx.stroke();asset=true;pointer=p;changed()};
+pad.onpointerup=pad.onpointercancel=()=>{pointer=null};
+$('clear').onclick=()=>{blank();asset=true;changed()};$('file').onchange=e=>{if(e.target.files[0])load(URL.createObjectURL(e.target.files[0]))};
+window.addEventListener('paste',e=>{const f=[...e.clipboardData.items].find(i=>i.type.startsWith('image/'))?.getAsFile();if(f&&mode!=='Generate')load(URL.createObjectURL(f))});
+function changed(){version++;clearTimeout(timer);if($('live').checked)timer=setTimeout(request,300)}
+function pick(m){mode=m;version++;queued=false;clearTimeout(timer);for(const b of $('tabs').querySelectorAll('button'))b.setAttribute('aria-pressed',b.textContent===m);
+$('source').hidden=m==='Generate';$('editing').hidden=m!=='Edit';$('text').hidden=m==='Dense';$('results').replaceChildren();$('compare').hidden=$('wipe').hidden=true;
+let items=m==='Generate'?cfg.prompts:m==='Edit'?cfg.edits:cfg.dense;$('examples').replaceChildren(new Option('Load example…',''),...items.map((v,i)=>new Option(Array.isArray(v)?v[0]+' · '+v[1]:v,i)));$('examples').onchange=e=>{if(e.target.value==='')return;let v=items[+e.target.value];if(m==='Generate'){$('prompt').value=v;changed()}else{if(m==='Edit'){const [f,t,c,p]=v;$('task').value=t;$('prompt').value=c;$('photo').checked=p;v=f}load('/examples/'+encodeURIComponent(v))}}}
+function display(row){const {images,note,m}=row;let names=m==='Edit'?['Prepared source','Edit']:m==='Dense'?['Segmentation','Depth','Surface normals']:['Render'];
+$('results').replaceChildren(...images.map((url,i)=>{let f=document.createElement('figure'),img=new Image(),a=document.createElement('a');img.src=url;img.alt=names[i];a.textContent=names[i]+' ↓ PNG';a.download=names[i]+'.png';a.href=url;f.append(img,a);return f}));$('status').textContent=note;$('compare').hidden=$('wipe').hidden=m!=='Edit';
+if(m==='Edit'){const [a,b]=$('compare').children;a.src=images[1];b.src=images[0];$('split').oninput()}}
+$('split').oninput=()=>{$('compare').lastElementChild.style.clipPath='inset(0 '+(100-$('split').value)+'% 0 0)'};
+async function request(){if(busy){queued=true;return}if(mode==='Generate'&&!$('prompt').value.trim()||mode!=='Generate'&&!asset){$('status').textContent='Enter a prompt or choose a source.';return}
+busy=true;const stamp=version,m=mode;$('status').textContent='Rendering…';try{const fd=new FormData();for(const [k,v] of Object.entries({mode:m,prompt:$('prompt').value,task:$('task').value,photo:$('photo').checked,seed:$('seed').value}))fd.set(k,v);
+if(m!=='Generate')fd.set('picture',await new Promise(ok=>pad.toBlob(ok,'image/png')),'source.png');
+const r=await fetch('/render',{method:'POST',body:fd});if(!r.ok){let msg=await r.text();try{msg=JSON.parse(msg).detail||msg}catch{}throw Error(msg)}
+let row={...await r.json(),m,prompt:fd.get('prompt'),task:fd.get('task'),seed:fd.get('seed'),photo:fd.get('photo')==='true',input:fd.get('picture')};if(stamp===version){display(row);history.unshift(row);history.length=Math.min(history.length,10);$('past').replaceChildren(...history.map(h=>{let b=document.createElement('button'),im=new Image();im.src=h.images[h.m==='Edit'?1:0];im.alt=h.m+' frame';b.append(im);b.onclick=()=>{pick(h.m);$('live').checked=false;$('prompt').value=h.prompt;$('seed').value=h.seed;$('task').value=h.task;$('photo').checked=h.photo;if(h.input)load(URL.createObjectURL(h.input));display(h)};return b}))}}
+catch(e){$('status').textContent=e.message}finally{busy=false;if(queued){queued=false;request()}}}
+$('run').onclick=request;$('dice').onclick=()=>{$('seed').value=crypto.getRandomValues(new Uint32Array(1))[0];changed()};
+for(const id of ['prompt','seed','task','photo','live'])$(id).oninput=changed;
+(async()=>{cfg=await(await fetch('/settings')).json();for(const m of ['Generate','Edit','Dense']){let b=document.createElement('button');b.textContent=m;b.onclick=()=>pick(m);$('tabs').append(b)}let a=document.createElement('a');a.className='button';a.href='/workflow/';a.textContent='Workflow ↗';$('tabs').append(a);$('task').replaceChildren(...cfg.tasks.map(t=>new Option(t,t)));blank();pick('Generate')})().catch(e=>$('status').textContent=e.message);
+</script></html>

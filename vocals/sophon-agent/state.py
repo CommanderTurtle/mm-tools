@@ -10,7 +10,7 @@ SOURCE = ROOT / 'sophon-realtime'
 
 def tree_stamp(tree: Path) -> str:
     """Identity of the source this lane runs, derived from the files on disk."""
-    generated = {"__pycache__", ".venv", ".venv*/", ".state", ".runtime", ".hands",
+    generated = {"__pycache__", ".venv", ".state", ".runtime", ".hands",
                   ".cache", "node_modules", "workspace", ".work", "runs", ".git-archives"}
     scratch = {".env", "MUJOCO_LOG.TXT"}
     digest = hashlib.sha256()

@@ -1305,6 +1305,8 @@ Reconstruction, world geometry, optional sky segmentation and the original examp
 
 101. FAB motion studio (fab). Camera-space FAB-S/L, SOMA-X and the real G1 rig; companion FAH for head-mounted footage. Accept the SAM body model access terms before the picker. Set FAB_SMPL_SOURCE to licensed SMPL 1.1.0 for setup; optional MANO_SOURCE enables MANO hand fitting. FAB/FAH weights are research/non-commercial.
 
+102. Jeveration image desk (jeveration). Generator, decoders, Qwen, TA-TiTok, CLIP, photo annotators and workflow graph.
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,
