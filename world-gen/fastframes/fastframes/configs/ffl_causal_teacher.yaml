@@ -1,0 +1,32 @@
+# FastFrames-L stage 1: frame-causal teacher trained by teacher-forcing flow matching on
+# the clean latents of the ODE corpus. Recipe: 256 GPUs (32 nodes x 8), one sample
+# per GPU, i.e. a global batch of 256.
+#   torchrun --nnodes 32 --nproc_per_node 8 ... scripts/train.py --config configs/ffl_causal_teacher.yaml
+stage: causal_teacher
+seed: 20260808                  # data order and the per-sample noise / timesteps / prompt dropout
+model:
+  name: Wan2.1-T2V-14B          # initialised from the bidirectional weights (and T5) in <checkpoint_root>/<name>
+  checkpoint_root: checkpoints
+data:
+  corpus: outputs/ffl_ode_data
+train:
+  max_updates: 6000
+  num_train_timesteps: 1000     # one independent training timestep per latent frame
+  shift: 5.0
+  empty_prompt_probability: 0.1 # classifier-free guidance dropout
+  sharding: hybrid              # FSDP: shard within a node, replicate across nodes
+  save_every: 100               # resumable checkpoint (model, Adam, EMA, data position)
+  keep_checkpoints: 2
+  # Weight exports: raw FP32 model.safetensors (57 GB at 14B) + BF16 ema.safetensors.
+  # FF-L's consistency stage starts from the raw weights of update 1700.
+  export_every: 100
+optimizer:
+  lr: 2.0e-6
+  warmup_updates: 50            # linear warm-up, then constant
+  betas: [0.0, 0.999]
+  weight_decay: 0.01
+  max_grad_norm: 10.0
+  ema_decay: 0.999
+output_dir: outputs/ffl_causal_teacher
+wandb:
+  project: null                 # set to log to Weights & Biases

@@ -1,0 +1,34 @@
+# VBench scoring environment (Python 3.10, CUDA 12.8).
+# Versions marked "recorded" were attested in the environment that produced the
+# paper's VBench scores; the remaining packages were not version-recorded.
+# torch and torchvision come from the PyTorch CUDA 12.8 index and detectron2 is built
+# from source; setup_env.sh installs both separately.
+torch==2.9.1+cu128                # recorded
+torchvision==0.24.1+cu128         # recorded
+numpy==1.26.4                     # recorded
+opencv-python==4.11.0.86          # recorded
+scikit-image==0.25.2              # recorded
+timm==1.0.12                      # recorded
+transformers==4.33.2              # recorded
+decord==0.6.0                     # recorded
+pyiqa==0.1.10                     # recorded
+fairscale==0.4.13                 # recorded
+fvcore==0.1.5.post20221221        # recorded
+cloudpickle==3.1.1                # recorded
+setuptools<81
+openai-clip
+Pillow
+matplotlib
+wheel
+cython
+tensorboard
+scipy
+scikit-learn
+requests
+pyyaml
+easydict
+lvis
+urllib3
+boto3
+omegaconf
+pycocoevalcap

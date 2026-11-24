@@ -1,0 +1,97 @@
+<!doctype html>
+<!--
+  For licensing see accompanying LICENSE file.
+  Copyright (C) 2026 Apple Inc. All Rights Reserved.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Explore a world with LingBot 1.3B, running on your own GPUs." />
+    <title>LingBot · FastFrames</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Interactive World Model home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        Interactive World Model
+      </a>
+      <div class="topbar-meta">
+        <h1 class="model-pill">LingBot <b>1.3B</b> <span class="model-plus">+ FastFrames</span><span id="gpuLabel"></span></h1>
+        <span class="connection-pill" id="connectionPill"><i aria-hidden="true"></i><span id="connectionLabel">Connecting</span></span>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="stage-column" aria-label="Generated world">
+        <section class="latency-panel" aria-label="Live timing">
+          <dl class="latency-summary">
+            <div><dt>Model latency</dt><dd id="modelLatency">—</dd><small>Denoising, history repair, and decoding</small></div>
+            <div><dt>Non-model latency</dt><dd id="nonModelLatency">—</dd><small>(server, network, and browser overheads)</small></div>
+          </dl>
+          <details class="latency-details">
+            <summary>Input → first frame <span id="totalLatency">—</span></summary>
+            <p id="latencySample">Make a camera move to measure</p>
+            <p>Measured from a camera input to the first image loaded in your browser, before screen paint. Non-model latency is that time minus model latency. Initial generation and automatic held-key repeats have no fresh input time, so only model latency is shown.</p>
+          </details>
+        </section>
+
+        <section class="waiting-room" id="waitingRoom" aria-label="Demo access" hidden>
+          <strong id="waitingRoomTitle">Server in use</strong><p id="waitingRoomMessage"></p>
+          <div class="waiting-room-actions"><button class="secondary-button" id="joinQueueButton" type="button" hidden>Join waiting room</button><button class="secondary-button" id="leaveQueueButton" type="button" hidden>Leave waiting room</button><span id="waitingRoomTimer"></span></div>
+        </section>
+
+        <div class="stage-shell">
+          <div class="stage" id="stage" tabindex="0" aria-label="World preview. Use W, A, S, D to move and left or right arrow to pan.">
+            <div class="stage-placeholder" id="stagePlaceholder">
+              <span class="placeholder-icon" aria-hidden="true">✳</span>
+              <p class="eyebrow">YOUR NEXT WORLD STARTS HERE</p>
+              <h2>A scene. A direction.<br />A world to explore.</h2>
+              <p>Choose a starting image, describe the scene,<br />and take the controls.</p>
+            </div>
+            <img id="worldFrame" class="world-frame" alt="Latest generated world frame" draggable="false" hidden />
+            <div class="stage-shade" aria-hidden="true"></div>
+            <div class="viewfinder" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <div class="stage-hud stage-hud-top"><span class="take-indicator"><i id="takeDot"></i><span id="takeLabel">STANDBY</span></span><span class="hud-chip" id="resolutionLabel">832 × 464</span></div>
+            <div class="stage-hud stage-hud-bottom"><span class="action-readout"><small>CAMERA</small><strong id="actionReadout">Ready to explore</strong></span><span class="frame-readout"><small>FRAME</small><strong id="frameCount">0000</strong></span></div>
+          </div>
+          <div class="transport"><span class="transport-light" id="transportLight" aria-hidden="true"></span><span id="stateLabel" role="status">Connecting to your server…</span><span class="block-counter"><span id="chunkCount">0</span> BLOCKS</span></div>
+        </div>
+        <p class="stage-caption"><span>Run locally. Explore freely.</span><span>WASD to move <i>·</i> ← → to look around</span></p>
+      </section>
+
+      <aside class="control-panel" aria-label="Generation controls">
+        <section class="panel-section setup-section">
+          <div class="section-heading"><span class="step-number">01</span><h2>Set the scene</h2></div>
+          <div class="field-heading"><label for="exampleSelect">STARTING IMAGE</label><button class="text-button" id="uploadButton" type="button">Upload your own <span aria-hidden="true">↗</span></button></div>
+          <input id="imageInput" type="file" accept="image/jpeg,image/png,image/webp" hidden />
+          <div class="image-picker"><img id="imagePreview" alt="Selected starting image" hidden /><div id="imagePlaceholder">Choose an example or upload an image</div><span id="imageName" class="image-name" hidden></span></div>
+          <select id="exampleSelect" aria-label="Example starting image"><option value="">Loading examples…</option></select>
+          <label class="field-label prompt-label" for="promptInput">PROMPT</label>
+          <div class="prompt-box"><textarea id="promptInput" rows="4" maxlength="1600" placeholder="Describe the world you want to explore…"></textarea><span class="prompt-footer"><span><kbd>Ctrl / ⌘</kbd> <kbd>↵</kbd> to start</span><span id="promptCount">0 / 1600</span></span></div>
+          <div class="session-row"><label class="seed-field" for="seedInput"><span>SEED</span><input id="seedInput" type="number" min="0" max="4294967295" step="1" value="42" /><button id="randomSeedButton" type="button" aria-label="Randomize seed" title="Randomize seed">↻</button></label><button class="primary-button" id="startButton" type="button" disabled><span aria-hidden="true">▶</span><span id="startButtonLabel">Start world</span></button><button class="stop-button" id="stopButton" type="button" aria-label="Stop session" title="Stop session" disabled><span aria-hidden="true">■</span></button></div>
+        </section>
+
+        <section class="panel-section camera-section">
+          <div class="section-heading"><span class="step-number">02</span><h2>Take the controls</h2><span class="keyboard-status" id="keyboardStatus">STANDBY</span></div>
+          <div class="camera-deck">
+            <div class="movement-controls"><p class="control-label">MOVE</p><div class="movement-pad" role="group" aria-label="Camera movement">
+              <button class="movement-key key-forward" data-action="forward" type="button" aria-label="Move forward (W)" disabled><kbd>W</kbd><span>Forward</span></button>
+              <button class="movement-key key-left" data-action="left" type="button" aria-label="Move left (A)" disabled><kbd>A</kbd><span>Left</span></button>
+              <button class="movement-key key-backward" data-action="backward" type="button" aria-label="Move backward (S)" disabled><kbd>S</kbd><span>Back</span></button>
+              <button class="movement-key key-right" data-action="right" type="button" aria-label="Move right (D)" disabled><kbd>D</kbd><span>Right</span></button>
+            </div></div>
+            <div class="pan-controls"><p class="control-label">LOOK AROUND</p><div class="pan-pair" role="group" aria-label="Camera pan">
+              <button class="pan-key" data-action="yaw_left" type="button" aria-label="Pan left (left arrow)" disabled><kbd>←</kbd><span>Pan left</span></button>
+              <button class="pan-key" data-action="yaw_right" type="button" aria-label="Pan right (right arrow)" disabled><kbd>→</kbd><span>Pan right</span></button>
+            </div></div>
+          </div>
+          <p class="control-help">Tap once, or hold for 0.4 seconds to repeat.<br />Release to hold the last frame.</p>
+        </section>
+      </aside>
+    </main>
+    <div class="toast" id="toast" role="alert" hidden></div>
+  </body>
+</html>

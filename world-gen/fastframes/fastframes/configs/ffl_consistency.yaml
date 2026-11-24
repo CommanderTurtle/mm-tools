@@ -1,0 +1,32 @@
+# FastFrames-L stage 2: causal consistency distillation from the frame-causal teacher.
+# Student, frozen teacher and EMA target all start from the causal teacher's raw weights.
+# Recipe: 128 GPUs (16 nodes x 8), one sample per GPU, i.e. a global batch of 128.
+#   torchrun --nnodes 16 --nproc_per_node 8 ... scripts/train.py --config configs/ffl_consistency.yaml
+stage: consistency
+seed: 20260808                  # data order and the per-sample noise / interval
+model:
+  name: Wan2.1-T2V-14B          # architecture and T5 encoder of <checkpoint_root>/<name>
+  checkpoint_root: checkpoints
+  init: outputs/ffl_causal_teacher/exports/step_00001700/model.safetensors
+data:
+  corpus: outputs/ffl_ode_data
+train:
+  max_updates: 8000             # FF-L continues from the raw student of update 3000
+  levels: 48                    # shifted grid shift(linspace(1, 0, 49)[:-1]): 47 adjacent intervals
+  shift: 5.0
+  guidance_scale: 5.0           # teacher CFG against the negative prompt; the student is conditional-only
+  negative_prompt: 色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走
+  sharding: hybrid              # FSDP: shard within a node, replicate across nodes
+  save_every: 350               # resumable checkpoint (student, EMA target, Adam, data position)
+  keep_checkpoints: 2
+  export_every: 500             # BF16 raw model.safetensors + EMA ema.safetensors
+optimizer:
+  lr: 2.0e-6
+  warmup_updates: 50            # linear warm-up, then constant
+  betas: [0.0, 0.999]
+  weight_decay: 0.01
+  max_grad_norm: 10.0
+  ema_decay: 0.99               # EMA target
+output_dir: outputs/ffl_consistency
+wandb:
+  project: null                 # set to log to Weights & Biases

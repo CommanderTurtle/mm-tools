@@ -1297,6 +1297,8 @@ Budget3D: MIT code, Apache-2.0 checkpoints. Shared Idol, DINOv3 and FLUX.2 asset
 96. SplatAnything (splat-v3) and optional prebuilt scenes (splat-v3-showcase).
 Reconstruction, world geometry, optional sky segmentation and the original example inputs. Upstream ZJU3DV Project Registration License; see the checkout's License.txt.
 
+97–98. FastFrames (fastframes-live / fastframes-l). Apple Sample Code License (code), Apple ML Research License (Apple weights); LingBot CC-BY-NC-SA-4.0. Pick modes independently.
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,

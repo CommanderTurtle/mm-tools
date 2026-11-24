@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fastframes"
+version = "0.1.0"
+description = "FastFrames: interactive-latency autoregressive video diffusion"
+# readme omitted: docs are not published
+license = { text = "Apple Sample Code License" }
+requires-python = ">=3.10"
+dependencies = [
+  # The paper's numbers were produced with exactly these PyTorch builds (CUDA 12.8).
+  "torch==2.9.1+cu128",
+  "torchvision==0.24.1+cu128",
+  "transformers>=5.10",  # umT5 tokenizer; DINOv3 for decoder GAN training
+  "safetensors>=0.4",
+  "einops",
+  "ftfy",
+  "regex",
+  "pyyaml",
+  "numpy",
+]
+
+[project.optional-dependencies]
+wandb = ["wandb"]
+lingbot = ["diffusers==0.31.0", "easydict", "imageio", "scipy", "tqdm"]  # modules of the upstream clone
+demo = ["websockets>=15,<17", "Pillow>=12.3"]  # install together with the lingbot extra
+# modules of the baseline clones; setuptools for the Inductor build of their CPU-side code (latency)
+baselines = ["accelerate", "diffusers==0.31.0", "easydict", "omegaconf", "setuptools", "tqdm"]
+dev = ["pytest", "ruff"]
+
+[tool.setuptools.packages.find]
+include = ["fastframes*"]
+
+# uv sync installs the pinned CUDA 12.8 PyTorch wheels automatically.
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
+
+[tool.ruff]
+line-length = 120
+extend-exclude = ["evaluation/vbench/VBench"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]

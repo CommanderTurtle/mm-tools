@@ -1,0 +1,64 @@
+# FastFrames-S pixel decoder, reconstruction phase (Sec. 3.2, Appendix C): the causal
+# ConvNeXt decoder is trained from scratch on rollouts of the frozen two-step generator
+# against the Wan VAE decoding of the same latents. Recipe: 32 GPUs, 600,000 updates.
+#   torchrun --nnodes 4 --nproc_per_node 8 ... scripts/train.py --config configs/ffs_decoder_recon.yaml
+stage: pixel_decoder
+phase: reconstruction
+# Rollout noise of rollout r on rank k: seed + 10000019 r + k (FastFrames' sequential
+# convention); also the per-rank torch seed (seed + k).
+seed: 20260818
+model:
+  name: Wan2.1-T2V-1.3B         # architecture, T5 encoder and VAE of <checkpoint_root>/<name>
+  checkpoint_root: checkpoints
+  generator: checkpoints/causal-forcing++/framewise-2step.pt   # frozen two-step CF++ generator
+  generator_key: generator_ema  # only used for a torch pickle holding several models
+rollout:
+  num_frames: 21                # latent frames (81 video frames)
+  latent_size: [60, 104]        # 480x832
+  # Model timesteps of the nominal [1000, 750, 500, 250] / [1000, 500] schedules (shift-5
+  # warp, FP32-rounded). Each finished frame is re-run at t = 0 (primed cache, no refiner).
+  first_frame_timesteps: [1000.0, 937.5, 833.3333129882812, 625.0]
+  timesteps: [1000.0, 833.3333129882812]
+  noise: sequential             # every transition noise drawn when needed from the rollout's generator
+decoder:
+  kind: convnext                # 63.87M parameters
+  precision: bf16               # FSDP: FP32 masters, BF16 compute; the loss is evaluated in BF16
+  init_seed: 20260818           # fresh initialisation
+  init_from: null               # weights-only warm start (safetensors export)
+  gradient_checkpointing: true  # per ConvNeXt block
+target:
+  vae_dtype: bfloat16           # the VAE decodes BF16 latents ...
+  dtype: bfloat16               # ... and its clamped output is compared in BF16
+loss:                           # Eq. 4: L_rec = 0.5 L1 + 5 MSE + 0.05 L_grad + 0.05 L_temp + 0.5 L_motion
+  l1: 0.5
+  mse: 5.0
+  grad: 0.05
+  temporal: 0.05
+  motion: 0.5
+  motion_gamma: 10.0            # Eq. 7: weight 1 + gamma |delta_t y_VAE|
+optimizer:                      # AdamW, constant learning rate, no warm-up
+  lr: 1.0e-4
+  betas: [0.9, 0.999]
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  ema_decay: 0.999
+  ema_start: 500                # the EMA copies the weights after update 500 and blends from 501
+data:
+  prompts: data/prompts/vidprom_filtered_extended.txt   # one prompt per line
+  shuffle_seed: 20260818        # prompt order (reshuffled every epoch)
+  eval_prompts: data/prompts/demos.txt
+  num_eval_prompts: 32          # held-out L_rec / PSNR vs. the VAE target, one prompt per GPU
+  eval_seed: 0
+train:
+  updates_per_rollout: 4        # optimizer updates per frozen rollout (same pair, fresh update)
+  # "150k rollouts" (Appendix C) read per GPU: 150k rollouts x 4 updates.
+  max_updates: 600000
+  export_every: 5000            # evaluation + raw and EMA weight export
+  save_every: 1000              # resumable checkpoint (decoder, AdamW, EMA, RNG)
+  keep_checkpoints: 2
+  print_every: 20
+  allow_tf32: true
+  sharding: hybrid              # decoder FSDP: sharded within a node, replicated across nodes
+output_dir: outputs/ffs_decoder_recon
+wandb:
+  project: null                 # set to log to Weights & Biases

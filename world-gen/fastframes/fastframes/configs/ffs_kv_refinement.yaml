@@ -1,0 +1,57 @@
+# FastFrames-S KV refinement network: BF16 training from scratch on the frozen
+# two-step generator, with FP32 master weights and AdamW moments. Use 32 GPUs,
+# one rollout (19 updates) per GPU at a time, gradients averaged over GPUs.
+#   torchrun --nnodes 4 --nproc_per_node 8 ... scripts/train.py --config configs/ffs_kv_refinement.yaml
+stage: kv_refinement
+# Seeds initialisation and rollout noise (seed + 7919 rank
+# + update); the held-out evaluation reseeds the transition noise of the evaluating ranks.
+seed: 20260709
+model:
+  name: Wan2.1-T2V-1.3B         # architecture and T5 encoder of <checkpoint_root>/<name>
+  checkpoint_root: checkpoints
+  generator: checkpoints/causal-forcing++/framewise-2step.pt   # frozen two-step CF++ generator
+  generator_key: generator_ema  # only used for a torch pickle holding several models
+rollout:
+  num_frames: 21                # latent frames (81 video frames)
+  latent_size: [60, 104]        # 480x832
+  # Model timesteps: the nominal [1000, 750, 500, 250] / [1000, 500] schedules warped
+  # by the shift-5 flow schedule (the values are FP32-rounded).
+  first_frame_timesteps: [1000.0, 937.5, 833.3333129882812, 625.0]
+  timesteps: [1000.0, 833.3333129882812]
+  refine_timestep: 833.3333129882812   # constant; the final steady denoising timestep
+refiner:
+  d_a: 768                      # 346,205,952 parameters
+  n_stem: 4
+  stem_n_heads: 8
+  stem_mlp_mult: 4
+  head_mlp_mult: 2
+  dtype: bfloat16
+  init_from: null               # weights-only warm start (safetensors export or pickle with "adapter")
+loss:
+  kv_weight: 0.1                # L = L_attn + kv_weight * L_KV
+  lambda_k: 1.0
+  lambda_v: 3.0
+  far_query: true               # L_attn queries: the next frame plus one random later frame
+  bf16_attention_residual: false  # compute the attention-output residual and norm in FP32
+optimizer:                      # AdamW, constant learning rate, no warm-up
+  lr: 1.0e-4
+  betas: [0.9, 0.99]
+  weight_decay: 0.0
+  max_grad_norm: 10.0           # global norm of the GPU-averaged gradients
+data:
+  prompts: data/prompts/vidprom_filtered_extended.txt   # one prompt per line
+  shuffle_seed: 0               # prompt order (reshuffled every epoch)
+  eval_prompts: data/prompts/demos.txt
+  num_eval_prompts: 32          # the first 32 lines; one per GPU at each evaluation
+  eval_seed: 0
+train:
+  max_updates: 142500
+  export_every: 5000            # evaluation + weight export (at the first rollout end past each multiple)
+  save_every: 2500              # resumable checkpoint (network, AdamW, RNG, prompt position)
+  keep_checkpoints: 2
+  print_every: 20
+  allow_tf32: true              # allow TF32 for FP32 matmuls
+  offload_text_encoder: false
+output_dir: outputs/ffs_kv_refinement
+wandb:
+  project: null                 # set to log to Weights & Biases

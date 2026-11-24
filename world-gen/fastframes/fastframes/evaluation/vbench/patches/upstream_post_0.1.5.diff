@@ -1,0 +1,151 @@
+--- pypi-0.1.5/vbench/__init__.py
++++ snapshot/vbench/__init__.py
+@@ -5,7 +5,7 @@
+ from itertools import chain
+ from pathlib import Path
+ 
+-from .distributed import get_rank, print0
++from .distributed import get_rank, print0  
+ 
+ 
+ class VBench(object):
+@@ -25,13 +25,35 @@
+ 
+         assert len(dim_custom_not_supported) == 0, f"dimensions : {dim_custom_not_supported} not supported for custom input"
+ 
++    def build_custom_image_dict(self, directory):
++        image_dict = {}
++        
++        for filename in os.listdir(directory):
++            file_path = os.path.join(directory, filename)
++
++            if os.path.isfile(file_path):
++                image_name, extension = os.path.splitext(filename)
++                extension = extension.lower()
++
++                if extension in ['.jpg', '.jpeg', '.png']:
++                    image_dict[image_name] = file_path
++        
++        return image_dict
++ 
+ 
+-    def build_full_info_json(self, videos_path, name, dimension_list, prompt_list=[], special_str='', verbose=False, mode='vbench_standard', **kwargs):
++    def build_full_info_json(self, videos_path, name, dimension_list, prompt_list=[],  special_str='', verbose=False, custom_image_folder=None, mode='vbench_standard', **kwargs):
+         cur_full_info_list=[] # to save the prompt and video path info for the current dimensions
+         if mode=='custom_input':
+             self.check_dimension_requires_extra_info(dimension_list)
++            if custom_image_folder:
++                custom_image_dict = self.build_custom_image_dict(custom_image_folder)
++            
+             if os.path.isfile(videos_path):
+-                cur_full_info_list = [{"prompt_en": get_prompt_from_filename(videos_path), "dimension": dimension_list, "video_list": [videos_path]}]
++                if custom_image_folder is None:
++                    cur_full_info_list = [{"prompt_en": get_prompt_from_filename(videos_path), "dimension": dimension_list, "video_list": [videos_path]}]
++                else:
++                    cur_full_info_list = [{"prompt_en": get_prompt_from_filename(videos_path), "dimension": dimension_list, "video_list": [videos_path], "custom_image_path": custom_image_dict[get_prompt_from_filename(videos_path)]}]
++                
+                 if len(prompt_list) == 1:
+                     cur_full_info_list[0]["prompt_en"] = prompt_list[0]
+             else:
+@@ -39,15 +61,27 @@
+ 
+                 cur_full_info_list = []
+ 
+-                for filename in video_names:
+-                    postfix = Path(os.path.join(videos_path, filename)).suffix
+-                    if postfix.lower() not in ['.mp4', '.gif', '.jpg', '.png']:
+-                        continue
+-                    cur_full_info_list.append({
+-                        "prompt_en": get_prompt_from_filename(filename), 
+-                        "dimension": dimension_list, 
+-                        "video_list": [os.path.join(videos_path, filename)]
+-                    })
++                if custom_image_folder is None:
++                    for filename in video_names:
++                        postfix = Path(os.path.join(videos_path, filename)).suffix
++                        if postfix.lower() not in ['.mp4', '.gif',]: #  '.jpg', '.png'
++                            continue
++                        cur_full_info_list.append({
++                            "prompt_en": get_prompt_from_filename(filename), 
++                            "dimension": dimension_list, 
++                            "video_list": [os.path.join(videos_path, filename)]
++                        })
++                else:
++                    for filename in video_names:
++                        postfix = Path(os.path.join(videos_path, filename)).suffix
++                        if postfix.lower() not in ['.mp4', '.gif']: #  '.jpg', '.png'
++                            continue
++                        cur_full_info_list.append({
++                            "prompt_en": get_prompt_from_filename(filename), 
++                            "dimension": dimension_list, 
++                            "video_list": [os.path.join(videos_path, filename)],
++                            "custom_image_path": custom_image_dict[get_prompt_from_filename(filename)]
++                        })
+ 
+                 if len(prompt_list) > 0:
+                     prompt_list = {os.path.join(videos_path, path): prompt_list[path] for path in prompt_list}
+--- pypi-0.1.5/vbench/aesthetic_quality.py
++++ snapshot/vbench/aesthetic_quality.py
+@@ -21,24 +21,19 @@
+ 
+ 
+ def get_aesthetic_model(cache_folder):
+-    """load the aethetic model"""
+-    path_to_model = cache_folder + "/sa_0_4_vit_l_14_linear.pth"
++    """load the aesthetic model"""
++    path_to_model = os.path.join(cache_folder, "sa_0_4_vit_l_14_linear.pth")
+     if not os.path.exists(path_to_model):
+         os.makedirs(cache_folder, exist_ok=True)
+-        url_model = (
+-            "https://github.com/LAION-AI/aesthetic-predictor/blob/main/sa_0_4_vit_l_14_linear.pth?raw=true"
+-        )
+-        # download aesthetic predictor
+-        if not os.path.isfile(path_to_model):
+-            try:
+-                print(f'trying urlretrieve to download {url_model} to {path_to_model}')
+-                urlretrieve(url_model, path_to_model) # unable to download https://github.com/LAION-AI/aesthetic-predictor/blob/main/sa_0_4_vit_l_14_linear.pth?raw=true to pretrained/aesthetic_model/emb_reader/sa_0_4_vit_l_14_linear.pth 
+-            except:
+-                print(f'unable to download {url_model} to {path_to_model} using urlretrieve, trying wget')
+-                wget_command = ['wget', url_model, '-P', os.path.dirname(path_to_model)]
+-                subprocess.run(wget_command)
++        url_model = "https://raw.githubusercontent.com/LAION-AI/aesthetic-predictor/main/sa_0_4_vit_l_14_linear.pth"
++        try:
++            print(f'trying urlretrieve to download {url_model} to {path_to_model}')
++            urlretrieve(url_model, path_to_model)
++        except Exception as e:
++            print(f'urlretrieve failed: {e}, trying wget')
++            subprocess.run(['wget', '-O', path_to_model, url_model], check=True)
+     m = nn.Linear(768, 1)
+-    s = torch.load(path_to_model)
++    s = torch.load(path_to_model, map_location="cpu")
+     m.load_state_dict(s)
+     m.eval()
+     return m
+@@ -95,3 +90,4 @@
+         video_results = gather_list_of_dict(video_results)
+         all_results = sum([d['video_results'] for d in video_results]) / len(video_results)
+     return all_results, video_results
++    
+\ No newline at end of file
+--- pypi-0.1.5/vbench/motion_smoothness.py
++++ snapshot/vbench/motion_smoothness.py
+@@ -84,7 +84,7 @@
+         network_name = network_cfg.name
+         print(f'Loading [{network_name}] from [{ckpt_path}]...')
+         self.model = build_from_cfg(network_cfg)
+-        ckpt = torch.load(ckpt_path, map_location="cpu")
++        ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+         self.model.load_state_dict(ckpt['state_dict'])
+         self.model = self.model.to(self.device)
+         self.model.eval()
+--- pypi-0.1.5/vbench/utils.py
++++ snapshot/vbench/utils.py
+@@ -340,7 +340,7 @@
+                 "model_weight": f'{CACHE_DIR}/grit_model/grit_b_densecap_objectdet.pth'
+             }
+             if not os.path.exists(submodules_dict[dimension]['model_weight']):
+-                wget_command = ['wget', 'https://datarelease.blob.core.windows.net/grit/models/grit_b_densecap_objectdet.pth', '-P', os.path.dirname(submodules_dict[dimension]["model_weight"])]
++                wget_command = ['wget', 'https://huggingface.co/OpenGVLab/VBench_Used_Models/resolve/main/grit_b_densecap_objectdet.pth', '-P', os.path.dirname(submodules_dict[dimension]["model_weight"])]
+                 subprocess.run(wget_command, check=True)
+         elif dimension == 'scene':
+             submodules_dict[dimension] = {

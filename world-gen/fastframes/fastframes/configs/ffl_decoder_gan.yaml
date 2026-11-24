@@ -1,0 +1,46 @@
+# FastFrames-L pixel decoder, adversarial phase: the FastFrames-S adversarial recipe
+# (ffs_decoder_gan.yaml) applied to the last FF-L reconstruction export (bridge + decoder).
+#   torchrun --nproc_per_node 8 scripts/train.py --config configs/ffl_decoder_gan.yaml
+base: ffl_decoder_recon.yaml
+phase: adversarial
+seed: 202608240000              # rollout noise (seed + 10000019 r + rank) and per-rank torch seed
+decoder:
+  init_from: outputs/ffl_decoder_recon/exports/step_00500000/decoder_ema.safetensors
+optimizer:
+  lr: 1.0e-5
+  ema_decay: null               # no EMA; exports hold the trained weights
+discriminator:
+  # Hugging Face snapshot (config.json + model.safetensors) of facebook/dinov3-vits16-pretrain-lvd1689m.
+  backbone: checkpoints/dinov3-vits16-pretrain-lvd1689m
+  layers: [4, 8, 12]            # a spatial and a temporal token head per layer (6 heads)
+  dtype: bfloat16               # frozen backbone; the heads are FP32
+  head_hidden: 128
+  init_seed: 20260824
+  lr: 1.0e-4
+  betas: [0.0, 0.99]
+  weight_decay: 0.0
+  max_grad_norm: 1.0            # global norm of the GPU-averaged head gradients
+  center: 0.01                  # lambda_center
+  slope: 0.25                   # lambda_slope for each of R1 and R2
+  slope_fraction: 0.25          # share of the clips carrying the slope penalties
+  slope_epsilon: 0.01           # std of the Gaussian RGB perturbation (pixels in [-1, 1])
+  clips_per_video: 4            # fake and real crops per update: 4 clips x 4 frames x 224^2
+  clip_frames: 4
+  crop_size: 224
+adversarial:
+  seed: 202608260000            # crop positions, penalty subset and noise (per rank and update)
+  weight: 1.0
+  warmup: 25                    # discriminator-only updates
+  ramp: 250                     # then the gradient-ratio cap ramps linearly to max_gradient_ratio
+  max_gradient_ratio: 0.2       # per-video mean |adversarial RGB gradient| <= 0.2 x reconstruction's
+real_data:
+  root: data/real_videos        # any folder of videos with >= 81 frames
+  seed: 20260824                # clip order and start frames
+data:
+  shuffle_seed: 20260824
+  num_prompts: 248128           # the first 248,128 prompts of the corpus
+train:
+  max_updates: 20000            # 5000 rollouts x 4 updates per GPU
+  export_every: 1000
+  save_every: 500
+output_dir: outputs/ffl_decoder_gan

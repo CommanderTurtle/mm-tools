@@ -1,0 +1,235 @@
+--- a/vbench/__init__.py
++++ b/vbench/__init__.py
+@@ -5,7 +5,7 @@
+ from itertools import chain
+ from pathlib import Path
+ 
+-from .distributed import get_rank, print0  
++from .distributed import barrier, get_rank, print0
+ 
+ 
+ class VBench(object):
+@@ -144,7 +144,18 @@
+         else:
+             full_info_list = load_json(self.full_info_dir)
+             video_names = os.listdir(videos_path)
+-            postfix = Path(video_names[0]).suffix
++            non_mp4 = sorted(
++                name for name in video_names
++                if Path(name).suffix.lower() != '.mp4'
++            )
++            if non_mp4:
++                raise ValueError(
++                    'vbench_standard requires a clean MP4-only input directory; '
++                    f'unexpected files={non_mp4[:8]}'
++                )
++            video_names = set(video_names)
++            postfix = '.mp4'
++            missing_videos = []
+             for prompt_dict in full_info_list:
+                 # if the prompt belongs to any dimension we want to evaluate
+                 if set(dimension_list) & set(prompt_dict["dimension"]): 
+@@ -158,13 +169,34 @@
+                             if verbose:
+                                 print0(f'Successfully found video: {intended_video_name}')
+                         else:
+-                            print0(f'WARNING!!! This required video is not found! Missing benchmark videos can lead to unfair evaluation result. The missing video is: {intended_video_name}')
++                            missing_videos.append(intended_video_name)
+                     cur_full_info_list.append(prompt_dict)
++            # Upstream's temporal static filter retains the first *up to* five
++            # RAFT-threshold-qualified candidates. Some models can exhaust all
++            # 25 candidates with fewer than five (or zero) qualifiers. The
++            # corrected harness verifies that variable corpus against its
++            # explicit filter contract before this scorer is called.
++            allow_temporal_filter_shortfall = set(dimension_list) == {'temporal_flickering'}
++            if missing_videos and not allow_temporal_filter_shortfall:
++                raise FileNotFoundError(
++                    'strict VBench corpus is incomplete: '
++                    f'missing={len(missing_videos)} examples={missing_videos[:8]}'
++                )
++            if missing_videos and allow_temporal_filter_shortfall:
++                print0(
++                    'temporal-flickering corpus has contract-verified static-filter '
++                    f'shortfalls: missing_slots={len(missing_videos)}'
++                )
+ 
+         
+         cur_full_info_path = os.path.join(self.output_path, name+'_full_info.json')
+-        save_json(cur_full_info_list, cur_full_info_path)
+-        print0(f'Evaluation meta data saved to {cur_full_info_path}')
++        # Every torchrun rank builds the same metadata, but only rank 0 may
++        # publish it. Concurrent non-atomic writes can otherwise leave another
++        # rank reading a partially-written JSON file.
++        if get_rank() == 0:
++            save_json(cur_full_info_list, cur_full_info_path)
++            print0(f'Evaluation meta data saved to {cur_full_info_path}')
++        barrier()
+         return cur_full_info_path
+ 
+ 
+--- a/vbench/appearance_style.py
++++ b/vbench/appearance_style.py
+@@ -73,6 +73,18 @@
+     sim_per_frame = sim / cnt
+     return sim_per_frame, video_results
+ 
++
++def _frame_average(video_results):
++    """Reconstruct the single-rank frame-weighted mean after rank gathering."""
++    frame_scores = [
++        score
++        for item in video_results
++        for score in item['frame_results']
++    ]
++    if not frame_scores:
++        raise RuntimeError("appearance-style evaluation produced no frame scores")
++    return sum(frame_scores) / len(frame_scores)
++
+ def compute_appearance_style(json_dir, device, submodules_list, **kwargs):
+     clip_model, preprocess = clip.load(device=device, **submodules_list)
+     _, video_dict = load_dimension_info(json_dir, dimension='appearance_style', lang='en')
+@@ -80,5 +92,5 @@
+     all_results, video_results = appearance_style(clip_model, video_dict, device)
+     if get_world_size() > 1:
+         video_results = gather_list_of_dict(video_results)
+-        all_results = sum([d['cur_sim'] for d in video_results]) / len(video_results)
++        all_results = _frame_average(video_results)
+     return all_results, video_results
+--- a/vbench/color.py
++++ b/vbench/color.py
+@@ -86,7 +86,13 @@
+                     'video_path': video_path, 
+                     'video_results': cur_success_frame_rate,
+                     'cur_success_frame_rate': cur_success_frame_rate,})
+-    success_rate = success_frame_count_all / video_count
++    # A distributed shard can legitimately contain no detected target object.
++    # Defer the division until after global gathering instead of crashing one
++    # rank before the collective.
++    success_rate = (
++        success_frame_count_all / video_count
++        if video_count else None
++    )
+     return success_rate, video_results
+         
+ 
+@@ -101,5 +107,9 @@
+         video_results = gather_list_of_dict(video_results)
+         success_frame_count = sum([x['cur_success_frame_rate'] for x in video_results])
+         frame_count = len(video_results)
++        if frame_count == 0:
++            raise RuntimeError("color evaluation found no target objects on any rank")
+         all_results = success_frame_count / frame_count
++    elif all_results is None:
++        raise RuntimeError("color evaluation found no target objects")
+     return all_results, video_results
+--- a/vbench/imaging_quality.py
++++ b/vbench/imaging_quality.py
+@@ -60,8 +60,7 @@
+     model_path = submodules_list['model_path']
+ 
+     model = MUSIQ(pretrained_model_path=model_path)
+-    model.to(device)
+-    model.training = False
++    model.to(device).eval()
+     
+     video_list, _ = load_dimension_info(json_dir, dimension='imaging_quality', lang='en')
+     video_list = distribute_list_to_rank(video_list)
+--- a/vbench/motion_smoothness.py
++++ b/vbench/motion_smoothness.py
+@@ -91,7 +91,8 @@
+ 
+ 
+     def initialization(self):
+-        if self.device == 'cuda':
++        device_type = torch.device(self.device).type
++        if device_type == 'cuda':
+             self.anchor_resolution = 1024 * 512
+             self.anchor_memory = 1500 * 1024**2
+             self.anchor_memory_bias = 2500 * 1024**2
+--- a/vbench/overall_consistency.py
++++ b/vbench/overall_consistency.py
+@@ -65,7 +65,9 @@
+ 
+ def compute_overall_consistency(json_dir, device, submodules_list, **kwargs):
+     tokenizer = SimpleTokenizer(os.path.join(CACHE_DIR, "ViCLIP/bpe_simple_vocab_16e6.txt.gz"))
+-    viclip = ViCLIP(tokenizer= tokenizer, **submodules_list).to(device)
++    # ViCLIP contains stochastic DropPath layers. Evaluation mode is required
++    # for deterministic, model-comparable scores.
++    viclip = ViCLIP(tokenizer= tokenizer, **submodules_list).to(device).eval()
+     _, video_dict = load_dimension_info(json_dir, dimension='overall_consistency', lang='en')
+     video_dict = distribute_list_to_rank(video_dict)
+     all_results, video_results = overall_consistency(viclip, video_dict, tokenizer, device)
+--- a/vbench/subject_consistency.py
++++ b/vbench/subject_consistency.py
+@@ -70,7 +70,7 @@
+ 
+ 
+ def compute_subject_consistency(json_dir, device, submodules_list, **kwargs):
+-    dino_model = torch.hub.load(**submodules_list).to(device)
++    dino_model = torch.hub.load(**submodules_list).to(device).eval()
+     read_frame = submodules_list['read_frame']
+     logger.info("Initialize DINO success")
+     video_list, _ = load_dimension_info(json_dir, dimension='subject_consistency', lang='en')
+--- a/vbench/temporal_flickering.py
++++ b/vbench/temporal_flickering.py
+@@ -55,8 +55,10 @@
+     for video_path in tqdm(video_list, disable=get_rank() > 0):
+         try:
+             score_per_video = cal_score(video_path)
+-        except AssertionError:
+-            continue
++        except AssertionError as exc:
++            raise RuntimeError(
++                f"temporal-flickering video could not be decoded: {video_path}"
++            ) from exc
+         video_results.append({'video_path': video_path, 'video_results': score_per_video})
+         sim.append(score_per_video)
+     avg_score = np.mean(sim)
+@@ -74,7 +76,6 @@
+ 
+ 
+ 
+-
+ 
+ 
+ 
+--- a/vbench/temporal_style.py
++++ b/vbench/temporal_style.py
+@@ -66,7 +66,9 @@
+ 
+ def compute_temporal_style(json_dir, device, submodules_list, **kwargs):
+     tokenizer = SimpleTokenizer(os.path.join(CACHE_DIR, "ViCLIP/bpe_simple_vocab_16e6.txt.gz"))
+-    viclip = ViCLIP(tokenizer= tokenizer, **submodules_list).to(device)
++    # ViCLIP contains stochastic DropPath layers. Evaluation mode is required
++    # for deterministic, model-comparable scores.
++    viclip = ViCLIP(tokenizer= tokenizer, **submodules_list).to(device).eval()
+     _, video_dict = load_dimension_info(json_dir, dimension='temporal_style', lang='en')
+     video_dict = distribute_list_to_rank(video_dict)
+     all_results, video_results = temporal_style(viclip, video_dict, tokenizer, device)
+--- a/vbench/utils.py
++++ b/vbench/utils.py
+@@ -367,6 +367,10 @@
+                 wget_command = ['wget', 'https://huggingface.co/OpenGVLab/VBench_Used_Models/resolve/main/ViClip-InternVid-10M-FLT.pth', '-P', os.path.dirname(submodules_dict[dimension]["pretrain"])]
+                 subprocess.run(wget_command, check=True)
+ 
++        # Pair this rank-0 post-initialization barrier with the nonzero-rank
++        # pre-initialization barrier above.  This gives every rank exactly one
++        # collective per dimension while ensuring rank 0 has completed any
++        # lazy download before the remaining ranks inspect the artifact.
+         if get_rank() == 0:
+             barrier()
+     return submodules_dict
+@@ -384,8 +388,12 @@
+     return prompt
+ 
+ def save_json(data, path, indent=4):
+-    with open(path, 'w', encoding='utf-8') as f:
++    temporary = f"{path}.{os.getpid()}.tmp"
++    with open(temporary, 'w', encoding='utf-8') as f:
+         json.dump(data, f, indent=indent)
++        f.flush()
++        os.fsync(f.fileno())
++    os.replace(temporary, path)
+ 
+ def load_json(path):
+     """

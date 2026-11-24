@@ -1,0 +1,59 @@
+# FastFrames-L KV refinement network: BF16 network (FP32 master weights and AdamW
+# moments) trained from scratch on the frozen 14B two-step generator.
+# Recipe: 64 B200 GPUs, 142,500 updates.
+#   torchrun --nnodes 8 --nproc_per_node 8 ... scripts/train.py --config configs/ffl_kv_refinement.yaml
+stage: kv_refinement
+seed: 20260824
+model:
+  name: Wan2.1-T2V-14B          # architecture and T5 encoder of <checkpoint_root>/<name>
+  checkpoint_root: checkpoints
+  cross_attention: auto          # PyTorch picks the text cross-attention kernel
+  # Frozen generator: the EMA export at update 1500 of the 14B DMD stage (ffl_dmd.yaml).
+  generator: outputs/ffl_dmd/exports/step_00001500/ema.safetensors
+  generator_key: generator_ema  # only used for a torch pickle holding several models
+rollout:
+  num_frames: 21                # latent frames (81 video frames)
+  latent_size: [60, 104]        # 480x832
+  # Model timesteps of the nominal [1000, 750, 500, 250] / [1000, 500] schedules
+  # (shift-5 warp, truncated to integers).
+  first_frame_timesteps: [1000, 937, 833, 625]
+  timesteps: [1000, 833]
+  refine_timestep: 833          # constant; the final steady denoising timestep
+refiner:
+  d_a: 768                      # 890,168,064 parameters
+  n_stem: 4
+  stem_n_heads: 8
+  stem_mlp_mult: 4
+  head_mlp_mult: 2
+  dtype: bfloat16
+  init_from: null
+loss:
+  kv_weight: 0.1                # L = L_attn + kv_weight * L_KV
+  lambda_k: 1.0
+  lambda_v: 3.0
+  far_query: true               # L_attn queries: the next frame plus one random later frame
+  bf16_attention_residual: false
+optimizer:                      # AdamW, constant learning rate, no warm-up
+  lr: 1.0e-4
+  betas: [0.9, 0.99]
+  weight_decay: 0.0
+  max_grad_norm: 10.0           # global norm of the GPU-averaged gradients
+data:
+  # One prompt per line; the prompt corpus has SHA-256
+  # 7896742f468bc8aef9e4547424d1ce0a951acdb2a82233790155401a99bf5aa5 (also used for FF-S).
+  prompts: data/prompts/vidprom_filtered_extended.txt
+  shuffle_seed: 0               # prompt order (reshuffled every epoch)
+  eval_prompts: data/prompts/demos.txt
+  num_eval_prompts: 32          # the first 32 lines; one per GPU at each evaluation
+  eval_seed: 0
+train:
+  max_updates: 142500
+  export_every: 2500            # evaluation + weight export (at the first rollout end past each multiple)
+  save_every: 1000              # resumable checkpoint (network, FP32 masters, AdamW, RNG, prompt position)
+  keep_checkpoints: 2
+  print_every: 20
+  allow_tf32: true
+  offload_text_encoder: true    # keep T5 off the GPU outside prompt encoding
+output_dir: outputs/ffl_kv_refinement
+wandb:
+  project: null                 # set to log to Weights & Biases

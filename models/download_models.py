@@ -1113,6 +1113,19 @@ BUNDLES += (Bundle("splat-v3-showcase", "SplatAnything offline fly-through galle
 )),)
 
 
+BUNDLES += (
+    Bundle("fastframes-live", "FastFrames • playable LingBot worlds", "97", (
+        A("apple/FastFrames-S", model_path("fastframes"), ("lingbot-1.3b/*","LICENSE*","README.md"), revision="aa099efcedf1b65447106bf9004cde75821f7387"),
+        A("robbyant/lingbot-world-v2-1.3b-causal-fast", model_path("fastframes/lingbot-world-v2-1.3b-causal-fast/transformers"), revision="7e36a5f919f86cb4255cc9bfc30adb44963fbde1"),
+        A("robbyant/lingbot-world-v2-14b-causal-fast", model_path("fastframes/lingbot-world-v2-14b-causal-fast"), ("models_t5_umt5-xxl-enc-bf16.pth","Wan2.1_VAE.pth","google/umt5-xxl/*","LICENSE*"), revision="5c33dd40b213598c418fd25bff30fdbd23fd38a7"),
+    )),
+    Bundle("fastframes-l", "FastFrames-L • text to video", "98", (
+        A("apple/FastFrames-L", model_path("fastframes"), ("fastframes-l/*","README.md","LICENSE*"), revision="d18ec5f054bb03f6b8e561a63d52af3142b5b81d"),
+        A("Wan-AI/Wan2.1-T2V-14B", model_path("fastframes/Wan2.1-T2V-14B"), ("models_t5_umt5-xxl-enc-bf16.pth","google/umt5-xxl/*","LICENSE*"), revision="a064a6c71f5be440641209c07bf2a5ce7a2ff5e4"),
+    )),
+)
+
+
 def print_menu() -> None:
     print("\nMM Tools model downloader")
     print(f"Destination root: {MODELS}")

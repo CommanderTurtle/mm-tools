@@ -502,6 +502,7 @@ cd vocals/stt/underdog
 | `8293` | Underdog Bark studio |
 | `8294` | `sculpting/Bud3D` · Budget3D image-to-splats (`bud3d` / `bud3d-turbo`) |
 | `8295` | `world-gen/Splat-V3` · SplatAnything reconstruction (`splat-v3`; optional `splat-v3-showcase`) |
+| `8296` | `world-gen/fastframes` · FastFrames (`fastframes-live / fastframes-l`) |
 
 The new studios default to loopback; existing services retain their configured private-LAN interfaces. Keep network-exposed services behind the host firewall or set the supported bearer token where provided.
 

@@ -1,0 +1,64 @@
+# FastFrames-L pixel decoder, reconstruction phase: the 14B DiT's 5120-wide pre-head
+# features pass a bias-free, seeded 5120 -> 1536 bridge (hidden states and modulation
+# share it) into a ConvNeXt decoder initialised from a FastFrames-S reconstruction export.
+# Bridge and decoder train together; the 14B generator, T5 and VAE stay frozen.
+#   torchrun --nnodes 8 --nproc_per_node 8 ... scripts/train.py --config configs/ffl_decoder_recon.yaml
+stage: pixel_decoder
+phase: reconstruction
+seed: 20260818                  # rollout noise (seed + 10000019 r + rank) and per-rank torch seed
+model:
+  name: Wan2.1-T2V-14B          # architecture, T5 encoder and VAE of <checkpoint_root>/<name>
+  checkpoint_root: checkpoints
+  cross_attention: auto          # PyTorch picks the text cross-attention kernel
+  # Frozen generator: the EMA export at update 1500 of the 14B DMD stage (ffl_dmd.yaml).
+  generator: outputs/ffl_dmd/exports/step_00001500/ema.safetensors
+  generator_key: generator_ema  # only used for a torch pickle holding several models
+rollout:
+  num_frames: 21                # latent frames (81 video frames)
+  latent_size: [60, 104]        # 480x832
+  # Model timesteps of the nominal [1000, 750, 500, 250] / [1000, 500] schedules (shift-5
+  # warp, truncated to integers).
+  first_frame_timesteps: [1000, 937, 833, 625]
+  timesteps: [1000, 833]
+  noise: pregenerated           # initial noise, then all 3 x latent transition noises
+decoder:
+  kind: bridged                 # bridge (seed 20260821, N(0, 1/5120)) + 63.87M-parameter decoder
+  precision: autocast           # FP32 weights (DDP); decoder and L_rec run under BF16 autocast
+  init_seed: 20260818           # only for the decoder weights that init_from replaces
+  # A FastFrames-S decoder (keys without "bridge.") initialises the decoder; the bridge stays fresh.
+  init_from: outputs/ffs_decoder_recon/exports/step_00050000/decoder_ema.safetensors
+  gradient_checkpointing: true
+target:
+  vae_dtype: float16            # the VAE decodes FP16 latents ...
+  dtype: float32                # ... and its clamped FP32 output is the target
+loss:                           # Eq. 4 (same objective as FastFrames-S)
+  l1: 0.5
+  mse: 5.0
+  grad: 0.05
+  temporal: 0.05
+  motion: 0.5
+  motion_gamma: 10.0
+optimizer:                      # AdamW, constant learning rate, no warm-up
+  lr: 1.0e-4
+  betas: [0.9, 0.999]
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  ema_decay: 0.999
+  ema_start: 500                # the EMA copies the weights after update 500 and blends from 501
+data:
+  prompts: data/prompts/vidprom_filtered_extended.txt
+  shuffle_seed: 20260818
+  eval_prompts: data/prompts/demos.txt
+  num_eval_prompts: 32
+  eval_seed: 0
+train:
+  updates_per_rollout: 4
+  max_updates: 500000
+  export_every: 5000
+  save_every: 1000
+  keep_checkpoints: 2
+  print_every: 20
+  allow_tf32: false             # PyTorch default (FP32 matmuls without TF32)
+output_dir: outputs/ffl_decoder_recon
+wandb:
+  project: null
