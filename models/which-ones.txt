@@ -1299,6 +1299,8 @@ Reconstruction, world geometry, optional sky segmentation and the original examp
 
 97–98. FastFrames (fastframes-live / fastframes-l). Apple Sample Code License (code), Apple ML Research License (Apple weights); LingBot CC-BY-NC-SA-4.0. Pick modes independently.
 
+99. Voice Isolator (inworld-isolator). Both recording and realtime checkpoints; code and weights Apache-2.0.
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,

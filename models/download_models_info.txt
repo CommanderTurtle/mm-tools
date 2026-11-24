@@ -108,5 +108,4 @@ snapshot_download(
 ```
 
 `uv run above-script.py` will download with those explicit instructions.
-- FastFrames (fastframes-live, fastframes-l): Apple sample-code terms for code, Apple research-only terms for the FastFrames checkpoints.
-- LingBot World (bundled with fastframes-live): non-commercial attribution terms for code and DiT weights.
+- Inworld Voice Isolator (inworld-isolator): permissive upstream terms for code and both checkpoints.

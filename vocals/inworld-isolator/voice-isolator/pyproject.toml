@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling==1.33.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "inworld-voice-isolation"
+version = "1.0.0"
+description = "Inworld Voice Isolator: 48 kHz full-band voice isolation, offline or streaming, that preserves speaker timbre."
+# readme omitted: docs are not published
+license = "Apache-2.0"
+
+requires-python = ">=3.10"
+authors = [{ name = "Inworld AI" }]
+keywords = ["speech-enhancement", "denoising", "voice-isolation", "audio", "48khz"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+dependencies = [
+    "numpy",
+    "soundfile",
+    "safetensors",
+    "torch>=2.1",
+    "torchaudio>=2.1",
+    "huggingface-hub",
+]
+
+[project.optional-dependencies]
+fast = ["mamba-ssm>=2.2", "causal-conv1d>=1.4"]
+demucs = ["demucs==4.0.1"]
+docs = ["matplotlib"]
+# silero-vad is pinned to the releases whose segmentation cut the frozen deletion
+# cohort: 6.2.3 moves two borderline recordings and makes every new row incomplete
+eval = ["torchmetrics[audio]>=1.4", "transformers>=4.40", "librosa", "requests", "silero-vad>=6.2.0,<6.2.3", "scipy"]
+asr = ["faster-whisper>=1.0"]
+demo = ["gradio==6.31.0", "soundfile>=0.12.1", "soxr>=0.3.7"]
+dev = ["pytest", "yapf==0.43.0", "isort==9.0.2", "pylint==4.1.1"]
+
+[project.scripts]
+voice-isolate = "inworld.voice_isolation.cli:main"
+voice-isolate-doctor = "inworld.voice_isolation.doctor:main"
+
+[project.urls]
+Homepage = "https://github.com/inworld-ai/voice-isolator"
+Benchmark = "https://github.com/inworld-ai/voice-isolator/blob/main/bench/README.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/inworld"]
+
+# Source distributions contain the inference package and its public documentation.
+[tool.hatch.build.targets.sdist]
+only-include = ["src", "pyproject.toml", "MODEL_CARD.md", "LICENSE", "NOTICE",
+                "docs/assets"]
+
+[tool.yapf]
+based_on_style = "google"
+column_limit = 80
+
+[tool.isort]
+profile = "google"
+# where the local modules live, so their imports group apart from third-party ones
+src_paths = ["src", "bench/scripts", "bench/wrappers", "docs", "demo",
+             "tests", "tests/bench/scripts", "tests/bench/wrappers"]
+# a wrapper's bytes are part of every receipt of its renders, so it changes only
+# with a re-render; it imports its upstream the way upstream documents it
+skip_glob = ["bench/wrappers/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

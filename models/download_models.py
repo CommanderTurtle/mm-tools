@@ -1126,6 +1126,11 @@ BUNDLES += (
 )
 
 
+BUNDLES += (Bundle("inworld-isolator","Inworld Voice Isolator • recording and realtime","99",(
+    A("inworld/voice-isolator",model_path("inworld-isolator"),("*.safetensors","LICENSE","NOTICE","README.md"),revision="9b0285b3fe8403aa8e2f1dbb2165a80a4294c970"),
+)),)
+
+
 def print_menu() -> None:
     print("\nMM Tools model downloader")
     print(f"Destination root: {MODELS}")

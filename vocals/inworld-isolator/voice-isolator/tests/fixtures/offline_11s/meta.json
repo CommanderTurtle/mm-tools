@@ -1,0 +1,14 @@
+{
+  "model": "models/denoiser.safetensors",
+  "model_sha256": "647335a6aeb4dc706b895532c209d51e0e84a4849d17b339f00d4392a050ae53",
+  "precision": "fp32",
+  "mode": "offline",
+  "lookahead_frames": 0,
+  "chunk_seconds": 8.0,
+  "overlap_seconds": 2.0,
+  "tolerance": 0.0001,
+  "render_device": "cpu",
+  "reference": "training-side reference implementation (the training checkpoint's network, never the release file or the package, over the clip in make_goldens.py's own copy of the package's offline window placement: every window a full one, the last ending at the clip's end and fading in where the window before it fades out)",
+  "input_sha256": "f54d1971b0e6d5daa35660b274a712e26c75fb37cc4870ceb8082a7f331c4bf1",
+  "expected_sha256": "361ff4dacfc7090b6b810ccb24e289a5d089302435b98ea7d4def1a6bccff188"
+}

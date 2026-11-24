@@ -1,0 +1,175 @@
+.live-studio {
+  --ink: #eef2ff;
+  --muted: #9aa6c0;
+  --mint: #75f1c5;
+  color: var(--ink);
+  background: linear-gradient(135deg, #131c31, #101625 65%, #142b2c);
+  border: 1px solid #2b3850;
+  border-radius: 22px;
+  padding: 26px;
+  box-shadow: 0 14px 50px #00000018;
+}
+.studio-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.studio-bar strong {
+  font-size: 20px;
+  letter-spacing: -0.4px;
+}
+.studio-bar p {
+  color: var(--muted);
+  margin: 7px 0 0;
+  font-size: 14px;
+}
+.status-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #75839a;
+  margin-right: 10px;
+}
+.live-studio[data-capturing="true"] .status-dot {
+  background: var(--mint);
+  box-shadow: 0 0 0 5px #75f1c520;
+  animation: breathe 1.6s infinite;
+}
+.live-clock {
+  font-size: 27px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+  white-space: nowrap;
+}
+.live-clock span {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.studio-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 24px 0;
+}
+.studio-controls button {
+  border: 1px solid #3c4b65;
+  border-radius: 10px;
+  background: #202d43;
+  padding: 11px 16px;
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.studio-controls button:hover:enabled {
+  background: #2e3e58;
+  transform: translateY(-1px);
+}
+.studio-controls button:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 3px;
+}
+.studio-controls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.studio-controls .record-button {
+  background: var(--mint);
+  color: #102722;
+  border-color: var(--mint);
+}
+.studio-controls .record-button:hover:enabled {
+  background: #a4fbdc;
+}
+.echo-note {
+  color: var(--muted);
+  font-size: 12px;
+  margin-left: auto;
+}
+.signal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.signal-card {
+  background: #090f1d99;
+  border: 1px solid #293650;
+  border-radius: 14px;
+  overflow: hidden;
+  padding: 15px;
+}
+.output-signal {
+  border-color: #75f1c542;
+}
+.signal-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.signal-heading strong {
+  font-size: 15px;
+}
+.signal-heading span {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.signal-card canvas {
+  display: block;
+  width: 100%;
+  height: 94px;
+  border-radius: 6px;
+}
+.signal-card canvas[data-spec] {
+  height: 170px;
+  margin-top: 10px;
+  background: #080e1c;
+}
+.studio-caption {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 12px;
+}
+.studio-error {
+  color: #ffb3ac;
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+@media (max-width: 700px) {
+  .live-studio {
+    padding: 18px;
+  }
+  .signal-grid {
+    grid-template-columns: 1fr;
+  }
+  .echo-note {
+    width: 100%;
+    margin: 5px 0 0;
+  }
+  .studio-bar strong {
+    font-size: 17px;
+  }
+  .live-clock {
+    font-size: 22px;
+  }
+}
+
+/* Gradio assigns text colors directly to semantic elements. */
+.live-studio strong,
+.live-studio .live-clock {
+  color: var(--ink);
+}
+.live-studio .studio-caption span {
+  color: var(--muted);
+}

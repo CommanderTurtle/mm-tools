@@ -1,0 +1,39 @@
+<section class="live-studio" aria-label="Live voice isolation">
+  <div class="studio-bar">
+    <div>
+      <span class="status-dot"></span
+      ><strong data-status>Ready to record</strong>
+      <p data-detail>Speak naturally. Watch your voice emerge in real time.</p>
+    </div>
+    <div class="live-clock" data-clock>00:00<span> / 01:00</span></div>
+  </div>
+  <div class="studio-controls">
+    <button class="record-button" data-action="record">
+      ● Start recording
+    </button>
+    <button data-action="listen" disabled>▶ Pause & listen</button>
+    <button data-action="stop" disabled>■ Stop</button>
+    <span class="echo-note">Your microphone pauses while you listen.</span>
+  </div>
+  <div class="signal-grid">
+    <div class="signal-card input-signal">
+      <div class="signal-heading">
+        <strong>What you hear</strong><span>Microphone</span>
+      </div>
+      <canvas data-wave="input" aria-label="Input waveform"></canvas
+      ><canvas data-spec="input" aria-label="Input spectrogram"></canvas>
+    </div>
+    <div class="signal-card output-signal">
+      <div class="signal-heading">
+        <strong>Your voice</strong><span>Live isolation</span>
+      </div>
+      <canvas data-wave="output" aria-label="Clean voice waveform"></canvas
+      ><canvas data-spec="output" aria-label="Clean voice spectrogram"></canvas>
+    </div>
+  </div>
+  <div class="studio-caption">
+    <span>Last 6 seconds · frequency 0–24 kHz</span
+    ><span data-speed>Waiting for audio</span>
+  </div>
+  <p class="studio-error" role="alert" data-error></p>
+</section>

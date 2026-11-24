@@ -1,0 +1,24 @@
+{
+  "model": "models/denoiser_realtime.safetensors",
+  "model_sha256": "76598f05523c0669e76562a8b2f31c9d395fca316e80c907ee11775e7497ae0f",
+  "precision": "fp32",
+  "mode": "streaming",
+  "lookahead_frames": 2,
+  "chunk_seconds": 8.0,
+  "overlap_seconds": 2.0,
+  "tolerance": 0.0001,
+  "render_device": "cpu",
+  "reference": "training-side reference implementation (windowed streaming runner, make_goldens.py)",
+  "input_sha256": "ba34cb451867fd3bb5b2c4e18f314d22e8379556d7a9dabb73bbf8ac2c45443b",
+  "expected_sha256": "6ea83cd3b91b7ac462f9c9b103bdb5266f43fff949e03983279742e161de114e",
+  "runner": {
+    "block_frames": 4,
+    "cache_frames": 1200,
+    "window_frames": 600,
+    "crossfade_frames": 200,
+    "push": [
+      24000
+    ],
+    "latency_samples": 4448
+  }
+}
