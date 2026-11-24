@@ -1,5 +1,5 @@
 """Build FAB's Unitree G1 (29 DoF) description from Unitree's own g1_description (unitree_ros, robots/g1_description;
-BSD-3-Clause, Copyright Unitree Robotics), as scripts/download_g1.sh installs it under $FAB_HOME/g1:
+BSD-3-Clause, Copyright Unitree Robotics), as models/fab_assets.py installs it under $FAB_HOME/g1:
 
     g1_29dof.urdf        Unitree's g1_29dof.urdf with the Model 15 effort / velocity limits of 14 joints
                          (fab/retarget/g1_model15.py) and FAB's frames (below) as fixed links (1 g / 10 g marker inertials,

@@ -2319,7 +2319,7 @@ def main() -> None:
         model.add_g1_head(joints_input=args.g1_joints).to(device)
         from fab.retarget.g1_files import urdf
 
-        g1_kin = G1Kinematics(paths.require(urdf(), "the Unitree G1 URDF", "Run scripts/download_g1.sh.")).to(device)
+        g1_kin = G1Kinematics(paths.require(urdf(), "the Unitree G1 URDF", "Run models/fab_assets.py.")).to(device)
         if args.g1_only:
             for n, q in model.named_parameters():
                 q.requires_grad_(n.startswith("g1_head."))

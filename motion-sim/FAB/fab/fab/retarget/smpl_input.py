@@ -6,7 +6,7 @@ body fab-retarget retargets (scripts/fab_retarget.py smpl_inputs; docs/retarget.
               0-65), SMPL's hand joints 22 / 23 at zero, the first 10 betas (AMASS's dmpls are not read)
   or vertices verts (T, 6890, 3), SMPL topology;
 and fps (or AMASS's mocap_framerate), optionally frames (T,). Parameters are posed with the SMPL model of the file's gender
-($FAB_HOME/body_models/smpl/SMPL_<GENDER>.pkl, scripts/download_body_models.sh); the joints are that model's J_regressor on
+($FAB_HOME/body_models/smpl/SMPL_<GENDER>.pkl, models/fab_assets.py); the joints are that model's J_regressor on
 the vertices, as fab-world's. Metres; up = "y" turns a y-up world z-up first: (x, y, z) -> (x, -z, y).
 """
 import numpy as np
@@ -42,7 +42,7 @@ def _model(gender):
 
     f = paths.smpl_dir() / f"SMPL_{gender.upper()}.pkl"
     if str(f) not in _MODELS:
-        assert f.exists(), f"no SMPL model {f} (scripts/download_body_models.sh)"
+        assert f.exists(), f"no SMPL model {f} (models/fab_assets.py)"
         _MODELS[str(f)] = SMPL(f, num_betas=10).double()
     return _MODELS[str(f)], f
 

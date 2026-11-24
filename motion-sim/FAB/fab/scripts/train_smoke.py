@@ -6,7 +6,7 @@ loss is finite and that the checkpoints and the bundle are written. Synthetic la
 
 Needs one CUDA GPU, SAM 3D Body's model_config.yaml + assets/mhr_model.pt ($FAB_SAM3D; fab.download_sam3d()) and
 $FAB_HOME/body_models (SMPL_{NEUTRAL,MALE,FEMALE}.pkl, J_regressor_h36m.npy, the MHR -> SMPL mapping files). The G1 head
-is trained when the G1 description is installed (scripts/download_g1.sh), else switched off for the test. No weights
+is trained when the G1 description is installed (models/fab_assets.py), else switched off for the test. No weights
 are downloaded (--no_pretrained --no_teacher_weights).
 """
 import argparse

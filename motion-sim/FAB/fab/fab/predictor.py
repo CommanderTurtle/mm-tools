@@ -692,7 +692,7 @@ class FABPredictor:
             from fab.retarget.g1_files import urdf
 
             self.kin = G1Kinematics(paths.require(urdf(), "the Unitree G1 URDF (the G1 head's joint limits)",
-                                                  "Run scripts/download_g1.sh.")).to(device)
+                                                  "Run models/fab_assets.py.")).to(device)
         self._tracks = None
 
     def _prepare_gpu(self, image, boxes, K, img_t=None):

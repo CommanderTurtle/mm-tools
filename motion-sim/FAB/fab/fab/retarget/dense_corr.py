@@ -336,7 +336,7 @@ def make(ckpt=None, mjcf=None, smpl=None, out=None):
 def main():
     p = argparse.ArgumentParser(description="Build the dense-point -> G1 anchor correspondence (fab-retarget's points mode).")
     p.add_argument("--ckpt", default="", help="FAB model.pt (dense_head.surface_idx; default: the released FAB-L)")
-    p.add_argument("--mjcf", default="", help="G1 MJCF (default: the installed g1_29dof.xml, scripts/download_g1.sh)")
+    p.add_argument("--mjcf", default="", help="G1 MJCF (default: the installed g1_29dof.xml, models/fab_assets.py)")
     p.add_argument("--smpl", default="", help="SMPL_NEUTRAL.pkl (default: the installed SMPL model)")
     p.add_argument("--out", default="", help="default: $FAB_HOME/extras/dense_corr_g1.npz")
     a = p.parse_args()

@@ -2,7 +2,7 @@
 standing pose (rad) and the velocity limit (rad/s).
 
 Ranges and velocity limits are those of Unitree's g1_29dof_mode_15.urdf (unitree_ros, robots/g1_description; BSD-3-Clause,
-Copyright Unitree Robotics); they equal the joint limits of the G1 URDF that scripts/download_g1.sh installs. The default
+Copyright Unitree Robotics); they equal the joint limits of the G1 URDF that models/fab_assets.py installs. The default
 pose is the G1's standard standing pose (hips -0.312, knees 0.669, ankles -0.363; arms slightly bent).
 """
 

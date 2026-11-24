@@ -1,5 +1,5 @@
 """The Unitree G1 robot description files the retargeter loads, under $FAB_HOME/g1 (fab.paths.g1_dir();
-scripts/download_g1.sh installs them: Unitree's g1_description, built into FAB's files by scripts/build_g1.py):
+models/fab_assets.py installs them: Unitree's g1_description, built into FAB's files by scripts/build_g1.py):
 
     g1_29dof.urdf          kinematics, joint limits, link inertials, FAB's frames (the retargeting solver, the G1 head)
     g1_29dof.xml           the 29-DoF MuJoCo model with FAB's frames (support points, scene metrics, the simulation package)

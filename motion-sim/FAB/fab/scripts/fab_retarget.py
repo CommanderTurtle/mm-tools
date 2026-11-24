@@ -34,7 +34,7 @@ Three modes, one solver and configuration:
                     (resampled to 50) and optionally frames; its world is <clip>_hfield.npz next to it (x0, y0, res, height)
                     or else a flat floor at z = 0. A given world is used as is: no level snap, no terrain clean (steps 1-2).
 On CUDA the solver's and the stance pin's loops run as CUDA graphs (fab/retarget/cuda_graph.py), bitwise the plain loops;
---no_graph runs the plain loops. Needs MuJoCo and the G1 robot description (scripts/download_g1.sh). The stance pin depends
+--no_graph runs the plain loops. Needs MuJoCo and the G1 robot description (models/fab_assets.py). The stance pin depends
 on which clips it solves together (--batch_frames); this command pins each clip alone.
 """
 import argparse

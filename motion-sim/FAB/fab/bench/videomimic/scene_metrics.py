@@ -7,7 +7,7 @@ rollout), as a heightfield (bench/videomimic/recon.py *_hfield.npz, or a mesh ra
   skate    horizontal speed of a foot (centre of its sole points) in contact (m/s)
   float    frames where the human (labels) has a foot contact but the robot's lowest sole point is > 5 cm above (%)
   jitter   mean |d2 q / dt2| (rad/s^2) on a common 30 Hz grid (linear resampling)
-Robot: the 29-dof G1 MJCF of the retargeter ($FAB_HOME/g1/g1_29dof.xml, scripts/download_g1.sh); 23-dof motions get wrists 0.
+Robot: the 29-dof G1 MJCF of the retargeter ($FAB_HOME/g1/g1_29dof.xml, models/fab_assets.py); 23-dof motions get wrists 0.
 
     python -m bench.videomimic.scene_metrics --motion <name>_motion.npz --hfield <name>_hfield.npz [--scale s]
 """

@@ -6,7 +6,7 @@ Everything lives under one root, ``$FAB_HOME`` (default ``~/.cache/fab``):
     $FAB_HOME/sam-3d-body-dinov3/   SAM 3D Body config + MHR model (``$FAB_SAM3D`` overrides; ``fab.download_sam3d()``)
     $FAB_HOME/body_models/smpl/     SMPL model files you download yourself (``$FAB_SMPL_DIR`` overrides the smpl/ folder)
     $FAB_HOME/engines/<gpu>/        TensorRT engines built on this machine (``fab-build-trt``; ``$FAB_ENGINES`` overrides)
-    $FAB_HOME/g1/                   Unitree G1 robot description (``scripts/download_g1.sh``; ``$FAB_G1`` overrides)
+    $FAB_HOME/g1/                   Unitree G1 robot description (``models/fab_assets.py``; ``$FAB_G1`` overrides)
     $FAB_HOME/envs/                 world-mode tool environments (built by ``fab-world`` on first use; ``$FAB_ENVS`` overrides)
 """
 import os
