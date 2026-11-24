@@ -1,0 +1,11 @@
+# Sophon-Realtime 全双工：在 sophon_realtime.yaml 基础上开 /v1/realtime（话轮由 DuplexJev 判断，见 sophon_realtime/duplex.py）
+base_config: sophon_realtime.yaml
+session_mode: duplex
+duplex_session:
+  max_sessions: 16
+  idle_ttl_s: 600
+  server_vad_model_path: config/silero_vad.onnx
+stages:
+  - stage_id: 0
+    limit_mm_per_prompt:
+      audio: 20

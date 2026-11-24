@@ -1,0 +1,16 @@
+[
+ {"id":"zh_time","lang":"zh","text":"现在几点了呀？","expect":"delegate"},
+ {"id":"zh_weather","lang":"zh","text":"明天上海会下雨吗？","expect":"delegate"},
+ {"id":"zh_light","lang":"zh","text":"帮我把客厅的灯关掉。","expect":"delegate"},
+ {"id":"zh_memory","lang":"zh","text":"你还记得我上次跟你说我喜欢吃什么吗？","expect":"delegate"},
+ {"id":"zh_news","lang":"zh","text":"今天有什么科技新闻？","expect":"delegate"},
+ {"id":"zh_chat1","lang":"zh","text":"哈哈，你还挺能聊的嘛。","expect":"none"},
+ {"id":"zh_chat2","lang":"zh","text":"我今天有点累，想跟你聊聊天。","expect":"none"},
+ {"id":"zh_chat3","lang":"zh","text":"你觉得猫和狗哪个更可爱？","expect":"none"},
+ {"id":"zh_know","lang":"zh","text":"一年有几个季节？","expect":"none"},
+ {"id":"zh_joke","lang":"zh","text":"给我讲个笑话吧。","expect":"none"},
+ {"id":"en_time","lang":"en","text":"What time is it right now?","expect":"delegate"},
+ {"id":"en_weather","lang":"en","text":"Is it going to rain in Melbourne tomorrow?","expect":"delegate"},
+ {"id":"en_chat","lang":"en","text":"Haha, that's funny. How are you doing today?","expect":"none"},
+ {"id":"en_know","lang":"en","text":"Why is the sky blue?","expect":"none"}
+]

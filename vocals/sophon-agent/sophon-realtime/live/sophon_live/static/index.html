@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sophon Live 测试台</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--line:#2a313c;--fg:#e6edf3;--sub:#8b949e;--acc:#22d3a6;--acc2:#7c5cff;--warn:#f0b429;--bad:#ff6b6b;--me:#1f6feb;}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif}
+header{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0}header .tag{font-size:12px;color:var(--acc);border:1px solid var(--acc);border-radius:10px;padding:1px 8px}
+header .ep{margin-left:auto;font-size:12px;color:var(--sub)}header .ep code{color:var(--fg)}
+main{display:grid;grid-template-columns:320px 1fr 340px;gap:12px;padding:12px;height:calc(100vh - 58px)}
+@media(max-width:1100px){main{grid-template-columns:1fr;height:auto}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto;display:flex;flex-direction:column;gap:10px;min-height:0}
+label{font-size:12px;color:var(--sub);display:block;margin-bottom:4px}
+textarea,select,input{width:100%;background:#0d1117;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px;font:inherit}
+textarea{resize:vertical}
+button{background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--sub)}button.primary{background:var(--acc);color:#04251c;border:none;font-weight:600}
+button.stop{background:var(--bad);color:#fff;border:none}button:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+#chat{flex:1;overflow:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}
+.b{max-width:80%;padding:8px 12px;border-radius:12px;white-space:pre-wrap;word-break:break-word}
+.b.user{align-self:flex-end;background:var(--me);border-bottom-right-radius:3px}
+.b.asst{align-self:flex-start;background:#21262d;border-bottom-left-radius:3px}
+.deleg{align-self:center;width:92%;border:1px dashed var(--acc2);border-radius:10px;padding:8px 10px;font-size:13px;color:#cfc6ff}
+.deleg .t{color:var(--sub);font-size:12px}.deleg .r{color:var(--fg);margin-top:4px}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat div{background:#0d1117;border:1px solid var(--line);border-radius:8px;padding:8px}
+.stat b{display:block;font-size:20px}.stat span{font-size:12px;color:var(--sub)}
+#log{font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;color:var(--sub);white-space:pre-wrap;flex:1;overflow:auto;background:#0d1117;border:1px solid var(--line);border-radius:6px;padding:8px}
+#log .in{color:#7ee2b8}#log .out{color:#9fb7ff}#log .err{color:var(--bad)}
+.meter{height:6px;background:#0d1117;border-radius:3px;overflow:hidden;border:1px solid var(--line)}.meter i{display:block;height:100%;width:0;background:var(--acc)}
+.hint{font-size:12px;color:var(--sub)}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--sub);margin-right:6px}
+.dot.on{background:var(--acc)}.dot.err{background:var(--bad)}
+small code{background:#0d1117;padding:1px 4px;border-radius:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Sophon Live 测试台</h1><span class="tag">OpenAI GPT-Live 协议兼容</span>
+  <span id="st"><span class="dot"></span>未连接</span>
+  <span class="ep">接口：<code id="epurl"></code></span>
+</header>
+<main>
+  <section class="panel">
+    <div><label>人设（session.start → instructions）</label>
+      <textarea id="ins" rows="6">你是小智，一个温暖、幽默的语音伙伴。说话简短自然，像朋友聊天一样。</textarea></div>
+    <div class="row">
+      <div><label>委派（delegation）</label><select id="dlg"><option value="client" selected>client：交给后端</option><option value="none">关闭</option></select></div>
+      <div><label>后端</label><select id="be"><option value="auto" selected>内置演示后端</option><option value="manual">手动回答</option></select></div>
+    </div>
+    <div class="row">
+      <div><label>注入方式</label><select id="via"><option value="commentary" selected>commentary（转述）</option><option value="thinking">thinking（背景）</option></select></div>
+      <div><label>后端延迟（秒）</label><input id="bdelay" type="number" value="0.8" step="0.1" min="0"></div>
+    </div>
+    <div class="row"><button id="go" class="primary">开始对话</button></div>
+    <div><label>麦克风</label><div class="meter"><i id="mic"></i></div></div>
+    <div class="stat">
+      <div><b id="lat">–</b><span>最近开口延迟（说完→出声）</span></div>
+      <div><b id="latm">–</b><span>中位（<span id="latn">0</span> 次）</span></div>
+      <div><b id="ndl">0</b><span>委派次数</span></div>
+      <div><b id="dlat">–</b><span>委派结果→开口</span></div>
+    </div>
+    <p class="hint">建议戴耳机（外放的声音会被麦克风收进去）。直接说话，说完它就接话；它说话时可以随时打断。<br>
+    问时间、日期、天气、关灯这类事会触发委派：内置演示后端查真实时间和天气（Open-Meteo），设备类操作模拟成功；其他问题可切到“手动回答”自己当后端。</p>
+    <p class="hint">用 duplex-system 等 GPT-Live 客户端接入：把 <code>live_url</code> 改成上面的接口地址即可（不带 Origin 头）。</p>
+  </section>
+  <section class="panel">
+    <div id="chat"></div>
+    <div id="manual" style="display:none">
+      <label>手动回答当前委派（<span id="mtask"></span>）</label>
+      <div class="row"><textarea id="mtext" rows="2" placeholder="后端的结果，例如：现在是下午三点二十分。"></textarea></div>
+      <div class="row" style="margin-top:6px"><button id="msend" class="primary">发送 commentary</button><button id="msendt">发送 thinking</button></div>
+    </div>
+  </section>
+  <section class="panel">
+    <label>协议事件（不含音频帧）</label>
+    <div id="cnt" class="hint"></div>
+    <div id="log"></div>
+  </section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const WSURL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + location.pathname.replace(/[^/]*$/, "") + "v1/live/sessions";
+$("#epurl").textContent = WSURL;
+let ws = null, ctx = null, stream = null, node = null, src = null, playT = 0, running = false;
+let lastUserVoice = 0, userSpeaking = false, waitingReply = false, lats = [], counts = {}, curUser = null, curAsst = null, lastAsstAt = 0;
+let pendingDeleg = null, delegResultAt = 0, nDeleg = 0, lastDelegId = null;
+function setSt(t, cls) { $("#st").innerHTML = `<span class="dot ${cls || ""}"></span>${t}`; }
+function log(dir, ev) {
+  if (dir === "in") { counts[ev.type] = (counts[ev.type] || 0) + 1; $("#cnt").textContent = Object.entries(counts).map(([k, v]) => k.replace("session.", "") + " " + v).join(" · "); }
+  if (/audio\.(append|delta)$/.test(ev.type) || /transcript\.delta$/.test(ev.type)) return;
+  const d = document.createElement("div"); d.className = ev.type === "error" ? "err" : dir;
+  const e = Object.assign({}, ev); delete e.event_id; if (e.session && e.session.instructions) e.session = Object.assign({}, e.session, {instructions: "…"});
+  d.textContent = (dir === "in" ? "← " : "→ ") + new Date().toLocaleTimeString() + " " + JSON.stringify(e);
+  $("#log").appendChild(d); $("#log").scrollTop = 1e9;
+}
+function send(ev) { ev.event_id = "ev_" + Math.random().toString(36).slice(2, 12); ws.send(JSON.stringify(ev)); log("out", ev); }
+function bubble(cls, text) { const b = document.createElement("div"); b.className = "b " + cls; b.textContent = text; $("#chat").appendChild(b); $("#chat").scrollTop = 1e9; return b; }
+function median(a) { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; }
+function b64(u8) { let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+
+async function start() {
+  ctx = new AudioContext();
+  stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1}});
+  const code = `class P extends AudioWorkletProcessor{process(i){const c=i[0][0];if(c)this.port.postMessage(c.slice(0));return true}}registerProcessor("cap",P)`;
+  await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([code], {type: "application/javascript"})));
+  src = ctx.createMediaStreamSource(stream); node = new AudioWorkletNode(ctx, "cap"); src.connect(node);
+  let acc = [], accN = 0, pos = 0; const ratio = ctx.sampleRate / 16000;
+  node.port.onmessage = e => {
+    const x = e.data; let s2 = 0; for (const v of x) s2 += v * v; const rms = Math.sqrt(s2 / x.length);
+    $("#mic").style.width = Math.min(100, rms * 600) + "%";
+    const now = performance.now();
+    if (rms > 0.02) { lastUserVoice = now; userSpeaking = true; waitingReply = true; }
+    // resample to 16 kHz (linear) and send 100 ms chunks
+    const out = []; while (pos < x.length - 1) { const i = Math.floor(pos), f = pos - i; out.push(x[i] * (1 - f) + x[i + 1] * f); pos += ratio; } pos -= x.length;
+    acc.push(out); accN += out.length;
+    if (accN >= 640 && ws && ws.readyState === 1 && running) {
+      const pcm = new Int16Array(accN); let k = 0; for (const a of acc) for (const v of a) pcm[k++] = Math.max(-32768, Math.min(32767, v * 32767));
+      acc = []; accN = 0; send({type: "session.input_audio.append", audio: b64(new Uint8Array(pcm.buffer))});
+    }
+  };
+  ws = new WebSocket(WSURL);
+  ws.onopen = () => {
+    setSt("连接中…");
+    const session = {model: "gpt-live-1", audio: {format: {type: "audio/pcm", rate: 16000}, output: {voice: "marin"}}, store: false, instructions: $("#ins").value};
+    if ($("#dlg").value === "client") session.delegation = {type: "client"};
+    send({type: "session.start", session});
+  };
+  ws.onmessage = e => onEvent(JSON.parse(e.data));
+  ws.onclose = () => { setSt("已断开"); stop(true); };
+  ws.onerror = () => setSt("连接出错", "err");
+}
+function onEvent(ev) {
+  log("in", ev);
+  const t = ev.type;
+  if (t === "session.started") { running = true; setSt("对话中 · " + ev.session.id.slice(0, 14), "on"); playT = ctx.currentTime + 0.1; }
+  else if (t === "session.output_audio.delta") {
+    const u8 = Uint8Array.from(atob(ev.delta), c => c.charCodeAt(0)); const pcm = new Int16Array(u8.buffer);
+    const f = new Float32Array(pcm.length); let peak = 0; for (let i = 0; i < pcm.length; i++) { f[i] = pcm[i] / 32768; peak = Math.max(peak, Math.abs(pcm[i])); }
+    const buf = ctx.createBuffer(1, f.length, 16000); buf.copyToChannel(f, 0);
+    const s = ctx.createBufferSource(); s.buffer = buf; s.connect(ctx.destination);
+    if (playT < ctx.currentTime + 0.02) playT = ctx.currentTime + 0.04;
+    if (playT > ctx.currentTime + 0.6) playT = ctx.currentTime + 0.12;          // drift guard: never let the playout lag grow
+    s.start(playT);
+    if (peak > 600) {
+      const at = performance.now() + (playT - ctx.currentTime) * 1000;
+      if (waitingReply && performance.now() - lastUserVoice < 6000) {
+        const l = (at - lastUserVoice) / 1000; if (l > 0 && l < 8) { lats.push(l); $("#lat").textContent = l.toFixed(2) + " s"; $("#latm").textContent = median(lats).toFixed(2) + " s"; $("#latn").textContent = lats.length; }
+        waitingReply = false;
+      }
+      if (delegResultAt) { $("#dlat").textContent = ((at - delegResultAt) / 1000).toFixed(2) + " s"; delegResultAt = 0; }
+      lastAsstAt = performance.now();
+    }
+    playT += buf.duration;
+  }
+  else if (t === "session.input_transcript.delta") {
+    if (!curUser || curAsst) { curUser = bubble("user", ""); curAsst = null; }
+    curUser.textContent += ev.delta; waitingReply = true;
+  }
+  else if (t === "session.output_transcript.delta") {
+    if (!curAsst) curAsst = bubble("asst", "");
+    curAsst.textContent += ev.delta; curUser = null; $("#chat").scrollTop = 1e9;
+  }
+  else if (t === "session.delegation.created") { curAsst = null; onDelegation(ev.delegation); }
+  else if (t === "error") { bubble("deleg", "错误：" + (ev.error && ev.error.message)); }
+  else if (t === "session.closed") { setSt("会话已结束"); }
+}
+// ---------------- demo backend
+const CITIES = {"北京": "Beijing", "上海": "Shanghai", "广州": "Guangzhou", "深圳": "Shenzhen", "杭州": "Hangzhou", "成都": "Chengdu", "南京": "Nanjing", "武汉": "Wuhan", "西安": "Xi'an", "重庆": "Chongqing", "天津": "Tianjin", "苏州": "Suzhou", "香港": "Hong Kong", "台北": "Taipei", "东京": "Tokyo", "纽约": "New York", "伦敦": "London", "巴黎": "Paris", "墨尔本": "Melbourne", "悉尼": "Sydney", "新加坡": "Singapore"};
+async function weather(task) {
+  let city = null;
+  for (const [zh, en] of Object.entries(CITIES)) if (task.includes(zh) || task.toLowerCase().includes(en.toLowerCase())) { city = en; break; }
+  city = city || "Beijing";
+  const g = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`)).json();
+  const p = g.results && g.results[0]; if (!p) return null;
+  const w = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=auto&forecast_days=2`)).json();
+  const tmr = /明天|tomorrow/i.test(task) ? 1 : 0, d = w.daily;
+  const zh = /[一-鿿]/.test(task), code = d.weather_code[tmr];
+  const desc = zh ? (code <= 1 ? "晴" : code <= 3 ? "多云" : code <= 48 ? "有雾" : code <= 67 ? "有雨" : code <= 77 ? "有雪" : code <= 82 ? "阵雨" : "雷雨") : (code <= 1 ? "clear" : code <= 3 ? "cloudy" : code <= 48 ? "foggy" : code <= 67 ? "rainy" : code <= 77 ? "snowy" : code <= 82 ? "showers" : "thunderstorms");
+  const name = zh ? (Object.entries(CITIES).find(([, en]) => en === city) || [city])[0] : city;
+  return zh ? `${name}${tmr ? "明天" : "今天"}${desc}，气温${Math.round(d.temperature_2m_min[tmr])}到${Math.round(d.temperature_2m_max[tmr])}度，降水概率${d.precipitation_probability_max[tmr]}%。${tmr ? "" : `现在${Math.round(w.current.temperature_2m)}度。`}`
+            : `${name} ${tmr ? "tomorrow" : "today"}: ${desc}, ${Math.round(d.temperature_2m_min[tmr])} to ${Math.round(d.temperature_2m_max[tmr])}°C, ${d.precipitation_probability_max[tmr]}% chance of rain.`;
+}
+async function demoBackend(task) {
+  const zh = /[一-鿿]/.test(task), now = new Date(), s = task.toLowerCase();
+  if (/天气|下雨|气温|温度|冷不冷|热不热|weather|rain|temperature/.test(s)) return await weather(task);
+  if (/几点|时间|what time|the time/.test(s)) return zh ? `现在是${now.getHours()}点${now.getMinutes()}分。` : `It's ${now.toLocaleTimeString("en-US", {hour: "numeric", minute: "2-digit"})}.`;
+  if (/日期|几号|星期|周几|礼拜|date|what day/.test(s)) return zh ? `今天是${now.getMonth() + 1}月${now.getDate()}日，星期${"日一二三四五六"[now.getDay()]}。` : `Today is ${now.toLocaleDateString("en-US", {weekday: "long", month: "long", day: "numeric"})}.`;
+  if (/灯|空调|音量|窗帘|电视|播放|闹钟|提醒|light|volume|alarm|remind|play/.test(s)) return zh ? `（模拟设备）已经帮你${task.replace(/^帮我|请/, "")}了。` : `(simulated device) Done: ${task}.`;
+  return null;
+}
+async function onDelegation(d) {
+  nDeleg++; $("#ndl").textContent = nDeleg; lastDelegId = d.id;
+  const card = document.createElement("div"); card.className = "deleg";
+  card.innerHTML = `<div>🔀 委派 <b></b></div><div class="t">delegation_id ${d.id}</div><div class="r">后端处理中…</div>`;
+  card.querySelector("b").textContent = d.task || "（未带任务文本）"; $("#chat").appendChild(card); $("#chat").scrollTop = 1e9;
+  const setR = t => card.querySelector(".r").textContent = t;
+  if ($("#be").value === "manual") { pendingDeleg = {id: d.id, setR}; $("#manual").style.display = ""; $("#mtask").textContent = d.task || d.id; $("#mtext").focus(); setR("等你手动回答…"); return; }
+  let r = null;
+  try { r = await demoBackend(d.task || (curUser && curUser.textContent) || ""); } catch (e) { r = null; }
+  if (r === null) { pendingDeleg = {id: d.id, setR}; $("#manual").style.display = ""; $("#mtask").textContent = d.task || d.id; setR("演示后端答不了这个，请手动回答（或 10 秒后自动兜底）");
+    setTimeout(() => { if (pendingDeleg && pendingDeleg.id === d.id) inject(d.id, /[一-鿿]/.test(d.task || "") ? "这个后端暂时查不到，请委婉地告诉用户，换个问法试试。" : "The backend couldn't find this; tell the user politely and suggest rephrasing.", $("#via").value, setR); }, 10000); return; }
+  setTimeout(() => inject(d.id, r, $("#via").value, setR), Math.max(0, +$("#bdelay").value) * 1000);
+}
+function inject(id, text, via, setR) {
+  send({type: via === "thinking" ? "session.thinking.append" : "session.commentary.append", content: text, delegation_id: id});
+  delegResultAt = performance.now(); if (setR) setR(`后端（${via}）：${text}`);
+  if (pendingDeleg && pendingDeleg.id === id) { pendingDeleg = null; $("#manual").style.display = "none"; $("#mtext").value = ""; }
+}
+$("#msend").onclick = () => pendingDeleg && $("#mtext").value.trim() && inject(pendingDeleg.id, $("#mtext").value.trim(), "commentary", pendingDeleg.setR);
+$("#msendt").onclick = () => pendingDeleg && $("#mtext").value.trim() && inject(pendingDeleg.id, $("#mtext").value.trim(), "thinking", pendingDeleg.setR);
+function stop(fromClose) {
+  running = false;
+  try { if (!fromClose && ws && ws.readyState === 1) send({type: "session.close"}); } catch (e) {}
+  try { ws && !fromClose && ws.close(); } catch (e) {}
+  try { stream && stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+  try { ctx && ctx.close(); } catch (e) {}
+  ws = null; ctx = null; stream = null; $("#go").textContent = "开始对话"; $("#go").className = "primary"; $("#mic").style.width = "0";
+}
+$("#go").onclick = async () => {
+  if (ws) { stop(false); setSt("已结束"); return; }
+  $("#go").textContent = "结束对话"; $("#go").className = "stop"; $("#chat").innerHTML = ""; curUser = curAsst = null;
+  try { await start(); } catch (e) { setSt("启动失败：" + e.message, "err"); stop(true); }
+};
+</script>
+</body>
+</html>

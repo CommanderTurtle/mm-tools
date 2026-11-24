@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sophon-realtime-e2e"
+version = "1.6.2"
+description = "Sophon-Realtime-32B-E2E as one vLLM-Omni model: full-duplex listen + write (with sound tags) -> E2E talker (continuous voice vectors) -> decoder"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = ["duplexjev-vllm>=0.3.0", "x-transformers", "einops>=0.8", "safetensors>=0.4", "soundfile>=0.12", "librosa>=0.10", "torchaudio", "onnxruntime"]
+
+[project.entry-points."vllm_omni.general_plugins"]
+sophon_realtime = "sophon_realtime:register"
+
+[project.entry-points."vllm.general_plugins"]
+sophon_realtime = "sophon_realtime:register"
+
+[tool.setuptools.packages.find]
+include = ["sophon_realtime*"]
+
+[tool.setuptools.package-data]
+sophon_realtime = ["deploy/*.yaml", "deploy/*.wav"]

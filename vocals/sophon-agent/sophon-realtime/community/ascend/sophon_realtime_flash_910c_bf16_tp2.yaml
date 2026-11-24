@@ -1,0 +1,97 @@
+# Experimental Ascend 910C: BF16 thinker TP2 on logical devices 0,1.
+# Talker and code2wav share logical device 1. Requires an unquantized BF16 checkpoint.
+# Community-maintained; core maintainers cannot test this on Ascend hardware.
+# Official BF16 HTTP validated at f37547c; earlier reconstruction at 5c73a54.
+# See README.md for scope and limits.
+async_chunk: true
+connectors:
+  connector_of_shared_memory:
+    name: SharedMemoryConnector
+    extra:
+      codec_streaming: true
+      connector_get_sleep_s: 0.002
+      connector_get_max_wait_first_chunk: 3000
+      connector_get_max_wait: 300
+      initial_codec_chunk_frames: 2
+      codec_chunk_ramp:
+      - 2
+      - 4
+      - 8
+      - 12
+      - 16
+      - 25
+      codec_chunk_frames: 25
+      codec_left_context_frames: 25
+stages:
+- stage_id: 0
+  max_num_seqs: 8
+  gpu_memory_utilization: 0.7
+  trust_remote_code: true
+  enable_prefix_caching: false
+  max_model_len: 2048
+  mm_processor_cache_gb: 0
+  devices: 0,1
+  output_connectors:
+    to_stage_1: connector_of_shared_memory
+  default_sampling_params:
+    temperature: 0.7
+    top_p: 0.9
+    max_tokens: 400
+  limit_mm_per_prompt:
+    audio: 20
+    image: 2
+  enforce_eager: true
+  dtype: bfloat16
+  tensor_parallel_size: 2
+  max_num_batched_tokens: 2048
+- stage_id: 1
+  max_num_seqs: 8
+  gpu_memory_utilization: 0.12
+  trust_remote_code: true
+  enable_prefix_caching: false
+  async_scheduling: true
+  max_num_batched_tokens: 512
+  max_model_len: 2048
+  devices: '1'
+  hf_overrides:
+    async_chunk_prewarm_prompt_len: 10
+  silence_ban_frames: 6
+  input_connectors:
+    from_stage_0: connector_of_shared_memory
+  output_connectors:
+    to_stage_2: connector_of_shared_memory
+  default_sampling_params:
+    temperature: 0.7
+    top_k: 50
+    max_tokens: 2000
+    min_tokens: 2
+    repetition_penalty: 1.05
+  subtalker_sampling_params:
+    do_sample: true
+    temperature: 0.7
+    top_k: 50
+    top_p: 1.0
+  enforce_eager: true
+  dtype: bfloat16
+  tensor_parallel_size: 1
+- stage_id: 2
+  dtype: bfloat16
+  max_num_seqs: 4
+  gpu_memory_utilization: 0.08
+  enforce_eager: true
+  trust_remote_code: true
+  enable_prefix_caching: false
+  async_scheduling: true
+  max_num_batched_tokens: 65536
+  max_model_len: 65536
+  devices: '1'
+  input_connectors:
+    from_stage_1: connector_of_shared_memory
+  default_sampling_params:
+    temperature: 0.0
+    top_p: 1.0
+    top_k: -1
+    max_tokens: 65536
+    repetition_penalty: 1.0
+  tensor_parallel_size: 1
+session_mode: turn

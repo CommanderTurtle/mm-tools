@@ -1301,6 +1301,8 @@ Reconstruction, world geometry, optional sky segmentation and the original examp
 
 99. Voice Isolator (inworld-isolator). Both recording and realtime checkpoints; code and weights Apache-2.0.
 
+100. Sophon duplex speech studio (sophon-agent). Tag talker, vocoder and voices; community NVFP4A16 thinker, no duplicate FP8 weights. Separate Apache-2.0 dependencies.
+
 Workflows section (workflows/download_models.py)
 ------------------------------------------------
 The standalone workflow downloader keeps its own inventory numbering,

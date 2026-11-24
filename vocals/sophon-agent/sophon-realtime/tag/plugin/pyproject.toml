@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sophon-realtime-tag"
+version = "1.6.2"
+description = "Sophon-Realtime-32B-Tag as one vLLM-Omni model: full-duplex listen + write (with sound tags) -> tag-tts streaming speech"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = ["duplexjev-vllm>=0.3.0"]
+
+[project.entry-points."vllm_omni.general_plugins"]
+sophon_realtime = "sophon_realtime:register"
+
+[project.entry-points."vllm.general_plugins"]
+sophon_realtime = "sophon_realtime:register"
+
+[tool.setuptools.packages.find]
+include = ["sophon_realtime*"]
+
+[tool.setuptools.package-data]
+sophon_realtime = ["deploy/*.yaml", "deploy/*.wav"]

@@ -1,0 +1,14 @@
+# Sophon-Realtime 视觉版全双工：thinker 带 Qwen3-VL 视觉塔（DuplexJevVision），摄像头画面随 input_audio_buffer.append 的 video_frames 送入。
+# 启动时需 SOPHON_VISION=1（插件接收画面、stage0 用 DuplexJevVisionForConditionalGeneration）。
+base_config: sophon_realtime.yaml
+session_mode: duplex
+duplex_session:
+  max_sessions: 32
+  idle_ttl_s: 600
+  server_vad_model_path: config/silero_vad.onnx
+stages:
+  - stage_id: 0
+    max_model_len: 8192
+    limit_mm_per_prompt:
+      audio: 20
+      image: 2

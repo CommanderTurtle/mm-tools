@@ -1,0 +1,351 @@
+{
+  "source_commit": "5c73a54fccfe9b8341fba46d7146448f18c64f1e",
+  "scope": "HTTP only; client stream success, not audio-quality certification",
+  "runs": {
+    "current-c1.summary": {
+      "success": 40,
+      "total": 40,
+      "wall_s": 157.64947044989094,
+      "peak_inflight": 1,
+      "first_audio_s": {
+        "p50": 0.6192439750302583,
+        "p90": 0.6593316270504147,
+        "p95": 0.6726038853172213
+      },
+      "stall_s": {
+        "p50": 0.574151974869892,
+        "p90": 0.814144755108282,
+        "p95": 0.9120018780697137
+      },
+      "e2e_s": {
+        "p50": 3.9237214650493115,
+        "p90": 5.0474817809648815,
+        "p95": 5.1572114434326055
+      },
+      "rtf": {
+        "p50": 0.7479973625630095,
+        "p90": 0.799436590343248,
+        "p95": 0.8055434636215686
+      },
+      "load": {
+        "concurrency": 1,
+        "requests": 40,
+        "warmup": 5,
+        "arrival_window": null
+      }
+    },
+    "current-c4-long.summary": {
+      "success": 200,
+      "total": 200,
+      "wall_s": 300.6857702299021,
+      "peak_inflight": 4,
+      "first_audio_s": {
+        "p50": 0.9158195448108017,
+        "p90": 1.0143898459151388,
+        "p95": 1.0362034809077159
+      },
+      "stall_s": {
+        "p50": 0.7437853401061147,
+        "p90": 1.0930392017588018,
+        "p95": 1.1806246224325148
+      },
+      "e2e_s": {
+        "p50": 4.7242476649116725,
+        "p90": 6.103824878297746,
+        "p95": 6.565860827290451
+      },
+      "rtf": {
+        "p50": 0.9019185716350431,
+        "p90": 0.9732037238274943,
+        "p95": 1.0125870847930298
+      },
+      "load": {
+        "concurrency": 4,
+        "requests": 200,
+        "warmup": 5,
+        "arrival_window": null
+      }
+    },
+    "current-c4.summary": {
+      "success": 40,
+      "total": 40,
+      "wall_s": 45.23026170022786,
+      "peak_inflight": 4,
+      "first_audio_s": {
+        "p50": 0.904600310139358,
+        "p90": 0.9933045350946487,
+        "p95": 1.0865011570975183
+      },
+      "stall_s": {
+        "p50": 0.6206016100477427,
+        "p90": 1.027487612562254,
+        "p95": 1.0631629212992264
+      },
+      "e2e_s": {
+        "p50": 3.940983504988253,
+        "p90": 5.7180659681558605,
+        "p95": 5.951239014416933
+      },
+      "rtf": {
+        "p50": 0.9041607333437383,
+        "p90": 0.9512057649466984,
+        "p95": 0.9877040510478126
+      },
+      "load": {
+        "concurrency": 4,
+        "requests": 40,
+        "warmup": 5,
+        "arrival_window": null
+      }
+    },
+    "current-c8.summary": {
+      "success": 40,
+      "total": 40,
+      "wall_s": 27.847598949912935,
+      "peak_inflight": 8,
+      "first_audio_s": {
+        "p50": 1.0387844445649534,
+        "p90": 1.3888414108194411,
+        "p95": 1.3936133499257266
+      },
+      "stall_s": {
+        "p50": 0.9164201398380101,
+        "p90": 1.4773250598460437,
+        "p95": 1.5326732298359274
+      },
+      "e2e_s": {
+        "p50": 4.943493680097163,
+        "p90": 6.934165117191151,
+        "p95": 7.481302771763875
+      },
+      "rtf": {
+        "p50": 1.0338968067518173,
+        "p90": 1.1441090466866555,
+        "p95": 1.1576394764812323
+      },
+      "load": {
+        "concurrency": 8,
+        "requests": 40,
+        "warmup": 5,
+        "arrival_window": null
+      }
+    }
+  },
+  "additional_environment": {
+    "collected_at": "2026-11-17T04:10:09+00:00",
+    "image_tag": "quay.io/ascend/vllm-omni:v0.30.0-a3",
+    "image_digest": null,
+    "driver_package": "26.1.1",
+    "ascend_hal": "7.35.23",
+    "driver_internal": "V100R001C10SPC009B220",
+    "cann_opp": "9.1.0",
+    "cann_compiler": "9.1.0",
+    "cann_package_timestamp": "20260730_231653901",
+    "note": "Collected after benchmark; unchanged environment not independently established."
+  },
+  "manual_listening": {
+    "completed_reported_by_tester": true,
+    "outcome": "Tester reported no obvious noise, repetition, truncation, or disruptive segment transitions; limited subjective check.",
+    "formal_quality_evaluation": false
+  },
+  "official_bf16_validation": {
+    "date": "2026-11-20",
+    "model_repository": "AdventistsAI/Sophon-Realtime-32B-Flash-BF16",
+    "download_source": "ModelScope",
+    "model_revision": null,
+    "source_commit": "f37547cd9047b50bd7c1f5fa19fbe303cffedec3",
+    "flash_plugin": "1.4.0",
+    "duplexjev_vllm": "0.3.0",
+    "scope": "HTTP only; not duplex capacity or formal quality evaluation",
+    "benchmark_commit": "f80c13773276c8ffaa46257596c29b129180c295",
+    "benchmark_script_sha256": "aaaabd5776d5377240f21891e547bfaee3fb7ea530962098f9110adf7966d1ca",
+    "benchmark_worktree_clean": true,
+    "audio_asset_sha256": {
+      "config.json": "134e9c7ddb91e90cc56fd40b4f793cb4deb28bdaa9980d0037b8ad893eb37d04",
+      "preprocessor_config.json": "9ec7d9345842ceb81dc580159bbf377b3c8a4e40c8c7ce110a9a2b435f00ad4b",
+      "model.safetensors": "1fc9fa79d8731b4d9e4762f52935d60286b87a5eb5c2002f548da87abbfd1e04"
+    },
+    "audio_hash_check": "Local full hashes match maintainer-provided prefixes; hashes and benchmark provenance were collected as supplemental records after the run.",
+    "smoke_requests": 5,
+    "smoke_first_audio_s": [
+      10.46,
+      0.79,
+      0.89,
+      0.82,
+      0.87
+    ],
+    "manual_listening": "Tester reported consistent text/audio, no noise and no abnormal pauses in five smoke samples.",
+    "benchmark_tests_passed": 13,
+    "server_error_pattern_matches": 0,
+    "input_sha256": "fcc0999365fdcd916335e2d61227f709b31dfb9b87bb8a43c943c6470b200646",
+    "input_duration_s": 6.28,
+    "runs": {
+      "c1": {
+        "success": 40,
+        "total": 40,
+        "wall_s": 201.22426730021834,
+        "peak_inflight": 1,
+        "requests_per_s": 0.1987831812567698,
+        "total_output_audio_s": 211.28,
+        "audio_seconds_per_s": 1.049972763398258,
+        "first_audio_received_s": {
+          "p50": 0.8061710000038147,
+          "p90": 0.8541167482268065,
+          "p95": 0.855474208900705
+        },
+        "first_audio_decoded_s": {
+          "p50": 0.8064043698832393,
+          "p90": 0.8543898191303014,
+          "p95": 0.855735681927763
+        },
+        "stall_s": {
+          "p50": 0.949066684916615,
+          "p90": 1.2348089647106824,
+          "p95": 1.2895039694709698
+        },
+        "e2e_s": {
+          "p50": 5.233986894832924,
+          "p90": 6.633993053156883,
+          "p95": 6.794669299852102
+        },
+        "settings": {
+          "concurrency": 1,
+          "requests": 40,
+          "warmup": 5,
+          "max_tokens": 300,
+          "initial_buffer": 0.0,
+          "language": "zh",
+          "voice": "chelsie",
+          "timeout": 300.0,
+          "max_event_bytes": 16777216
+        }
+      },
+      "c4": {
+        "success": 40,
+        "total": 40,
+        "wall_s": 88.35127524985,
+        "peak_inflight": 4,
+        "requests_per_s": 0.4527382302845471,
+        "total_output_audio_s": 215.60000000000002,
+        "audio_seconds_per_s": 2.4402590612337094,
+        "first_audio_received_s": {
+          "p50": 1.455504409968853,
+          "p90": 1.672513014031574,
+          "p95": 1.6750170116312801
+        },
+        "first_audio_decoded_s": {
+          "p50": 1.4557124199345708,
+          "p90": 1.6728078001644462,
+          "p95": 1.675171976024285
+        },
+        "stall_s": {
+          "p50": 3.5240513050090527,
+          "p90": 5.272297172117979,
+          "p95": 5.322618083036505
+        },
+        "e2e_s": {
+          "p50": 8.45271833986044,
+          "p90": 12.220385959092528,
+          "p95": 13.048785464442334
+        },
+        "settings": {
+          "concurrency": 4,
+          "requests": 40,
+          "warmup": 5,
+          "max_tokens": 300,
+          "initial_buffer": 0.0,
+          "language": "zh",
+          "voice": "chelsie",
+          "timeout": 300.0,
+          "max_event_bytes": 16777216
+        }
+      },
+      "c8": {
+        "success": 40,
+        "total": 40,
+        "wall_s": 54.2444551801309,
+        "peak_inflight": 8,
+        "requests_per_s": 0.7374025578682838,
+        "total_output_audio_s": 205.92000000000002,
+        "audio_seconds_per_s": 3.796148367905925,
+        "first_audio_received_s": {
+          "p50": 1.727056804811582,
+          "p90": 2.338293097168207,
+          "p95": 2.338599461503327
+        },
+        "first_audio_decoded_s": {
+          "p50": 1.7273819849360734,
+          "p90": 2.3384933879133314,
+          "p95": 2.33890276607126
+        },
+        "stall_s": {
+          "p50": 4.330689720083029,
+          "p90": 7.052052048183979,
+          "p95": 7.330134157240391
+        },
+        "e2e_s": {
+          "p50": 9.967369615100324,
+          "p90": 14.357313245162368,
+          "p95": 14.897696320270187
+        },
+        "settings": {
+          "concurrency": 8,
+          "requests": 40,
+          "warmup": 5,
+          "max_tokens": 300,
+          "initial_buffer": 0.0,
+          "language": "zh",
+          "voice": "chelsie",
+          "timeout": 300.0,
+          "max_event_bytes": 16777216
+        }
+      },
+      "c4-long": {
+        "success": 200,
+        "total": 200,
+        "wall_s": 436.97025218000636,
+        "peak_inflight": 4,
+        "requests_per_s": 0.4576970606173246,
+        "total_output_audio_s": 1031.52,
+        "audio_seconds_per_s": 2.3606183598399135,
+        "first_audio_received_s": {
+          "p50": 1.4817552198655903,
+          "p90": 1.636230540042743,
+          "p95": 1.7360664140200242
+        },
+        "first_audio_decoded_s": {
+          "p50": 1.4819492199458182,
+          "p90": 1.636408050917089,
+          "p95": 1.7362980331294238
+        },
+        "stall_s": {
+          "p50": 2.9956246401276445,
+          "p90": 4.788559575388209,
+          "p95": 5.127924914760516
+        },
+        "e2e_s": {
+          "p50": 7.768123474903405,
+          "p90": 11.62837591888383,
+          "p95": 12.009002236812373
+        },
+        "settings": {
+          "concurrency": 4,
+          "requests": 200,
+          "warmup": 5,
+          "max_tokens": 300,
+          "initial_buffer": 0.0,
+          "language": "zh",
+          "voice": "chelsie",
+          "timeout": 300.0,
+          "max_event_bytes": 16777216
+        }
+      }
+    },
+    "limitations": [
+      "Immutable model revision and full-checkpoint checksums not captured",
+      "Supplemental provenance is not independent proof files were unchanged since the benchmark",
+      "High-concurrency completion does not establish smooth real-time playback",
+      "Earlier reconstructed-BF16 results are not a controlled comparison"
+    ]
+  }
+}

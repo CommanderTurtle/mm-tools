@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sophon-Realtime v1</title>
+<style>
+/* 布局：顶部控制条 → 对话流（每轮：DuplexJev 的话轮判断 → 智子的回复、风格、延迟）→ 底部麦克风按钮 */
+:root{
+  --bg:#f2f4f6; --panel:#ffffff; --ink:#18212b; --muted:#5f6c79; --line:#d8dee5;
+  --accent:#2457a6; --accent-ink:#ffffff; --accent-soft:#e2eaf7; --live:#c4372b; --live-soft:#f8e2df; --ok:#1d7a4a;
+  --f-body:"PingFang SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif; --f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#11161c; --panel:#19212a; --ink:#e3e9ef; --muted:#93a1af; --line:#2b3540;
+  --accent:#6ea3ea; --accent-ink:#0d1520; --accent-soft:#1c2c41; --live:#ef7d71; --live-soft:#3a1e1b; --ok:#5cc58d; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);display:flex;flex-direction:column}
+header,main,footer{width:100%;max-width:820px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{padding-block:18px 10px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+h1{font-size:1.25rem;margin:0;font-weight:600}
+.sub{color:var(--muted);font-size:.85rem;flex-basis:100%;margin:0}
+.ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.88rem;color:var(--muted)}
+select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 6px;max-width:100%}
+.toggle{font:inherit;font-size:.85rem;color:var(--accent);background:var(--panel);border:1px solid var(--accent);border-radius:6px;padding:4px 8px;cursor:pointer}
+.toggle.rec{color:var(--accent-ink);background:var(--live);border-color:var(--live)}
+label{display:flex;gap:6px;align-items:center}
+.status{margin-left:auto;font-family:var(--f-mono);font-size:.78rem;color:var(--muted)}
+.status.ok{color:var(--ok)}
+main{flex:1;overflow-y:auto;padding-block:8px 16px;display:flex;flex-direction:column;gap:12px}
+.empty{color:var(--muted);font-size:.9rem;background:var(--panel);border:1px dashed var(--line);border-radius:8px;padding:16px}
+.turn{display:flex;flex-direction:column;gap:6px}
+.user{align-self:flex-end;background:var(--accent-soft);color:var(--ink);border-radius:10px 10px 2px 10px;padding:6px 12px;font-size:.85rem;max-width:100%}
+.bot{align-self:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:10px 10px 10px 2px;padding:10px 14px;max-width:100%;min-width:0;display:flex;flex-direction:column;gap:6px}
+.bot .text{font-size:1.02rem;overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.75rem;padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.lat{font-family:var(--f-mono);font-size:.74rem;color:var(--muted);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.lat b{color:var(--ink);font-weight:600}
+.err{color:var(--live);font-size:.88rem}
+footer{padding-block:12px 20px;display:flex;flex-direction:column;align-items:center;gap:8px;border-top:1px solid var(--line);background:var(--bg)}
+#talk{width:84px;height:84px;border-radius:50%;border:none;background:var(--accent);color:var(--accent-ink);font:600 .95rem var(--f-body);cursor:pointer}
+#talk.listening{background:var(--live);color:var(--accent-ink)}
+#talk.speaking{box-shadow:0 0 0 6px var(--live-soft)}
+#talk:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+#hint{font-size:.82rem;color:var(--muted);text-align:center;max-width:52ch;font-variant-numeric:tabular-nums}
+.meter{width:160px;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Sophon-Realtime v1</h1>
+  <div class="ctl">
+    <label for="lang">语言 <select id="lang"><option value="zh">中文</option><option value="en">English</option></select></label>
+    <select id="eng" hidden><option value="talker32">Sophon-Realtime v1</option></select>
+    
+    <label for="hist"><input type="checkbox" id="hist" checked> 带上前几轮对话</label>
+    <button id="reset" class="toggle" type="button">新对话</button>
+    
+  </div>
+  <span class="status" id="status">连接中…</span>
+  <p class="sub">打开麦克风后直接说话 / Turn on the mic and talk. 你停下时由模型判断有没有说完；它说话时你开口就会打断它。建议戴耳机 / Headphones recommended.</p>
+</header>
+<main id="log"><div class="empty" id="empty">点下方按钮打开麦克风。每轮会显示：DuplexJev 在停顿多久时判定你说完了，以及“你停下 → 听到回复”的延迟。</div></main>
+<footer>
+  <div class="meter" aria-hidden="true"><i id="lvl"></i></div>
+  <button id="talk" aria-label="打开麦克风">开始</button>
+  <div id="hint">麦克风未打开</div>
+</footer>
+<script>
+const $=id=>document.getElementById(id);
+const wsURL=(location.protocol==='https:'?'wss://':'ws://')+location.host+location.pathname.replace(/[^/]*$/,'')+'ws';
+let LEAD=0.2; const LEAD_MAX=0.4; let underruns=0;   // 11-06：自适应缓冲（首包先攒 200 ms；播放中断了就补 80 ms 并把下一轮的缓冲加 50 ms）                       // 每轮第一块声音提前缓冲 60 ms，抗网络抖动
+let ws=null, cap=null, out=null, mic=null, proc=null, on=false;
+let playing=[], nextT=0, turnEl=null, gotAudio=false, lastVoiced=0, speakingLocal=false, checks=[];
+let myVoice=null, cloning=null;
+function vis(){}
+function cfg(){
+  vis();
+  if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'config',lang:$('lang').value,tts:$('eng').value,my_voice:myVoice||'',history:$('hist').checked}))
+}
+function wav16(chunks){
+  let n=0; chunks.forEach(c=>n+=c.length); const buf=new ArrayBuffer(44+n*2), v=new DataView(buf), w=(p,s)=>{for(let i=0;i<s.length;i++)v.setUint8(p+i,s.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,16000,true);v.setUint32(28,32000,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+  let o=44; chunks.forEach(c=>{for(let i=0;i<c.length;i++){v.setInt16(o,c[i],true);o+=2}});
+  let bin='';const u=new Uint8Array(buf);for(let i=0;i<u.length;i+=0x8000)bin+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));
+  return btoa(bin);
+}
+function connect(){
+  ws=new WebSocket(wsURL); ws.binaryType='arraybuffer';
+  ws.onopen=()=>{$('status').textContent='已连接';$('status').className='status ok';cfg();ping()};
+  ws.onclose=()=>{$('status').textContent='已断开，3 秒后重连';$('status').className='status';setTimeout(connect,3000)};
+  ws.onmessage=ev=>{ if(typeof ev.data!=='string'){play(ev.data);return} handle(JSON.parse(ev.data)) };
+}
+connect(); $('lang').onchange=cfg; $('hist').onchange=cfg; $('eng').onchange=cfg;
+$('reset').onclick=()=>{ if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'reset'})) };
+function newTurn(m){
+  $('empty')&&$('empty').remove();
+  const t=document.createElement('div');t.className='turn';
+  t.innerHTML='<div class="user"></div><div class="bot"><div class="chips"></div><div class="text"></div><div class="lat">等待回复…</div></div>';
+  const why=m.why&&m.why.startsWith('duplexjev')?('DuplexJev 判定说完了（P='+(m.p_finished??0).toFixed(2)+'，停顿 '+m.pause+' 秒）'):('兜底接话：'+m.why+'（停顿 '+m.pause+' 秒）');
+  t.querySelector('.user').textContent=why+(checks.length?' · 之前判断：'+checks.map(c=>c.pause+'s→'+c.p_finished.toFixed(2)).join('，'):'');
+  $('log').append(t);$('log').scrollTop=1e9;turnEl=t;gotAudio=false;checks=[];return t;
+}
+let rtts=[];
+function ping(){ if(ws&&ws.readyState===1){ ws.send(JSON.stringify({type:'ping',t:performance.now()})); setTimeout(ping,5000) } }
+function handle(m){
+  if(m.type==='pong'){ rtts.push(performance.now()-m.t); if(rtts.length>6)rtts.shift();
+    const r=[...rtts].sort((a,b)=>a-b)[Math.floor(rtts.length/2)]; $('status').textContent='已连接 · 网络往返 '+Math.round(r)+' ms'; return }
+  if(m.type==='vad'){ $('hint').textContent='在听…' ; return }
+  if(m.type==='turn_check'){ checks.push(m); $('hint').textContent='停顿 '+m.pause+' 秒，DuplexJev：P(说完)='+m.p_finished.toFixed(2)+(m.p_finished<0.5?'，继续听':''); return }
+  if(m.type==='turn_commit'){ newTurn(m); $('hint').textContent='智子在回应…'; return }
+  if(m.type==='clone_ok'){ myVoice=m.voice_id; cfg(); $('hint').textContent='已切换为你的声音（只保存在服务器内存里）'; $('clone').textContent='重录我的声音'; return }
+  if(m.type==='reset_ok'){ const d=document.createElement('div');d.className='empty';d.textContent='—— 新对话：前面的对话不再带进上下文 ——';$('log').append(d);$('log').scrollTop=1e9; $('hint').textContent='已开始新对话'; return }
+  if(m.type==='barge_in'){ stopPlayback(); $('hint').textContent='你打断了智子，在听…'; return }
+  if(!turnEl)return;
+  const bot=turnEl.querySelector('.bot');
+  if(m.type==='text'){bot.querySelector('.text').textContent+=m.delta}
+  else if(m.type==='style'){const c=bot.querySelector('.chips');[m.emo].forEach(x=>{const s=document.createElement('span');s.className='chip';s.textContent=x;c.append(s)})}
+  else if(m.type==='metrics'){
+    const cli=turnEl.dataset.cli;
+    const net=(cli&&m.eos_to_audio!=null)?' · 网络和播放缓冲约 '+Math.max(0,cli-m.eos_to_audio).toFixed(3)+' s':'';
+    bot.querySelector('.lat').innerHTML='你停下 → 听到回复 <b>'+(cli?cli+' s':'–')+'</b>（服务器：停下 → 发出 '+(m.eos_to_audio??'–')+' s'+net+'；分 '+(m.n_segs??1)+' 段合成'+(m.engine?'；'+({cosy:'标准版',cosyb:'对照（4B·标签）',talker:'智子 Talker'}[m.engine]||''):'')+'；上下文 '+(m.hist_turns??0)+' 轮 / '+(m.hist_sec??0)+' 秒语音）';
+  }
+  else if(m.type==='error'){const e=document.createElement('div');e.className='err';e.textContent=m.message;bot.append(e)}
+  $('log').scrollTop=1e9;
+}
+function play(buf){
+  if(!out) out=new AudioContext();
+  const i16=new Int16Array(buf), f=new Float32Array(i16.length); for(let i=0;i<i16.length;i++)f[i]=i16[i]/32768;
+  const b=out.createBuffer(1,f.length,24000); b.copyToChannel(f,0);
+  const s=out.createBufferSource(); s.buffer=b; s.connect(out.destination);
+  if(!gotAudio){ gotAudio=true; nextT=out.currentTime+LEAD;
+    if(turnEl&&lastVoiced) turnEl.dataset.cli=((performance.now()-lastVoiced)/1000+LEAD).toFixed(3) }
+  else if(nextT<out.currentTime+0.005){ underruns++; LEAD=Math.min(LEAD_MAX,LEAD+0.05); nextT=out.currentTime+0.08; console.log("underrun",underruns,"lead",LEAD.toFixed(2)) }
+  s.start(nextT); nextT+=b.duration; playing.push(s); s.onended=()=>{playing=playing.filter(x=>x!==s)};
+}
+function stopPlayback(){playing.forEach(s=>{try{s.stop()}catch(e){}});playing=[];nextT=0;gotAudio=true}
+async function start(){
+  out=out||new AudioContext(); await out.resume();
+  cap=new AudioContext({sampleRate:16000}); await cap.resume();
+  mic=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
+  const src=cap.createMediaStreamSource(mic); proc=cap.createScriptProcessor(512,1,1);
+  src.connect(proc); proc.connect(cap.destination);
+  let noise=0.004;
+  proc.onaudioprocess=e=>{
+    const d=e.inputBuffer.getChannelData(0); e.outputBuffer.getChannelData(0).fill(0);
+    const i16=new Int16Array(d.length); let r=0;
+    for(let i=0;i<d.length;i++){const v=Math.max(-1,Math.min(1,d[i])); i16[i]=v*32767; r+=v*v}
+    r=Math.sqrt(r/d.length); $('lvl').style.width=Math.min(100,r*800)+'%';
+    const thr=Math.max(0.012,noise*3.5);
+    if(r>thr){ lastVoiced=performance.now(); if(!speakingLocal){speakingLocal=true;$('talk').classList.add('speaking')} }
+    else { noise=0.98*noise+0.02*Math.min(r,0.05); if(speakingLocal&&performance.now()-lastVoiced>300){speakingLocal=false;$('talk').classList.remove('speaking')} }
+    if(cloning){ cloning.push(i16); if(cloning.length*512>=16000*8) finishClone(); return }   // 录音色期间不送给对话
+    if(ws&&ws.readyState===1) ws.send(i16.buffer);
+  };
+}
+function finishClone(){ const b=wav16(cloning); cloning=null; $('clone').classList.remove('rec'); $('clone').textContent='录我的声音作音色';
+  $('hint').textContent='正在提取音色…'; ws&&ws.readyState===1&&ws.send(JSON.stringify({type:'clone',wav_b64:b})) }
+$('clone').onclick=async()=>{
+  if(!on){ $('hint').textContent='先点“开始”打开麦克风'; return }
+  if(cloning) return; cloning=[]; $('clone').classList.add('rec'); $('clone').textContent='录音中（8 秒）…';
+  $('hint').textContent='请自然地说 8 秒话（比如读一段新闻），这段声音只用来提取音色、不会被回复';
+};
+vis();
+$('talk').onclick=async()=>{
+  try{
+    if(!on){await start();on=true;$('talk').classList.add('listening');$('talk').textContent='停止';$('hint').textContent='麦克风已打开，直接说话'}
+    else{on=false;proc&&proc.disconnect();mic&&mic.getTracks().forEach(t=>t.stop());cap&&cap.close();proc=null;cap=null;
+      $('talk').classList.remove('listening','speaking');$('talk').textContent='开始';$('hint').textContent='麦克风已关闭'}
+  }catch(e){$('hint').textContent='打不开麦克风：'+e.message+'（需要 https 或 localhost，并允许麦克风权限）'}
+};
+</script>
+</body>
+</html>

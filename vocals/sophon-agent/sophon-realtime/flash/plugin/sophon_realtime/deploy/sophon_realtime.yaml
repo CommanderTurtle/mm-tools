@@ -1,0 +1,81 @@
+# Sophon-Realtime 部署：stage0 thinker（DuplexJev-32B）、stage1 talker（Qwen3-TTS 1.7B，流式文字输入）、stage2 code2wav。
+# 用法：vllm serve <Sophon-Realtime 目录> --omni --deploy-config sophon_realtime.yaml
+async_chunk: true
+
+connectors:
+  connector_of_shared_memory:
+    name: SharedMemoryConnector
+    extra:
+      codec_streaming: true
+      connector_get_sleep_s: 0.002
+      connector_get_max_wait_first_chunk: 3000
+      connector_get_max_wait: 300
+      initial_codec_chunk_frames: 2
+      codec_chunk_ramp: [2, 4, 8, 12, 16, 25]
+      codec_chunk_frames: 25
+      codec_left_context_frames: 25
+
+stages:
+  - stage_id: 0
+    max_num_seqs: 64
+    gpu_memory_utilization: 0.88
+    trust_remote_code: true
+    enable_prefix_caching: true
+    max_model_len: 4096
+    mm_processor_cache_gb: 0
+    devices: "0"
+    output_connectors:
+      to_stage_1: connector_of_shared_memory
+    default_sampling_params:
+      temperature: 0.7
+      top_p: 0.9
+      max_tokens: 400
+
+  - stage_id: 1
+    max_num_seqs: 64
+    gpu_memory_utilization: 0.3
+    trust_remote_code: true
+    enable_prefix_caching: false
+    async_scheduling: true
+    max_num_batched_tokens: 512
+    max_model_len: 4096
+    devices: "1"
+    hf_overrides:
+      async_chunk_prewarm_prompt_len: 10
+    # ban codebook-0 silence tokens for the first N codec frames: the talker otherwise opens every reply with ~0.5 s of silence
+    silence_ban_frames: 6
+    input_connectors:
+      from_stage_0: connector_of_shared_memory
+    output_connectors:
+      to_stage_2: connector_of_shared_memory
+    default_sampling_params:
+      temperature: 0.7
+      top_k: 50
+      max_tokens: 2000
+      min_tokens: 2
+      repetition_penalty: 1.05
+    subtalker_sampling_params:
+      do_sample: true
+      temperature: 0.7
+      top_k: 50
+      top_p: 1.0
+
+  - stage_id: 2
+    dtype: bfloat16
+    max_num_seqs: 32
+    gpu_memory_utilization: 0.15
+    enforce_eager: true
+    trust_remote_code: true
+    enable_prefix_caching: false
+    async_scheduling: true
+    max_num_batched_tokens: 65536
+    max_model_len: 65536
+    devices: "1"
+    input_connectors:
+      from_stage_1: connector_of_shared_memory
+    default_sampling_params:
+      temperature: 0.0
+      top_p: 1.0
+      top_k: -1
+      max_tokens: 65536
+      repetition_penalty: 1.0

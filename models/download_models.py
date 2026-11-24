@@ -1131,6 +1131,12 @@ BUNDLES += (Bundle("inworld-isolator","Inworld Voice Isolator • recording and 
 )),)
 
 
+BUNDLES += (Bundle("sophon-agent","Sophon Realtime Tag + NVFP4A16 thinker","100",(
+    A("adventists-ai/Sophon-Realtime-32B-Tag",model_path("sophon-agent"),("config.json","README*","LICENSE*","NOTICE*","talker/**","voices/**"),revision="ee0fb1bd3db4ddb24ec5efbe75bdebac2a7986fd"),
+    A("caijunqiang/Sophon-Realtime-32B-Flash-Thinker-NVFP4A16",model_path("sophon-agent/thinker"),("*.safetensors","*.json","*.jinja","*.txt","audio/*","README.md","NOTICE","LICENSE","MODIFICATIONS.md"),revision="d324f5c7b8ba51485040b3d405d1cd6aa5dd399c"),
+)),)
+
+
 def print_menu() -> None:
     print("\nMM Tools model downloader")
     print(f"Destination root: {MODELS}")

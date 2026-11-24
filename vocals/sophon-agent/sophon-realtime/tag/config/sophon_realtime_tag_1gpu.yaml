@@ -1,0 +1,81 @@
+# Sophon-Realtime-32B-Tag, ONE GPU (H100/A100 80 GB): thinker = offline FP8 (tag-writing merged), tag-tts talker + flow/HiFT on the same card.
+# vllm serve <Sophon-Realtime-32B-Tag> --omni --deploy-config sophon_realtime_tag_1gpu.yaml
+async_chunk: true
+session_mode: duplex
+duplex_session:
+  max_sessions: 32
+  idle_ttl_s: 600
+  server_vad_model_path: __HERE__/config/silero_vad.onnx
+
+connectors:
+  connector_of_shared_memory:
+    name: SharedMemoryConnector
+    extra:
+      codec_streaming: true
+      connector_get_sleep_s: 0.002
+      connector_get_max_wait_first_chunk: 3000
+      connector_get_max_wait: 300
+      codec_chunk_frames: 10          # first flow chunk = 10 speech tokens (hop 10, voice prompts are trimmed to a multiple of 10)
+      codec_left_context_frames: 50   # flow decodes each chunk with the last 50 tokens (~2 s) as context: constant cost per chunk
+      codec_stream_scale_factor: 2
+      codec_stream_hold_chunks: 2     # chunks 10, 10, 20, 40 tokens: a short second chunk (doubling right away left a gap after the first)
+      codec_vocab_size: 6561
+
+stages:
+  - stage_id: 0
+    max_num_seqs: 32
+    gpu_memory_utilization: 0.62
+    trust_remote_code: true
+    enable_prefix_caching: true
+    max_model_len: 8192
+    mm_processor_cache_gb: 0
+    devices: "0"
+    limit_mm_per_prompt:
+      audio: 20
+      image: 2
+    output_connectors:
+      to_stage_1: connector_of_shared_memory
+    default_sampling_params:
+      temperature: 0.7
+      top_p: 0.9
+      max_tokens: 400
+
+  - stage_id: 1
+    max_num_seqs: 32
+    max_num_batched_tokens: 4096
+    gpu_memory_utilization: 0.08
+    enforce_eager: false
+    trust_remote_code: true
+    enable_prefix_caching: false
+    async_scheduling: false
+    max_model_len: 4096
+    devices: "0"
+    hf_overrides:
+      async_chunk_prewarm_prompt_len: 8     # [sos] + "You are a helpful assistant.<|endofprompt|>" (7 tokens)
+    input_connectors:
+      from_stage_0: connector_of_shared_memory
+    output_connectors:
+      to_stage_2: connector_of_shared_memory
+    default_sampling_params:
+      max_tokens: 2048
+      top_k: 25
+      top_p: 0.8
+    disable_hybrid_kv_cache_manager: true
+    mm_processor_cache_gb: 0
+    skip_mm_profiling: true
+
+  - stage_id: 2
+    max_num_batched_tokens: 32768
+    max_num_seqs: 32
+    gpu_memory_utilization: 0.08
+    enforce_eager: true
+    trust_remote_code: true
+    enable_prefix_caching: false
+    max_model_len: 65536              # a long reply's chunks accumulate here (each chunk: left context + new tokens)
+    devices: "0"
+    input_connectors:
+      from_stage_1: connector_of_shared_memory
+    default_sampling_params:
+      max_tokens: 65536
+    disable_hybrid_kv_cache_manager: true
+    skip_mm_profiling: true

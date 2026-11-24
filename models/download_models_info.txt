@@ -108,4 +108,4 @@ snapshot_download(
 ```
 
 `uv run above-script.py` will download with those explicit instructions.
-- Inworld Voice Isolator (inworld-isolator): permissive upstream terms for code and both checkpoints.
+- Sophon Realtime (sophon-agent): permissive upstream terms for code and talker weights; the community NVFP4A16 thinker keeps the same terms.

@@ -1,0 +1,75 @@
+# Sophon-Realtime-4B-E2E, ONE 32 GB GPU (RTX 5090 class and up; uses about 31 GB with 8 conversations): 4B thinker (bf16, writes sound tags), E2E talker + decoder on the same card.
+# Meant for a few conversations at a time; on a bigger GPU use the 1gpu config for more users. Image input is off (the 4B thinker has no vision).
+async_chunk: true
+session_mode: duplex
+duplex_session:
+  max_sessions: 8
+  idle_ttl_s: 300
+  server_vad_model_path: __HERE__/config/silero_vad.onnx
+
+connectors:
+  connector_of_shared_memory:
+    name: SharedMemoryConnector
+    extra:
+      codec_streaming: true
+      connector_get_sleep_s: 0.002
+      connector_get_max_wait_first_chunk: 3000
+      connector_get_max_wait: 300
+
+stages:
+  - stage_id: 0
+    max_num_seqs: 16
+    gpu_memory_utilization: 0.41
+    trust_remote_code: true
+    enable_prefix_caching: true
+    max_model_len: 8192
+    mm_processor_cache_gb: 0
+    devices: "0"
+    limit_mm_per_prompt:
+      audio: 20
+      image: 0
+    output_connectors:
+      to_stage_1: connector_of_shared_memory
+    default_sampling_params:
+      temperature: 0.7
+      top_p: 0.9
+      max_tokens: 400
+
+  - stage_id: 1
+    max_num_seqs: 8
+    max_num_batched_tokens: 4096
+    gpu_memory_utilization: 0.02
+    enforce_eager: true
+    trust_remote_code: true
+    enable_prefix_caching: false
+    async_scheduling: false
+    max_model_len: 1048576            # attention-free (no KV cache): one position per decode step; long replies take many steps
+    devices: "0"
+    hf_overrides:
+      async_chunk_prewarm_prompt_len: 4
+    input_connectors:
+      from_stage_0: connector_of_shared_memory
+    output_connectors:
+      to_stage_2: connector_of_shared_memory
+    default_sampling_params:
+      max_tokens: 1000000             # decode steps of the talker stage (frames + waiting steps); the engine stops by itself
+      temperature: 0.0
+    disable_hybrid_kv_cache_manager: true
+    mm_processor_cache_gb: 0
+    skip_mm_profiling: true
+
+  - stage_id: 2
+    max_num_batched_tokens: 131072
+    max_num_seqs: 8
+    gpu_memory_utilization: 0.02
+    enforce_eager: true
+    trust_remote_code: true
+    enable_prefix_caching: false
+    max_model_len: 65536
+    devices: "0"
+    input_connectors:
+      from_stage_1: connector_of_shared_memory
+    default_sampling_params:
+      max_tokens: 60000               # decoder steps (one per audio chunk, ~0.15 s): 2048 cut every reply at 300 s
+    disable_hybrid_kv_cache_manager: true
+    skip_mm_profiling: true
