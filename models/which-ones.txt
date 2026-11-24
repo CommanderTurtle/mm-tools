@@ -1303,7 +1303,7 @@ Reconstruction, world geometry, optional sky segmentation and the original examp
 
 100. Sophon duplex speech studio (sophon-agent). Tag talker, vocoder and voices; community NVFP4A16 thinker, no duplicate FP8 weights. Separate Apache-2.0 dependencies.
 
-101. FAB motion studio (fab). FAB-S/L include camera-space G1, parts and contacts; FAB-H offers mesh or dense-point fitting and the same G1 reference export. The picker shares SOMA-X and FlowHMR assets, supplies the fit maps, and fetches FAB’s reference neutral SMPL only when no local copy is found. Setup reads both hand models from SOMA-X/assets/MANO for FAH; Automatic uses both hand meshes when present, otherwise MHR. FAB_SMPL_SOURCE and MANO_SOURCE can point to existing assets elsewhere. FAB/FAH weights are research/non-commercial.
+101. FAB motion studio (fab). FAB-S/L include a camera-space G1 head, parts and contacts; FAB-H offers mesh or dense-point fitting. All three can overlay and export 50 Hz kinematic G1 references for one or all tracks. Supply a matching FAB world-camera NPZ for moving footage; otherwise the retarget assumes a fixed camera and a flat floor. The picker shares SOMA-X and FlowHMR assets and supplies fit maps and Unitree/mjlab meshes. It fetches FAB’s reference neutral SMPL only if no local body is found. Setup reads both hand models from SOMA-X/assets/MANO for FAH; Automatic uses both hand meshes when present, otherwise MHR. FAB_SMPL_SOURCE and MANO_SOURCE can point to existing assets elsewhere. FAB/FAH weights are research/non-commercial.
 
 102. Jeveration image desk (jeveration). Generator, decoders, Qwen, TA-TiTok, CLIP, photo annotators and workflow graph.
 

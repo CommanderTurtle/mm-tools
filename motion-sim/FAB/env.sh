@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 model_store="$STUDIO/../../models"
-export FAB_HOME="${FAB_HOME:-$model_store/fab}" FAB_G1="${FAB_G1:-${FAB_HOME:-$model_store/fab}/g1}"
+export FAB_HOME="${FAB_HOME:-$model_store/fab}"
+export FAB_G1="${FAB_G1:-$FAB_HOME/g1}"
 shared_sam="$model_store/flowhmr/ckpts/sam-3d-body-dinov3"
 shared_soma="$STUDIO/../nvidia-sim/SOMA-X/assets"
 if [[ ! -f "$shared_sam/assets/mhr_model.pt" && -f "$FAB_HOME/sam3d/assets/mhr_model.pt" ]]; then shared_sam="$FAB_HOME/sam3d"; fi

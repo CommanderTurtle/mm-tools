@@ -564,6 +564,26 @@ installation alone; only checkpoint bytes route through the shared downloader.
 | Ming3 | speech synthesis and podcast generation | 8291 | ~16 GB |
 | Underdog | Bark speech behind plain HTTP and studio surfaces | 8292/8293 | ~6 GB |
 
+### Update 11-24, lanes that run their committed source
+
+Nine more studios join the same surface, with one change: each lane runs the
+source committed beside it, so a fresh checkout needs dependency installation
+only and no network access at run time. Every lane carries its own
+`ARCHITECTURE.md` and a `state.py` that records the lane source in job records
+and startup logs, so a result says which source produced it. Checkpoints still come from `models/download_models.py`.
+
+| Project | Canonical surface | Default port | VRAM (approx) |
+| --- | --- | ---: | ---: |
+| FAB | one take to tracked body, fitted mesh, contacts and a retargeted G1 reference | 8299 | ~12 GB |
+| Budget3D | reference image to navigable Gaussians, Idol-style view sweep and turntable | 8294 | ~22 GB |
+| SplatAnything v3 | views, scene video or panorama to a walkable Gaussian scene | 8295 | ~24 GB |
+| FastFrames | driveable LingBot worlds with a waiting room, plus FastFrames-L clips | 8296 | 32–40 GB |
+| Inworld Voice Isolator | upload, file and realtime microphone vocal separation | 8297 | ~4 GB |
+| Sophon Realtime Tag | full-duplex voice calls with recorded-clip voices | 8298 | ~24 GB |
+| Jeveration | image generate, edit and dense runs behind one workflow page | 8300 | ~24 GB |
+| BRIA RMBG-3.0 | instruction-fixed alpha matte and clean background export | 8301 | ~8 GB |
+| WeMM-Video | clip, image or track question answering on one owned AWQ engine | 8302 | ~28 GB |
+
 </details>
 
 # More?

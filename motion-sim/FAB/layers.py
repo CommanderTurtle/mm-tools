@@ -57,6 +57,16 @@ class Layers:
         for i,v,f,color in self.geoms:
             moved=v@d.geom_xmat[i].reshape(3,3).T+d.geom_xpos[i]
             yield moved@root.T+loc,f,color
+    def reference_meshes(self,refs,T):
+        m,d=self.model,self.data
+        for names,q,pos,quat,scale,dz in refs:
+            d.qpos[:3]=pos; d.qpos[3:7]=quat[[3,0,1,2]]
+            d.qpos[[int(m.joint(n).qposadr[0]) for n in names]]=q
+            self.mj.mj_forward(m,d)
+            for i,v,f,color in self.geoms:
+                world=(v @ d.geom_xmat[i].reshape(3,3).T + d.geom_xpos[i]) / scale
+                world[:,2]-=dz
+                yield (world-T[:3,3]) @ T[:3,:3],f,color
     def render(self,bgr,objects):
         scene=pyrender.Scene(ambient_light=[.55]*3)
         gl=np.diag([1.,-1.,-1.,1.])
@@ -69,8 +79,8 @@ class Layers:
             scene.add(pyrender.Mesh.from_trimesh(mesh,material=mat,smooth=False))
         rgb,z=self.renderer.render(scene)
         return np.where((z>0)[:,:,None],rgb[:,:,::-1],bgr)
-    def panels(self,bgr,people,draw_robot,crop):
-        h,w=bgr.shape[:2]; parts=bgr.copy(); points=bgr.copy(); meshes=[]; robots=[]
+    def panels(self,bgr,people,draw_robot,crop,refs,T):
+        h,w=bgr.shape[:2]; parts=bgr.copy(); points=bgr.copy(); contacts=bgr.copy(); meshes=[]; robots=[]
         cmap=cv2.applyColorMap(((np.arange(256)*31)%256).astype("uint8"),cv2.COLORMAP_TURBO).reshape(256,3)
         for p in people:
             mask=p.get("parts")
@@ -80,10 +90,17 @@ class Layers:
             if mask is not None:
                 live=mask!=0; parts[live]=(.25*parts[live]+.75*cmap[mask[live]]).astype("uint8")
             kp=p.get("keypoints2d",p["keypoints2d_projected"]); c=p.get("contact_video",p.get("contact"))
-            for x,y in p.get("dense_surface2d",()): cv2.circle(points,(int(x),int(y)),2,(183,201,255),-1,cv2.LINE_AA)
-            for a,b in BODY_LINKS: cv2.line(points,tuple(kp[a].astype(int)),tuple(kp[b].astype(int)),(255,255,255),2,cv2.LINE_AA)
+            if "dense_surface2d" in p:
+                depth=p.get("dense_surface_cam",p["dense_surface"])[:,2]
+                lo,hi=np.percentile(depth,[5,95]); indices=np.clip((depth-lo)/max(hi-lo,1e-6)*255,0,255).astype("uint8")
+                colors=cv2.applyColorMap(indices,cv2.COLORMAP_TURBO).reshape(-1,3)
+                for j in np.argsort(depth)[::-1]:
+                    cv2.circle(points,tuple(p["dense_surface2d"][j].astype(int)),2,tuple(map(int,colors[j])), -1,cv2.LINE_AA)
+            for a,b in BODY_LINKS: cv2.line(contacts,tuple(kp[a].astype(int)),tuple(kp[b].astype(int)),(255,255,255),2,cv2.LINE_AA)
             if c is not None:
-                for _,ch,k in FEET: cv2.circle(points,tuple(kp[k].astype(int)),6,(100,240,110) if c[ch]>=.5 else (110,110,110),2)
+                for _,ch,k in (*FEET,("L hand",4,62),("R hand",5,41),("L knee",6,11),("R knee",7,12)):
+                    cv2.circle(contacts,tuple(kp[k].astype(int)),6,(65,65,250) if c[ch]>=.5 else (145,145,145),2)
             meshes.append((*self.body(p),(.77,.84,.91)))
             if draw_robot: robots.extend(self.robot_meshes(p))
-        return self.render(bgr,robots) if draw_robot else bgr.copy(),self.render(bgr,meshes),parts,points
+        if refs: robots=list(self.reference_meshes(refs,T))
+        return (bgr,self.render(bgr,robots) if robots else bgr,self.render(bgr,meshes),parts,contacts,points)

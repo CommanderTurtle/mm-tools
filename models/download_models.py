@@ -1461,7 +1461,16 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     artifacts = tuple(dict.fromkeys(artifact for bundle in bundles for artifact in bundle.artifacts))
     if any(b.key == "fab" for b in bundles):
-        from fab_assets import find_smpl
+        from fab_assets import find_smpl, g1_ready, g1_target
+        if not g1_ready(g1_target()):
+            groups = json.loads((MODELS / "manifests/fab-g1.json").read_text())
+            artifacts += tuple(
+                A(g["repo"], model_path(f"fab/g1-sources/{group}") / Path(name).parent,
+                  revision=g["revision"], direct_url=(
+                      f"https://raw.githubusercontent.com/{g['repo']}/{g['revision']}/{g['folder']}/{quote(name)}"
+                  ), direct_filename=Path(name).name, expected_size=size, sha256=sha)
+                for group, g in groups.items() for name, size, sha in g["files"]
+            )
         installed = find_smpl()
         if installed:
             print(f"FAB: using installed neutral body at {installed}")
