@@ -197,6 +197,54 @@ FIRE3D_ANYUP = A(
     sha256="b6cc407da8986c7e5c9098e61f7531767a9aca8fff20a1bc6c99d488e61aac59",
     expected_size=3541624,
 )
+SOMA_X = A(
+    "nvidia/SOMA-X",
+    repo_path("motion-sim/nvidia-sim/SOMA-X/assets"),
+    (
+        "Anny/*",
+        "GarmentMeasurements/*",
+        "MANO/*",
+        "MHR/*",
+        "SMPL/*",
+        "SMPLX/*",
+        "SOMA-X-HF-MANIFEST.json",
+        "SOMAHand.npz",
+        "SOMA_neutral.npz",
+        "SOMA_procedural_transforms.json",
+        "SOMA_template_rig.usda",
+        "correctives_model.pt",
+        "example_animation.npy",
+    ),
+    revision="32f0ab41a0db0f2710d6542a435f90ad452c3b73",
+)
+
+FLOW_SAM_REPO = "jetjodh/sam-3d-body-dinov3"
+FLOW_SAM_REV = "1f026b2cc9076fd460243dae553cff9b0dcd199d"
+FLOW_SAM_DIR = model_path("flowhmr/ckpts/sam-3d-body-dinov3")
+
+
+def fab_body_artifacts() -> tuple[Artifact, ...]:
+    body = model_path("fab/body_models")
+    rev = "85fc2cbaf77f606e41346cb791d8ad96a75e1a4b"
+    maps = (
+        ("head_hand_mask.npz", 222040, "60a64a305731dcc1c09f167dfa844246443b3115ae05abebe3813aa64a9ba2ae"),
+        ("mhr2smpl_mapping.npz", 170721, "4bfe2fd6abb598f38ba3a3aa5506ac45b4efb3cdaed7fe4757cfbbf20bbe6ac7"),
+        ("mhr2smplx_mapping.npz", 249356, "d6d023f9f483be73cd4491d0ddf217450627263405c9bc6bf43795dfff809af1"),
+        ("mhr_face_mask.ply", 774669, "db8ed4fca24a744b1e1f4ed9562f55aff837c9f270debbb34a9d1537a3ac62e1"),
+        ("smpl2mhr_mapping.npz", 590582, "84f908ad534f470dc5db072a4aeb9ccb4f9aa4484d2bce2558cc1a346df95c98"),
+        ("smplx2mhr_mapping.npz", 454393, "94742d378ccbd6058ce8aa0221d16726d1e5def45490685c223b2e87c6070f97"),
+        ("subsampled_vertex_indices.npy", 18567, "76008acafd4468dda802e3ee5523b29fef4de8408cc5e1c65351d4145efc01aa"),
+    )
+    reg = A("nkolot/GraphCMR", body / "smpl",
+            direct_url="https://raw.githubusercontent.com/nkolot/GraphCMR/b0ee54f1d38f06991558228ed19472a259c06143/data/J_regressor_h36m.npy",
+            direct_filename="J_regressor_h36m.npy", expected_size=937168,
+            sha256="c655cd7013d7829eb9acbebf0e43f952a3fa0305a53c35880e39192bfb6444a0")
+    return (reg, *(A("facebookresearch/MHR", body / "mhr", revision=rev,
+                     direct_url=f"https://raw.githubusercontent.com/facebookresearch/MHR/{rev}/tools/mhr_smpl_conversion/assets/{name}",
+                     direct_filename=name, sha256=digest, expected_size=size)
+                   for name, size, digest in maps))
+
+
 BUNDLES: tuple[Bundle, ...] = (
     Bundle(
         "ideogram",
@@ -732,26 +780,7 @@ BUNDLES: tuple[Bundle, ...] = (
                 ),
                 revision="96c7eb1cc9100cd3925662d1093926c00b64a698",
             ),
-            A(
-                "nvidia/SOMA-X",
-                repo_path("motion-sim/nvidia-sim/SOMA-X/assets"),
-                (
-                    "Anny/*",
-                    "GarmentMeasurements/*",
-                    "MANO/*",
-                    "MHR/*",
-                    "SMPL/*",
-                    "SMPLX/*",
-                    "SOMA-X-HF-MANIFEST.json",
-                    "SOMAHand.npz",
-                    "SOMA_neutral.npz",
-                    "SOMA_procedural_transforms.json",
-                    "SOMA_template_rig.usda",
-                    "correctives_model.pt",
-                    "example_animation.npy",
-                ),
-                revision="32f0ab41a0db0f2710d6542a435f90ad452c3b73",
-            ),
+            SOMA_X,
         ),
     ),
     Bundle(
@@ -855,7 +884,7 @@ BUNDLES: tuple[Bundle, ...] = (
         "flowhmr", "FlowHMR video reconstruction (licensed SMPL-H supplied separately)", "75",
         (
             A("fafsaf1/flowhmr-0.46B", model_path("flowhmr/checkpoints"), ("flowhmr_latest/*",), revision="1eb105e554e0cfc1846ea5feac8c2d516a36d319"),
-            A("jetjodh/sam-3d-body-dinov3", model_path("flowhmr/ckpts/sam-3d-body-dinov3"), ("model.ckpt", "model_config.yaml", "assets/mhr_model.pt"), revision="1f026b2cc9076fd460243dae553cff9b0dcd199d"),
+            A(FLOW_SAM_REPO, FLOW_SAM_DIR, ("model.ckpt", "model_config.yaml", "assets/mhr_model.pt"), revision=FLOW_SAM_REV),
             A("facebook/VGGT-Omega", model_path("flowhmr/ckpts/vggt-omega"),
               direct_url="https://modelscope.cn/models/facebook/VGGT-Omega/resolve/f4fe2040e400351980060e5391e12f00a6c037b2/vggt_omega_1b_512.pt",
               direct_filename="vggt_omega_1b_512.pt", expected_size=4576706117,
@@ -1137,10 +1166,11 @@ BUNDLES += (Bundle("sophon-agent","Sophon Realtime Tag + NVFP4A16 thinker","100"
 
 
 BUNDLES += (Bundle("fab", "FAB motion, SOMA & ego hands", "101", (
-    A("noahcao/FAB",model_path("fab/weights"),("fab-l/*","fab-s/*","shared/*","*LICENSE*"),revision="f2e204f280aa27944b98fbf783f618a4bea2c223"),
+    A("noahcao/FAB",model_path("fab/weights"),("fab-l/*","fab-s/*","fab-h/*","shared/*","*LICENSE*"),revision="f2e204f280aa27944b98fbf783f618a4bea2c223"),
     A("noahcao/FAH",model_path("fab/hands"),("fah/*","shared/*","*LICENSE*"),revision="c2e67a5779c104f85c33c147e8d4c6a8ebdc28b4"),
-    A("facebook/sam-3d-body-dinov3",model_path("fab/sam3d"),("model_config.yaml","assets/mhr_model.pt","LICENSE"),revision="11aaa346c7204874a1cbafe3d39a979080b2c55a"),
-    A("nvidia/SOMA-X",model_path("fab/soma"),("SMPL/*.obj","SOMA_neutral.npz","SOMA_template_rig.usda","SOMA_procedural_transforms.json","correctives_model.pt","*LICENSE*"),revision="32f0ab41a0db0f2710d6542a435f90ad452c3b73"),
+    A(FLOW_SAM_REPO, FLOW_SAM_DIR, ("model_config.yaml", "assets/mhr_model.pt"), revision=FLOW_SAM_REV),
+    SOMA_X,
+    *fab_body_artifacts(),
 )),)
 
 
@@ -1430,6 +1460,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     artifacts = tuple(dict.fromkeys(artifact for bundle in bundles for artifact in bundle.artifacts))
+    if any(b.key == "fab" for b in bundles):
+        from fab_assets import find_smpl
+        installed = find_smpl()
+        if installed:
+            print(f"FAB: using installed neutral body at {installed}")
+        else:
+            # This mirror has the exact checksum published in FAB's reproduction guide.
+            rev = "01543c84f2af7a1a3763cbc96c8f90950563c04b"
+            artifacts += (A("vsadhu1/MotionGPT-smpl-models", SOMA_X.destination / "SMPL", revision=rev,
+                            direct_url=f"https://huggingface.co/vsadhu1/MotionGPT-smpl-models/resolve/{rev}/smpl/SMPL_NEUTRAL.pkl",
+                            direct_filename="SMPL_NEUTRAL.pkl", expected_size=39001280,
+                            sha256="98e65c74ad9b998783132f00880d1025a8d64b158e040e6ef13a557e5098bc42"),)
     print("\nSelected bundles:")
     for bundle in bundles:
         count = len(bundle.artifacts)

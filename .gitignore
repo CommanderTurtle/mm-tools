@@ -755,6 +755,7 @@
 /models/**
 !/models/ARCHITECTURE.md
 !/models/download_models.py
+!/models/fab_assets.py
 !/models/download_models_info.txt
 !/models/which-ones.txt
 !/models/manifests/

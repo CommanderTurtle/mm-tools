@@ -4,12 +4,11 @@ from pathlib import Path
 import imageio_ffmpeg
 import mujoco
 import numpy as np
-from fab.retarget.g1_model15 import NAMES
 
 def movie(reference,output):
-    model=mujoco.MjModel.from_xml_path(str(Path(os.environ["FAB_HOME"])/"g1/g1_29dof.xml"))
-    data=mujoco.MjData(model); addr=[int(model.joint(n).qposadr[0]) for n in NAMES]
+    model=mujoco.MjModel.from_xml_path(str(Path(os.environ["FAB_G1"])/"g1_29dof.xml"))
     z=np.load(reference,allow_pickle=False)
+    data=mujoco.MjData(model); addr=[int(model.joint(str(n)).qposadr[0]) for n in z["g1_joint_names"]]
     mcam=mujoco.MjvCamera(); mujoco.mjv_defaultCamera(mcam)
     mcam.type=mujoco.mjtCamera.mjCAMERA_FREE;mcam.distance=3.4;mcam.azimuth=120;mcam.elevation=-15
     opts=mujoco.MjvOption();opts.geomgroup[:]=0;opts.geomgroup[1]=1

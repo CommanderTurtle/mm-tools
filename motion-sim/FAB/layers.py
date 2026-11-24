@@ -30,7 +30,7 @@ class Layers:
             import mujoco
             from fab.retarget.g1_model15 import NAMES
             self.mj=mujoco
-            self.model=mujoco.MjModel.from_xml_path(str(Path(os.environ["FAB_HOME"])/"g1/g1_29dof.xml"))
+            self.model=mujoco.MjModel.from_xml_path(str(Path(os.environ["FAB_G1"])/"g1_29dof.xml"))
             m=self.model; self.data=mujoco.MjData(m)
             self.addr=[int(m.joint(n).qposadr[0]) for n in NAMES]
             self.geoms=[]
@@ -79,8 +79,8 @@ class Layers:
             if mask is None and "parts_roi" in p: mask=full_map(p["parts_roi"],p["roi"],h,w)
             if mask is not None:
                 live=mask!=0; parts[live]=(.25*parts[live]+.75*cmap[mask[live]]).astype("uint8")
-            kp=p["keypoints2d"]; c=p.get("contact_video",p.get("contact"))
-            for x,y in p["dense_surface2d"]: cv2.circle(points,(int(x),int(y)),2,(183,201,255),-1,cv2.LINE_AA)
+            kp=p.get("keypoints2d",p["keypoints2d_projected"]); c=p.get("contact_video",p.get("contact"))
+            for x,y in p.get("dense_surface2d",()): cv2.circle(points,(int(x),int(y)),2,(183,201,255),-1,cv2.LINE_AA)
             for a,b in BODY_LINKS: cv2.line(points,tuple(kp[a].astype(int)),tuple(kp[b].astype(int)),(255,255,255),2,cv2.LINE_AA)
             if c is not None:
                 for _,ch,k in FEET: cv2.circle(points,tuple(kp[k].astype(int)),6,(100,240,110) if c[ch]>=.5 else (110,110,110),2)
