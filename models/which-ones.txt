@@ -715,9 +715,10 @@ its documented path without symlinks or a second setup script.
 realrebelai/LingBot_World_V2_ComfyUI, igorls NVFP4 export)
 Bundle `lingbot` carries the whole 14B program in six tiers. `lingbot:N`
 selects tiers non-interactively; tier-less selections (menu `all`, bare
-numbers, or the bare name) take the default tier 2 with the shared support
-set, while the interactive picker names the bundle then re-prompts for tiers
-(a = every tier). The ~74 GB native tier 1 repository is only ever fetched by
+numbers, or the bare name) take the default tier 5 with the shared support
+set, while the interactive picker names the bundle, prints per-tier sizes and
+a 32 GB RTX 5090 recommendation, and re-prompts (marked default 5,
+a = every tier). The ~74 GB native tier 1 repository is only ever fetched by
 an explicit `lingbot:1`. Every artifact lands
 under `models/lingbot/<org--model>/`; the native tier additionally links the
 lane folder `world-gen/lingbot/lingbot-world-v2-14b-causal-fast/` onto its

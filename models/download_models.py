@@ -71,6 +71,7 @@ class Bundle:
     # every tier otherwise.
     variants: tuple[tuple[str, tuple[Artifact, ...]], ...] = ()
     default_tiers: tuple[int, ...] | None = None
+    prompt_note: str = ""
 
 
 def model_path(relative: str) -> Path:
@@ -752,7 +753,12 @@ BUNDLES: tuple[Bundle, ...] = (
                 ),
             ),
         ),
-        default_tiers=(2,),
+        default_tiers=(5,),
+        prompt_note=(
+            "Studio tier 1 needs 64 GiB+ VRAM; an RTX 5090 (32 GB) runs the GGUF path, "
+            "tiers 2-5, through the bundled ComfyUI Rebels nodes, with tier 5 (Q8_0) as "
+            "the quality ceiling there; tier 6 targets 72 GB+ Blackwell under SGLang."
+        ),
     ),
     Bundle(
         "fire3d",
@@ -1513,12 +1519,21 @@ def bundle_artifacts(
 
 def _prompt_tiers(bundle: Bundle) -> tuple[int, ...]:
     print(f"\n{bundle.title} is selected.")
+    if bundle.prompt_note:
+        print(f"  {bundle.prompt_note}")
+    marks = set(bundle.default_tiers or ())
     for index, (title, _) in enumerate(bundle.variants, start=1):
-        print(f"  {index}. {title}")
+        print(f"  {index}. {title}{' *' if index in marks else ''}")
     print("  a. every tier")
+    if marks:
+        print("  * recommended default for this machine.")
+    default = (
+        ",".join(str(tier) for tier in bundle.default_tiers)
+        if bundle.default_tiers else "a"
+    )
     while True:
         try:
-            raw = input("Model tier(s), comma-separated [a]: ").strip() or "a"
+            raw = input(f"Model tier(s), comma-separated [{default}]: ").strip() or default
             _, picks = resolve_selection((f"{bundle.key}:{raw.replace(',', '+')}",))
             return picks[bundle.key]
         except (ValueError, KeyError) as exc:
@@ -1534,12 +1549,12 @@ def interactive_selection() -> tuple[tuple[Bundle, ...], dict[str, tuple[int, ..
             break
         except ValueError as exc:
             print(f"Error: {exc}", file=sys.stderr)
-    # An explicit 'all' means every artifact of every bundle; only targeted
-    # selections get asked which model tiers they actually want.
-    if not any(token.lower() in {"all", "a", "*"} for token in _selection_tokens((raw,))):
-        for bundle in bundles:
-            if bundle.variants and bundle.key not in picks:
-                picks[bundle.key] = _prompt_tiers(bundle)
+    # Every selected bundle with model tiers is asked which tiers it actually
+    # wants, including bare 'all'; only a ':N' suffix on the selection line
+    # skips the question.
+    for bundle in bundles:
+        if bundle.variants and bundle.key not in picks:
+            picks[bundle.key] = _prompt_tiers(bundle)
     return bundles, picks
 
 
