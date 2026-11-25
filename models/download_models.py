@@ -67,8 +67,10 @@ class Bundle:
     inventory: str
     artifacts: tuple[Artifact, ...]
     # (tier title, artifacts) pairs; interactive selection re-prompts for one
-    # or more tiers, non-interactive selection defaults to every tier.
+    # or more tiers, non-interactive selection uses default_tiers when set and
+    # every tier otherwise.
     variants: tuple[tuple[str, tuple[Artifact, ...]], ...] = ()
+    default_tiers: tuple[int, ...] | None = None
 
 
 def model_path(relative: str) -> Path:
@@ -750,6 +752,7 @@ BUNDLES: tuple[Bundle, ...] = (
                 ),
             ),
         ),
+        default_tiers=(2,),
     ),
     Bundle(
         "fire3d",
@@ -1248,27 +1251,42 @@ MING3_REFERENCES = tuple(
     )
 ) + (A("hugging-apps/ming-3-tts-05b", model_path("ming3/references"), ("voices.json",),
        repo_type="space", revision="d4ecae7bc5c59fb0b8e80461e503e53a8a6ba6bd"),)
-BUNDLES += tuple(
-    Bundle(key, title, inventory, (
-        A(f"inclusionAI/Ming-3.0-tts-{variant}", model_path(f"ming3/{variant}"),
-          ("*.safetensors", "*.onnx", "*.json", "*.txt", "*.py", "*.jinja", "LICENSE", "README.md"),
-          revision=revision), *MING3_REFERENCES,
-    ))
-    for key, title, inventory, variant, revision in (
-        ("ming3-0.5b", "Ming3 0.5B dense speech (~3 GB)", "88", "0.5B", "7247f4c94a5b2e987404ed28a5cfec41b1a4ca61"),
-        ("ming3-tiny", "Ming3 tiny MoE speech + podcast (~18 GB)", "89", "tiny", "4715ef5a2f02901f75687d538b6920fd0dd11e6b"),
-    )
+BUNDLES += (
+    Bundle(
+        "ming3", "Ming3 speech (0.5B dense or tiny MoE)", "88-89",
+        MING3_REFERENCES,
+        variants=(
+            ("0.5B dense speech (~3 GB)", (
+                A("inclusionAI/Ming-3.0-tts-0.5B", model_path("ming3/0.5B"),
+                  ("*.safetensors", "*.onnx", "*.json", "*.txt", "*.py", "*.jinja", "LICENSE", "README.md"),
+                  revision="7247f4c94a5b2e987404ed28a5cfec41b1a4ca61"),
+            )),
+            ("tiny MoE speech + podcast (~18 GB)", (
+                A("inclusionAI/Ming-3.0-tts-tiny", model_path("ming3/tiny"),
+                  ("*.safetensors", "*.onnx", "*.json", "*.txt", "*.py", "*.jinja", "LICENSE", "README.md"),
+                  revision="4715ef5a2f02901f75687d538b6920fd0dd11e6b"),
+            )),
+        ),
+    ),
 )
 
 
 UNDERDOG = json.loads((MODELS / "manifests/underdog.json").read_text())
-BUNDLES += tuple(
-    Bundle(f"underdog-{key}", f"{row['name']} English STT ({row['download']})", row["inventory"], (
-        A(row["repo"], model_path(f"underdog/{key}"), tuple(row["files"]), revision=row["revision"]),
-        A(UNDERDOG["processor"]["repo"], model_path("underdog/processor"),
-          tuple(UNDERDOG["processor"]["files"]), revision=UNDERDOG["processor"]["revision"]),
-    ))
-    for key, row in UNDERDOG["variants"].items()
+BUNDLES += (
+    Bundle(
+        "underdog", "Bark 3.0 English STT (base/plus/clean/pro)", "90-93",
+        (
+            A(UNDERDOG["processor"]["repo"], model_path("underdog/processor"),
+              tuple(UNDERDOG["processor"]["files"]), revision=UNDERDOG["processor"]["revision"]),
+        ),
+        variants=tuple(
+            (f"{row['name']} English ({row['download']})", (
+                A(row["repo"], model_path(f"underdog/{key}"),
+                  tuple(row["files"]), revision=row["revision"]),
+            ))
+            for key, row in UNDERDOG["variants"].items()
+        ),
+    ),
 )
 
 
@@ -1407,7 +1425,11 @@ def print_menu() -> None:
     for number, bundle in enumerate(BUNDLES, start=1):
         count = len(bundle.artifacts)
         suffix = "s" if count != 1 else ""
-        tiers = f" · {len(bundle.variants)} selectable tiers" if bundle.variants else ""
+        tiers = ""
+        if bundle.variants:
+            tiers = f" · {len(bundle.variants)} selectable tiers"
+            if bundle.default_tiers:
+                tiers += f" (default {'+'.join(str(t) for t in bundle.default_tiers)})"
         print(f"  {number:>2}. {bundle.title} [{bundle.key}] — {count} snapshot{suffix}{tiers}; inventory {bundle.inventory}")
     print("\n  all. Every bundle (the original downloader behavior)")
     print("  q.   Exit without downloading")
@@ -1479,11 +1501,11 @@ def resolve_selection(
 def bundle_artifacts(
     bundle: Bundle, picks: Sequence[int] | None
 ) -> tuple[Artifact, ...]:
-    """Shared artifacts plus the chosen tiers (every tier when picks is empty)."""
-    if not bundle.variants or not picks:
-        return bundle.artifacts + tuple(
-            artifact for _, artifacts in bundle.variants for artifact in artifacts
-        )
+    """Shared artifacts plus the chosen tiers (default tiers when picks is empty)."""
+    if not bundle.variants:
+        return bundle.artifacts
+    if not picks:
+        picks = bundle.default_tiers or tuple(range(1, len(bundle.variants) + 1))
     return bundle.artifacts + tuple(
         artifact for index in picks for artifact in bundle.variants[index - 1][1]
     )

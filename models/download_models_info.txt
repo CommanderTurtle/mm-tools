@@ -16,8 +16,12 @@ Drive downloader:
 
 The first interactive question sets the parallel snapshot file workers.
 The next prompt selects numbered project bundles; Enter preserves the original
-"all" behavior. Bundles that offer model tiers (currently `lingbot`) re-prompt
-for tiers after selection. Examples:
+"all" behavior. Bundles that offer model tiers (`lingbot`, `ming3`,
+`underdog`) re-prompt for tiers after interactive selection. Non-interactive
+tier-less selections use default tiers: `lingbot` takes its shared support set
+plus tier 2 (GGUF Q4_K_S) — the ~74 GB native tier 1 repo only comes with an
+explicit `lingbot:1` — while `ming3` and `underdog` default to every tier.
+Examples:
 
   uv run download_models.py 4d lingbot:1 fire3d --workers 24
   uv run download_models.py aukspeech sculpting worldsculpt
@@ -61,7 +65,9 @@ maintained in `which-ones.txt`.
 realrebelai GGUF quants Q4_K_S through Q8_0 for the bundled ComfyUI Rebels
 nodes (tiers 2-5, from 8 GB VRAM upward), and the igorls hybrid-NVFP4 export
 with the official diffusers base for SGLang serving on 72 GB+ Blackwell
-(tier 6). Everything lands under `models/lingbot/<org--model>/`; see the 43
+(tier 6). Tier 2 is the default for non-interactive selection; tier 1's
+complete ~74 GB repository is fetched only by an explicit `lingbot:1`.
+Everything lands under `models/lingbot/<org--model>/`; see the 43
 entry in `which-ones.txt`. The retired 1.3B single-5090 bundle is gone; the
 FastFrames lane keeps its own 1.3B checkpoints.
 

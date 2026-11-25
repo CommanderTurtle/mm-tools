@@ -1,8 +1,8 @@
 # Ming3
 
 ```bash
-uv run models/download_models.py ming3-0.5b   # dense, ~3 GB
-uv run models/download_models.py ming3-tiny   # MoE + podcast, ~18 GB; optional
+uv run models/download_models.py ming3:1   # dense, ~3 GB
+uv run models/download_models.py ming3:2   # MoE + podcast, ~18 GB; optional
 cd vocals/tts/ming3
 ./setupwithuv.sh
 ./startwithuv.sh                             # http://127.0.0.1:8291

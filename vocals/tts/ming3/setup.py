@@ -10,7 +10,7 @@ def main():
     ]
     if not selected:
         raise SystemExit(
-            "Select ming3-0.5b and/or ming3-tiny in models/download_models.py first"
+            "Select ming3 tiers (1 = 0.5B, 2 = tiny) in models/download_models.py first"
         )
     for key in selected:
         require_models(key)

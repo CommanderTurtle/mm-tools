@@ -283,7 +283,7 @@ def require_models(model):
     if model == "tiny":
         index = read(path / "model.safetensors.index.json")
         if not index or not isinstance(index.get("weight_map"), dict):
-            raise ValueError("Download ming3-tiny in the model picker first")
+            raise ValueError("Select the ming3 tiny tier (2) in the model picker first")
         names += sorted(set(index["weight_map"].values()))
     else:
         names.append("model.safetensors")

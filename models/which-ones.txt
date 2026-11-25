@@ -87,25 +87,21 @@ of this file.
 34  pixel-wizard inventory 85
 35  nemotron     inventory 86
 36  audio8       inventory 87
-37  ming3-0.5b   inventory 88
-38  ming3-tiny   inventory 89
-39  underdog-base inventory 90
-40  underdog-plus inventory 91
-41  underdog-clean inventory 92
-42  underdog-pro inventory 93
-43  bud3d        inventory 94
-44  bud3d-turbo  inventory 95
-45  splat-v3     inventory 96
-46  splat-v3-showcase inventory 96b
-47  fastframes-live inventory 97
-48  fastframes-l inventory 98
-49  inworld-isolator inventory 99
-50  sophon-agent inventory 100
-51  fab          inventory 101
-52  jeveration   inventory 102
-53  bria-rmbg3   inventory 103
-54  wemm-video   inventory 104
-55  fastframes-eval inventory 105
+37  ming3        inventory 88-89
+38  underdog     inventory 90-93
+39  bud3d        inventory 94
+40  bud3d-turbo  inventory 95
+41  splat-v3     inventory 96
+42  splat-v3-showcase inventory 96b
+43  fastframes-live inventory 97
+44  fastframes-l inventory 98
+45  inworld-isolator inventory 99
+46  sophon-agent inventory 100
+47  fab          inventory 101
+48  jeveration   inventory 102
+49  bria-rmbg3   inventory 103
+50  wemm-video   inventory 104
+51  fastframes-eval inventory 105
 ```
 
 The inventory mirrors every active artifact definition in the downloader,
@@ -718,8 +714,11 @@ its documented path without symlinks or a second setup script.
 43. LingBot-World-V2 14B program (robbyant/lingbot-world-v2-14b-causal-fast,
 realrebelai/LingBot_World_V2_ComfyUI, igorls NVFP4 export)
 Bundle `lingbot` carries the whole 14B program in six tiers. `lingbot:N`
-selects tiers non-interactively; the interactive picker names the bundle,
-then re-prompts for tiers (a = every tier, the default). Every artifact lands
+selects tiers non-interactively; tier-less selections (menu `all`, bare
+numbers, or the bare name) take the default tier 2 with the shared support
+set, while the interactive picker names the bundle then re-prompts for tiers
+(a = every tier). The ~74 GB native tier 1 repository is only ever fetched by
+an explicit `lingbot:1`. Every artifact lands
 under `models/lingbot/<org--model>/`; the native tier additionally links the
 lane folder `world-gen/lingbot/lingbot-world-v2-14b-causal-fast/` onto its
 snapshot, so the studio keeps its expected path unchanged.
@@ -1296,7 +1295,7 @@ PyTorch/torchaudio/NumPy/SoundFile: BSD; libsndfile: LGPL; Flask/Waitress: BSD/Z
 FFmpeg: LGPL/GPL depending on installed build.
 https://huggingface.co/Edge0/Audio8-TTS-Realistic-Air
 
-88–89. Ming3 (bundles: ming3-0.5b, ming3-tiny)
+88–89. Ming3 (bundle ming3; tier 1 = 0.5B dense, tier 2 = tiny MoE)
 Source: inclusionAI/Ming-3.0-tts @ a39b80660bdc5a4394d5e1d41af6dbfd9c443a54 (MIT).
 88: inclusionAI/Ming-3.0-tts-0.5B @ 7247f4c94a5b2e987404ed28a5cfec41b1a4ca61 (MIT), ~3 GB.
 89: inclusionAI/Ming-3.0-tts-tiny @ 4715ef5a2f02901f75687d538b6920fd0dd11e6b (MIT), ~18 GB.
@@ -1313,7 +1312,7 @@ CUDA 12.8 PyTorch wheels target Blackwell. Tiny alone provides podcast generatio
 https://huggingface.co/inclusionAI/Ming-3.0-tts-0.5B
 https://huggingface.co/inclusionAI/Ming-3.0-tts-tiny
 
-90–93. Underdog Bark 3.0 (bundles: underdog-base, underdog-plus, underdog-clean, underdog-pro)
+90–93. Underdog Bark 3.0 (bundle underdog; tiers 1 base, 2 plus, 3 clean, 4 pro)
 90: ConwayResearch/Underdog-Bark-3.0 @ e7a641c0fdd4cdf1818dde62a98c26e11d65c061, 163 MB packed.
 91: ConwayResearch/Underdog-Bark-3.0-Plus @ 28a7d4234146b0f01c11e0c6b72dfa29028a4758, 180 MB packed.
 92: ConwayResearch/Underdog-Bark-3.0-Clean @ 73775471a9410b75ceb2401e837861dac12bd76d, 180 MB packed.

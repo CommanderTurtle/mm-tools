@@ -5,9 +5,9 @@ select a model, transcribe, compare results, and copy or export TXT/JSON.
 
 ```bash
 cd models
-uv run download_models.py underdog-pro
+uv run download_models.py underdog:4
 # Optional independent selections:
-uv run download_models.py underdog-base underdog-plus underdog-clean
+uv run download_models.py underdog:1+2+3   # or bare 'underdog' for all four variants
 cd ../vocals/stt/underdog
 ./setupwithuv.sh                  # NVIDIA CUDA; use `cpu` for CPU
 ./startwithuv.sh                  # studio: http://127.0.0.1:8293

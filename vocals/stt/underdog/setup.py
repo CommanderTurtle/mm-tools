@@ -12,7 +12,7 @@ def main():
         raise SystemExit("Usage: setupwithuv.sh [gpu|cpu]")
     if not MODELS.is_dir():
         raise SystemExit(
-            "Select at least one underdog bundle in models/download_models.py first"
+            "Select at least one underdog tier in models/download_models.py first"
         )
     link = ROOT / "models"
     if not (link.is_symlink() and link.resolve() == MODELS.resolve()):
@@ -26,7 +26,7 @@ def main():
     available = [key for key in VARIANTS if not missing_files(key)]
     if not available:
         raise SystemExit(
-            "Complete at least one underdog downloader bundle, including its processor"
+            "Select at least one underdog tier, including its shared processor"
         )
     env = ROOT / ".env"
     if not env.exists():

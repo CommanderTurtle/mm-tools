@@ -426,8 +426,8 @@ saved sessions, WAV/FLAC and codec-token exports.
 Local voice design, cloning, multilingual delivery and multi-speaker podcasts.
 
 ```bash
-uv run models/download_models.py ming3-0.5b  # dense, ~3 GB
-uv run models/download_models.py ming3-tiny  # optional MoE + podcast, ~18 GB
+uv run models/download_models.py ming3:1  # dense, ~3 GB
+uv run models/download_models.py ming3:2  # optional MoE + podcast, ~18 GB (ming3 = both tiers)
 cd vocals/tts/ming3
 ./setupwithuv.sh
 ./startwithuv.sh                             # http://127.0.0.1:8291
@@ -455,7 +455,7 @@ English transcription with independent Bark 3.0, Plus, Clean and Pro loaders.
 Whisper-style studio, microphone recording, transcript comparison and TXT/JSON export.
 
 ```bash
-uv run models/download_models.py underdog-pro  # also: underdog-base, underdog-plus, underdog-clean
+uv run models/download_models.py underdog  # all four Bark variants; one tier only: underdog:4 (1 base, 2 plus, 3 clean, 4 pro)
 cd vocals/stt/underdog
 ./setupwithuv.sh
 ./startwithuv.sh                           # studio: :8293
