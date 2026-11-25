@@ -181,10 +181,19 @@ SCULPT_MOGE = A(
     ("model.pt",),
     revision="39c4d5e957afe587e04eec59dc2bcc3be5ecd968",
 )
+# sHEL1562/shelling (src/kr3ahardtofinds) mirrors the files upstream keeps off
+# the Hub: GitHub release assets, single members of release archives, and the
+# off-HF VBench scorer weights. The pinned revision holds exact copies
+# (src/MANIFEST.sha256 in that repository); per-file digests stay pinned below.
+ARCHIVE_REPO = "sHEL1562/shelling"
+ARCHIVE_REV = "4b859a1bfa801727c84087efd455f8c0a3205902"
+ARCHIVE_ROOT = "src/kr3ahardtofinds"
+ARCHIVE_RAW = f"https://huggingface.co/{ARCHIVE_REPO}/resolve/{ARCHIVE_REV}/{ARCHIVE_ROOT}"
+
 SCULPT_NAF = A(
     "valeoai/NAF release checkpoint",
     repo_path("sculpting/trellis/pretrained/deps/valeoai--NAF"),
-    direct_url="https://github.com/valeoai/NAF/releases/download/model/naf_release.pth",
+    direct_url=f"{ARCHIVE_RAW}/trellis/naf_release.pth",
     direct_filename="naf_release.pth",
     sha256="c096c1ab2217a5c3ac136365f721685e2201379cb69d509cfb0261183847c98f",
     expected_size=2664431,
@@ -192,7 +201,7 @@ SCULPT_NAF = A(
 FIRE3D_ANYUP = A(
     "wimmerth/AnyUp multi-backbone checkpoint",
     repo_path("world-gen/fire3d/checkpoints/Fire3D/external"),
-    direct_url="https://github.com/wimmerth/anyup/releases/download/checkpoint_v2/anyup_multi_backbone.pth",
+    direct_url=f"{ARCHIVE_RAW}/Fire3D/anyup_multi_backbone.pth",
     direct_filename="anyup_multi_backbone.pth",
     sha256="b6cc407da8986c7e5c9098e61f7531767a9aca8fff20a1bc6c99d488e61aac59",
     expected_size=3541624,
@@ -222,10 +231,14 @@ FLOW_SAM_REPO = "jetjodh/sam-3d-body-dinov3"
 FLOW_SAM_REV = "1f026b2cc9076fd460243dae553cff9b0dcd199d"
 FLOW_SAM_DIR = model_path("flowhmr/ckpts/sam-3d-body-dinov3")
 
+FLOW_SAM_MHR = A(ARCHIVE_REPO, FLOW_SAM_DIR / "assets",
+                 direct_url=f"{ARCHIVE_RAW}/FAB/mhr/mhr_model.pt",
+                 direct_filename="mhr_model.pt", expected_size=696110248,
+                 sha256="352e271a6c42729c68554ceaea0c955e866970160c31e35506d782dc0f7377bc")
+
 
 def fab_body_artifacts() -> tuple[Artifact, ...]:
     body = model_path("fab/body_models")
-    rev = "85fc2cbaf77f606e41346cb791d8ad96a75e1a4b"
     maps = (
         ("head_hand_mask.npz", 222040, "60a64a305731dcc1c09f167dfa844246443b3115ae05abebe3813aa64a9ba2ae"),
         ("mhr2smpl_mapping.npz", 170721, "4bfe2fd6abb598f38ba3a3aa5506ac45b4efb3cdaed7fe4757cfbbf20bbe6ac7"),
@@ -236,11 +249,11 @@ def fab_body_artifacts() -> tuple[Artifact, ...]:
         ("subsampled_vertex_indices.npy", 18567, "76008acafd4468dda802e3ee5523b29fef4de8408cc5e1c65351d4145efc01aa"),
     )
     reg = A("nkolot/GraphCMR", body / "smpl",
-            direct_url="https://raw.githubusercontent.com/nkolot/GraphCMR/b0ee54f1d38f06991558228ed19472a259c06143/data/J_regressor_h36m.npy",
+            direct_url=f"{ARCHIVE_RAW}/FAB/mhr/J_regressor_h36m.npy",
             direct_filename="J_regressor_h36m.npy", expected_size=937168,
             sha256="c655cd7013d7829eb9acbebf0e43f952a3fa0305a53c35880e39192bfb6444a0")
-    return (reg, *(A("facebookresearch/MHR", body / "mhr", revision=rev,
-                     direct_url=f"https://raw.githubusercontent.com/facebookresearch/MHR/{rev}/tools/mhr_smpl_conversion/assets/{name}",
+    return (reg, *(A("facebookresearch/MHR", body / "mhr",
+                     direct_url=f"{ARCHIVE_RAW}/FAB/mhr/{name}",
                      direct_filename=name, sha256=digest, expected_size=size)
                    for name, size, digest in maps))
 
@@ -884,7 +897,8 @@ BUNDLES: tuple[Bundle, ...] = (
         "flowhmr", "FlowHMR video reconstruction (licensed SMPL-H supplied separately)", "75",
         (
             A("fafsaf1/flowhmr-0.46B", model_path("flowhmr/checkpoints"), ("flowhmr_latest/*",), revision="1eb105e554e0cfc1846ea5feac8c2d516a36d319"),
-            A(FLOW_SAM_REPO, FLOW_SAM_DIR, ("model.ckpt", "model_config.yaml", "assets/mhr_model.pt"), revision=FLOW_SAM_REV),
+            A(FLOW_SAM_REPO, FLOW_SAM_DIR, ("model.ckpt", "model_config.yaml"), revision=FLOW_SAM_REV),
+            FLOW_SAM_MHR,
             A("facebook/VGGT-Omega", model_path("flowhmr/ckpts/vggt-omega"),
               direct_url="https://modelscope.cn/models/facebook/VGGT-Omega/resolve/f4fe2040e400351980060e5391e12f00a6c037b2/vggt_omega_1b_512.pt",
               direct_filename="vggt_omega_1b_512.pt", expected_size=4576706117,
@@ -1168,7 +1182,11 @@ BUNDLES += (Bundle("sophon-agent","Sophon Realtime Tag + NVFP4A16 thinker","100"
 BUNDLES += (Bundle("fab", "FAB motion, SOMA & ego hands", "101", (
     A("noahcao/FAB",model_path("fab/weights"),("fab-l/*","fab-s/*","fab-h/*","shared/*","*LICENSE*"),revision="f2e204f280aa27944b98fbf783f618a4bea2c223"),
     A("noahcao/FAH",model_path("fab/hands"),("fah/*","shared/*","*LICENSE*"),revision="c2e67a5779c104f85c33c147e8d4c6a8ebdc28b4"),
-    A(FLOW_SAM_REPO, FLOW_SAM_DIR, ("model_config.yaml", "assets/mhr_model.pt"), revision=FLOW_SAM_REV),
+    A(FLOW_SAM_REPO, FLOW_SAM_DIR, ("model_config.yaml",), revision=FLOW_SAM_REV),
+    FLOW_SAM_MHR,
+    A(ARCHIVE_REPO, model_path("fab/demo-archive"), (f"{ARCHIVE_ROOT}/FAB/demo/*",), revision=ARCHIVE_REV,
+      placements=tuple((f"{ARCHIVE_ROOT}/FAB/demo/{name}", model_path("fab/demo") / name)
+                       for name in ("dancer_street.mp4", "steps_up.mp4", "joggers.jpg", "skater_seated.jpg"))),
     SOMA_X,
     *fab_body_artifacts(),
 )),)
@@ -1190,6 +1208,44 @@ BUNDLES += (Bundle("bria-rmbg3", "BRIA RMBG-3.0 cutouts", "103", bria_artifacts(
 
 BUNDLES += (Bundle("wemm-video","WeMM-Video 35B-A3B AWQ","104",(
     A("tencent/WeMM-Video-35BA3B-AWQ",model_path("wemm-video/awq"),(),revision="205c63375c223610f99e62d432b816b67b258de0"),
+)),)
+
+
+# Optional VBench scorer weights for the FastFrames evaluation harness
+# (world-gen/fastframes/fastframes/evaluation/vbench). Nothing in the studio
+# start path needs them; run score.sh/filter_temporal.sh with
+# VBENCH_CACHE_DIR=<mm-tools>/models/fastframes/vbench (TORCH_HOME defaults to
+# its torch/ subdirectory, hence the second DINO placement). The torch.hub clone
+# files under dino_model/facebookresearch_dino_main are the exact set the
+# pinned scorer imports.
+_VBENCH_FILES = (
+    "clip_model/ViT-B-32.pt", "clip_model/ViT-L-14.pt",
+    "aesthetic_model/emb_reader/sa_0_4_vit_l_14_linear.pth",
+    "umt_model/l16_ptk710_ftk710_ftk400_f16_res224.pth",
+    "amt_model/amt-s.pth",
+    "dino_model/dino_vitbase16_pretrain.pth",
+    "dino_model/facebookresearch_dino_main/hubconf.py",
+    "dino_model/facebookresearch_dino_main/vision_transformer.py",
+    "dino_model/facebookresearch_dino_main/utils.py",
+    "pyiqa_model/musiq_spaq_ckpt-358bb6af.pth",
+    "ViCLIP/ViClip-InternVid-10M-FLT.pth",
+    "ViCLIP/bpe_simple_vocab_16e6.txt.gz",
+    "grit_model/grit_b_densecap_objectdet.pth",
+    "caption_model/tag2text_swin_14m.pth",
+    "raft_model/models/raft-things.pth",
+    *(f"bert-base-uncased/{name}" for name in
+      ("config.json", "pytorch_model.bin", "tokenizer.json", "tokenizer_config.json", "vocab.txt")),
+)
+
+BUNDLES += (Bundle("fastframes-eval", "VBench scorer weights (FastFrames evaluation, optional)", "105", (
+    A(ARCHIVE_REPO, model_path("fastframes/vbench-archive"), (f"{ARCHIVE_ROOT}/FastFrames/vbench/**",),
+      revision=ARCHIVE_REV,
+      placements=tuple((f"{ARCHIVE_ROOT}/FastFrames/vbench/{name}", model_path("fastframes/vbench") / name)
+                       for name in _VBENCH_FILES) + (
+          (f"{ARCHIVE_ROOT}/FastFrames/vbench/dino_model/dino_vitbase16_pretrain.pth",
+           model_path("fastframes/vbench/torch/hub/checkpoints/dino_vitbase16_pretrain.pth")),
+      ),
+    ),
 )),)
 
 

@@ -18,7 +18,10 @@ warnings.filterwarnings("ignore", message="Sparse (invariant checks are implicit
 
 SAM3D_REPO = "facebook/sam-3d-body-dinov3"
 SAM3D_CONFIG = "model_config.yaml"
-MHR_ASSETS = "https://github.com/facebookresearch/MHR/releases/download/v1.0.1/assets.zip"
+# mm-tools fork: the MHR model ships as a pinned copy in the mm-tools archive
+# repository (an unauthenticated mirror of the Meta MHR v1.0.1 release asset),
+# so no runtime path has to reach GitHub or unpack a release archive.
+MHR_MODEL = "https://huggingface.co/sHEL1562/shelling/resolve/4b859a1bfa801727c84087efd455f8c0a3205902/src/kr3ahardtofinds/FAB/mhr/mhr_model.pt"
 MHR_SHA256 = "352e271a6c42729c68554ceaea0c955e866970160c31e35506d782dc0f7377bc"
 
 
@@ -68,14 +71,10 @@ def download_sam3d(dest=None):
     return dest
 
 
-def fetch_mhr_model(path, url=MHR_ASSETS, sha256=MHR_SHA256):
-    """assets/mhr_model.pt from the MHR release archive (only this member is kept), checked by sha256; an existing file
-    with the right hash is kept."""
+def fetch_mhr_model(path, url=MHR_MODEL, sha256=MHR_SHA256):
+    """the MHR model, checked by sha256; an existing file with the right hash is kept."""
     import hashlib
-    import shutil
-    import tempfile
     import urllib.request
-    import zipfile
 
     def digest(p):
         h = hashlib.sha256()
@@ -87,14 +86,14 @@ def fetch_mhr_model(path, url=MHR_ASSETS, sha256=MHR_SHA256):
     if os.path.exists(path) and digest(path) == sha256:
         return path
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with tempfile.TemporaryDirectory(dir=os.path.dirname(path) or ".") as tmp:
-        archive = os.path.join(tmp, "assets.zip")
-        urllib.request.urlretrieve(url, archive)
-        with zipfile.ZipFile(archive) as z, z.open("assets/mhr_model.pt") as src:
-            with open(os.path.join(tmp, "mhr_model.pt"), "wb") as dst:
-                shutil.copyfileobj(src, dst, 1 << 24)
-        got = digest(os.path.join(tmp, "mhr_model.pt"))
+    tmp = path + ".partial"
+    try:
+        urllib.request.urlretrieve(url, tmp)
+        got = digest(tmp)
         if got != sha256:
             raise RuntimeError(f"{url}: mhr_model.pt sha256 {got} != {sha256}")
-        os.replace(os.path.join(tmp, "mhr_model.pt"), path)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
     return path

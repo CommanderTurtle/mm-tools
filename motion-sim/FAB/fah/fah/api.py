@@ -41,8 +41,9 @@ DEFAULT_SAM3D = os.environ.get("FAH_SAM3D", os.path.join(FAH_HOME, "sam-3d-body-
 SAM3D_REPO = "facebook/sam-3d-body-dinov3"
 SAM3D_FILES = ("model_config.yaml", "assets/mhr_model.pt")
 # assets/mhr_model.pt = the MHR model of Meta's Momentum Human Rig release v1.0.1 (Apache-2.0), byte-identical to the copy in
-# the SAM 3D Body repository; only model_config.yaml comes from the gated, SAM-licensed repository
-MHR_ASSETS = "https://github.com/facebookresearch/MHR/releases/download/v1.0.1/assets.zip"
+# the SAM 3D Body repository; mm-tools fork: it ships in the mm-tools archive repository (unauthenticated mirror, no GitHub
+# zip fetch at runtime), and only model_config.yaml comes from the gated, SAM-licensed repository
+MHR_MODEL = "https://huggingface.co/sHEL1562/shelling/resolve/4b859a1bfa801727c84087efd455f8c0a3205902/src/kr3ahardtofinds/FAB/mhr/mhr_model.pt"
 MHR_SHA256 = "352e271a6c42729c68554ceaea0c955e866970160c31e35506d782dc0f7377bc"
 
 # settings on top of each model's config.json (the weights stay immutable): image keys for every mode, video keys on top
@@ -76,14 +77,10 @@ def download_sam3d(dest=DEFAULT_SAM3D):
     return dest
 
 
-def fetch_mhr_model(path, url=MHR_ASSETS, sha256=MHR_SHA256):
-    """assets/mhr_model.pt from the MHR release archive (about 200 MB; only this member is kept), checked by sha256;
-    an existing file with the right hash is kept."""
+def fetch_mhr_model(path, url=MHR_MODEL, sha256=MHR_SHA256):
+    """the MHR model (about 664 MB), checked by sha256; an existing file with the right hash is kept."""
     import hashlib
-    import shutil
-    import tempfile
     import urllib.request
-    import zipfile
 
     def digest(p):
         h = hashlib.sha256()
@@ -95,15 +92,15 @@ def fetch_mhr_model(path, url=MHR_ASSETS, sha256=MHR_SHA256):
     if os.path.exists(path) and digest(path) == sha256:
         return path
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with tempfile.TemporaryDirectory(dir=os.path.dirname(path) or ".") as tmp:
-        archive = os.path.join(tmp, "assets.zip")
-        urllib.request.urlretrieve(url, archive)
-        with zipfile.ZipFile(archive) as z, z.open("assets/mhr_model.pt") as src:
-            with open(os.path.join(tmp, "mhr_model.pt"), "wb") as dst:
-                shutil.copyfileobj(src, dst, 1 << 24)
-        got = digest(os.path.join(tmp, "mhr_model.pt"))
+    tmp = path + ".partial"
+    try:
+        urllib.request.urlretrieve(url, tmp)
+        got = digest(tmp)
         assert got == sha256, f"{url}: mhr_model.pt sha256 {got} != {sha256}"
-        os.replace(os.path.join(tmp, "mhr_model.pt"), path)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
     return path
 
 

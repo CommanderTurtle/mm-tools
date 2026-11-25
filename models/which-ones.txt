@@ -1001,11 +1001,10 @@ not require loading MoGe.
 Expected file: sculpting/trellis/pretrained/deps/valeoai--NAF/naf_release.pth
 
 This 2.6 MB official release asset supplies Pixal3D's trained feature
-upsampling path. It is fetched directly from the upstream GitHub release with
-resumable `.partial` storage, exact 2,664,431-byte validation, and SHA-256
+upsampling path. The pinned archive mirror serves it with resumable `.partial`
+storage, exact 2,664,431-byte validation, and SHA-256
 `c096c1ab2217a5c3ac136365f721685e2201379cb69d509cfb0261183847c98f`.
-Runtime setup pins the matching NAF source revision separately; inference does
-not call Torch Hub.
+Inference does not call Torch Hub.
 
 69. LHQAQ-Li/wan2.2_animate_14b_fp16_nvfp4_comfy_V2 (retired — workflow inventory 3)
 Snapshot folder: workflows/models/imports/LHQAQ-Li--wan2.2_animate_14b_fp16_nvfp4_comfy_V2
@@ -1303,13 +1302,15 @@ Reconstruction, world geometry, optional sky segmentation and the original examp
 
 100. Sophon duplex speech studio (sophon-agent). Tag talker, vocoder and voices; community NVFP4A16 thinker, no duplicate FP8 weights. Separate Apache-2.0 dependencies.
 
-101. FAB motion studio (fab). FAB-S/L include a camera-space G1 head, parts and contacts; FAB-H offers mesh or dense-point fitting. All three can overlay and export 50 Hz kinematic G1 references for one or all tracks. Supply a matching FAB world-camera NPZ for moving footage; otherwise the retarget assumes a fixed camera and a flat floor. The picker shares SOMA-X and FlowHMR assets and supplies fit maps and Unitree/mjlab meshes. It fetches FAB’s reference neutral SMPL only if no local body is found. Setup reads both hand models from SOMA-X/assets/MANO for FAH; Automatic uses both hand meshes when present, otherwise MHR. FAB_SMPL_SOURCE and MANO_SOURCE can point to existing assets elsewhere. FAB/FAH weights are research/non-commercial.
+101. FAB motion studio (fab). FAB-S/L include a camera-space G1 head, parts and contacts; FAB-H offers mesh or dense-point fitting. All three can overlay and export 50 Hz kinematic G1 references for one or all tracks. Supply a matching FAB world-camera NPZ for moving footage; otherwise the retarget assumes a fixed camera and a flat floor. The picker shares SOMA-X and FlowHMR assets and supplies fit maps and Unitree/mjlab meshes; the studio sample-input clips and the MHR fallback model come from the archive mirror. It fetches FAB’s reference neutral SMPL only if no local body is found. Setup reads both hand models from SOMA-X/assets/MANO for FAH; Automatic uses both hand meshes when present, otherwise MHR. FAB_SMPL_SOURCE and MANO_SOURCE can point to existing assets elsewhere. FAB/FAH weights are research/non-commercial.
 
 102. Jeveration image desk (jeveration). Generator, decoders, Qwen, TA-TiTok, CLIP, photo annotators and workflow graph.
 
 103. BRIA matte studio (bria-rmbg3). The picker downloads the RMBG transformer, Fibo companion components and fonts directly from ModelScope. See the accompanying model notices. BF16 CUDA: auto stages submodules when less than 30 GiB is free. RMBG_MEMORY=auto|sequential|model|resident. Sequential reduces VRAM at the cost of time; image resolution still affects peak usage.
 
 104. WeMM video desk (wemm-video). AWQ W4A16 with Tencent’s patched vLLM 0.18.0 (Python 3.12, Linux x86-64, CUDA 12.9 and FFmpeg with shared libraries).
+
+105. FastFrames evaluation extras (fastframes-eval, optional). VBench scorer weights (~9.4 GB) from the sHEL1562/shelling archive mirror @ 4b859a1bfa801727c84087efd455f8c0a3205902 (src/kr3ahardtofinds/FastFrames/vbench); nothing in the studio start path needs them. Run score.sh and filter_temporal.sh with VBENCH_CACHE_DIR=models/fastframes/vbench; TORCH_HOME defaults inside that tree. Original per-metric licenses and pinned digests unchanged; see the retired download_models.sh pin table in git history.
 
 Workflows section (workflows/download_models.py)
 ------------------------------------------------

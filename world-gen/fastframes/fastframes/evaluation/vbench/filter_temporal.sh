@@ -10,7 +10,8 @@
 # Reads RUN_DIR/raw_videos and writes RUN_DIR/filtered_temporal,
 # RUN_DIR/filter_shards/, and RUN_DIR/temporal_filter_contract.json.
 # Environment: VBENCH_PYTHON (default: python), VBENCH_CACHE_DIR (metric
-# weights, see download_models.sh), GPUS (default: "0 1 2 3 4 5 6 7").
+# weights; models/download_models.py fastframes-eval populates
+# models/fastframes/vbench), GPUS (default: "0 1 2 3 4 5 6 7").
 set -euo pipefail
 
 RUN_DIR="$(cd "${1:?usage: $0 RUN_DIR}" && pwd)"
