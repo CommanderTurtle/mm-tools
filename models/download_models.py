@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import fnmatch
 import hashlib
 import inspect
 import json
@@ -1445,6 +1446,315 @@ def _selection_tokens(values: Sequence[str]) -> list[str]:
     return [part.strip() for value in values for part in value.split(",") if part.strip()]
 
 
+# Audit mode: an inventory pass in the spirit of hashes-recurse.py. It never
+# downloads; it reports what the picker would fetch next, verifies checksums
+# for direct releases, and offers to sweep files that no artifact definition
+# claims. Only MODELS is touched; symlinked lane paths are skipped outright.
+AUDIT_INFRA_NAMES = {"manifests", ".venv", "__pycache__", "uv.toml", ".gitignore", "LICENSE", "README.md"}
+AUDIT_INFRA_SUFFIXES = {".py", ".sh", ".toml", ".md", ".txt", ".json", ".lock", ".cfg"}
+AUDIT_HUB_METADATA = {"CACHEDIR.TAG", ".gitattributes", ".gitignore", ".no_exist", ".msc", ".mv"}
+# Plaintext hash registry (hashes-recurse.py style): every model-tree file gets
+# one SHA-256 line. Subsequent audits rehash only files that are new or whose
+# size/mtime signature changed, so repeat passes stay near-instant.
+AUDIT_REGISTRY_NAME = "hashes.txt"
+AUDIT_REGISTRY_SKIP_DIRS = {".venv", "__pycache__", ".cache", "node_modules"}
+
+
+def _audit_registry_path() -> Path:
+    return MODELS / AUDIT_REGISTRY_NAME
+
+
+def _audit_registry_load() -> dict[str, tuple[int, int, str]]:
+    entries: dict[str, tuple[int, int, str]] = {}
+    registry = _audit_registry_path()
+    if not registry.is_file():
+        return entries
+    for line in registry.read_text().splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        parts = line.split("\t")
+        if len(parts) != 4:
+            continue
+        digest, size, mtime, relative = parts
+        try:
+            entries[relative] = (int(size), int(mtime), digest)
+        except ValueError:
+            continue
+    return entries
+
+
+def _audit_registry_dump(entries: dict[str, tuple[int, int, str]]) -> None:
+    lines = [
+        "# mm-tools model store hash registry — SHA256<TAB>size<TAB>mtime<TAB>path",
+        "# paths relative to models/; audits rehash only new or changed entries",
+    ]
+    for relative in sorted(entries):
+        size, mtime, digest = entries[relative]
+        lines.append(f"{digest}\t{size}\t{mtime}\t{relative}")
+    temporary = MODELS / (AUDIT_REGISTRY_NAME + ".tmp")
+    temporary.write_text("\n".join(lines) + "\n")
+    temporary.replace(_audit_registry_path())
+
+
+def _audit_hash_relative(relative: str) -> tuple[str, int, int, str] | None:
+    absolute = MODELS / relative
+    try:
+        digest = _sha256(absolute)
+        info = absolute.stat()
+    except OSError:
+        return None
+    return relative, info.st_size, int(info.st_mtime), digest
+
+
+def _audit_registry_pass(workers: int) -> tuple[list[str], list[str], int]:
+    """Hash new/changed tree files into the registry; return (new, changed, stale)."""
+    registry = _audit_registry_load()
+    current: dict[str, tuple[int, int]] = {}
+    for entry in MODELS.rglob("*"):
+        if entry.is_symlink() or not entry.is_file():
+            continue
+        relative = entry.relative_to(MODELS)
+        if relative.parts[0] in AUDIT_REGISTRY_SKIP_DIRS:
+            continue
+        if len(relative.parts) == 1 and relative.name == AUDIT_REGISTRY_NAME:
+            continue
+        info = entry.stat()
+        current[str(relative)] = (info.st_size, int(info.st_mtime))
+    entries: dict[str, tuple[int, int, str]] = {}
+    pending: list[str] = []
+    for relative, signature in current.items():
+        known = registry.get(relative)
+        if known and known[:2] == signature:
+            entries[relative] = known
+        else:
+            pending.append(relative)
+    if pending and sys.stdin.isatty() and len(pending) > 500:
+        answer = input(
+            f"\n{len(pending)} files are new or changed since the last audit; "
+            "hash them now? [Y/n]: "
+        ).strip().lower()
+        if answer not in {"", "y", "yes"}:
+            return [], [], 0
+    hashed: dict[str, tuple[int, int, str]] = {}
+    if pending:
+        from concurrent.futures import ThreadPoolExecutor
+
+        workers = max(1, min(workers, len(pending)))
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            for index, result in enumerate(pool.map(_audit_hash_relative, pending), 1):
+                if result is not None:
+                    hashed[result[0]] = (result[1], result[2], result[3])
+                print(f"{100 * index / len(pending):6.2f}%  ({index}/{len(pending)})", end="\r", flush=True)
+        print()
+        entries.update(hashed)
+    new_paths = sorted(relative for relative in hashed if relative not in registry)
+    changed = sorted(
+        relative for relative, record in hashed.items()
+        if relative in registry and registry[relative][2] != record[2]
+    )
+    stale = sorted(set(registry) - set(current))
+    _audit_registry_dump(entries)
+    return new_paths, changed, len(stale)
+
+
+def _audit_tree_bytes(path: Path) -> int:
+    total = 0
+    for entry in path.rglob("*"):
+        if entry.is_file() and not entry.is_symlink():
+            total += entry.stat().st_size
+    return total
+
+
+def _audit_destination_map() -> dict[Path, list[Artifact]]:
+    dests: dict[Path, list[Artifact]] = {}
+    for bundle in BUNDLES:
+        groups = (bundle.artifacts, *(arts for _title, arts in bundle.variants))
+        for arts in groups:
+            for artifact in arts:
+                dests.setdefault(artifact.destination, []).append(artifact)
+    return dests
+
+
+def _audit_path_accepted(dest: Path, artifact_group: list[Artifact], relative: str) -> bool:
+    """True when a file inside a snapshot destination is claimed by an artifact."""
+    parts = relative.split("/")
+    name = parts[-1]
+    if any(part in AUDIT_HUB_METADATA for part in parts):
+        return True
+    if ".cache" in parts:
+        return True
+    # Hub cache-layout bookkeeping: blobs/, refs/, and models--org--model trees.
+    if "blobs" in parts or "refs" in parts or any(part.startswith("models--") for part in parts):
+        return True
+    if any(artifact.direct_filename == name for artifact in artifact_group):
+        return True
+    patterns = [pattern for artifact in artifact_group for pattern in artifact.allow_patterns]
+    return any(
+        fnmatch.fnmatch(relative, pattern) or fnmatch.fnmatch(name, pattern)
+        for pattern in patterns
+    )
+
+
+def run_audit(prune: bool = False, workers: int = 1) -> int:
+    dests = _audit_destination_map()
+    registry = _audit_registry_load()
+    dest_rels: dict[Path, tuple[str, ...]] = {}
+    for dest in dests:
+        try:
+            dest_rels[dest] = dest.relative_to(MODELS).parts
+        except ValueError:
+            continue  # home-path destinations (~/.paddlex) are outside the sweep
+    known_tops = {parts[0] for parts in dest_rels.values()}
+
+    def owner_of(relative: tuple[str, ...]) -> Path | None:
+        best: Path | None = None
+        for dest, parts in dest_rels.items():
+            if relative[: len(parts)] == parts:
+                if best is None or len(parts) > len(dest_rels[best]):
+                    best = dest
+        return best
+
+    print("\nBundle inventory (bytes present / what is still needed)")
+    need_keys: list[str] = []
+    for bundle in BUNDLES:
+        artifacts = bundle_artifacts(bundle, None)
+        missing: list[str] = []
+        corrupt: list[str] = []
+        on_disk = 0
+        seen: set[Path] = set()
+        for artifact in artifacts:
+            destination = artifact.destination
+            if destination.is_file():
+                if artifact.sha256:
+                    digest: str | None = None
+                    try:
+                        relative = str(destination.relative_to(MODELS))
+                    except ValueError:
+                        relative = None
+                    if relative:
+                        known = registry.get(relative)
+                        info = destination.stat()
+                        if known and known[0] == info.st_size and known[1] == int(info.st_mtime):
+                            digest = known[2]
+                    if digest is None:
+                        digest = _sha256(destination)
+                    if digest != artifact.sha256:
+                        corrupt.append(artifact.direct_filename or destination.name)
+                continue
+            if destination not in seen and destination.is_dir():
+                seen.add(destination)
+                on_disk += _audit_tree_bytes(destination)
+            if not destination.is_dir() or not any(
+                entry.is_file() for entry in destination.rglob("*")
+            ):
+                missing.append(
+                    str(destination.relative_to(MODELS)) if destination in dest_rels else str(destination)
+                )
+        missing = sorted(set(missing))
+        size = f"{on_disk / 1e9:8.1f} GB"
+        if not missing and not corrupt:
+            print(f"  {bundle.key:16s} {size}  complete")
+            continue
+        need_keys.append(bundle.key)
+        detail = ", ".join([*[f"missing {name}" for name in missing],
+                            *[f"checksum mismatch {name}" for name in corrupt]])
+        print(f"  {bundle.key:16s} {size}  NEEDS: {detail}")
+    if need_keys:
+        print(f"\nSuggested next run: uv run download_models.py {','.join(need_keys)}")
+    else:
+        print("\nEvery bundle is complete.")
+
+    print("\nExtraneous entries under models/ (claimed by no artifact definition)")
+    extras: list[tuple[Path, int]] = []
+    if MODELS.is_dir():
+        for child in sorted(MODELS.iterdir()):
+            if child.name.startswith(".") or child.name in AUDIT_INFRA_NAMES:
+                continue
+            if child.is_file():
+                if child.suffix not in AUDIT_INFRA_SUFFIXES:
+                    extras.append((child, child.stat().st_size))
+                continue
+            if child.name not in known_tops:
+                extras.append((child, _audit_tree_bytes(child)))
+                continue
+            for entry in child.rglob("*"):
+                if entry.is_symlink() or not entry.is_file():
+                    continue
+                relative = entry.relative_to(MODELS).parts
+                if any(part.startswith(".") or part in AUDIT_HUB_METADATA for part in relative):
+                    continue
+                if relative[0] in AUDIT_INFRA_NAMES or entry.suffix in AUDIT_INFRA_SUFFIXES:
+                    continue
+                owner = owner_of(relative)
+                if owner is None:
+                    extras.append((entry, entry.stat().st_size))
+                    continue
+                inside = "/".join(relative[len(dest_rels[owner]):])
+                if not _audit_path_accepted(owner, dests[owner], inside):
+                    extras.append((entry, entry.stat().st_size))
+    extras.sort(key=lambda item: (-item[1], str(item[0])))
+    if not extras:
+        print("  none")
+    else:
+        for path, size in extras:
+            print(f"  {size / 1e9:9.2f} GB  {path.relative_to(MODELS)}"
+                  f"{'' if path.is_file() else '/'}")
+        total = sum(size for _path, size in extras)
+        print(f"\nTotal extraneous: {total / 1e9:.2f} GB across {len(extras)} entries.")
+
+        delete = prune
+        if not delete:
+            if not sys.stdin.isatty():
+                print("Pass --prune to delete these.")
+            else:
+                answer = input("Delete them now? [y/n/e per entry]: ").strip().lower()
+                if answer in {"y", "yes", "a", "all"}:
+                    delete = True
+                elif answer in {"e", "each"}:
+                    for path, size in extras:
+                        verdict = input(
+                            f"Delete {path.relative_to(MODELS)} ({size / 1e9:.2f} GB)? [y/N]: "
+                        ).strip().lower()
+                        if verdict in {"y", "yes"}:
+                            try:
+                                if path.is_dir() and not path.is_symlink():
+                                    shutil.rmtree(path)
+                                else:
+                                    path.unlink()
+                            except OSError as exc:
+                                print(f"  failed: {exc}", file=sys.stderr)
+                    print("Per-entry sweep finished.")
+                else:
+                    print("Left in place.")
+        if delete:
+            freed = 0
+            for path, size in extras:
+                try:
+                    if path.is_dir() and not path.is_symlink():
+                        shutil.rmtree(path)
+                    else:
+                        path.unlink()
+                    freed += size
+                except OSError as exc:
+                    print(f"  failed to delete {path}: {exc}", file=sys.stderr)
+            print(f"Deleted {len(extras)} entries, freed {freed / 1e9:.2f} GB.")
+
+    new_paths, changed, dropped = _audit_registry_pass(workers)
+    print(f"\nHash registry ({AUDIT_REGISTRY_NAME}, one SHA256 line per file under models/)")
+    print(
+        f"  hashed this pass: {len(new_paths) + len(changed)}"
+        f"  (new: {len(new_paths)}, changed: {len(changed)});"
+        f" stale entries dropped: {dropped}"
+    )
+    fresh = set(new_paths)
+    for relative in (new_paths + changed)[:40]:
+        print(f"  {'NEW' if relative in fresh else 'MOD'}  {relative}")
+    overflow = len(new_paths) + len(changed) - 40
+    if overflow > 0:
+        print(f"  ... and {overflow} more")
+    return 0
+
+
 def resolve_selection(
     values: Sequence[str],
 ) -> tuple[tuple[Bundle, ...], dict[str, tuple[int, ...]]]:
@@ -1789,7 +2099,9 @@ def build_parser() -> argparse.ArgumentParser:
         epilog=(
             "Examples: uv run download_models.py | uv run download_models.py all | "
             "uv run download_models.py 2,6,10 | uv run download_models.py minimax stableaudio | "
-            "uv run download_models.py lingbot:2"
+            "uv run download_models.py lingbot:2 | "
+            "uv run download_models.py --audit (inventory, missing list, and an "
+            "extraneous-file sweep under models/ with an offer to delete; --prune to automate)"
         ),
     )
     parser.add_argument(
@@ -1798,6 +2110,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--all", action="store_true", dest="download_all", help="download every bundle")
     parser.add_argument("--list", action="store_true", help="show bundles and exit")
+    parser.add_argument(
+        "--audit", action="store_true",
+        help="inventory installed weights, list what each bundle still needs, "
+             "surface extraneous files under models/, and offer to delete them",
+    )
+    parser.add_argument(
+        "--prune", action="store_true",
+        help="with --audit: delete the extraneous entries without prompting",
+    )
     parser.add_argument("--yes", action="store_true", help="skip the interactive confirmation")
     parser.add_argument(
         "--workers",
@@ -1818,6 +2139,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     workers = args.workers or DEFAULT_WORKERS
     if args.workers is None and not args.yes and sys.stdin.isatty():
         workers = interactive_worker_count(DEFAULT_WORKERS)
+    if args.audit:
+        return run_audit(prune=args.prune, workers=workers)
     if args.download_all:
         bundles, picks = BUNDLES, {}
     elif args.selection:

@@ -54,6 +54,9 @@ deactivate # when done
 
 The downloader is resumable. Run it again after an interrupted transfer. Use
 `uv run download_models.py --list` for the complete current menu.
+`uv run download_models.py --audit` inventories the store without downloading:
+what each bundle still needs, plus files claimed by no bundle, with an offer
+to sweep them (`--prune` automates the sweep).
 The imports include model files that carefully get cloned from hf/ms sources with multi-worker speed. Each project builds with some type of `setupwith**.sh` file. These prompt for single-GPU adapters, setup/start contracts, and
 browser studio builds; model artifacts remain external to the downloader and
 resumable. Some deliberately separate shared encoder/VAE bundles from
