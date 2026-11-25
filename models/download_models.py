@@ -1588,6 +1588,10 @@ def _audit_path_accepted(dest: Path, artifact_group: list[Artifact], relative: s
         return True
     if any(artifact.direct_filename == name for artifact in artifact_group):
         return True
+    # An artifact without allow_patterns snapshots the whole repository, so
+    # every file beneath that destination is expected.
+    if any(not artifact.allow_patterns for artifact in artifact_group):
+        return True
     patterns = [pattern for artifact in artifact_group for pattern in artifact.allow_patterns]
     return any(
         fnmatch.fnmatch(relative, pattern) or fnmatch.fnmatch(name, pattern)
