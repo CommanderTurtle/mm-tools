@@ -52,11 +52,14 @@ it. The downloader creates missing parent directories, never prunes files, and
 refuses to replace a conflicting runtime placement.
 
 `uv run download_models.py --audit` sweeps the store without downloading: it
-reports each bundle's bytes on disk and what is still missing, lists entries
-claimed by no artifact definition with an offer to delete them (`--prune`
-automates that), and refreshes `models/hashes.txt`, a plaintext SHA-256
-registry that rehashes only files that are new or changed since the last pass.
-The interactive worker prompt and `--workers` apply to the hashing as well.
+reports each bundle's bytes on disk and what is still missing, refreshes
+`models/hashes.txt` — a plaintext SHA-256 registry covering only the model
+files claimed by bundle definitions, so unclaimed junk is never hashed and
+removed files drop out as stale; only new or size/mtime-changed files get
+rehashed — and it ends with a cleanup pass that lists entries claimed by no
+artifact definition and always prompts before deleting (`--prune` automates
+that). The interactive worker prompt and `--workers` apply to the hashing as
+well.
 
 The former `animate` and `ltx` bundles are retired from this downloader.
 Those weights now come from `workflows/download_models.py`, which ships

@@ -38,16 +38,17 @@ Examples:
 `--audit` inventories the installed store without downloading: it prints each
 bundle's bytes on disk plus every artifact path it still needs (missing
 snapshot roots and direct-release SHA-256 mismatches), suggests the exact
-selection command for the next run, then lists files and folders under
-`models/` claimed by no artifact definition — unknown top-level folders,
-stray files, and files outside any allowlist inside known snapshots — with
-sizes, and offers deletion (`y` all, `e` per entry, Enter keeps; `--prune`
-deletes unattended). Hub cache bookkeeping (blobs, refs, `models--*`,
-`.cache`, marker files) and the downloader's own code files are never
-flagged; symlinked lane paths are skipped entirely. Hashing uses the same
-worker count as downloads (the interactive worker prompt and `--workers`
-apply to both; `hashes.txt` sits in `models/`, is plaintext, and only files
-new since the last pass or with changed size/mtime get rehashed).
+selection command for the next run, then refreshes `models/hashes.txt` — a
+plaintext SHA-256 registry covering only model files claimed by bundle
+definitions, so junk never enters it and dropped files fall out as stale;
+untouched size/mtime signatures skip rehashing, and hashing uses the same
+worker count as downloads. The final cleanup pass lists files and folders
+under `models/` claimed by no artifact definition — unknown top-level
+folders, stray files, and files outside any allowlist inside known
+snapshots — with sizes, and always prompts before deleting (`y` all, `e`
+per entry, Enter keeps; `--prune` deletes unattended). Hub cache bookkeeping
+(blobs, refs, `models--*`, `.cache`, marker files) and the downloader's own
+code files are never flagged; symlinked lane paths are skipped entirely.
 
 Every newly introduced upstream snapshot is pinned to the immutable revision
 audited for this source import. File allowlists retain only runtime-required

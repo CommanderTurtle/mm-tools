@@ -1506,9 +1506,17 @@ def _audit_hash_relative(relative: str) -> tuple[str, int, int, str] | None:
     return relative, info.st_size, int(info.st_mtime), digest
 
 
-def _audit_registry_pass(workers: int) -> tuple[list[str], list[str], int]:
-    """Hash new/changed tree files into the registry; return (new, changed, stale)."""
+def _audit_registry_pass(
+    workers: int, extra_rels: frozenset[str]
+) -> tuple[list[str], list[str], int]:
+    """Hash new/changed model-store files into the registry.
+
+    Only files claimed by bundle definitions are hashed; entries the sweep
+    flagged as extraneous are skipped and fall out of the registry as stale.
+    Returns (new, changed, stale).
+    """
     registry = _audit_registry_load()
+    extra_tops = {name for name in extra_rels if "/" not in name}
     current: dict[str, tuple[int, int]] = {}
     for entry in MODELS.rglob("*"):
         if entry.is_symlink() or not entry.is_file():
@@ -1517,6 +1525,10 @@ def _audit_registry_pass(workers: int) -> tuple[list[str], list[str], int]:
         if relative.parts[0] in AUDIT_REGISTRY_SKIP_DIRS:
             continue
         if len(relative.parts) == 1 and relative.name == AUDIT_REGISTRY_NAME:
+            continue
+        if len(relative.parts) == 1 and relative.name in extra_tops:
+            continue
+        if str(relative) in extra_rels:
             continue
         info = entry.stat()
         current[str(relative)] = (info.st_size, int(info.st_mtime))
@@ -1697,54 +1709,11 @@ def run_audit(prune: bool = False, workers: int = 1) -> int:
                 if not _audit_path_accepted(owner, dests[owner], inside):
                     extras.append((entry, entry.stat().st_size))
     extras.sort(key=lambda item: (-item[1], str(item[0])))
-    if not extras:
-        print("  none")
-    else:
-        for path, size in extras:
-            print(f"  {size / 1e9:9.2f} GB  {path.relative_to(MODELS)}"
-                  f"{'' if path.is_file() else '/'}")
-        total = sum(size for _path, size in extras)
-        print(f"\nTotal extraneous: {total / 1e9:.2f} GB across {len(extras)} entries.")
 
-        delete = prune
-        if not delete:
-            if not sys.stdin.isatty():
-                print("Pass --prune to delete these.")
-            else:
-                answer = input("Delete them now? [y/n/e per entry]: ").strip().lower()
-                if answer in {"y", "yes", "a", "all"}:
-                    delete = True
-                elif answer in {"e", "each"}:
-                    for path, size in extras:
-                        verdict = input(
-                            f"Delete {path.relative_to(MODELS)} ({size / 1e9:.2f} GB)? [y/N]: "
-                        ).strip().lower()
-                        if verdict in {"y", "yes"}:
-                            try:
-                                if path.is_dir() and not path.is_symlink():
-                                    shutil.rmtree(path)
-                                else:
-                                    path.unlink()
-                            except OSError as exc:
-                                print(f"  failed: {exc}", file=sys.stderr)
-                    print("Per-entry sweep finished.")
-                else:
-                    print("Left in place.")
-        if delete:
-            freed = 0
-            for path, size in extras:
-                try:
-                    if path.is_dir() and not path.is_symlink():
-                        shutil.rmtree(path)
-                    else:
-                        path.unlink()
-                    freed += size
-                except OSError as exc:
-                    print(f"  failed to delete {path}: {exc}", file=sys.stderr)
-            print(f"Deleted {len(extras)} entries, freed {freed / 1e9:.2f} GB.")
-
-    new_paths, changed, dropped = _audit_registry_pass(workers)
-    print(f"\nHash registry ({AUDIT_REGISTRY_NAME}, one SHA256 line per file under models/)")
+    new_paths, changed, dropped = _audit_registry_pass(
+        workers, frozenset(str(path.relative_to(MODELS)) for path, _size in extras)
+    )
+    print(f"\nHash registry ({AUDIT_REGISTRY_NAME}, one SHA256 line per claimed model file)")
     print(
         f"  hashed this pass: {len(new_paths) + len(changed)}"
         f"  (new: {len(new_paths)}, changed: {len(changed)});"
@@ -1756,6 +1725,56 @@ def run_audit(prune: bool = False, workers: int = 1) -> int:
     overflow = len(new_paths) + len(changed) - 40
     if overflow > 0:
         print(f"  ... and {overflow} more")
+
+    print("\nFinal cleanup: entries under models/ claimed by no artifact definition")
+    if not extras:
+        print("  none")
+        return 0
+    for path, size in extras:
+        print(f"  {size / 1e9:9.2f} GB  {path.relative_to(MODELS)}"
+              f"{'' if path.is_file() else '/'}")
+    total = sum(size for _path, size in extras)
+    print(f"\nTotal extraneous: {total / 1e9:.2f} GB across {len(extras)} entries.")
+
+    delete = prune
+    if not delete:
+        try:
+            answer = input("Delete them now? [y/n/e per entry]: ").strip().lower()
+        except EOFError:
+            answer = "n"
+        if answer in {"y", "yes", "a", "all"}:
+            delete = True
+        elif answer in {"e", "each"}:
+            for path, size in extras:
+                try:
+                    verdict = input(
+                        f"Delete {path.relative_to(MODELS)} ({size / 1e9:.2f} GB)? [y/N]: "
+                    ).strip().lower()
+                except EOFError:
+                    verdict = ""
+                if verdict in {"y", "yes"}:
+                    try:
+                        if path.is_dir() and not path.is_symlink():
+                            shutil.rmtree(path)
+                        else:
+                            path.unlink()
+                    except OSError as exc:
+                        print(f"  failed: {exc}", file=sys.stderr)
+            print("Per-entry sweep finished.")
+    if delete:
+        freed = 0
+        for path, size in extras:
+            try:
+                if path.is_dir() and not path.is_symlink():
+                    shutil.rmtree(path)
+                else:
+                    path.unlink()
+                freed += size
+            except OSError as exc:
+                print(f"  failed to delete {path}: {exc}", file=sys.stderr)
+        print(f"Deleted {len(extras)} entries, freed {freed / 1e9:.2f} GB.")
+    else:
+        print("Left in place.")
     return 0
 
 
