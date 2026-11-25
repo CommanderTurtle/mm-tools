@@ -544,8 +544,8 @@ synthesis, transcription, and podcast generation. Every studio keeps
 responsive dark/light themes, searchable task cards, complete native controls,
 presets and drafts, raw streaming uploads, the persistent single-GPU queue,
 cancellation, SSE progress, model load/unload health, an output library,
-side-by-side comparison, and API examples. Pinned upstream source snapshots
-now ride in-tree, so a fresh checkout restores any runtime with dependency
+side-by-side comparison, and API examples. Every runtime source rides
+in-tree, so a fresh checkout restores any runtime with dependency
 installation alone; only checkpoint bytes route through the shared downloader.
 
 | Project | Canonical surface | Default port | VRAM (approx) |
@@ -570,7 +570,8 @@ Nine more studios join the same surface, with one change: each lane runs the
 source committed beside it, so a fresh checkout needs dependency installation
 only and no network access at run time. Every lane carries its own
 `ARCHITECTURE.md` and a `state.py` that records the lane source in job records
-and startup logs, so a result says which source produced it. Checkpoints still come from `models/download_models.py`.
+and startup logs, so a result says which source produced it. Checkpoints still
+come from `models/download_models.py`.
 
 | Project | Canonical surface | Default port | VRAM (approx) |
 | --- | --- | ---: | ---: |

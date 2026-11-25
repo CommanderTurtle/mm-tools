@@ -16,7 +16,7 @@ score lane and re-rendering the melody in a new style; edited ABC scores
 enter the same lanes as any other score and receive a fresh identity.
 Every candidate keeps its FLAC, score, planner tokens, semantic tokens,
 acoustic latents, effective configuration, timings, model identities, and
-integrity hashes in a resumable plan bundle. All AR and ABC sampling
+integrity digests in a resumable plan bundle. All AR and ABC sampling
 fields (CFG, ODE steps, CUDA-graph/eager execution, BF16 or FP8-AR, VAE
 tile size, candidates, deterministic seeds) stay exposed under Advanced.
 

@@ -4,7 +4,7 @@ MM Tools model downloader and inventory
 `download_models.py` resolves `MODELS` from its own tracked location, so it can
 be launched from any working directory and still targets `<mm-tools>/models`.
 Before every selected download it explicitly creates the complete destination
-with `parents=True`. A fresh clone therefore does not need pre-existing `qwen`,
+with `parents=True`. A fresh checkout therefore does not need pre-existing `qwen`,
 `text-only`, `imports`, project-local checkpoint, Comfy model,
 `visual-modeling/redesign/weights`, or PaddleX directories.
 Current Hugging Face Hub writes real files into `local_dir`; older Hub releases
@@ -905,7 +905,7 @@ motion-sim/nvidia-sim/SOMA-X/assets/
 └── supporting transforms/models
 ```
 
-Used by: the imported SOMA-X Blender/Maya/body-model tools. The Git clone's
+Used by: the imported SOMA-X Blender/Maya/body-model tools. The repository's
 LFS pointers stay outside the root index; the downloader materializes only
 the released runtime assets directly at the path expected by SOMA-X.
 
@@ -1062,7 +1062,7 @@ Bundle: flowhmr
 Source: flowhmr/flowhmr df15cadf56e738bf80c42c93d5e73687ff1002d2
 Cache: models/flowhmr
 Flow checkpoint: fafsaf1/flowhmr-0.46B @ 1eb105e554e0cfc1846ea5feac8c2d516a36d319
-SAM3D: jetjodh/sam-3d-body-dinov3 @ 1f026b2cc9076fd460243dae553cff9b0dcd199d (ungated mirror of facebook/sam-3d-body-dinov3 @ 11aaa346, LFS hashes verified identical)
+SAM3D: jetjodh/sam-3d-body-dinov3 @ 1f026b2cc9076fd460243dae550cff9b0dcd199d (ungated mirror of facebook/sam-3d-body-dinov3 @ 11aaa346, LFS copies verified identical)
 Camera: facebook/VGGT-Omega vggt_omega_1b_512.pt via modelscope.cn @ f4fe2040 (ungated, SHA-256 pinned; facebook @ 1041e80f is form-gated)
 YOLOX: kadirnar/yolox_l-v0.1.1 @ f63e87ffbded0e30713d32dba22501f56fe5007e
 GVHMR body regressor: ee960bb6e2ea2d381aa97f08e9b71ef320b624b1 (SHA-256 checked)
@@ -1078,7 +1078,7 @@ Bundle: flowhmr-physics
 Cache: models/flowhmr/output/HumanoidIm and models/flowhmr/assets/example
 Official PHC checkpoints and AMASS shape statistics are served from
 sHEL1562/shelling @ b7e899fd313b8040f1bbc6d13e4bb0bd6169052a
-(src/kr3ahardtofinds/bodymesh), byte-for-byte copies of the original Drive
+(src/kr3ahardtofinds/bodymesh), exact copies of the original Drive
 releases, SHA-256: Humanoid_00023501 98ed45fc91b7dd723fca121d20f250263899b658fd16949921d9ffd147fcbf52
 (phc_comp_3), Humanoid_00258000 6ba462b07542b4b45f00d1ccfbb3b1afb2427bd8c050c9f8360a76c0d3f9692b
 (phc_3), amass_isaac_gender_betas 96ef0daa385ff47fb5be350bac63cdfd1aa135642a6d42f1ec578c77fc5b5e78,
@@ -1109,9 +1109,9 @@ Bundle: idol
 Source: speridlabs/idol-sdk @ 8db700349a5570aac390e4780fa32e3eed6b587a (Apache-2.0)
 Idol weights @ 2731c2291fc65a797c5cb627a5e5526fc1490902 (Apache-2.0)
 DINOv3 ViT-H+ via modelscope.cn @ a7e110a4 weights / 98b7096b docs (Meta DINOv3 license,
-SHA-256 pinned; byte-for-byte with facebook @ c807c9ee, weights size-verified)
+SHA-256 pinned; identical to facebook @ c807c9ee, weights size-verified)
 FLUX.2-dev VAE only via modelscope.cn @ d72c4754 weights / 03c3c9bb docs
-(FLUX noncommercial license, SHA-256 pinned; byte-for-byte with HF @ 26afe3a7)
+(FLUX noncommercial license, SHA-256 pinned; identical to HF @ 26afe3a7)
 Space presets / example PLY @ 2fd68f6aaa69df7c178503a788ad8deb4c7d3117 (Apache-2.0)
 All Idol weights download ungated; no access grants or hf auth login needed.
 The FLUX transformer is excluded; only its VAE is used. Cached files live under
@@ -1134,7 +1134,7 @@ are reserved. The Hi3D trademarks are owned by OCEANO HK HOLDING LIMITED or
 its applicable affiliate(s).
 https://github.com/hi3d-official/Hi3Dv1.0/blob/13657ad09afaa92e350b461a1cd66399e44a59c4/LICENSE
 External DINOv2-large via modelscope.cn @ b8c1ab6e (Apache-2.0, SHA-256 pinned;
-byte-for-byte with HF @ 47b73eefe95e8d44ec3623f8890bd894b6ea2d6c),
+identical to HF @ 47b73eefe95e8d44ec3623f8890bd894b6ea2d6c),
 CLIP ViT-L/14 @ 32bd64288804d66eefd0ccbe215aa642df71cc41 (MIT),
 U2Net ONNX from rembg v0.0.0 release (Apache-2.0 model / MIT adapter),
 175997641 bytes; upstream MD5 60024c5c889badc19c04ad937298a77b verified on use.
@@ -1274,7 +1274,7 @@ https://huggingface.co/inclusionAI/Ming-3.0-tts-tiny
 93: ConwayResearch/Underdog-Bark-3.0-Pro @ d87f288a9a0b0cdb92228057e168ce575b300a6b, 1.25 GB BF16.
 Weights: CC-BY-NC-4.0 at these revisions; commercial use requires the author's license.
 Each selected snapshot retains its LICENSE and NOTICE; packed variants include the original
-bark_loader.py, verified against its pinned hash and used as a separate native runtime module.
+bark_loader.py, verified against its pinned digest and used as a separate native runtime module.
 Processor/config only: nvidia/parakeet-tdt-0.6b-v3
 @ 541d1f99c6b0c3cd0b11a95167540bb8edefd82b (CC-BY-4.0), including its attribution card.
 Ancestor: moondream/parakeet-ultra (CC-BY-4.0); see the native model NOTICE files.

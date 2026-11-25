@@ -49,7 +49,7 @@ The transcription request uses Whisper's multipart `file` / `language` /
 `operation` shape. Defaults are `language=en`, `operation=auto`,
 `chunk_duration=30`. `auto` resolves to `verbatim`, or `intended` for Clean.
 The response is `{ok, operation, results: {verbatim: {...}}}` (or `intended`),
-with text, duration, processing time, language, source revision and chunk segments.
+with text, duration, processing time, language, model revision and chunk segments.
 Timings describe audio chunks; `words` is empty. Unsupported language/operation
 requests receive a clear error. Busy operations return 423.
 

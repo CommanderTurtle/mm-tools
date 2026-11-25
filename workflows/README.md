@@ -17,7 +17,7 @@ works on them in ComfyUI proper.
 
 | Folder / file | Contents |
 | --- | --- |
-| `ComfyUI/` | Shared PR-pinned Comfy checkout (PR #15139, SVI-style identity padding). Ultra-minimal by design: only the runtime code and committed blueprints are tracked; everything else is reconstructed locally. Not a full upstream clone. |
+| `ComfyUI/` | Shared PR-pinned Comfy checkout (PR #15139, SVI-style identity padding). Ultra-minimal by design: only the runtime code and committed blueprints are tracked; everything else is reconstructed locally. |
 | `V2V/` | ID-V2V film studio (preserved) — identity-preserving restyle, relight, normal+depth control |
 | `animate/` | Wan Animate 2 motion studio (preserved) plus exported recipes: motion transfer (distilled + LightX2V), scene-preserving character replacement, pose & face lab |
 | `ltx/` | LTX-2.5 audio-and-video studio (preserved) plus distilled recipes: text to video, image to video, first + last frame |

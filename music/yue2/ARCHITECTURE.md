@@ -18,7 +18,7 @@ seed stepping.
 
 Each candidate keeps `audio.flac`, `score.abc` when applicable, exact planner
 tokens/prefix, semantic tokens, acoustic latents, effective configuration,
-timings, model identities, integrity hashes, and `plan-bundle.zip`.  The bundle
+timings, model identities, integrity digests, and `plan-bundle.zip`.  The bundle
 can be resumed only while unchanged; edited ABC enters through the score lanes
 and therefore receives a new identity.
 

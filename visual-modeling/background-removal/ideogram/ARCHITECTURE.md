@@ -55,7 +55,7 @@ The mask, sampling behavior, model-internal feature pyramids and Ideogram's pre-
 
 ### Private engine, local weights
 
-`private_comfy.py` owns its subprocess, startup checks, deadline and cleanup. It uses the **vendored runtime source** at `../minimax/runtime`, not the Minimax application or its running service. This avoids duplicating Comfy in the runtime-only monorepo. It binds only to loopback (default `8175`); the workbench remains LAN-accessible at `0.0.0.0:8174`. No external Comfy URL is accepted. An occupied port is an error, not permission to use or kill that service.
+`private_comfy.py` owns its subprocess, startup checks, deadline and cleanup. It uses the **committed runtime source** at `../minimax/runtime`, not the Minimax application or its running service. This avoids duplicating Comfy in the runtime-only monorepo. It binds only to loopback (default `8175`); the workbench remains LAN-accessible at `0.0.0.0:8174`. No external Comfy URL is accepted. An occupied port is an error, not permission to use or kill that service.
 
 The existing Minimax virtualenv is reused when present; `IDEOGRAM_COMFY_PYTHON` can instead point to an independently provisioned interpreter. All input/output/temp/user/database/log files are confined to `ideogram/.runtime/editing`, not the shared runtime tree. Uploaded crop files and returned output files are deleted after use. Failed/crashed runs may leave diagnostics or partial artifacts there. No source image or downloaded result is deleted. Stop/shutdown kills only the owned process group. A force-kill of the web server cannot execute normal Python cleanup.
 
