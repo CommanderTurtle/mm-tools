@@ -231,7 +231,7 @@ with gr.Blocks(title="SplatAnything",analytics_enabled=False,delete_cache=(3600,
     def explore(key):
         name = (key or "").replace("/","-")
         if name not in CATALOG or not (MODELS/"showcase"/CATALOG[name]["path"]).is_file():
-            raise gr.Error("Select splat-v3-showcase in the picker to explore prebuilt examples.")
+            raise gr.Error("Select splat-v3:1+2 in the picker to explore prebuilt examples.")
         return embed("/walk/"+name)
     gr.Button("Explore example in 3D").click(explore,key,walkview)
     depth = gr.Gallery(label="Depth",height=180)

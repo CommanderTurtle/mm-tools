@@ -237,7 +237,7 @@ def main():
                 MODELS / "DiT/distilled/diffusion_pytorch_model_ema_0_995.safetensors"
             ).is_file():
                 raise HTTPException(
-                    400, "Select hynomas-loras in the model downloader first"
+                    400, "Select hynomas:1+2 in the model downloader first"
                 )
             with maintenance_lock:
                 if (

@@ -6,7 +6,7 @@ Continuous world generation with text, reference images and recorded camera moti
 cd models
 uv run download_models.py hynomas
 # Optional cinematic and dual-arm robotics adapters:
-uv run download_models.py hynomas-loras
+uv run download_models.py hynomas:1+2
 cd ../world-gen/hynomas
 ./setupwithuv.sh
 ./startwithuv.sh

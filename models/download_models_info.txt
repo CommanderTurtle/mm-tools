@@ -33,25 +33,24 @@ Examples:
   uv run download_models.py nvidia-sim
   uv run download_models.py yue2
   uv run download_models.py all --yes --workers 24
-  uv run download_models.py --audit
+  uv run download_models.py fastframes:2
 
-`--audit` inventories the installed store without downloading: it prints each
-bundle's bytes on disk plus every artifact path it still needs (missing
-snapshot roots and direct-release SHA-256 mismatches), suggests the exact
-selection command for the next run, then refreshes `models/hashes.txt` — a
-plaintext SHA-256 registry covering only model files claimed by bundle
-definitions, so junk never enters it and dropped files fall out as stale;
-untouched size/mtime signatures skip rehashing, and hashing uses the same
-worker count as downloads. The final cleanup pass lists files and folders
-under `models/` claimed by no artifact definition — unknown top-level
-folders, stray files, and files outside any allowlist inside known
-snapshots — with sizes, and always prompts before deleting (`y` all, `e`
-per entry, Enter keeps; `--prune` deletes unattended). Hub cache bookkeeping
-(blobs, refs, `models--*`, `.cache`, marker files) and the downloader's own
-code files are never flagged. Compatibility links inside `models/` — the
-hard/symlink placements declared by bundle definitions and in-snapshot links
-like the legacy bert cache alias — are enumerated through their link path and
-hashed; they are declared by definitions, so they are never flagged.
+After every completed download pass the picker runs store maintenance; it
+never downloads. It rewrites `models/store-ledger.tsv` — one tab-separated
+line per selectable bundle/tier name (`name` or `name:tier`), `1` when the
+most recent successful pass kept the name, `0` when it was tracked before but
+deselected — then offers removals, each behind an explicit y/n prompt (`e`
+asks per entry, Enter keeps): exclusive store paths of retired `0` names, and
+files or folders under `models/` claimed by no artifact definition, including
+over-fetched files inside known snapshot roots. Mixed destinations shared with
+a live selection and compatibility hard/symlink placements declared by bundle
+definitions are never offered. Maintenance then refreshes
+`models/hashes.txt` — a plaintext SHA-256 registry covering only model files
+claimed by bundle definitions, so junk never enters it and dropped files fall
+out as stale; untouched size/mtime signatures skip rehashing, and hashing uses
+the same worker count as downloads. Hub cache bookkeeping (blobs, refs,
+`models--*`, `.cache`, marker files) and the downloader's own code files are
+never flagged.
 
 Every newly introduced upstream snapshot is pinned to the immutable revision
 audited for this source import. File allowlists retain only runtime-required
@@ -147,13 +146,13 @@ snapshot_download(
 
 Notices for bundled upstreams are consolidated here.
 
-- Budget3D and Idol SDK (bud3d, bud3d-turbo): permissive upstream terms for code and weights.
+- Budget3D and Idol SDK (bud3d, bud3d:2): permissive upstream terms for code and weights.
 - SplatAnything / InfiniSplat (splat-v3): custom registration-based upstream terms for code and checkpoints.
-- FastFrames (fastframes-live, fastframes-l): Apple sample-code terms for code, Apple research-only terms for the FastFrames checkpoints. LingBot World (bundled with fastframes-live): non-commercial attribution terms for code and DiT weights.
+- FastFrames (fastframes:1, fastframes:2): Apple Sample-code terms for code, Apple research-only terms for the FastFrames checkpoints. LingBot World (bundled with fastframes:1): non-commercial attribution terms for code and DiT weights.
 - Inworld Voice Isolator (inworld-isolator): permissive upstream terms for code and both checkpoints.
 - Sophon Realtime (sophon-agent): permissive upstream terms for code and talker weights; the community NVFP4A16 thinker keeps the same terms.
 - FAB and FAH (fab): permissive upstream terms for code; FAB and FAH model weights are research and non-commercial only. Third-party components: SAM-derived modules and MHR follow Meta research terms; pymomentum, DPVO, DROID-SLAM, TRAM and torchvision are permissive; Metric3D and RoMa carry attribution-style terms.
 - Jeveration (jeveration): community research terms for the generator and decoders; Qwen and CLIP components are permissive; annotator and depth checkpoints carry research or non-commercial terms.
 - BRIA RMBG-3.0 (bria-rmbg3): BRIA community terms; commercial use needs BRIA registration.
 - WeMM-Video (wemm-video): Tencent community terms for code and AWQ weights; vLLM, SGLang and LAVIS overlay patches keep their own permissive upstream terms.
-- Archive mirror (sHEL1562/shelling @ 4b859a1bfa801727c84087efd455f8c0a3205902, src/kr3ahardtofinds): exact copies of upstream files that are otherwise served only from GitHub releases, release archives or ad-hoc hosts — the NAF and AnyUp checkpoints, the MHR model plus MHR/GraphCMR body-map files (FAB, FlowHMR), the FAB studio demo clips, and the VBench scorer weights (fastframes-eval). Each file keeps its upstream licence; the pinned revision carries src/MANIFEST.sha256 as the integrity index, and the fetch/regeneration tooling lives beside the archive (fetch_src.sh, gen_files.py). Release-archive members are stored extracted (mhr_model.pt, raft-things.pth); no runtime path downloads zip archives.
+- Archive mirror (sHEL1562/shelling @ 4b859a1bfa801727c84087efd455f8c0a3205902, src/kr3ahardtofinds): exact copies of upstream files that are otherwise served only from GitHub releases, release archives or ad-hoc hosts — the NAF and AnyUp checkpoints, the MHR model plus MHR/GraphCMR body-map files (FAB, FlowHMR), the FAB studio demo clips, and the VBench scorer weights (fastframes:3). Each file keeps its upstream licence; the pinned revision carries src/MANIFEST.sha256 as the integrity index, and the fetch/regeneration tooling lives beside the archive (fetch_src.sh, gen_files.py). Release-archive members are stored extracted (mhr_model.pt, raft-things.pth); no runtime path downloads zip archives.

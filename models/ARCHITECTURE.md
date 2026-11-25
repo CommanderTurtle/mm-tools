@@ -48,18 +48,23 @@ uv run download_models.py yue2
 
 Use `--workers N` to control Hugging Face snapshot file workers, and
 `--yes` only for noninteractive execution. Rerunning the same selection resumes
-it. The downloader creates missing parent directories, never prunes files, and
-refuses to replace a conflicting runtime placement.
+it. The downloader creates missing parent directories and refuses to replace a
+conflicting runtime placement; the only phase that deletes is the post-download
+maintenance pass, and it always prompts first.
 
-`uv run download_models.py --audit` sweeps the store without downloading: it
-reports each bundle's bytes on disk and what is still missing, refreshes
-`models/hashes.txt` — a plaintext SHA-256 registry covering only the model
-files claimed by bundle definitions, so unclaimed junk is never hashed and
-removed files drop out as stale; only new or size/mtime-changed files get
-rehashed — and it ends with a cleanup pass that lists entries claimed by no
-artifact definition and always prompts before deleting (`--prune` automates
-that). The interactive worker prompt and `--workers` apply to the hashing as
-well.
+After every completed download pass the picker maintains the store without
+downloading anything. It rewrites `models/store-ledger.tsv` — one line per
+selectable bundle/tier name, `1` when this pass kept it, `0` when the name was
+tracked before but deselected — then offers two deletions, each behind an
+explicit prompt: exclusive store paths of `0` (retired) names, and entries
+under `models/` that no artifact definition claims (over-fetch inside pinned
+snapshots, stray top-level folders). Mixed or shared destinations and the
+compatibility hard/symlink placements declared by definitions are always kept.
+Maintenance refreshes `models/hashes.txt` — a plaintext SHA-256 registry
+covering only the model files claimed by bundle definitions, so unclaimed junk
+is never hashed and removed files drop out as stale; only new or
+size/mtime-changed files get rehashed. The interactive worker prompt and
+`--workers` apply to the hashing as well.
 
 The former `animate` and `ltx` bundles are retired from this downloader.
 Those weights now come from `workflows/download_models.py`, which ships

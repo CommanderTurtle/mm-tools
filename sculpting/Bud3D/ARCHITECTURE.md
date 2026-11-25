@@ -12,7 +12,7 @@ and the turbo schedule.
 ./startwithuv.sh
 ```
 
-Choose `bud3d` in the model downloader (`bud3d-turbo` adds the turbo weights).
+Choose `bud3d` in the model downloader (tier `bud3d:2` adds the turbo weights).
 Setup installs the source committed in this lane, `budget3d/` and `idol-sdk/`,
 into a CUDA 12.8 uv environment; nothing is fetched from the network at run
 time. Open `http://127.0.0.1:8294`; `GRADIO_SERVER_PORT` changes the port.

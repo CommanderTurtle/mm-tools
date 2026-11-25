@@ -51,57 +51,50 @@ workflows/download_models.py, documented in the workflows section at the end
 of this file.
 
 ```text
- 1  ideogram     inventory 1-3, 40
- 2  longcat      inventory 4-5
- 3  muscriptor   inventory 6-7
- 4  musvit       inventory 8-9
- 5  whisper      inventory 10
- 6  translate    inventory 11-13
- 7  redesign     inventory 14-19 and 24-31
- 8  v2v          inventory 20-21 (ID-V2V base + normal/depth and support set)
- 9  acestep      inventory 32-34
-10  minimax      inventory 35, 40
-11  stableaudio  inventory 36-37
-12  symphony     inventory 38
-13  vocalrender  inventory 39
-14  4d           inventory 41-42
-15  lingbot      inventory 43
-16  fire3d       inventory 44
-17  aukspeech    inventory 45-46
-18  sculpting    inventory 47-48, 64-68
-19  worldsculpt  inventory 48-49, 64-68
-20  nvidia-sim   inventory 53-58
-21  yue2         inventory 59-63
-22  stemkit      inventory 73
-23  motionbricks inventory 74
-24  flowhmr      inventory 75
-25  flowhmr-physics inventory 76
-26  physag3d     inventory 77
-27  idol         inventory 78
-28  hy3d         inventory 79
-29  hy3d-coarse  inventory 80
-30  scenebloom   inventory 81
-31  hynomas      inventory 82
-32  hynomas-loras inventory 83
-33  unlimited-ocr2 inventory 84
-34  pixel-wizard inventory 85
-35  nemotron     inventory 86
-36  audio8       inventory 87
-37  ming3        inventory 88-89
-38  underdog     inventory 90-93
-39  bud3d        inventory 94
-40  bud3d-turbo  inventory 95
-41  splat-v3     inventory 96
-42  splat-v3-showcase inventory 96b
-43  fastframes-live inventory 97
-44  fastframes-l inventory 98
-45  inworld-isolator inventory 99
-46  sophon-agent inventory 100
-47  fab          inventory 101
-48  jeveration   inventory 102
-49  bria-rmbg3   inventory 103
-50  wemm-video   inventory 104
-51  fastframes-eval inventory 105
+ 1  ideogram           inventory 1-3, 40
+ 2  longcat            inventory 4-5
+ 3  muscriptor         inventory 6-7
+ 4  musvit             inventory 8-9
+ 5  whisper            inventory 10
+ 6  translate          inventory 11-13
+ 7  redesign           inventory 14-19 and 24-31
+ 8  v2v                inventory 20-21 (ID-V2V base + normal/depth and support set)
+ 9  acestep            inventory 32-34
+10  minimax            inventory 35, 40
+11  stableaudio        inventory 36-37
+12  symphony           inventory 38
+13  vocalrender        inventory 39
+14  4d                 inventory 41-42
+15  lingbot            inventory 43 (+tiers 1-6)
+16  fire3d             inventory 44
+17  aukspeech          inventory 45-46
+18  sculpting          inventory 47-48, 64-68
+19  worldsculpt        inventory 48-49, 64-68
+20  nvidia-sim         inventory 53-58
+21  yue2               inventory 59-63
+22  stemkit            inventory 73
+23  motionbricks       inventory 74
+24  flowhmr            inventory 75-76 (+tiers 1-2)
+25  physag3d           inventory 77
+26  idol               inventory 78
+27  hy3d               inventory 79-80 (+tiers 1-2)
+28  scenebloom         inventory 81
+29  hynomas            inventory 82-83 (+tiers 1-2)
+30  unlimited-ocr2     inventory 84
+31  pixel-wizard       inventory 85
+32  nemotron           inventory 86
+33  audio8             inventory 87
+34  ming3              inventory 88-89 (+tiers 1-2)
+35  underdog           inventory 90-93 (+tiers 1-4)
+36  bud3d              inventory 94-95 (+tiers 1-2)
+37  splat-v3           inventory 96-96b (+tiers 1-2)
+38  inworld-isolator   inventory 99
+39  sophon-agent       inventory 100 (+tiers 1-2)
+40  fab                inventory 101 (+tiers 1-2)
+41  jeveration         inventory 102
+42  bria-rmbg3         inventory 103 (+tiers 1-2)
+43  wemm-video         inventory 104
+44  fastframes         inventory 97-98,105 (+tiers 1-3)
 ```
 
 The inventory mirrors every active artifact definition in the downloader,
@@ -1120,7 +1113,7 @@ neutral model at models/flowhmr/assets/body_models/smplh/neutral/model.npz.
 This user-supplied body file is required for reconstruction.
 
 76. FlowHMR optional physics tracking
-Bundle: flowhmr-physics
+Bundle: flowhmr tier 2 (pick flowhmr:1+2)
 Cache: models/flowhmr/output/HumanoidIm and models/flowhmr/assets/example
 Official PHC checkpoints and AMASS shape statistics are served from
 sHEL1562/shelling @ b7e899fd313b8040f1bbc6d13e4bb0bd6169052a
@@ -1189,7 +1182,7 @@ Excluded sample media, training data, pickle checkpoints and texture models are
 omitted. Native notices remain with source/checkpoints; independently written
 studio is root AGPL-3.0. Three.js: MIT; Inter / IBM Plex Mono: OFL-1.1.
 
-80. Hunyuan coarse generator (bundle: hy3d-coarse; also select hy3d)
+80. Hunyuan coarse generator (bundle tier 2; hy3d:1+2 installs both)
 Tencent-Hunyuan/Hunyuan3D-2 @ f8db63096c8282cb27354314d896feba5ba6ff8a
 tencent/Hunyuan3D-2mini @ f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6
 Only mini turbo config and FP16 safetensors; conditioner and VAE are included
@@ -1235,7 +1228,7 @@ Its memory is additional to offloaded generation weights; provision host RAM/swa
 Independent studio: root AGPL-3.0. Three.js: MIT; Inter / IBM Plex Mono: OFL-1.1.
 https://huggingface.co/tencent/Hy-Nomas/tree/621df1570098aa1ebf916dac3ac72ae3cbe25caa
 
-83. Hy-Nomas optional LoRAs (bundle: hynomas-loras; also select hynomas)
+83. Hy-Nomas optional LoRAs (bundle tier 2; hynomas:1+2 installs both)
 Same source/model pin and Apache-2.0 terms as entry 82.
 Includes distilled FP32 base (~34 GB), cinematic (~6 GB) and dual-arm robotics
 (~12 GB) LoRAs. Prepare each explicitly in the studio: native CPU merge then
@@ -1336,13 +1329,13 @@ SoXR/libsndfile: LGPL; FastAPI/python-multipart: MIT; Uvicorn/Starlette: BSD;
 FFmpeg: LGPL/GPL depending on installed build. English only; Clean changes speech style.
 https://huggingface.co/ConwayResearch/Underdog-Bark-3.0-Pro
 
-94–95. BudgetAny/Budget3D-Idol and Budget3D-Idol-Turbo (bud3d / bud3d-turbo).
+94–95. BudgetAny/Budget3D-Idol and Budget3D-Idol-Turbo (bud3d tiers 1/2).
 Budget3D: MIT code, Apache-2.0 checkpoints. Shared Idol, DINOv3 and FLUX.2 assets retain their original terms. Turbo adds speridlabs/idol-turbo phase LoRA.
 
-96. SplatAnything (splat-v3) and optional prebuilt scenes (splat-v3-showcase).
+96. SplatAnything (splat-v3) and optional prebuilt scenes (splat-v3:2).
 Reconstruction, world geometry, optional sky segmentation and the original example inputs. Upstream ZJU3DV Project Registration License; see the checkout's License.txt.
 
-97–98. FastFrames (fastframes-live / fastframes-l). Apple Sample Code License (code), Apple ML Research License (Apple weights); LingBot CC-BY-NC-SA-4.0. Pick modes independently.
+97–98. FastFrames (fastframes tiers 1/2: live 1.3B, l 14B). Apple Sample Code License (code), Apple ML Research License (Apple weights); LingBot CC-BY-NC-SA-4.0. Pick modes independently.
 
 99. Voice Isolator (inworld-isolator). Both recording and realtime checkpoints; code and weights Apache-2.0.
 
@@ -1356,7 +1349,7 @@ Reconstruction, world geometry, optional sky segmentation and the original examp
 
 104. WeMM video desk (wemm-video). AWQ W4A16 with Tencent’s patched vLLM 0.18.0 (Python 3.12, Linux x86-64, CUDA 12.9 and FFmpeg with shared libraries).
 
-105. FastFrames evaluation extras (fastframes-eval, optional). VBench scorer weights (~9.4 GB) from the sHEL1562/shelling archive mirror @ 4b859a1bfa801727c84087efd455f8c0a3205902 (src/kr3ahardtofinds/FastFrames/vbench); nothing in the studio start path needs them. Run score.sh and filter_temporal.sh with VBENCH_CACHE_DIR=models/fastframes/vbench; TORCH_HOME defaults inside that tree. Original per-metric licenses and pinned digests unchanged; see the retired download_models.sh pin table in git history.
+105. FastFrames evaluation extras (fastframes tier 3, optional). VBench scorer weights (~9.4 GB) from the sHEL1562/shelling archive mirror @ 4b859a1bfa801727c84087efd455f8c0a3205902 (src/kr3ahardtofinds/FastFrames/vbench); nothing in the studio start path needs them. Run score.sh and filter_temporal.sh with VBENCH_CACHE_DIR=models/fastframes/vbench; TORCH_HOME defaults inside that tree. Original per-metric licenses and pinned digests unchanged; see the retired download_models.sh pin table in git history.
 
 Workflows section (workflows/download_models.py)
 ------------------------------------------------

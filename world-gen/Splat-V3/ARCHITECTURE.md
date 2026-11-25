@@ -12,7 +12,7 @@ every input it used.
 ./startwithuv.sh
 ```
 
-Choose `splat-v3` in the model downloader (`splat-v3-showcase` adds the
+Choose `splat-v3` in the model downloader (`splat-v3:1+2` adds the
 optional offline fly-through gallery). Setup installs the source committed in
 this lane, `infinisplat/InfiniSplat_v3`, into a CUDA 12.8 uv environment, plus
 the npm packages for the walk-through viewer. Open `http://127.0.0.1:8295`;

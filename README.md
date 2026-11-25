@@ -53,10 +53,12 @@ deactivate # when done
 ```
 
 The downloader is resumable. Run it again after an interrupted transfer. Use
-`uv run download_models.py --list` for the complete current menu.
-`uv run download_models.py --audit` inventories the store without downloading:
-what each bundle still needs, plus files claimed by no bundle, with an offer
-to sweep them (`--prune` automates the sweep).
+`uv run download_models.py --list` for the complete current menu; pick parts
+with `name` or `name:tier` (for example `fastframes:2` or `underdog:2+4`).
+After every completed download pass the picker maintains the store: it
+rewrites `models/store-ledger.tsv` (per bundle/tier tracked flags) and offers
+to delete files belonging to names you deselected since the last pass plus
+files claimed by no bundle at all — always with a y/n prompt first.
 The imports include model files that carefully get cloned from hf/ms sources with multi-worker speed. Each project builds with some type of `setupwith**.sh` file. These prompt for single-GPU adapters, setup/start contracts, and
 browser studio builds; model artifacts remain external to the downloader and
 resumable. Some deliberately separate shared encoder/VAE bundles from
@@ -500,9 +502,9 @@ cd vocals/stt/underdog
 | `8291` | Ming3 speech and podcast studio |
 | `8292` | Underdog Bark HTTP |
 | `8293` | Underdog Bark studio |
-| `8294` | `sculpting/Bud3D` · Budget3D image-to-splats (`bud3d` / `bud3d-turbo`) |
-| `8295` | `world-gen/Splat-V3` · SplatAnything reconstruction (`splat-v3`; optional `splat-v3-showcase`) |
-| `8296` | `world-gen/fastframes` · FastFrames (`fastframes-live / fastframes-l`) |
+| `8294` | `sculpting/Bud3D` · Budget3D image-to-splats (`bud3d`; `bud3d:2` adds turbo) |
+| `8295` | `world-gen/Splat-V3` · SplatAnything reconstruction (`splat-v3`; `splat-v3:2` adds showcase) |
+| `8296` | `world-gen/fastframes` · FastFrames (`fastframes:1` live, `fastframes:2` 14B) |
 | `8297` | `vocals/inworld-isolator` · Voice Isolator (`inworld-isolator`) |
 | `8298` | `vocals/sophon-agent` · Sophon duplex speech studio (`sophon-agent`) |
 | `8299` | `motion-sim/FAB` · FAB motion studio (`fab`) |

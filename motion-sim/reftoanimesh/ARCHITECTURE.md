@@ -46,7 +46,7 @@ PHC, SMPLSim, SMPLX and Chumpy are committed at this studio root and linked into
 series stays in `patches/`. Its interpreter is separate from reconstruction and starts only
 after reconstruction releases its models.
 
-Select `flowhmr-physics` in the picker and supply the three SMPL files listed in the model
+Select `flowhmr:1+2` in the picker (tier 2 adds physics) and supply the three SMPL files listed in the model
 inventory. Prepare NVIDIA Isaac Gym Preview 4 in its supported Python 3.8 / PyTorch 1.13 (CUDA
 11.7) environment, then:
 

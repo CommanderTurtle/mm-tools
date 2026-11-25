@@ -26,7 +26,7 @@ CHECKPOINTS = {"Idol": "budget3d_idol", "Idol-Turbo": "budget3d_idol_turbo"}
 AVAILABLE = {name: path for name, stem in CHECKPOINTS.items()
              if (path := MODELS / "bud3d" / name / (stem + ".safetensors")).is_file()}
 if not AVAILABLE:
-    raise SystemExit("Select bud3d or bud3d-turbo in models/download_models.py first.")
+    raise SystemExit("Select bud3d (or bud3d:2 for turbo) in models/download_models.py first.")
 
 
 @contextmanager

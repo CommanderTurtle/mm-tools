@@ -12,7 +12,7 @@
 # RUN_DIR/temporal_filter_contract.json, RUN_DIR/vbench_results/, and
 # RUN_DIR/score_summary.json.
 # Environment: VBENCH_PYTHON (default: python), VBENCH_CACHE_DIR (metric
-# weights; models/download_models.py fastframes-eval populates
+# weights; models/download_models.py fastframes:3 populates
 # models/fastframes/vbench), GPUS (default: "0 1 2 3 4 5 6 7"; the
 # paper scores used 8 ranks), TORCH_HOME (default: $VBENCH_CACHE_DIR/torch).
 set -euo pipefail
@@ -36,9 +36,9 @@ NON_TEMPORAL_DIMS=(subject_consistency background_consistency motion_smoothness 
   scene temporal_style overall_consistency human_action appearance_style)
 
 [ -s "$TORCH_HOME/hub/checkpoints/dino_vitbase16_pretrain.pth" ] \
-  || { echo "missing DINO weights under $TORCH_HOME (run models/download_models.py fastframes-eval)" >&2; exit 2; }
+  || { echo "missing DINO weights under $TORCH_HOME (run models/download_models.py fastframes:3)" >&2; exit 2; }
 [ -s "$VBENCH_CACHE_DIR/bert-base-uncased/config.json" ] \
-  || { echo "missing $VBENCH_CACHE_DIR/bert-base-uncased (run models/download_models.py fastframes-eval)" >&2; exit 2; }
+  || { echo "missing $VBENCH_CACHE_DIR/bert-base-uncased (run models/download_models.py fastframes:3)" >&2; exit 2; }
 mkdir -p "$RESULTS/non_temporal" "$RESULTS/temporal_flickering" "$RUN_DIR/logs"
 
 "$PY" "$HERE/protocol.py" verify --mode raw \

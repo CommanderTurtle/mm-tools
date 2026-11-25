@@ -86,14 +86,15 @@ def repo_path(relative: str) -> Path:
 A = Artifact
 
 
-def bria_artifacts() -> tuple[Artifact, ...]:
+def bria_artifacts(tier: str | None = None) -> tuple[Artifact, ...]:
     manifest = json.loads((MODELS / "manifests/bria-rmbg3.json").read_text())
     return tuple(
         A(group["repository"], model_path(f"bria-rmbg3/{dest}") / Path(row["path"]).parent,
           revision=row["revision"], direct_url=(
               f"https://modelscope.cn/models/{group['repository']}/resolve/{row['revision']}/{quote(row['path'])}"
           ), direct_filename=Path(row["path"]).name, sha256=row["sha256"], expected_size=row["size"])
-        for dest, group in manifest.items() for row in group["files"]
+        for dest, group in manifest.items() if tier is None or dest == tier
+        for row in group["files"]
     )
 
 
@@ -280,6 +281,17 @@ def fab_body_artifacts() -> tuple[Artifact, ...]:
                    for name, size, digest in maps))
 
 
+def fab_g1_artifacts() -> tuple[Artifact, ...]:
+    groups = json.loads((MODELS / "manifests/fab-g1.json").read_text())
+    return tuple(
+        A(g["repo"], model_path(f"fab/g1-sources/{group}") / Path(name).parent,
+          revision=g["revision"],
+          direct_url=f"https://raw.githubusercontent.com/{g['repo']}/{g['revision']}/{g['folder']}/{quote(name)}",
+          direct_filename=Path(name).name, expected_size=size, sha256=sha)
+        for group, g in groups.items() for name, size, sha in g["files"]
+    )
+
+
 BUNDLES: tuple[Bundle, ...] = (
     Bundle(
         "ideogram",
@@ -292,8 +304,13 @@ BUNDLES: tuple[Bundle, ...] = (
                "text_encoders/qwen3vl_8b_fp8_scaled.safetensors",
                "vae/flux2-vae.safetensors"),
               revision="2aa6c75ce6d5fabded0ca4d0f76abbfaf8edc87d"),
-            A("jixin0101/ObjectClear", model_path("jixin0101--ObjectClear")),
-            A("ZhengPeng7/BiRefNet", model_path("ZhengPeng7--BiRefNet")),
+            A("jixin0101/ObjectClear", model_path("jixin0101--ObjectClear"),
+              ("model_index.json", "*/config.json", "*/model.safetensors", "*/model.fp16.safetensors",
+               "*/diffusion_pytorch_model.safetensors", "*/diffusion_pytorch_model.fp16.safetensors",
+               "tokenizer/*", "tokenizer_2/*", "scheduler/*", "README.md")),
+            A("ZhengPeng7/BiRefNet", model_path("ZhengPeng7--BiRefNet"),
+              ("BiRefNet_config.py", "birefnet.py", "handler.py", "config.json",
+               "model.safetensors", "requirements.txt", "README.md")),
             QWEN_GUIDE,
         ),
     ),
@@ -305,6 +322,7 @@ BUNDLES: tuple[Bundle, ...] = (
             A(
                 "meituan-longcat/LongCat-AudioDiT-3.5B",
                 model_path("meituan-longcat--AudioDiT-3.5B-tts-text-to-speech-SOTA"),
+                ("model.safetensors", "config.json", "LICENSE", "README.md"),
             ),
             A(
                 "google/umt5-base",
@@ -323,8 +341,10 @@ BUNDLES: tuple[Bundle, ...] = (
         "MuScriptor transcription and soundfonts",
         "6-7",
         (
-            A("MuScriptor/muscriptor-large", model_path("MuScriptor--muscriptor-large")),
-            A("MuScriptor/assets", model_path("MuScriptor--assets")),
+            A("MuScriptor/muscriptor-large", model_path("MuScriptor--muscriptor-large"),
+              ("model.safetensors", "config.json", "README.md")),
+            A("MuScriptor/assets", model_path("MuScriptor--assets"),
+              ("MuseScore_General.sf2", "MuseScore_General.sf3", "beat_this-final0.ckpt", "README.md")),
         ),
     ),
     Bundle(
@@ -332,15 +352,19 @@ BUNDLES: tuple[Bundle, ...] = (
         "MusVIT score understanding",
         "8-9",
         (
-            A("PRAIG/musvit", model_path("PRAIG--musvit")),
-            A("PRAIG/smt-fp-grandstaff", model_path("PRAIG--smt-fp-grandstaff")),
+            A("PRAIG/musvit", model_path("PRAIG--musvit"),
+              ("model.safetensors", "config.json", "README.md")),
+            A("PRAIG/smt-fp-grandstaff", model_path("PRAIG--smt-fp-grandstaff"),
+              ("model.safetensors", "config.json", "README.md")),
         ),
     ),
     Bundle(
         "whisper",
         "CrisperWhisper speech recognition",
         "10",
-        (A("nyralabs/CrisperWhisper2.0_large", model_path("nyralabs--CrisperWhisper2.0_large")),),
+        (A("nyralabs/CrisperWhisper2.0_large", model_path("nyralabs--CrisperWhisper2.0_large"),
+           ("model.safetensors", "*.json", "merges.txt", "vocab.json", "tokenizer.json",
+            "LICENSE.md", "README.md")),),
     ),
     Bundle(
         "translate",
@@ -367,6 +391,7 @@ BUNDLES: tuple[Bundle, ...] = (
             A(
                 "anhbn/EraX-VL-7B-V1.5-Openvino-INT4",
                 model_path("text-only/anhbn--EraX-VL-7B-V1.5-Openvino-INT4"),
+                ("*.bin", "*.xml", "*.json", "merges.txt", "vocab.json", "tokenizer.json", "README.md"),
             ),
         ),
     ),
@@ -383,10 +408,14 @@ BUNDLES: tuple[Bundle, ...] = (
             A(
                 "diffusers/Qwen-Image-Layered-modular",
                 model_path("qwen/diffusers--hfstaff--Qwen-Image-Layered-modular"),
+                ("modular_model_index.json", "mellon_pipeline_config.json", "processor/*",
+                 "scheduler/*", "text_encoder/*", "tokenizer/*", "transformer/*", "vae/*", "README.md"),
             ),
             A(
                 "suzukimain/Qwen-Image-Layered-Control-SDNQ-int4",
                 model_path("qwen/suzukimain--extraint4stuff--Qwen-Image-Layered-Control-SDNQ-int4"),
+                ("model_index.json", "processor/*", "scheduler/*", "text_encoder/*",
+                 "tokenizer/*", "transformer/*", "vae/*"),
             ),
             A(
                 "appmana/qwen-image-layered-int8convrot",
@@ -436,7 +465,11 @@ BUNDLES: tuple[Bundle, ...] = (
             ),
             A("iimate/big-lama-pt", model_path("redesign/iimate--big-lama-pt"), ("big-lama.pt",),
               file_links=(("big-lama.pt", repo_path("visual-modeling/redesign/weights/big-lama.pt")),)),
-            A("jixin0101/ObjectClear", model_path("redesign/hf-cache"), cache_layout=True,
+            A("jixin0101/ObjectClear", model_path("redesign/hf-cache"),
+              ("model_index.json", "*/config.json", "*/model.safetensors", "*/model.fp16.safetensors",
+               "*/diffusion_pytorch_model.safetensors", "*/diffusion_pytorch_model.fp16.safetensors",
+               "tokenizer/*", "tokenizer_2/*", "scheduler/*", "README.md"),
+              cache_layout=True,
               file_links=(
                   ("models--jixin0101--ObjectClear",
                    repo_path("visual-modeling/redesign/weights/models--jixin0101--ObjectClear")),
@@ -449,11 +482,13 @@ BUNDLES: tuple[Bundle, ...] = (
             A(
                 "PaddlePaddle/PP-OCRv5_server_det",
                 model_path("redesign/PaddlePaddle--PP-OCRv5_server_det"),
+                ("inference.json", "inference.pdiparams", "inference.yml", "config.json", "README.md"),
                 dir_links=(Path.home() / ".paddlex/official_models/PP-OCRv5_server_det",),
             ),
             A(
                 "PaddlePaddle/PP-OCRv5_server_rec",
                 model_path("redesign/PaddlePaddle--PP-OCRv5_server_rec"),
+                ("inference.json", "inference.pdiparams", "inference.yml", "config.json", "README.md"),
                 dir_links=(Path.home() / ".paddlex/official_models/PP-OCRv5_server_rec",),
             ),
         ),
@@ -679,6 +714,8 @@ BUNDLES: tuple[Bundle, ...] = (
                     A(
                         "robbyant/lingbot-world-v2-14b-causal-fast",
                         model_path("lingbot/robbyant--lingbot-world-v2-14b-causal-fast"),
+                        ("models_t5_umt5-xxl-enc-bf16.pth", "Wan2.1_VAE.pth", "config.json",
+                         "google/umt5-xxl/*", "transformers/*", "README.md"),
                         revision="5c33dd40b213598c418fd25bff30fdbd23fd38a7",
                         dir_links=(
                             repo_path("world-gen/lingbot/lingbot-world-v2-14b-causal-fast"),
@@ -736,6 +773,7 @@ BUNDLES: tuple[Bundle, ...] = (
                     A(
                         "igorls/LingBot-World-V2-14B-Causal-Fast-NVFP4",
                         model_path("lingbot/igorls--LingBot-World-V2-14B-Causal-Fast-NVFP4"),
+                        ("*.safetensors", "*.json", "README.md", "LICENSE*"),
                         revision="5ae4f45969a224ca8c9fa2072cc49468a2d74b34",
                     ),
                     A(
@@ -1054,38 +1092,38 @@ BUNDLES: tuple[Bundle, ...] = (
         motionbricks_artifacts(),
     ),
     Bundle(
-        "flowhmr", "FlowHMR video reconstruction (licensed SMPL-H supplied separately)", "75",
-        (
-            A("fafsaf1/flowhmr-0.46B", model_path("flowhmr/checkpoints"), ("flowhmr_latest/*",), revision="1eb105e554e0cfc1846ea5feac8c2d516a36d319"),
-            A(FLOW_SAM_REPO, FLOW_SAM_DIR, ("model.ckpt", "model_config.yaml"), revision=FLOW_SAM_REV),
-            FLOW_SAM_MHR,
-            A("facebook/VGGT-Omega", model_path("flowhmr/ckpts/vggt-omega"),
-              direct_url="https://modelscope.cn/models/facebook/VGGT-Omega/resolve/f4fe2040e400351980060e5391e12f00a6c037b2/vggt_omega_1b_512.pt",
-              direct_filename="vggt_omega_1b_512.pt", expected_size=4576706117,
-              sha256="c02da418b18bb01d0392598d3f6147366bcde1bb70fd08a5e3bf7925b0667934"),
-            A("kadirnar/yolox_l-v0.1.1", model_path("flowhmr/ckpts/yolox"), ("yolox_l.pth",), revision="f63e87ffbded0e30713d32dba22501f56fe5007e"),
-            A("zju3dv/GVHMR body regressor", model_path("flowhmr/assets/body_models"),
-              direct_url="https://raw.githubusercontent.com/zju3dv/GVHMR/ee960bb6e2ea2d381aa97f08e9b71ef320b624b1/hmr4d/utils/body_model/smpl_neutral_J_regressor.pt",
-              direct_filename="smpl_neutral_J_regressor.pt", expected_size=662187,
-              sha256="70e3213bd30fe8d8ce37b54675282745e406f915a51511a003aeff99b6da04cf"),
+        "flowhmr", "FlowHMR video reconstruction (licensed SMPL-H supplied separately)", "75-76", (),
+        variants=(
+            ("reconstruction model pack (core)", (
+                A("fafsaf1/flowhmr-0.46B", model_path("flowhmr/checkpoints"), ("flowhmr_latest/*",), revision="1eb105e554e0cfc1846ea5feac8c2d516a36d319"),
+                A(FLOW_SAM_REPO, FLOW_SAM_DIR, ("model.ckpt", "model_config.yaml"), revision=FLOW_SAM_REV),
+                FLOW_SAM_MHR,
+                A("facebook/VGGT-Omega", model_path("flowhmr/ckpts/vggt-omega"),
+                  direct_url="https://modelscope.cn/models/facebook/VGGT-Omega/resolve/f4fe2040e400351980060e5391e12f00a6c037b2/vggt_omega_1b_512.pt",
+                  direct_filename="vggt_omega_1b_512.pt", expected_size=4576706117,
+                  sha256="c02da418b18bb01d0392598d3f6147366bcde1bb70fd08a5e3bf7925b0667934"),
+                A("kadirnar/yolox_l-v0.1.1", model_path("flowhmr/ckpts/yolox"), ("yolox_l.pth",), revision="f63e87ffbded0e30713d32dba22501f56fe5007e"),
+                A("zju3dv/GVHMR body regressor", model_path("flowhmr/assets/body_models"),
+                  direct_url="https://raw.githubusercontent.com/zju3dv/GVHMR/ee960bb6e2ea2d381aa97f08e9b71ef320b624b1/hmr4d/utils/body_model/smpl_neutral_J_regressor.pt",
+                  direct_filename="smpl_neutral_J_regressor.pt", expected_size=662187,
+                  sha256="70e3213bd30fe8d8ce37b54675282745e406f915a51511a003aeff99b6da04cf"),
+            )),
+            ("optional PHC tracking (licensed Isaac Gym / SMPL supplied separately)", (
+                A("sHEL1562/shelling", model_path("flowhmr/archive/bodymesh"),
+                  ("src/kr3ahardtofinds/bodymesh/*",), revision="b7e899fd313b8040f1bbc6d13e4bb0bd6169052a",
+                  placements=(
+                      ("src/kr3ahardtofinds/bodymesh/Humanoid_00023501.pth",
+                       model_path("flowhmr/output/HumanoidIm/phc_comp_3/Humanoid.pth")),
+                      ("src/kr3ahardtofinds/bodymesh/Humanoid_00258000.pth",
+                       model_path("flowhmr/output/HumanoidIm/phc_3/Humanoid.pth")),
+                      ("src/kr3ahardtofinds/bodymesh/amass_isaac_gender_betas.pkl",
+                       model_path("flowhmr/assets/example/amass_isaac_gender_betas.pkl")),
+                      ("src/kr3ahardtofinds/bodymesh/amass_isaac_gender_betas_unique.pkl",
+                       model_path("flowhmr/assets/example/amass_isaac_gender_betas_unique.pkl")),
+                  )),
+            )),
         ),
-    ),
-    Bundle(
-        "flowhmr-physics", "FlowHMR optional PHC tracking (licensed Isaac Gym / SMPL supplied separately)", "76",
-        (
-            A("sHEL1562/shelling", model_path("flowhmr/archive/bodymesh"),
-              ("src/kr3ahardtofinds/bodymesh/*",), revision="b7e899fd313b8040f1bbc6d13e4bb0bd6169052a",
-              placements=(
-                  ("src/kr3ahardtofinds/bodymesh/Humanoid_00023501.pth",
-                   model_path("flowhmr/output/HumanoidIm/phc_comp_3/Humanoid.pth")),
-                  ("src/kr3ahardtofinds/bodymesh/Humanoid_00258000.pth",
-                   model_path("flowhmr/output/HumanoidIm/phc_3/Humanoid.pth")),
-                  ("src/kr3ahardtofinds/bodymesh/amass_isaac_gender_betas.pkl",
-                   model_path("flowhmr/assets/example/amass_isaac_gender_betas.pkl")),
-                  ("src/kr3ahardtofinds/bodymesh/amass_isaac_gender_betas_unique.pkl",
-                   model_path("flowhmr/assets/example/amass_isaac_gender_betas_unique.pkl")),
-              )),
-        ),
+        default_tiers=(1,),
     ),
     Bundle(
         "physag3d", "PhysAg3D articulated assets (TRELLIS.2 / DINOv3 / BiRefNet)", "77",
@@ -1145,65 +1183,68 @@ BUNDLES: tuple[Bundle, ...] = (
         ),
     ),
     Bundle(
-        "hy3d", "Hi3D mesh refinement / local background removal", "79",
-        (
-            A("hi3d-official/Hi3Dv1.0", model_path("hy3d/weights"),
-              ("model_index.json", "scheduler/*.json", "vae/*.json", "vae/*.safetensors",
-               "transformer_*/*.json", "transformer_*/*.safetensors", "LICENSE", "NOTICE",
-               "AUTHORS", "THIRD_PARTY_LICENSES.md", "sparc3d/ops/flexicubes/LICENSE.txt"),
-              revision="d502e938cbedc6e87aba8884614c5ca6d177a4b6"),
-            A("facebook/dinov2-large", model_path("hy3d/dinov2"),
-              direct_url="https://modelscope.cn/models/facebook/dinov2-large/resolve/b8c1ab6eb90a82f1fd5f228985cd8b80efffc0fc/model.safetensors",
-              direct_filename="model.safetensors", expected_size=1217522888,
-              sha256="399fba97a95f22c36834418bc69373364a99af3a1153da1c0fb31db567c92e23"),
-            A("facebook/dinov2-large", model_path("hy3d/dinov2"),
-              direct_url="https://modelscope.cn/models/facebook/dinov2-large/resolve/5aba9c6dd22a59bf62a21e9193bccd0a70231eaa/config.json",
-              direct_filename="config.json", expected_size=549,
-              sha256="12df51c069a2dc1305e34ba71ef58bc2407ea553b75f4722a1715c1bce3bbed0"),
-            A("facebook/dinov2-large", model_path("hy3d/dinov2"),
-              direct_url="https://modelscope.cn/models/facebook/dinov2-large/resolve/5aba9c6dd22a59bf62a21e9193bccd0a70231eaa/preprocessor_config.json",
-              direct_filename="preprocessor_config.json", expected_size=436,
-              sha256="14e780d86fa1861f8751f868d7f45425b5feb55c38ca26f152ca5097ab30f828"),
-            A("facebook/dinov2-large", model_path("hy3d/dinov2"),
-              direct_url="https://modelscope.cn/models/facebook/dinov2-large/resolve/5aba9c6dd22a59bf62a21e9193bccd0a70231eaa/README.md",
-              direct_filename="README.md", expected_size=3033,
-              sha256="0be39948cdb4f4c364c505c039cffe26ba8097b7300bf55f361952c8b17a5fee"),
-            A("openai/clip-vit-large-patch14", model_path("hy3d/clip"),
-              ("config.json", "model.safetensors", "preprocessor_config.json", "README.md"),
-              revision="32bd64288804d66eefd0ccbe215aa642df71cc41"),
-            A("danielgatis/rembg", model_path("hy3d/rembg"),
-              direct_url="https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx",
-              direct_filename="u2net.onnx", expected_size=175997641,
-              sha256="8d10d2f3bb75ae3b6d527c77944fc5e7dcd94b29809d47a739a7a728a912b491"),
+        "hy3d", "Hi3D mesh refinement / local background removal", "79-80", (),
+        variants=(
+            ("Hi3D refinement + background removal (core)", (
+                A("hi3d-official/Hi3Dv1.0", model_path("hy3d/weights"),
+                  ("model_index.json", "scheduler/*.json", "vae/*.json", "vae/*.safetensors",
+                   "transformer_*/*.json", "transformer_*/*.safetensors", "LICENSE", "NOTICE",
+                   "AUTHORS", "THIRD_PARTY_LICENSES.md", "sparc3d/ops/flexicubes/LICENSE.txt"),
+                  revision="d502e938cbedc6e87aba8884614c5ca6d177a4b6"),
+                A("facebook/dinov2-large", model_path("hy3d/dinov2"),
+                  direct_url="https://modelscope.cn/models/facebook/dinov2-large/resolve/b8c1ab6eb90a82f1fd5f228985cd8b80efffc0fc/model.safetensors",
+                  direct_filename="model.safetensors", expected_size=1217522888,
+                  sha256="399fba97a95f22c36834418bc69373364a99af3a1153da1c0fb31db567c92e23"),
+                A("facebook/dinov2-large", model_path("hy3d/dinov2"),
+                  direct_url="https://modelscope.cn/models/facebook/dinov2-large/resolve/5aba9c6dd22a59bf62a21e9193bccd0a70231eaa/config.json",
+                  direct_filename="config.json", expected_size=549,
+                  sha256="12df51c069a2dc1305e34ba71ef58bc2407ea553b75f4722a1715c1bce3bbed0"),
+                A("facebook/dinov2-large", model_path("hy3d/dinov2"),
+                  direct_url="https://modelscope.cn/models/facebook/dinov2-large/resolve/5aba9c6dd22a59bf62a21e9193bccd0a70231eaa/preprocessor_config.json",
+                  direct_filename="preprocessor_config.json", expected_size=436,
+                  sha256="14e780d86fa1861f8751f868d7f45425b5feb55c38ca26f152ca5097ab30f828"),
+                A("facebook/dinov2-large", model_path("hy3d/dinov2"),
+                  direct_url="https://modelscope.cn/models/facebook/dinov2-large/resolve/5aba9c6dd22a59bf62a21e9193bccd0a70231eaa/README.md",
+                  direct_filename="README.md", expected_size=3033,
+                  sha256="0be39948cdb4f4c364c505c039cffe26ba8097b7300bf55f361952c8b17a5fee"),
+                A("openai/clip-vit-large-patch14", model_path("hy3d/clip"),
+                  ("config.json", "model.safetensors", "preprocessor_config.json", "README.md"),
+                  revision="32bd64288804d66eefd0ccbe215aa642df71cc41"),
+                A("danielgatis/rembg", model_path("hy3d/rembg"),
+                  direct_url="https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx",
+                  direct_filename="u2net.onnx", expected_size=175997641,
+                  sha256="8d10d2f3bb75ae3b6d527c77944fc5e7dcd94b29809d47a739a7a728a912b491"),
+            )),
+            ("optional image-to-mesh coarse stage (Hunyuan3D-2 mini turbo)", (
+                A("tencent/Hunyuan3D-2mini", model_path("hy3d/coarse"),
+                  ("hunyuan3d-dit-v2-mini-turbo/config.yaml",
+                   "hunyuan3d-dit-v2-mini-turbo/model.fp16.safetensors", "LICENSE", "NOTICE", "README.md"),
+                  revision="f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6"),
+            )),
         ),
-    ),
-    Bundle(
-        "hy3d-coarse", "Hi3D optional image-to-mesh stage (Hunyuan3D-2 mini turbo)", "80",
-        (
-            A("tencent/Hunyuan3D-2mini", model_path("hy3d/coarse"),
-              ("hunyuan3d-dit-v2-mini-turbo/config.yaml",
-               "hunyuan3d-dit-v2-mini-turbo/model.fp16.safetensors", "LICENSE", "NOTICE", "README.md"),
-              revision="f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6"),
-        ),
+        default_tiers=(1,),
     ),
 )
 
 
 BUNDLES += (Bundle("scenebloom", "SceneBloom rooms + cached assets + local vision", "81", scenebloom_artifacts()),)
 BUNDLES += (
-    Bundle("hynomas", "Hy-Nomas INT8 world studio + local prompt enhancer", "82", (
-        A("tencent/Hy-Nomas", model_path("hynomas"),
-          ("DiT/distilled_int8/*", "VAE/PixelUMM_FT/*", "VAE/DCAE-V/*", "PE/*", "LICENSE", "README.md"),
-          revision="621df1570098aa1ebf916dac3ac72ae3cbe25caa"),
+    Bundle("hynomas", "Hy-Nomas INT8 world studio + adapter preparation", "82-83", (
         A("Qwen/Qwen2.5-VL-7B-Instruct", model_path("hynomas/text-encoder"),
           ("*.safetensors", "*.json", "*.txt", "*.jinja", "LICENSE", "README.md"),
           revision="cc594898137f460bfe9f0759e9844b3ce807cfb5"),
-    )),
-    Bundle("hynomas-loras", "Hy-Nomas cinematic + robotics INT8 adapter preparation", "83", (
-        A("tencent/Hy-Nomas", model_path("hynomas"),
-          ("DiT/distilled/*", "DiT/lora_weights/*", "LICENSE", "README.md"),
-          revision="621df1570098aa1ebf916dac3ac72ae3cbe25caa"),
-    )),
+    ), variants=(
+        ("INT8 world studio core + local prompt enhancer", (
+            A("tencent/Hy-Nomas", model_path("hynomas"),
+              ("DiT/distilled_int8/*", "VAE/PixelUMM_FT/*", "VAE/DCAE-V/*", "PE/*", "LICENSE", "README.md"),
+              revision="621df1570098aa1ebf916dac3ac72ae3cbe25caa"),
+        )),
+        ("cinematic + robotics INT8 adapter preparation", (
+            A("tencent/Hy-Nomas", model_path("hynomas"),
+              ("DiT/distilled/*", "DiT/lora_weights/*", "LICENSE", "README.md"),
+              revision="621df1570098aa1ebf916dac3ac72ae3cbe25caa"),
+        )),
+    ), default_tiers=(1,)),
 )
 
 
@@ -1300,48 +1341,43 @@ BUNDLES += (
 # Budget3D reuses Idol's frozen encoders, matting, and decoders in place.
 _IDOL_CORE = tuple(a for a in next(b for b in BUNDLES if b.key == "idol").artifacts
                    if a.repo_type != "space")
-BUNDLES += tuple(
-    Bundle(key, f"Budget3D {variant} image-to-splats", number, _IDOL_CORE + (
-        A(f"BudgetAny/Budget3D-{variant}", model_path(f"bud3d/{variant}"),
-          ("*.safetensors", "config.json", "README.md"), revision=rev),
-    ) + ((A("speridlabs/idol-turbo", model_path("bud3d/Idol-Turbo"),
-            ("idol_turbo_lora.safetensors",), revision="45cdd41f1f4d6d70496daa7d619f57ad79307a37"),)
-         if variant == "Idol-Turbo" else ()))
-    for key, variant, number, rev in (
-        ("bud3d", "Idol", "94", "2dd6d83c57e7853234dbbb24c54b78edc842d074"),
-        ("bud3d-turbo", "Idol-Turbo", "95", "ba76450efdc888310741659665ec72b8c7d0ebc0"),
-    )
-)
-
-
-BUNDLES += (Bundle("splat-v3", "SplatAnything reconstruction and example scenes", "96", (
-    A("ritianyu/SplatAnything", model_path("splat-v3"), ("*.ckpt", "*.safetensors", "*.onnx", "README.md"),
-      revision="cea57139b63da978424b5faca31e06573261215e"),
-    A("ritianyu/SplatAnything_Demo", model_path("splat-v3/demo"), ("examples/**", "README.md"),
-      revision="360fcaa98af2b9f1b8539d550365b3910d9206ba", repo_type="dataset"),
-    A("ritianyu/SplatAnything", model_path("splat-v3/demo"), ("assets/scene-previews/*", "Notice.txt", "License.txt"),
-      revision="bcb83eb8e25b3fafbe52ca319b5c6a050796610a", repo_type="space"),
-)),)
-
-
-BUNDLES += (Bundle("splat-v3-showcase", "SplatAnything offline fly-through gallery (optional)", "96b", (
-    A("ritianyu/SplatAnything_Demo", model_path("splat-v3/showcase"),
-      tuple(f"{category}/{number}/*.html" for category in ("object","indoor","street","aerial","rig","pano")
-            for number in range(1,5)), revision="4e2f7cc7b3191600ccbd7a7f0de0eb20b6676402", repo_type="dataset"),
-)),)
-
-
 BUNDLES += (
-    Bundle("fastframes-live", "FastFrames • playable LingBot worlds", "97", (
-        A("apple/FastFrames-S", model_path("fastframes"), ("lingbot-1.3b/*","LICENSE*","README.md"), revision="aa099efcedf1b65447106bf9004cde75821f7387"),
-        A("robbyant/lingbot-world-v2-1.3b-causal-fast", model_path("fastframes/lingbot-world-v2-1.3b-causal-fast/transformers"), revision="7e36a5f919f86cb4255cc9bfc30adb44963fbde1"),
-        A("robbyant/lingbot-world-v2-14b-causal-fast", model_path("fastframes/lingbot-world-v2-14b-causal-fast"), ("models_t5_umt5-xxl-enc-bf16.pth","Wan2.1_VAE.pth","google/umt5-xxl/*","LICENSE*"), revision="5c33dd40b213598c418fd25bff30fdbd23fd38a7"),
-    )),
-    Bundle("fastframes-l", "FastFrames-L • text to video", "98", (
-        A("apple/FastFrames-L", model_path("fastframes"), ("fastframes-l/*","README.md","LICENSE*"), revision="d18ec5f054bb03f6b8e561a63d52af3142b5b81d"),
-        A("Wan-AI/Wan2.1-T2V-14B", model_path("fastframes/Wan2.1-T2V-14B"), ("models_t5_umt5-xxl-enc-bf16.pth","google/umt5-xxl/*","LICENSE*"), revision="a064a6c71f5be440641209c07bf2a5ce7a2ff5e4"),
-    )),
+    Bundle("bud3d", "Budget3D Idol / Idol-Turbo image-to-splats", "94-95", _IDOL_CORE,
+           variants=(
+               ("Idol full pipeline", (
+                   A("BudgetAny/Budget3D-Idol", model_path("bud3d/Idol"),
+                     ("*.safetensors", "config.json", "README.md"),
+                     revision="2dd6d83c57e7853234dbbb24c54b78edc842d074"),
+               )),
+               ("Idol-Turbo distilled (+ turbo LoRA)", (
+                   A("BudgetAny/Budget3D-Idol-Turbo", model_path("bud3d/Idol-Turbo"),
+                     ("*.safetensors", "config.json", "README.md"),
+                     revision="ba76450efdc888310741659665ec72b8c7d0ebc0"),
+                   A("speridlabs/idol-turbo", model_path("bud3d/Idol-Turbo"),
+                     ("idol_turbo_lora.safetensors",), revision="45cdd41f1f4d6d70496daa7d619f57ad79307a37"),
+               )),
+           ), default_tiers=(1,)),
 )
+
+
+BUNDLES += (Bundle("splat-v3", "SplatAnything reconstruction, example scenes, and gallery", "96-96b", (), variants=(
+    ("reconstruction weights + example inputs (core)", (
+        A("ritianyu/SplatAnything", model_path("splat-v3"), ("*.ckpt", "*.safetensors", "*.onnx", "README.md"),
+          revision="cea57139b63da978424b5faca31e06573261215e"),
+        A("ritianyu/SplatAnything_Demo", model_path("splat-v3/demo"), ("examples/**", "README.md"),
+          revision="360fcaa98af2b9f1b8539d550365b3910d9206ba", repo_type="dataset"),
+        A("ritianyu/SplatAnything", model_path("splat-v3/demo"), ("assets/scene-previews/*", "Notice.txt", "License.txt"),
+          revision="bcb83eb8e25b3fafbe52ca319b5c6a050796610a", repo_type="space"),
+    )),
+    ("optional offline fly-through gallery (showcase)", (
+        A("ritianyu/SplatAnything_Demo", model_path("splat-v3/showcase"),
+          tuple(f"{category}/{number}/*.html" for category in ("object","indoor","street","aerial","rig","pano")
+                for number in range(1,5)), revision="4e2f7cc7b3191600ccbd7a7f0de0eb20b6676402", repo_type="dataset"),
+    )),
+), default_tiers=(1,),),)
+
+
+# FastFrames worlds/eval bundles merge below, after the VBench file list.
 
 
 BUNDLES += (Bundle("inworld-isolator","Inworld Voice Isolator • recording and realtime","99",(
@@ -1349,10 +1385,14 @@ BUNDLES += (Bundle("inworld-isolator","Inworld Voice Isolator • recording and 
 )),)
 
 
-BUNDLES += (Bundle("sophon-agent","Sophon Realtime Tag + NVFP4A16 thinker","100",(
-    A("adventists-ai/Sophon-Realtime-32B-Tag",model_path("sophon-agent"),("config.json","README*","LICENSE*","NOTICE*","talker/**","voices/**"),revision="ee0fb1bd3db4ddb24ec5efbe75bdebac2a7986fd"),
-    A("caijunqiang/Sophon-Realtime-32B-Flash-Thinker-NVFP4A16",model_path("sophon-agent/thinker"),("*.safetensors","*.json","*.jinja","*.txt","audio/*","README.md","NOTICE","LICENSE","MODIFICATIONS.md"),revision="d324f5c7b8ba51485040b3d405d1cd6aa5dd399c"),
-)),)
+BUNDLES += (Bundle("sophon-agent","Sophon Realtime Tag + NVFP4A16 thinker","100",(), variants=(
+    ("realtime talker + voices (core)", (
+        A("adventists-ai/Sophon-Realtime-32B-Tag",model_path("sophon-agent"),("config.json","README*","LICENSE*","NOTICE*","talker/**","voices/**"),revision="ee0fb1bd3db4ddb24ec5efbe75bdebac2a7986fd"),
+    )),
+    ("NVFP4A16 flash thinker", (
+        A("caijunqiang/Sophon-Realtime-32B-Flash-Thinker-NVFP4A16",model_path("sophon-agent/thinker"),("*.safetensors","*.json","*.jinja","*.txt","audio/*","README.md","NOTICE","LICENSE","MODIFICATIONS.md"),revision="d324f5c7b8ba51485040b3d405d1cd6aa5dd399c"),
+    )),
+), default_tiers=(1,),),)
 
 
 BUNDLES += (Bundle("fab", "FAB motion, SOMA & ego hands", "101", (
@@ -1360,18 +1400,22 @@ BUNDLES += (Bundle("fab", "FAB motion, SOMA & ego hands", "101", (
     A("noahcao/FAH",model_path("fab/hands"),("fah/*","shared/*","*LICENSE*"),revision="c2e67a5779c104f85c33c147e8d4c6a8ebdc28b4"),
     A(FLOW_SAM_REPO, FLOW_SAM_DIR, ("model_config.yaml",), revision=FLOW_SAM_REV),
     FLOW_SAM_MHR,
-    A(ARCHIVE_REPO, model_path("fab/demo-archive"), (f"{ARCHIVE_ROOT}/FAB/demo/*",), revision=ARCHIVE_REV,
-      placements=tuple((f"{ARCHIVE_ROOT}/FAB/demo/{name}", model_path("fab/demo") / name)
-                       for name in ("dancer_street.mp4", "steps_up.mp4", "joggers.jpg", "skater_seated.jpg"))),
     SOMA_X,
     *fab_body_artifacts(),
-)),)
+), variants=(
+    ("demo reels (sample motion captures)", (
+        A(ARCHIVE_REPO, model_path("fab/demo-archive"), (f"{ARCHIVE_ROOT}/FAB/demo/*",), revision=ARCHIVE_REV,
+          placements=tuple((f"{ARCHIVE_ROOT}/FAB/demo/{name}", model_path("fab/demo") / name)
+                           for name in ("dancer_street.mp4", "steps_up.mp4", "joggers.jpg", "skater_seated.jpg"))),
+    )),
+    ("G1 retarget source meshes (mjlab/unitree)", fab_g1_artifacts()),
+), default_tiers=(1,2),),)
 
 
 BUNDLES += (Bundle("jeveration", "Jeveration generate, edit & dense", "102", (
     A("linlinlinlinsdada/Jeveration",model_path("jeveration/weights"),("*.pt","*LICENSE*"),revision="48c66dceebe76fbfa588072547d5360f8029ee29"),
     A("Qwen/Qwen3.5-4B",model_path("jeveration/qwen"),("*.safetensors","*.json","*.txt","*.jinja","LICENSE*"),revision="851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"),
-    A("turkeyju/tokenizer_tatitok_bl128_vq",model_path("jeveration/tokens"),(),revision="7650d466a955c754265d20e57513518a4e049f00"),
+    A("turkeyju/tokenizer_tatitok_bl128_vq",model_path("jeveration/tokens"),("config.json","README.md"),revision="7650d466a955c754265d20e57513518a4e049f00"),
     A("timm/vit_large_patch14_clip_336.openai",model_path("jeveration/clip"),("open_clip_model.safetensors","*LICENSE*"),revision="81e38efc4637de5023b10e75a7f9bd1c6fa6b010"),
     A("lllyasviel/Annotators",model_path("jeveration/hub"),("ControlNetHED.pth",),cache_layout=True,revision="982e7edaec38759d914a963c48c4726685de7d96"),
     A("depth-anything/Depth-Anything-V2-Small-hf",model_path("jeveration/hub"),("config.json","preprocessor_config.json","model.safetensors"),cache_layout=True,revision="5426e4f0f36572d16453bbda7a8389317b1bef99"),
@@ -1379,11 +1423,16 @@ BUNDLES += (Bundle("jeveration", "Jeveration generate, edit & dense", "102", (
 )),)
 
 
-BUNDLES += (Bundle("bria-rmbg3", "BRIA RMBG-3.0 cutouts", "103", bria_artifacts()),)
+BUNDLES += (Bundle("bria-rmbg3", "BRIA RMBG-3.0 cutouts", "103", (),
+                   variants=(
+                       ("matte pipeline (RMBG-3.0)", bria_artifacts("matte")),
+                       ("Fibo-2.0 edit-turbo components", bria_artifacts("fibo")),
+                   ),
+                   default_tiers=(1, 2),),)
 
 
 BUNDLES += (Bundle("wemm-video","WeMM-Video 35B-A3B AWQ","104",(
-    A("tencent/WeMM-Video-35BA3B-AWQ",model_path("wemm-video/awq"),(),revision="205c63375c223610f99e62d432b816b67b258de0"),
+    A("tencent/WeMM-Video-35BA3B-AWQ",model_path("wemm-video/awq"),("*.safetensors","*.json","*.py","*.txt","README.md","LICENSE*"),revision="205c63375c223610f99e62d432b816b67b258de0"),
 )),)
 
 
@@ -1413,16 +1462,26 @@ _VBENCH_FILES = (
       ("config.json", "pytorch_model.bin", "tokenizer.json", "tokenizer_config.json", "vocab.txt")),
 )
 
-BUNDLES += (Bundle("fastframes-eval", "VBench scorer weights (FastFrames evaluation, optional)", "105", (
-    A(ARCHIVE_REPO, model_path("fastframes/vbench-archive"), (f"{ARCHIVE_ROOT}/FastFrames/vbench/**",),
-      revision=ARCHIVE_REV,
-      placements=tuple((f"{ARCHIVE_ROOT}/FastFrames/vbench/{name}", model_path("fastframes/vbench") / name)
-                       for name in _VBENCH_FILES) + (
-          (f"{ARCHIVE_ROOT}/FastFrames/vbench/dino_model/dino_vitbase16_pretrain.pth",
-           model_path("fastframes/vbench/torch/hub/checkpoints/dino_vitbase16_pretrain.pth")),
-      ),
-    ),
-)),)
+BUNDLES += (Bundle("fastframes", "FastFrames playable worlds, text-to-video, and eval scorers", "97-98,105", (), variants=(
+    ("playable LingBot worlds (live)", (
+        A("apple/FastFrames-S", model_path("fastframes"), ("lingbot-1.3b/*","LICENSE*","README.md"), revision="aa099efcedf1b65447106bf9004cde75821f7387"),
+        A("robbyant/lingbot-world-v2-1.3b-causal-fast", model_path("fastframes/lingbot-world-v2-1.3b-causal-fast/transformers"), ("model-*.safetensors", "model.safetensors.index.json", "README.md"), revision="7e36a5f919f86cb4255cc9bfc30adb44963fbde1"),
+        A("robbyant/lingbot-world-v2-14b-causal-fast", model_path("fastframes/lingbot-world-v2-14b-causal-fast"), ("models_t5_umt5-xxl-enc-bf16.pth","Wan2.1_VAE.pth","google/umt5-xxl/*","LICENSE*"), revision="5c33dd40b213598c418fd25bff30fdbd23fd38a7"),
+    )),
+    ("FastFrames-L text to video", (
+        A("apple/FastFrames-L", model_path("fastframes"), ("fastframes-l/*","README.md","LICENSE*"), revision="d18ec5f054bb03f6b8e561a63d52af3142b5b81d"),
+        A("Wan-AI/Wan2.1-T2V-14B", model_path("fastframes/Wan2.1-T2V-14B"), ("models_t5_umt5-xxl-enc-bf16.pth","google/umt5-xxl/*","LICENSE*"), revision="a064a6c71f5be440641209c07bf2a5ce7a2ff5e4"),
+    )),
+    ("VBench scorer weights (evaluation, optional)", (
+        A(ARCHIVE_REPO, model_path("fastframes/vbench-archive"), (f"{ARCHIVE_ROOT}/FastFrames/vbench/**",),
+          revision=ARCHIVE_REV,
+          placements=tuple((f"{ARCHIVE_ROOT}/FastFrames/vbench/{name}", model_path("fastframes/vbench") / name)
+                           for name in _VBENCH_FILES) + (
+              (f"{ARCHIVE_ROOT}/FastFrames/vbench/dino_model/dino_vitbase16_pretrain.pth",
+               model_path("fastframes/vbench/torch/hub/checkpoints/dino_vitbase16_pretrain.pth")),
+          )),
+    )),
+),),)
 
 
 def print_menu() -> None:
@@ -1446,12 +1505,13 @@ def _selection_tokens(values: Sequence[str]) -> list[str]:
     return [part.strip() for value in values for part in value.split(",") if part.strip()]
 
 
-# Audit mode: an inventory pass in the spirit of hashes-recurse.py. It never
-# downloads; it reports what the picker would fetch next, verifies checksums
-# for direct releases, and offers to sweep files that no artifact definition
-# claims. Only MODELS is touched; symlinked lane paths are skipped outright.
+# Post-download maintenance constants. Maintenance never downloads; after a
+# successful pass it rewrites the selection ledger, offers (always with a
+# prompt) to remove retired-selection and unclaimed files under models/, and
+# refreshes the hash registry. Compatibility symlink placements are enumerated
+# through their link path rather than skipped.
 AUDIT_INFRA_NAMES = {"manifests", ".venv", "__pycache__", "uv.toml", ".gitignore", "LICENSE", "README.md"}
-AUDIT_INFRA_SUFFIXES = {".py", ".sh", ".toml", ".md", ".txt", ".json", ".lock", ".cfg"}
+AUDIT_INFRA_SUFFIXES = {".py", ".sh", ".toml", ".md", ".txt", ".json", ".lock", ".cfg", ".tsv"}
 AUDIT_HUB_METADATA = {"CACHEDIR.TAG", ".gitattributes", ".gitignore", ".no_exist", ".msc", ".mv"}
 # Plaintext hash registry (hashes-recurse.py style): every model-tree file gets
 # one SHA-256 line. Subsequent audits rehash only files that are new or whose
@@ -1520,6 +1580,8 @@ def _audit_registry_pass(
     current: dict[str, tuple[int, int]] = {}
     for entry in _audit_walk(MODELS):
         relative = entry.relative_to(MODELS)
+        if ".cache" in relative.parts:
+            continue  # Hub resumable bookkeeping: locks/metadata, never content
         if relative.parts[0] in AUDIT_REGISTRY_SKIP_DIRS:
             continue
         if len(relative.parts) == 1 and relative.name == AUDIT_REGISTRY_NAME:
@@ -1641,9 +1703,203 @@ def _audit_path_accepted(dest: Path, artifact_group: list[Artifact], relative: s
     )
 
 
-def run_audit(prune: bool = False, workers: int = 1) -> int:
+# --- Store bookkeeping ------------------------------------------------------
+# A selection ledger lives beside the hash registry: every successful
+# (max/max) download pass rewrites store-ledger.tsv. Selected bundle/tier
+# names record 1; previously tracked names outside the current selection
+# flip to 0, and a retired name's exclusive files become removal candidates.
+# Nothing is ever deleted without an explicit y/n prompt.
+LEDGER_NAME = "store-ledger.tsv"
+# Helper trees the picker writes itself; no artifact claims them file-wise.
+PICKER_TREES = (MODELS / "scenebloom/material-archives",)
+
+
+def _ledger_path() -> Path:
+    return MODELS / LEDGER_NAME
+
+
+def _ledger_load() -> dict[str, int]:
+    entries: dict[str, int] = {}
+    path = _ledger_path()
+    if not path.is_file():
+        return entries
+    for line in path.read_text().splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        parts = line.split("\t")
+        if len(parts) != 2 or parts[1] not in {"0", "1"}:
+            continue
+        entries[parts[0]] = int(parts[1])
+    return entries
+
+
+def _ledger_dump(entries: dict[str, int]) -> None:
+    lines = [
+        "# mm-tools model store selection ledger — name<TAB>1|0",
+        "# 1 = kept by the most recent successful download run;",
+        "# 0 = tracked before but deselected: exclusive files are cleanup candidates",
+    ]
+    lines += [f"{name}\t{value}" for name, value in sorted(entries.items())]
+    temporary = MODELS / (LEDGER_NAME + ".tmp")
+    temporary.write_text("\n".join(lines) + "\n")
+    temporary.replace(_ledger_path())
+
+
+def _selection_names(
+    bundles: Sequence[Bundle], picks: dict[str, tuple[int, ...]]
+) -> set[str]:
+    names: set[str] = set()
+    for bundle in bundles:
+        if not bundle.variants:
+            names.add(bundle.key)
+            continue
+        chosen = (picks.get(bundle.key) or bundle.default_tiers
+                  or tuple(range(1, len(bundle.variants) + 1)))
+        names.update(f"{bundle.key}:{index}" for index in chosen)
+    return names
+
+
+def _definition_claims() -> dict[str, set[Path]]:
+    """Selectable name -> every store path that name's definitions touch."""
+    claims: dict[str, set[Path]] = {}
+    for bundle in BUNDLES:
+        if not bundle.variants:
+            groups = {bundle.key: bundle.artifacts}
+        else:
+            groups = {
+                f"{bundle.key}:{index}": bundle.artifacts + tier_artifacts
+                for index, (_title, tier_artifacts) in enumerate(bundle.variants, start=1)
+            }
+        for name, artifacts in groups.items():
+            paths = claims.setdefault(name, set())
+            for artifact in artifacts:
+                paths.add(artifact.destination)
+                paths.update(artifact.dir_links)
+                paths.update(target for _source, target in artifact.file_links)
+                paths.update(target for _source, target in artifact.placements)
+    return claims
+
+
+def _tidy_destination(artifact: Artifact) -> None:
+    """After one artifact completes, drop resumable bookkeeping and flatten
+    Hub cache link trees so the store keeps plain, loadable files only."""
+    if not artifact.destination.is_dir():
+        return
+    shutil.rmtree(artifact.destination / ".cache", ignore_errors=True)
+    if not artifact.cache_layout:
+        return
+    for model_dir in artifact.destination.glob("models--*"):
+        snapshots = model_dir / "snapshots"
+        if not snapshots.is_dir():
+            continue
+        for link in list(snapshots.rglob("*")):
+            if not link.is_symlink():
+                continue
+            try:
+                target = link.resolve()
+                link.unlink()
+                os.link(target, link)
+            except OSError:
+                pass
+        # refs/ stays: Transformers still resolves branch names through it.
+        shutil.rmtree(model_dir / "blobs", ignore_errors=True)
+
+
+def _remove_paths(paths: set[Path]) -> None:
+    freed = 0
+    count = 0
+    for path in sorted(paths):
+        try:
+            size = path.stat().st_size if path.is_file() else _audit_tree_bytes(path)
+            if path.is_dir() and not path.is_symlink():
+                shutil.rmtree(path)
+            else:
+                path.unlink(missing_ok=True)
+            freed += size
+            count += 1
+        except OSError as exc:
+            print(f"  failed to delete {path}: {exc}", file=sys.stderr)
+    print(f"Deleted {count} entries, freed {freed / 1e9:.2f} GB.")
+
+
+def _offer_removal(items: dict[str, tuple[Path, int]], title: str) -> None:
+    """List removal candidates and always prompt before deleting them."""
+    if not items:
+        print(f"\n{title}\n  none")
+        return
+    print(f"\n{title}")
+    for _label, (path, size) in sorted(
+        items.items(), key=lambda item: (-item[1][1], str(item[1][0]))
+    ):
+        print(f"  {size / 1e9:9.2f} GB  {path.relative_to(MODELS)}"
+              f"{'' if path.is_file() else '/'}  [{_label}]")
+    total = sum(size for _label, (_path, size) in items.items())
+    print(f"\nTotal: {total / 1e9:.2f} GB across {len(items)} entries.")
+    try:
+        answer = input("Delete them now? [y/n/e per entry]: ").strip().lower()
+    except EOFError:
+        answer = "n"
+    if answer in {"y", "yes", "a", "all"}:
+        _remove_paths({path for _label, (path, _size) in items.items()})
+    elif answer in {"e", "each"}:
+        for _label, (path, size) in items.items():
+            try:
+                verdict = input(
+                    f"Delete {path.relative_to(MODELS)} ({size / 1e9:.2f} GB)? [y/N]: "
+                ).strip().lower()
+            except EOFError:
+                verdict = ""
+            if verdict in {"y", "yes"}:
+                _remove_paths({path})
+    else:
+        print("Left in place.")
+
+
+def post_download_maintenance(
+    bundles: Sequence[Bundle], picks: dict[str, tuple[int, ...]], workers: int
+) -> None:
+    """Ledger rewrite, retired-name removal, unclaimed sweep, and hash
+    registry refresh; runs only after every selected download completed."""
+    ledger = _ledger_load()
+    claims = _definition_claims()
+    names = _selection_names(bundles, picks)
+    if len(bundles) == len(BUNDLES):  # 'all' keeps every current name tracked
+        names = set(claims)
+    for name in claims:
+        ledger[name] = 1 if name in names else 0
+    _ledger_dump(ledger)
+
+    retired = {name for name, value in ledger.items() if value == 0 and name in claims}
+    live_paths: set[Path] = set()
+    for name, paths in claims.items():
+        if name not in retired:
+            live_paths.update(paths)
+    candidates: dict[str, tuple[Path, int]] = {}
+    seen: set[Path] = set()
+    for name in sorted(retired):
+        for path in sorted(claims[name]):
+            try:
+                relative = path.resolve().relative_to(MODELS)
+            except ValueError:
+                continue  # lane or home-path placements follow their owner
+            store_path = MODELS / relative
+            if not store_path.exists() or store_path in seen:
+                continue
+            if any(live == store_path or live in store_path.parents or store_path in live.parents
+                   for live in live_paths):
+                continue  # mixed destination: an unretired name still needs it
+            seen.add(store_path)
+            size = (store_path.stat().st_size if store_path.is_file()
+                    else _audit_tree_bytes(store_path))
+            candidates[f"{relative} (retired {name})"] = (store_path, size)
+    _offer_removal(candidates, "Retired selections (ledger value 0) no longer claim these paths")
+
+    # Unclaimed sweep: files no current artifact definition covers, down to
+    # over-fetched strays inside otherwise-pinned snapshot destinations.
+    extras: dict[str, tuple[Path, int]] = {}
     dests = _audit_destination_map()
-    registry = _audit_registry_load()
+    declared = _audit_declared_links()
+    declared_tops = {link[0] for link in declared if len(link) == 1}
     dest_rels: dict[Path, tuple[str, ...]] = {}
     for dest in dests:
         try:
@@ -1660,60 +1916,6 @@ def run_audit(prune: bool = False, workers: int = 1) -> int:
                     best = dest
         return best
 
-    print("\nBundle inventory (bytes present / what is still needed)")
-    need_keys: list[str] = []
-    for bundle in BUNDLES:
-        artifacts = bundle_artifacts(bundle, None)
-        missing: list[str] = []
-        corrupt: list[str] = []
-        on_disk = 0
-        seen: set[Path] = set()
-        for artifact in artifacts:
-            destination = artifact.destination
-            if destination.is_file():
-                if artifact.sha256:
-                    digest: str | None = None
-                    try:
-                        relative = str(destination.relative_to(MODELS))
-                    except ValueError:
-                        relative = None
-                    if relative:
-                        known = registry.get(relative)
-                        info = destination.stat()
-                        if known and known[0] == info.st_size and known[1] == int(info.st_mtime):
-                            digest = known[2]
-                    if digest is None:
-                        digest = _sha256(destination)
-                    if digest != artifact.sha256:
-                        corrupt.append(artifact.direct_filename or destination.name)
-                continue
-            if destination not in seen and destination.is_dir():
-                seen.add(destination)
-                on_disk += _audit_tree_bytes(destination)
-            if not destination.is_dir() or not any(
-                entry.is_file() for entry in destination.rglob("*")
-            ):
-                missing.append(
-                    str(destination.relative_to(MODELS)) if destination in dest_rels else str(destination)
-                )
-        missing = sorted(set(missing))
-        size = f"{on_disk / 1e9:8.1f} GB"
-        if not missing and not corrupt:
-            print(f"  {bundle.key:16s} {size}  complete")
-            continue
-        need_keys.append(bundle.key)
-        detail = ", ".join([*[f"missing {name}" for name in missing],
-                            *[f"checksum mismatch {name}" for name in corrupt]])
-        print(f"  {bundle.key:16s} {size}  NEEDS: {detail}")
-    if need_keys:
-        print(f"\nSuggested next run: uv run download_models.py {','.join(need_keys)}")
-    else:
-        print("\nEvery bundle is complete.")
-
-    print("\nExtraneous entries under models/ (claimed by no artifact definition)")
-    extras: list[tuple[Path, int]] = []
-    declared = _audit_declared_links()
-    declared_tops = {link[0] for link in declared if len(link) == 1}
     if MODELS.is_dir():
         for child in sorted(MODELS.iterdir()):
             if child.name.startswith(".") or child.name in AUDIT_INFRA_NAMES:
@@ -1722,10 +1924,10 @@ def run_audit(prune: bool = False, workers: int = 1) -> int:
                 continue
             if child.is_file():
                 if child.suffix not in AUDIT_INFRA_SUFFIXES:
-                    extras.append((child, child.stat().st_size))
+                    extras[str(child.relative_to(MODELS))] = (child, child.stat().st_size)
                 continue
             if child.name not in known_tops and not child.is_symlink():
-                extras.append((child, _audit_tree_bytes(child)))
+                extras[str(child.relative_to(MODELS))] = (child, _audit_tree_bytes(child))
                 continue
             for entry in _audit_walk(child):
                 relative = entry.relative_to(MODELS).parts
@@ -1735,17 +1937,20 @@ def run_audit(prune: bool = False, workers: int = 1) -> int:
                     continue
                 if any(relative[: len(link)] == link for link in declared):
                     continue
+                if any(entry == tree or tree in entry.parents for tree in PICKER_TREES):
+                    continue
                 owner = owner_of(relative)
+                label = str(entry.relative_to(MODELS))
                 if owner is None:
-                    extras.append((entry, entry.stat().st_size))
+                    extras[label] = (entry, entry.stat().st_size)
                     continue
                 inside = "/".join(relative[len(dest_rels[owner]):])
                 if not _audit_path_accepted(owner, dests[owner], inside):
-                    extras.append((entry, entry.stat().st_size))
-    extras.sort(key=lambda item: (-item[1], str(item[0])))
+                    extras[label] = (entry, entry.stat().st_size)
+    _offer_removal(extras, "Unclaimed entries under models/ (no artifact definition)")
 
     new_paths, changed, dropped = _audit_registry_pass(
-        workers, frozenset(str(path.relative_to(MODELS)) for path, _size in extras)
+        workers, frozenset(str(path.relative_to(MODELS)) for path, _size in extras.values())
     )
     print(f"\nHash registry ({AUDIT_REGISTRY_NAME}, one SHA256 line per claimed model file)")
     print(
@@ -1759,57 +1964,6 @@ def run_audit(prune: bool = False, workers: int = 1) -> int:
     overflow = len(new_paths) + len(changed) - 40
     if overflow > 0:
         print(f"  ... and {overflow} more")
-
-    print("\nFinal cleanup: entries under models/ claimed by no artifact definition")
-    if not extras:
-        print("  none")
-        return 0
-    for path, size in extras:
-        print(f"  {size / 1e9:9.2f} GB  {path.relative_to(MODELS)}"
-              f"{'' if path.is_file() else '/'}")
-    total = sum(size for _path, size in extras)
-    print(f"\nTotal extraneous: {total / 1e9:.2f} GB across {len(extras)} entries.")
-
-    delete = prune
-    if not delete:
-        try:
-            answer = input("Delete them now? [y/n/e per entry]: ").strip().lower()
-        except EOFError:
-            answer = "n"
-        if answer in {"y", "yes", "a", "all"}:
-            delete = True
-        elif answer in {"e", "each"}:
-            for path, size in extras:
-                try:
-                    verdict = input(
-                        f"Delete {path.relative_to(MODELS)} ({size / 1e9:.2f} GB)? [y/N]: "
-                    ).strip().lower()
-                except EOFError:
-                    verdict = ""
-                if verdict in {"y", "yes"}:
-                    try:
-                        if path.is_dir() and not path.is_symlink():
-                            shutil.rmtree(path)
-                        else:
-                            path.unlink()
-                    except OSError as exc:
-                        print(f"  failed: {exc}", file=sys.stderr)
-            print("Per-entry sweep finished.")
-    if delete:
-        freed = 0
-        for path, size in extras:
-            try:
-                if path.is_dir() and not path.is_symlink():
-                    shutil.rmtree(path)
-                else:
-                    path.unlink()
-                freed += size
-            except OSError as exc:
-                print(f"  failed to delete {path}: {exc}", file=sys.stderr)
-        print(f"Deleted {len(extras)} entries, freed {freed / 1e9:.2f} GB.")
-    else:
-        print("Left in place.")
-    return 0
 
 
 def resolve_selection(
@@ -2156,9 +2310,9 @@ def build_parser() -> argparse.ArgumentParser:
         epilog=(
             "Examples: uv run download_models.py | uv run download_models.py all | "
             "uv run download_models.py 2,6,10 | uv run download_models.py minimax stableaudio | "
-            "uv run download_models.py lingbot:2 | "
-            "uv run download_models.py --audit (inventory, missing list, and an "
-            "extraneous-file sweep under models/ with an offer to delete; --prune to automate)"
+            "uv run download_models.py lingbot:2 | uv run download_models.py fastframes:2. "
+            "After every completed pass the picker rewrites store-ledger.tsv and offers "
+            "to remove retired/unclaimed files under models/ (always y/n first)."
         ),
     )
     parser.add_argument(
@@ -2167,15 +2321,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--all", action="store_true", dest="download_all", help="download every bundle")
     parser.add_argument("--list", action="store_true", help="show bundles and exit")
-    parser.add_argument(
-        "--audit", action="store_true",
-        help="inventory installed weights, list what each bundle still needs, "
-             "surface extraneous files under models/, and offer to delete them",
-    )
-    parser.add_argument(
-        "--prune", action="store_true",
-        help="with --audit: delete the extraneous entries without prompting",
-    )
     parser.add_argument("--yes", action="store_true", help="skip the interactive confirmation")
     parser.add_argument(
         "--workers",
@@ -2196,8 +2341,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     workers = args.workers or DEFAULT_WORKERS
     if args.workers is None and not args.yes and sys.stdin.isatty():
         workers = interactive_worker_count(DEFAULT_WORKERS)
-    if args.audit:
-        return run_audit(prune=args.prune, workers=workers)
     if args.download_all:
         bundles, picks = BUNDLES, {}
     elif args.selection:
@@ -2222,16 +2365,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         for artifact in bundle_artifacts(bundle, picks.get(bundle.key))
     ))
     if any(b.key == "fab" for b in bundles):
-        from fab_assets import find_smpl, g1_ready, g1_target
-        if not g1_ready(g1_target()):
-            groups = json.loads((MODELS / "manifests/fab-g1.json").read_text())
-            artifacts += tuple(
-                A(g["repo"], model_path(f"fab/g1-sources/{group}") / Path(name).parent,
-                  revision=g["revision"], direct_url=(
-                      f"https://raw.githubusercontent.com/{g['repo']}/{g['revision']}/{g['folder']}/{quote(name)}"
-                  ), direct_filename=Path(name).name, expected_size=size, sha256=sha)
-                for group, g in groups.items() for name, size, sha in g["files"]
-            )
+        from fab_assets import find_smpl
         installed = find_smpl()
         if installed:
             print(f"FAB: using installed neutral body at {installed}")
@@ -2272,11 +2406,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         logging.set_verbosity_info()
     for number, artifact in enumerate(artifacts, start=1):
         download_artifact(artifact, number, len(artifacts), workers)
+        _tidy_destination(artifact)
 
     if any(bundle.key == "scenebloom" for bundle in bundles):
         prepare_scenebloom_assets(MODELS)
 
     print(f"\nCompleted {len(artifacts)} snapshot downloads.")
+    post_download_maintenance(bundles, picks, workers)
     return 0
 
 # SceneBloom ships two large published archives plus AmbientCG material packs; the

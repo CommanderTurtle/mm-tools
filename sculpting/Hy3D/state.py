@@ -131,7 +131,7 @@ def require_models(config=None):
     missing = [name for name in required if not (MODELS / name).is_file()]
     if missing:
         raise ValueError(
-            "Select hy3d (and hy3d-coarse for image generation) in "
+            "Select hy3d (or hy3d:1+2 for image generation) in "
             "../../models/download_models.py; missing " + ", ".join(missing)
         )
 

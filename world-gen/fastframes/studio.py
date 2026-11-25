@@ -47,14 +47,14 @@ async def serve_studio():
         try:
             if ws.request.path == "/ws":
                 if generating: raise ValueError("FastFrames-L is rendering. Retry after it finishes.")
-                if not (MODELS/"lingbot-1.3b").is_dir(): raise ValueError("Select fastframes-live in the picker.")
+                if not (MODELS/"lingbot-1.3b").is_dir(): raise ValueError("Select fastframes:1 in the picker.")
                 live.add(ws)
                 try: await world.websocket(ws)
                 finally: live.discard(ws)
                 return
             if ws.request.path != "/generate": return
             if generating or world.waiting_room.owner is not None or world.waiting_room.waiters: raise ValueError("Finish the active studio session first.")
-            if not (MODELS/"fastframes-l/dit.safetensors").is_file(): raise ValueError("Select fastframes-l in the picker.")
+            if not (MODELS/"fastframes-l/dit.safetensors").is_file(): raise ValueError("Select fastframes:2 in the picker.")
             generating = True
             try:
                 spec = json.loads(await asyncio.wait_for(ws.recv(),30))

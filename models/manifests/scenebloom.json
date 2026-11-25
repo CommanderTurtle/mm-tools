@@ -22,7 +22,15 @@
       "repo": "Qwen/Qwen3-Embedding-0.6B",
       "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
       "dest": "checkpoints/Qwen3-Embedding-0.6B",
-      "patterns": []
+      "patterns": [
+        "*.json",
+        "model.safetensors",
+        "merges.txt",
+        "vocab.json",
+        "tokenizer.json",
+        "1_Pooling/*",
+        "README.md"
+      ]
     },
     {
       "repo": "apple/DFN5B-CLIP-ViT-H-14-378",
@@ -39,19 +47,27 @@
       "repo": "uva-cv-lab/ovmono3d_lift",
       "revision": "e9933f7726e532eb65d19989663839c39ba20b3b",
       "dest": "checkpoints/ovmono3d",
-      "patterns": ["ovmono3d_lift.pth", "README.md"]
+      "patterns": [
+        "ovmono3d_lift.pth",
+        "README.md"
+      ]
     },
     {
       "repo": "ShilongLiu/GroundingDINO",
       "revision": "a94c9b567a2a374598f05c584e96798a170c56fb",
       "dest": "checkpoints/ovmono3d",
-      "patterns": ["groundingdino_swinb_cogcoor.pth"]
+      "patterns": [
+        "groundingdino_swinb_cogcoor.pth"
+      ]
     },
     {
       "repo": "apple/DepthPro",
       "revision": "ccd1350a774eb2248bcdfb3be430e38f1d3087ef",
       "dest": "checkpoints/ovmono3d",
-      "patterns": ["depth_pro.pt", "LICENSE"]
+      "patterns": [
+        "depth_pro.pt",
+        "LICENSE"
+      ]
     },
     {
       "repo": "google-bert/bert-base-uncased",
@@ -71,13 +87,22 @@
       "revision": "0e65c250dc8ea351e8909edd74becdec9bfe3207",
       "dest": "assets",
       "type": "dataset",
-      "patterns": ["glb/*", "LICENSE", "README.md", "licenses/*"]
+      "patterns": [
+        "glb/*",
+        "LICENSE",
+        "README.md",
+        "licenses/*"
+      ]
     },
     {
       "repo": "tina390/SceneBloom-AssetLoRAs",
       "revision": "c2347dc7153d1093776ff1cf474a23fe13338590",
       "dest": "assets",
-      "patterns": ["adapters/*", "licenses/*", "LICENSE.md"]
+      "patterns": [
+        "adapters/*",
+        "licenses/*",
+        "LICENSE.md"
+      ]
     },
     {
       "repo": "Metaverse-AI-Lab/M3DLayout",
@@ -95,7 +120,9 @@
       "repo": "SergiusFlavius/Qwen3-VL-4B-Instruct-heretic-NVFP4",
       "revision": "8a2e15ce775cb94b52be620fced1420ac879b4ad",
       "dest": "../qwen/text-encoder-vl-nvfp4",
-      "patterns": ["qwen3_vl_4b_nvfp4_full.safetensors"]
+      "patterns": [
+        "qwen3_vl_4b_nvfp4_full.safetensors"
+      ]
     }
   ],
   "dinov2": {

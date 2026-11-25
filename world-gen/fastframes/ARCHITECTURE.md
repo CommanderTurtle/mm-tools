@@ -11,7 +11,7 @@ person, plus the FastFrames-L clip path for short text-to-video renders.
 ./startwithuv.sh
 ```
 
-Choose `fastframes-live` in the model downloader (`fastframes-l` adds the 14B
+Choose `fastframes:1` in the model downloader (tier `fastframes:2` adds the 14B
 LingBot world and the Wan2.1 T2V weights). Setup runs `uv sync --frozen`
 against the `pyproject.toml` and `uv.lock` committed inside `fastframes/`,
 installing the `lingbot` and `demo` extras into the lane environment; nothing

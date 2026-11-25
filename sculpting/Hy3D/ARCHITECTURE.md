@@ -9,7 +9,7 @@ PLY and OBJ. Original images, conditioning images, settings and stages stay in
 ## Setup
 
 In the [model picker](../../models/download_models.py), select **hy3d** and, for image-only
-generation, **hy3d-coarse**. Then, from this folder:
+generation, add the coarse tier (**hy3d:1+2**). Then, from this folder:
 
 ```bash
 ./setupwithuv.sh
