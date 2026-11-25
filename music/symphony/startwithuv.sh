@@ -21,8 +21,10 @@ fi
 OUTPUT_ROOT="${SYMPHONY_OUTPUT_DIR:-outputs}"
 [[ "$MODEL_ROOT" == /* ]] || MODEL_ROOT="$ROOT/$MODEL_ROOT"
 [[ "$OUTPUT_ROOT" == /* ]] || OUTPUT_ROOT="$ROOT/$OUTPUT_ROOT"
-export SYMPHONY_MODEL_DIR="$(realpath -m -- "$MODEL_ROOT")"
-export SYMPHONY_OUTPUT_DIR="$(realpath -m -- "$OUTPUT_ROOT")"
+MODEL_DIR_ABS="$(realpath -m -- "$MODEL_ROOT")"
+OUTPUT_DIR_ABS="$(realpath -m -- "$OUTPUT_ROOT")"
+export SYMPHONY_MODEL_DIR="$MODEL_DIR_ABS"
+export SYMPHONY_OUTPUT_DIR="$OUTPUT_DIR_ABS"
 
 for name in stage_one_pretrained.pt stage_two_pretrained.pt grpo_clamp_epoch_10.pt 'grpo_clamp+track_epoch_6.pt'; do
   [[ -f "$SYMPHONY_MODEL_DIR/$name" ]] || {

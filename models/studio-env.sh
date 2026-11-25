@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
+# shellcheck shell=bash
 # Source from a studio after setting STUDIO to its absolute directory.
 : "${STUDIO:?studio path required}"
 export VIRTUAL_ENV="$STUDIO/.venv"
 export PATH="$VIRTUAL_ENV/bin:$PATH"
 export GRADIO_ANALYTICS_ENABLED=False HF_HUB_DISABLE_TELEMETRY=1 DO_NOT_TRACK=1
 export WANDB_MODE=disabled OTEL_SDK_DISABLED=true UV_NO_PROGRESS=1
-cd "$STUDIO"
+cd "$STUDIO" || exit 1
 
 # Install source only at setup; never reset a user's existing checkout.
 source_pin() {

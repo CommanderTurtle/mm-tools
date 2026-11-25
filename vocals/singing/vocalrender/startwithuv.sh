@@ -21,16 +21,16 @@ fi
 OUTPUT_ROOT="${VOCALRENDER_OUTPUT_DIR:-outputs}"
 [[ "$MODEL_ROOT" == /* ]] || MODEL_ROOT="$ROOT/$MODEL_ROOT"
 [[ "$OUTPUT_ROOT" == /* ]] || OUTPUT_ROOT="$ROOT/$OUTPUT_ROOT"
-export VOCALRENDER_MODEL_DIR="$(realpath -m -- "$MODEL_ROOT")"
-export VOCALRENDER_OUTPUT_DIR="$(realpath -m -- "$OUTPUT_ROOT")"
+MODEL_DIR_ABS="$(realpath -m -- "$MODEL_ROOT")"
+OUTPUT_DIR_ABS="$(realpath -m -- "$OUTPUT_ROOT")"
+export VOCALRENDER_MODEL_DIR="$MODEL_DIR_ABS"
+export VOCALRENDER_OUTPUT_DIR="$OUTPUT_DIR_ABS"
 
-for variant in VocalRender-Pro; do
-  for name in config.json model.safetensors audiovae.pth tokenizer.json; do
-    [[ -f "$VOCALRENDER_MODEL_DIR/$variant/$name" ]] || {
-      printf 'VocalRender artifact is missing: %s\nRun models/download_models.py first.\n' "$VOCALRENDER_MODEL_DIR/$variant/$name" >&2
-      exit 1
-    }
-  done
+for name in config.json model.safetensors audiovae.pth tokenizer.json; do
+  [[ -f "$VOCALRENDER_MODEL_DIR/VocalRender-Pro/$name" ]] || {
+    printf 'VocalRender artifact is missing: %s\nRun models/download_models.py first.\n' "$VOCALRENDER_MODEL_DIR/VocalRender-Pro/$name" >&2
+    exit 1
+  }
 done
 
 LOCAL_URL="http://127.0.0.1:${PORT}"
