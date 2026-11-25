@@ -48,7 +48,10 @@ folders, stray files, and files outside any allowlist inside known
 snapshots — with sizes, and always prompts before deleting (`y` all, `e`
 per entry, Enter keeps; `--prune` deletes unattended). Hub cache bookkeeping
 (blobs, refs, `models--*`, `.cache`, marker files) and the downloader's own
-code files are never flagged; symlinked lane paths are skipped entirely.
+code files are never flagged. Compatibility links inside `models/` — the
+hard/symlink placements declared by bundle definitions and in-snapshot links
+like the legacy bert cache alias — are enumerated through their link path and
+hashed; they are declared by definitions, so they are never flagged.
 
 Every newly introduced upstream snapshot is pinned to the immutable revision
 audited for this source import. File allowlists retain only runtime-required

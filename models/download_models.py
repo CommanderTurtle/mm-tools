@@ -1518,9 +1518,7 @@ def _audit_registry_pass(
     registry = _audit_registry_load()
     extra_tops = {name for name in extra_rels if "/" not in name}
     current: dict[str, tuple[int, int]] = {}
-    for entry in MODELS.rglob("*"):
-        if entry.is_symlink() or not entry.is_file():
-            continue
+    for entry in _audit_walk(MODELS):
         relative = entry.relative_to(MODELS)
         if relative.parts[0] in AUDIT_REGISTRY_SKIP_DIRS:
             continue
@@ -1585,6 +1583,38 @@ def _audit_destination_map() -> dict[Path, list[Artifact]]:
             for artifact in arts:
                 dests.setdefault(artifact.destination, []).append(artifact)
     return dests
+
+
+def _audit_declared_links() -> set[tuple[str, ...]]:
+    """Relative placement paths declared by bundle definitions (compat links)."""
+    links: set[tuple[str, ...]] = set()
+    for bundle in BUNDLES:
+        groups = (bundle.artifacts, *(arts for _title, arts in bundle.variants))
+        for artifact_group in groups:
+            for artifact in artifact_group:
+                raw: list[Path] = list(artifact.dir_links)
+                raw += [target for _source, target in artifact.file_links]
+                raw += [target for _source, target in artifact.placements]
+                for path in raw:
+                    try:
+                        links.add(path.resolve().relative_to(MODELS).parts)
+                    except ValueError:
+                        continue  # outside the model store (lane or home paths)
+    return links
+
+
+def _audit_walk(root: Path):
+    """Yield files under root, descending once into symlinks onto directories."""
+    for entry in root.rglob("*"):
+        if entry.is_symlink():
+            if entry.is_file():
+                yield entry
+            elif entry.is_dir():
+                for inner in entry.rglob("*"):
+                    if inner.is_file():
+                        yield inner
+        elif entry.is_file():
+            yield entry
 
 
 def _audit_path_accepted(dest: Path, artifact_group: list[Artifact], relative: str) -> bool:
@@ -1682,24 +1712,28 @@ def run_audit(prune: bool = False, workers: int = 1) -> int:
 
     print("\nExtraneous entries under models/ (claimed by no artifact definition)")
     extras: list[tuple[Path, int]] = []
+    declared = _audit_declared_links()
+    declared_tops = {link[0] for link in declared if len(link) == 1}
     if MODELS.is_dir():
         for child in sorted(MODELS.iterdir()):
             if child.name.startswith(".") or child.name in AUDIT_INFRA_NAMES:
+                continue
+            if child.name in declared_tops:
                 continue
             if child.is_file():
                 if child.suffix not in AUDIT_INFRA_SUFFIXES:
                     extras.append((child, child.stat().st_size))
                 continue
-            if child.name not in known_tops:
+            if child.name not in known_tops and not child.is_symlink():
                 extras.append((child, _audit_tree_bytes(child)))
                 continue
-            for entry in child.rglob("*"):
-                if entry.is_symlink() or not entry.is_file():
-                    continue
+            for entry in _audit_walk(child):
                 relative = entry.relative_to(MODELS).parts
                 if any(part.startswith(".") or part in AUDIT_HUB_METADATA for part in relative):
                     continue
                 if relative[0] in AUDIT_INFRA_NAMES or entry.suffix in AUDIT_INFRA_SUFFIXES:
+                    continue
+                if any(relative[: len(link)] == link for link in declared):
                     continue
                 owner = owner_of(relative)
                 if owner is None:
