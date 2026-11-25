@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
 [[ -x .venv/bin/python && -x .pe-venv/bin/python ]] || { printf 'Run ./setupwithuv.sh first.\n' >&2; exit 1; }
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HUB_DISABLE_TELEMETRY=1 DO_NOT_TRACK=1
 export TOKENIZERS_PARALLELISM=false

@@ -44,7 +44,7 @@ cd ~ && git clone https://github.com/CommanderTurtle/mm-tools multimedia && cd m
 cd models
 uv venv --python 3.12.10 --seed --managed-python
 source .venv/bin/activate
-uv pip install -U huggingface_hub hf_transfer gdown==5.2.0
+uv pip install -U huggingface_hub hf_transfer
 
 uv run download_models.py
 # Choose workers first, then select project bundles or press Enter for all.
@@ -52,15 +52,12 @@ uv run download_models.py
 deactivate # when done
 ```
 
-The downloader is resumable. Run it again after an interrupted transfer. New
-source-import bundles are named `4d`, `lingbot`, `lingbot-5090`, `fire3d`,
-`aukspeech`, `sculpting`, `worldsculpt`, `nvidia-sim`, `v2v`, `yue2`, and
-`motionbricks`, `flowhmr`, optional `flowhmr-physics`, and `physag3d`; use
+The downloader is resumable. Run it again after an interrupted transfer. Use
 `uv run download_models.py --list` for the complete current menu.
-The source imports, single-GPU adapters, setup/start contracts, and private
-browser studios are included here; model artifacts remain external and
-resumable. LingBot deliberately separates its shared encoder/VAE bundle from
-the official 1.3B single-5090 DiT and does not retain the unusable 14B DiT.
+The imports include model files that carefully get cloned from hf/ms sources with multi-worker speed. Each project builds with some type of `setupwith**.sh` file. These prompt for single-GPU adapters, setup/start contracts, and
+browser studio builds; model artifacts remain external to the downloader and
+resumable. Some deliberately separate shared encoder/VAE bundles from
+the official runtimes for quants that run on consumer hardware. 
 
 Model downloads remain governed by each model's native license and any access
 terms accepted for their usage. ARDY uses an ungated, pre-merged INT8 LLM2Vec
@@ -530,7 +527,7 @@ model downloads at runtime.
 | WorldSculpt | complete multi-object scene reconstruction and scene inspection | 8263 | ~18 GB |
 | ID-V2V | identity-preserving transfer, normal/depth guidance, and reusable preprocessing | 8265 | ~22 GB |
 | ARDY + SOMA-X | text-to-motion, motion inspection, parametric bodies, and hands | 8266 | ~8 GB |
-| LingBot World V2 | 1.3B single-5090 world generation and visual camera-path authoring | 8267 | 32 GB |
+| LingBot World V2 | 14B causal-fast world generation and visual camera-path authoring; ComfyUI GGUF tiers for smaller cards | 8267 | 64 GB native |
 | Fire3D | RGB/RGBD scene reconstruction, native-release evaluation, and GLB inspection | 8268 | ~20 GB |
 | YuE2 | composition, planning, continuation/cover, score realization/editing, transcription, resume, and VAE decode | 8270 | ~24 GB |
 

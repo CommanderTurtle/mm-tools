@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd)"
+ROOT="$PWD"
 [[ -x "$ROOT/.venv/bin/python" && -f "$ROOT/WeVisOne-VL/wevisone_vl/engine.py" ]] || {
   printf 'Run ./setupwithuv.sh first.\n' >&2; exit 1;
 }

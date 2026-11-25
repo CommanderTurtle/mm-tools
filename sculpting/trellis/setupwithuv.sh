@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$PWD"
 VENV="${SCULPTING_VENV:-$ROOT/.venv}"
 NATIVE="$ROOT/native"
 STUDIO="$ROOT/local_app"

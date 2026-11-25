@@ -5,16 +5,28 @@ queued one-at-a-time on GPU 0, and run the pinned native causal inference code.
 There are no cloud calls, telemetry hooks, hosted model fallbacks, or browser
 automation paths.
 
-## RTX 5090 profile
+## Model tiers
 
-The released 14B BF16 checkpoint is documented but its roughly 70 GB DiT is
-not retained because it is not runnable on one 32 GB card. Its shared UMT5
-encoder, tokenizer, and Wan VAE remain local. A community hybrid-NVFP4 export
-was also rejected for this profile: its own measured peak is 52–56 GiB with no
-CPU offload. The canonical workstation path uses the official 1.3B causal-fast
-DiT (about 6.8 GB) with the official 14B package's shared UMT5,
-tokenizer, and VAE. All model residency remains on CUDA during inference;
-`--offload_model false`, `--t5_cpu` disabled, one process, Ulysses degree one.
+The studio tier runs the official 14B causal-fast package: the fp32 DiT is
+converted to BF16 at load (`--convert_model_dtype`), the UMT5 encoder is built
+in system RAM (`--t5_cpu`), and `--offload_model false` keeps the DiT and VAE
+resident on CUDA for the whole job, one process, Ulysses degree one. The DiT
+is about 37 GiB resident and the upstream 18+6 KV window at 480×832 adds
+roughly 21 GiB, so the profile targets single-GPU cards of 64 GiB and up;
+shrinking the window releases KV memory, not quality of residency.
+
+Consumer cards run the same 14B model through the vendored
+`ComfyUI_Rebels_LingBotWorld/` custom nodes: GGUF DiTs (Q4_K_S through Q8_0)
+stream from pinned system RAM and a UMT5-XXL encoder GGUF replaces the
+11 GiB T5 checkpoint, from 8 GiB of VRAM upward. The node folder drops into
+any ComfyUI `custom_nodes/`; the matching weights come from downloader tiers
+2–5 and the reference workflow ships with them. The node README documents the
+quant, window, and resolution matrix.
+
+The community hybrid-NVFP4 export (SGLang serving, SM120 Blackwell, 72 GiB+)
+is downloader tier 6; the snapshot carries its patch, apply script, and
+SHA256SUMS, and it is served outside the studio. The retired 1.3B single-5090
+experiment remains reachable through the FastFrames lane.
 
 ## Camera contract
 

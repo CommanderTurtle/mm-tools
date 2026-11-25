@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$PWD"
 TRELLIS="$ROOT/../trellis"
 for tool in uv git bun; do
   command -v "$tool" >/dev/null || { printf '%s is required.\n' "$tool" >&2; exit 1; }

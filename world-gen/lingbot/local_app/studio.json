@@ -6,26 +6,26 @@
   "port": 8267,
   "kicker": "IMAGE · INTENT · CAMERA · UNBOUNDED CAUSAL TIMELINE",
   "hero": "Direct a world, then keep moving through it.",
-  "description": "Build native LingBot camera actions visually, bind them to an image and interaction prompt, and render a causal world timeline on one RTX 5090. Camera bundles, reproducible requests, videos, and previews stay local and reusable.",
+  "description": "Build native LingBot camera actions visually, bind them to an image and interaction prompt, and render a causal world timeline on one 64 GB-class GPU. Consumer cards from 8 GB run the same 14B model as GGUF through the bundled ComfyUI nodes. Camera bundles, reproducible requests, videos, and previews stay local and reusable.",
   "guide": "Start in Camera designer. A subtle dolly or orbit is the safest proof; then use the same action bundle with a detailed world prompt. Frame counts must be 4n+1.",
-  "engine": "Official LingBot-World-V2 1.3B causal-fast",
-  "vram": "RTX 5090 32 GB profile",
-  "runtime_contract": "CUDA-only model residency · one GPU · no telemetry",
+  "engine": "Official LingBot-World-V2 14B causal-fast",
+  "vram": "Native: one 64 GB+ GPU · GGUF tiers: 8 GB+ via ComfyUI",
+  "runtime_contract": "DiT and VAE resident on CUDA · UMT5 encodes from CPU RAM · one GPU · no telemetry",
   "residency": "Per-job native process",
   "default_mode": "generate_world",
   "max_upload_bytes": 8589934592,
   "theme": {"accent": "#65f0be", "secondary": "#d6a678"},
-  "badges": ["Official 1.3B causal-fast", "4n+1 timelines", "Eight camera path families", "Custom keyframes", "Import/export actions", "No CPU model offload"],
+  "badges": ["Official 14B causal-fast", "4n+1 timelines", "Eight camera path families", "Custom keyframes", "Import/export actions", "GGUF tiers bundled"],
   "groups": [
     {"id": "world", "title": "World generation"},
     {"id": "camera", "title": "Camera laboratory"}
   ],
   "models": [
-    {"label": "Single-GPU causal DiT", "path": "lingbot-world-v2-1.3b-causal-fast/"},
-    {"label": "Official shared UMT5 + VAE", "path": "lingbot-world-v2-14b-causal-fast/"}
+    {"label": "Native 14B causal-fast DiT + shared UMT5/VAE", "path": "lingbot-world-v2-14b-causal-fast/"},
+    {"label": "GGUF quants + Rebels nodes (ComfyUI)", "path": "ComfyUI_Rebels_LingBotWorld/"}
   ],
   "setup_steps": [
-    "Run `cd ~/multimedia && uv run models/download_models.py lingbot-5090` if the 1.3B DiT is not present.",
+    "Run `cd ~/multimedia && uv run models/download_models.py lingbot:1` if the native 14B package is not present; tiers 2–5 are the ComfyUI GGUF quants and tier 6 is the SGLang NVFP4 export.",
     "Run `cd ~/multimedia/world-gen/lingbot && ./setupwithuv.sh` once.",
     "Start with `./startwithuv.sh`; no remote service, account, or public listener is required."
   ],
@@ -38,9 +38,9 @@
   "modes": [
     {
       "id": "generate_world", "group": "world", "title": "Image → causal world", "short": "Design a camera action and extend one frame into an interactive world.",
-      "description": "The official 1.3B distilled pipeline runs chunk-by-chunk with a bounded KV window. Every camera and causal control exposed by the native release is available without its multi-GPU wrapper.",
-      "icon": "◎", "badge": "SINGLE 5090", "engine": "LingBot 1.3B causal-fast", "input_label": "World keyframe + direction", "output_label": "MP4 + camera bundle + receipt",
-      "recipe": "Action poses use the project's exact OpenCV c2w contract; the model, UMT5 and VAE remain on CUDA for the entire job.",
+      "description": "The official 14B distilled pipeline runs chunk-by-chunk with a bounded KV window. Every camera and causal control exposed by the native release is available without its multi-GPU wrapper.",
+      "icon": "◎", "badge": "SINGLE 64 GB", "engine": "LingBot 14B causal-fast", "input_label": "World keyframe + direction", "output_label": "MP4 + camera bundle + receipt",
+      "recipe": "Action poses use the project's exact OpenCV c2w contract; the DiT and VAE remain on CUDA for the entire job while the UMT5 encoder runs from CPU RAM.",
       "fields": [
         {"type": "section", "label": "World seed"},
         {"id": "source_image_asset", "type": "asset", "label": "First frame", "required": true, "span": "half", "accept": "image/png,image/jpeg,image/webp", "icon": "◉", "drop_label": "Drop the first view of the world", "hint": "The output keeps this aspect ratio."},
@@ -73,7 +73,7 @@
         {"id": "local_attn_size", "type": "number", "label": "KV local window", "min": -1, "max": 256, "step": 1, "default": 18, "span": "third"},
         {"id": "sink_size", "type": "number", "label": "KV sink", "min": 0, "max": 64, "step": 1, "default": 6, "span": "third"},
         {"id": "max_attention_size", "type": "number", "label": "Maximum attention tokens", "min": 0, "max": 1048576, "step": 1, "default": 0, "span": "third", "hint": "0 keeps the native automatic limit."},
-        {"id": "convert_model_dtype", "type": "toggle", "label": "Normalize model dtype", "default": false, "span": "third", "toggle_label": "Convert parameters to task dtype after loading"},
+        {"id": "convert_model_dtype", "type": "toggle", "label": "Normalize model dtype", "default": true, "span": "third", "toggle_label": "Convert parameters to task dtype after loading"},
         {"type": "section", "label": "832×480 camera calibration"},
         {"id": "focal_length", "type": "number", "label": "Focal length", "min": 1, "max": 5000, "step": 1, "default": 700, "span": "third"},
         {"id": "principal_x", "type": "number", "label": "Principal X", "min": 0, "max": 832, "step": 0.5, "default": 416, "span": "third"},
@@ -97,7 +97,7 @@
         {"id": "local_attn_size", "type": "number", "label": "KV local window", "min": -1, "max": 256, "default": 18, "span": "third"},
         {"id": "sink_size", "type": "number", "label": "KV sink", "min": 0, "max": 64, "default": 6, "span": "third"},
         {"id": "max_attention_size", "type": "number", "label": "Maximum attention tokens", "min": 0, "max": 1048576, "default": 0, "span": "third"},
-        {"id": "convert_model_dtype", "type": "toggle", "label": "Normalize model dtype", "default": false, "span": "third", "toggle_label": "Convert parameters to task dtype"}
+        {"id": "convert_model_dtype", "type": "toggle", "label": "Normalize model dtype", "default": true, "span": "third", "toggle_label": "Convert parameters to task dtype"}
       ], "advanced": []
     },
     {

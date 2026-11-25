@@ -39,7 +39,7 @@ source .venv/bin/activate
 uv pip install -U huggingface_hub hf_transfer gdown==5.2.0
 
 uv run download_models.py --list
-uv run download_models.py 4d lingbot lingbot-5090 fire3d
+uv run download_models.py 4d lingbot:1 fire3d
 uv run download_models.py aukspeech sculpting worldsculpt
 uv run download_models.py v2v
 uv run download_models.py nvidia-sim

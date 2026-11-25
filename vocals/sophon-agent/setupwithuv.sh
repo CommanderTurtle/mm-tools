@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-STUDIO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+STUDIO="$PWD"
 source "$STUDIO/../../models/studio-env.sh"
 studio_setup 3.12
 uv pip install --python "$VIRTUAL_ENV/bin/python" vllm==0.30.0 vllm-omni==0.30.0 duplexjev-vllm==0.3.0 "$STUDIO/sophon-realtime/tag/plugin" python-multipart soundfile httpx 'websockets>=15' 'uvicorn[standard]'

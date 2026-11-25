@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$PWD"
 cd "$ROOT"
 for bin in uv git bun nvcc; do
   command -v "$bin" >/dev/null || { printf '%s is required on PATH.\n' "$bin" >&2; exit 1; }

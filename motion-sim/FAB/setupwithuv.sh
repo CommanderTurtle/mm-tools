@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-STUDIO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+STUDIO="$PWD"
 source "$STUDIO/../../models/studio-env.sh"
 source "$STUDIO/env.sh"
 studio_setup 3.12

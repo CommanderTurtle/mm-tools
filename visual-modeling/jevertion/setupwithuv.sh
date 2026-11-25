@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-STUDIO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+STUDIO="$PWD"
 source "$STUDIO/../../models/studio-env.sh"
 studio_setup 3.11
 uv pip install --python "$VIRTUAL_ENV/bin/python" torch==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cu128

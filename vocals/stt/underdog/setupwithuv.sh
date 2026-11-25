@@ -3,7 +3,6 @@ set -euo pipefail
 # No analytics leaves this studio: hub and gradio telemetry stay off.
 export HF_HUB_DISABLE_TELEMETRY=1
 export GRADIO_ANALYTICS_ENABLED=False
-cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
 mode="${1:-gpu}"
 case "$mode" in gpu) backend=cu128 ;; cpu) backend=cpu ;; *) printf 'Usage: %s [gpu|cpu]\n' "$0" >&2; exit 1 ;; esac
 for tool in uv ffmpeg flock; do

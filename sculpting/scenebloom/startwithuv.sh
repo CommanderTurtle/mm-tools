@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$PWD"
 cd "$ROOT"
 [[ -x .venv/bin/python && -x .vl-venv/bin/python && -f node_modules/three/package.json ]] || {
   printf 'Run ./setupwithuv.sh first.\n' >&2; exit 1;

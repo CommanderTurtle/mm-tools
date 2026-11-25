@@ -794,6 +794,13 @@
 !/world-gen/hynomas/web/*.js
 !/world-gen/hynomas/web/*.css
 
+# Vendored Rebels GGUF custom nodes: a plain drop-in folder for any ComfyUI
+# custom_nodes/ directory, tracked in-tree with its reference workflow.
+!/world-gen/lingbot/
+/world-gen/lingbot/*
+!/world-gen/lingbot/ComfyUI_Rebels_LingBotWorld/
+!/world-gen/lingbot/ComfyUI_Rebels_LingBotWorld/**
+
 # Committed shared Comfy checkout, pipeline exports, the standalone
 # downloader, and the native video studios under this lane. Model artifacts,
 # studio runtime state, and the downloader environment are reconstructed

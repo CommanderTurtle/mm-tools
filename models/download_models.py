@@ -51,6 +51,8 @@ class Artifact:
     cache_layout: bool = False
     revision: str | None = None
     placements: tuple[tuple[str, Path], ...] = ()
+    dir_links: tuple[Path, ...] = ()
+    file_links: tuple[tuple[str, Path], ...] = ()
     direct_url: str | None = None
     direct_filename: str | None = None
     sha256: str | None = None
@@ -64,6 +66,9 @@ class Bundle:
     title: str
     inventory: str
     artifacts: tuple[Artifact, ...]
+    # (tier title, artifacts) pairs; interactive selection re-prompts for one
+    # or more tiers, non-interactive selection defaults to every tier.
+    variants: tuple[tuple[str, tuple[Artifact, ...]], ...] = ()
 
 
 def model_path(relative: str) -> Path:
@@ -133,13 +138,13 @@ def scenebloom_artifacts() -> tuple[Artifact, ...]:
 # tree; the source snapshot remains intact for resume/checksum purposes.
 SCULPT_SPARSE_DECODER = A(
     "microsoft/TRELLIS-image-large",
-    repo_path("sculpting/trellis/pretrained/deps/microsoft--TRELLIS-image-large"),
+    model_path("sculpting/microsoft--TRELLIS-image-large"),
     (
         "ckpts/ss_dec_conv3d_16l8_fp16.json",
         "ckpts/ss_dec_conv3d_16l8_fp16.safetensors",
     ),
     revision="25e0d31ffbebe4b5a97464dd851910efc3002d96",
-    placements=(
+    file_links=(
         (
             "ckpts/ss_dec_conv3d_16l8_fp16.json",
             repo_path("sculpting/trellis/pretrained/TRELLIS.2-4B/ckpts/ss_dec_conv3d_16l8_fp16.json"),
@@ -152,13 +157,16 @@ SCULPT_SPARSE_DECODER = A(
 )
 SCULPT_DINO = A(
     "camenduru/dinov3-vitl16-pretrain-lvd1689m",
-    repo_path("sculpting/trellis/pretrained/deps/camenduru--dinov3-vitl16-pretrain-lvd1689m"),
+    model_path("sculpting/camenduru--dinov3-vitl16-pretrain-lvd1689m"),
     (
         "config.json",
         "model.safetensors",
         "preprocessor_config.json",
     ),
     revision="3c276edd87d6f6e569ff0c4400e086807d0f3881",
+    dir_links=(
+        repo_path("sculpting/trellis/pretrained/deps/camenduru--dinov3-vitl16-pretrain-lvd1689m"),
+    ),
 )
 SCULPT_RMBG = A(
     # TRELLIS.2's BiRefNet wrapper accepts this checkpoint through the same
@@ -166,7 +174,7 @@ SCULPT_RMBG = A(
     # the official ZhengPeng7 model is ungated, so unattended setup stays
     # deterministic instead of stalling on a click-through approval.
     "ZhengPeng7/BiRefNet",
-    repo_path("sculpting/trellis/pretrained/deps/ZhengPeng7--BiRefNet"),
+    model_path("sculpting/ZhengPeng7--BiRefNet"),
     (
         "BiRefNet_config.py",
         "birefnet.py",
@@ -174,12 +182,14 @@ SCULPT_RMBG = A(
         "model.safetensors",
     ),
     revision="e2bf8e4460fc8fa32bba5ea4d94b3233d367b0e4",
+    dir_links=(repo_path("sculpting/trellis/pretrained/deps/ZhengPeng7--BiRefNet"),),
 )
 SCULPT_MOGE = A(
     "Ruicheng/moge-2-vitl",
-    repo_path("sculpting/trellis/pretrained/deps/Ruicheng--moge-2-vitl"),
+    model_path("sculpting/Ruicheng--moge-2-vitl"),
     ("model.pt",),
     revision="39c4d5e957afe587e04eec59dc2bcc3be5ecd968",
+    dir_links=(repo_path("sculpting/trellis/pretrained/deps/Ruicheng--moge-2-vitl"),),
 )
 # sHEL1562/shelling (src/kr3ahardtofinds) mirrors the files upstream keeps off
 # the Hub: GitHub release assets, single members of release archives, and the
@@ -192,23 +202,30 @@ ARCHIVE_RAW = f"https://huggingface.co/{ARCHIVE_REPO}/resolve/{ARCHIVE_REV}/{ARC
 
 SCULPT_NAF = A(
     "valeoai/NAF release checkpoint",
-    repo_path("sculpting/trellis/pretrained/deps/valeoai--NAF"),
+    model_path("sculpting/valeoai--NAF"),
     direct_url=f"{ARCHIVE_RAW}/trellis/naf_release.pth",
     direct_filename="naf_release.pth",
     sha256="c096c1ab2217a5c3ac136365f721685e2201379cb69d509cfb0261183847c98f",
     expected_size=2664431,
+    dir_links=(repo_path("sculpting/trellis/pretrained/deps/valeoai--NAF"),),
 )
 FIRE3D_ANYUP = A(
     "wimmerth/AnyUp multi-backbone checkpoint",
-    repo_path("world-gen/fire3d/checkpoints/Fire3D/external"),
+    model_path("fire3d/wimmerth--AnyUp"),
     direct_url=f"{ARCHIVE_RAW}/Fire3D/anyup_multi_backbone.pth",
     direct_filename="anyup_multi_backbone.pth",
     sha256="b6cc407da8986c7e5c9098e61f7531767a9aca8fff20a1bc6c99d488e61aac59",
     expected_size=3541624,
+    file_links=(
+        (
+            "anyup_multi_backbone.pth",
+            repo_path("world-gen/fire3d/checkpoints/Fire3D/external/anyup_multi_backbone.pth"),
+        ),
+    ),
 )
 SOMA_X = A(
     "nvidia/SOMA-X",
-    repo_path("motion-sim/nvidia-sim/SOMA-X/assets"),
+    model_path("motion-sim/nvidia--SOMA-X"),
     (
         "Anny/*",
         "GarmentMeasurements/*",
@@ -225,6 +242,7 @@ SOMA_X = A(
         "example_animation.npy",
     ),
     revision="32f0ab41a0db0f2710d6542a435f90ad452c3b73",
+    dir_links=(repo_path("motion-sim/nvidia-sim/SOMA-X/assets"),),
 )
 
 FLOW_SAM_REPO = "jetjodh/sam-3d-body-dinov3"
@@ -383,28 +401,56 @@ BUNDLES: tuple[Bundle, ...] = (
             ),
             A(
                 "benjiaiplayground/GroundingDINO_SwinB",
-                repo_path("visual-modeling/redesign/weights"),
+                model_path("redesign/benjiaiplayground--GroundingDINO_SwinB"),
                 ("groundingdino_swinb_cogcoor.pth",),
+                file_links=(
+                    (
+                        "groundingdino_swinb_cogcoor.pth",
+                        repo_path("visual-modeling/redesign/weights/groundingdino_swinb_cogcoor.pth"),
+                    ),
+                ),
             ),
-            A("facebook/sam2.1-hiera-large", repo_path("visual-modeling/redesign/weights"),
+            A("facebook/sam2.1-hiera-large",
+              model_path("redesign/facebook--sam2.1-hiera-large"),
               direct_url="https://modelscope.cn/models/facebook/sam2.1-hiera-large/resolve/5d3a27da5fe71a9c4e2c87d8322a73fe6359f2bf/sam2.1_hiera_large.pt",
               direct_filename="sam2.1_hiera_large.pt", expected_size=898083611,
-              sha256="2647878d5dfa5098f2f8649825738a9345572bae2d4350a2468587ece47dd318"),
+              sha256="2647878d5dfa5098f2f8649825738a9345572bae2d4350a2468587ece47dd318",
+              file_links=(
+                  ("sam2.1_hiera_large.pt",
+                   repo_path("visual-modeling/redesign/weights/sam2.1_hiera_large.pt")),
+              )),
             A(
                 "GoGiants1/Hi-SAM",
-                repo_path("visual-modeling/redesign/weights"),
+                model_path("redesign/GoGiants1--Hi-SAM"),
                 ("sam_tss_h_textseg.pth", "sam_vit_h_4b8939.pth"),
+                file_links=(
+                    ("sam_tss_h_textseg.pth",
+                     repo_path("visual-modeling/redesign/weights/sam_tss_h_textseg.pth")),
+                    ("sam_vit_h_4b8939.pth",
+                     repo_path("visual-modeling/redesign/weights/sam_vit_h_4b8939.pth")),
+                ),
             ),
-            A("iimate/big-lama-pt", repo_path("visual-modeling/redesign/weights"), ("big-lama.pt",)),
-            A("jixin0101/ObjectClear", repo_path("visual-modeling/redesign/weights"), cache_layout=True),
-            A("google-bert/bert-base-uncased", repo_path("visual-modeling/redesign/weights"), cache_layout=True),
+            A("iimate/big-lama-pt", model_path("redesign/iimate--big-lama-pt"), ("big-lama.pt",),
+              file_links=(("big-lama.pt", repo_path("visual-modeling/redesign/weights/big-lama.pt")),)),
+            A("jixin0101/ObjectClear", model_path("redesign/hf-cache"), cache_layout=True,
+              file_links=(
+                  ("models--jixin0101--ObjectClear",
+                   repo_path("visual-modeling/redesign/weights/models--jixin0101--ObjectClear")),
+              )),
+            A("google-bert/bert-base-uncased", model_path("redesign/hf-cache"), cache_layout=True,
+              file_links=(
+                  ("models--google-bert--bert-base-uncased",
+                   repo_path("visual-modeling/redesign/weights/models--google-bert--bert-base-uncased")),
+              )),
             A(
                 "PaddlePaddle/PP-OCRv5_server_det",
-                Path.home() / ".paddlex/official_models/PP-OCRv5_server_det",
+                model_path("redesign/PaddlePaddle--PP-OCRv5_server_det"),
+                dir_links=(Path.home() / ".paddlex/official_models/PP-OCRv5_server_det",),
             ),
             A(
                 "PaddlePaddle/PP-OCRv5_server_rec",
-                Path.home() / ".paddlex/official_models/PP-OCRv5_server_rec",
+                model_path("redesign/PaddlePaddle--PP-OCRv5_server_rec"),
+                dir_links=(Path.home() / ".paddlex/official_models/PP-OCRv5_server_rec",),
             ),
         ),
     ),
@@ -565,17 +611,22 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A(
                 "AntResearch/4DAnyone",
-                repo_path("motion-sim/4d-ify/models"),
+                model_path("motion-sim/AntResearch--4DAnyone"),
                 (
                     "4danyone/*",
                     "gvhmr/*",
                     "perceptual/*",
                 ),
                 revision="4c80e87b805a5f8461cf339cdbe2fb4249e585aa",
+                file_links=(
+                    ("4danyone", repo_path("motion-sim/4d-ify/models/4danyone")),
+                    ("gvhmr", repo_path("motion-sim/4d-ify/models/gvhmr")),
+                    ("perceptual", repo_path("motion-sim/4d-ify/models/perceptual")),
+                ),
             ),
             A(
                 "ZhengPeng7/BiRefNet",
-                repo_path("motion-sim/4d-ify/models/birefnet"),
+                model_path("motion-sim/ZhengPeng7--BiRefNet"),
                 (
                     "BiRefNet_config.py",
                     "birefnet.py",
@@ -584,47 +635,119 @@ BUNDLES: tuple[Bundle, ...] = (
                     "requirements.txt",
                 ),
                 revision="e2bf8e4460fc8fa32bba5ea4d94b3233d367b0e4",
+                dir_links=(repo_path("motion-sim/4d-ify/models/birefnet"),),
             ),
             A(
                 "camenduru/GVHMR",
-                repo_path("motion-sim/4d-ify/models/.sources/camenduru--GVHMR"),
+                model_path("motion-sim/camenduru--GVHMR"),
                 ("dpvo/dpvo.pth",),
                 revision="21b32d5389e2e59c0737d4c4095bbc0b8c23f66b",
-                placements=(("dpvo/dpvo.pth", repo_path("motion-sim/4d-ify/models/gvhmr/dpvo.pth")),),
+                file_links=(
+                    ("dpvo/dpvo.pth", repo_path("motion-sim/4d-ify/models/gvhmr/dpvo.pth")),
+                ),
             ),
         ),
     ),
     Bundle(
         "lingbot",
-        "LingBot-World-V2 shared encoder, tokenizer, and VAE",
+        "LingBot-World-V2 14B world model (native studio + GGUF tiers)",
         "43",
         (
+            # The Rebels GGUF workflow is self-sufficing on the Comfy side: its
+            # UMT5-XXL encoder GGUF, VAE, and reference graph ship in this one
+            # repository, so every GGUF/NVFP4 tier shares this support set.
             A(
-                "robbyant/lingbot-world-v2-14b-causal-fast",
-                repo_path("world-gen/lingbot/lingbot-world-v2-14b-causal-fast"),
+                "realrebelai/LingBot_World_V2_ComfyUI",
+                model_path("lingbot/realrebelai--LingBot_World_V2_ComfyUI"),
                 (
+                    "LINGBOT WORLD GGUF workflow.json",
+                    "README.md",
                     "Wan2.1_VAE.pth",
-                    "config.json",
-                    "google/umt5-xxl/*",
-                    "models_t5_umt5-xxl-enc-bf16.pth",
+                    "umt5-xxl-encoder-Q4_K_S.gguf",
                 ),
-                revision="5c33dd40b213598c418fd25bff30fdbd23fd38a7",
+                revision="79be5d5f30d63327ac6020ced7f653cdbc301f49",
             ),
         ),
-    ),
-    Bundle(
-        "lingbot-5090",
-        "LingBot-World-V2 official 1.3B single-5090 DiT",
-        "43a",
-        (
-            A(
-                "robbyant/lingbot-world-v2-1.3b-causal-fast",
-                repo_path("world-gen/lingbot/lingbot-world-v2-1.3b-causal-fast"),
+        variants=(
+            (
+                "14B native BF16 causal-fast DiT with shared UMT5/VAE/tokenizer (studio path; 64 GB-class)",
                 (
-                    "model-*.safetensors",
-                    "model.safetensors.index.json",
+                    A(
+                        "robbyant/lingbot-world-v2-14b-causal-fast",
+                        model_path("lingbot/robbyant--lingbot-world-v2-14b-causal-fast"),
+                        revision="5c33dd40b213598c418fd25bff30fdbd23fd38a7",
+                        dir_links=(
+                            repo_path("world-gen/lingbot/lingbot-world-v2-14b-causal-fast"),
+                        ),
+                    ),
                 ),
-                revision="7e36a5f919f86cb4255cc9bfc30adb44963fbde1",
+            ),
+            (
+                "14B GGUF Q4_K_S (ComfyUI Rebels nodes; 8 GB+ VRAM)",
+                (
+                    A(
+                        "realrebelai/LingBot_World_V2_ComfyUI",
+                        model_path("lingbot/realrebelai--LingBot_World_V2_ComfyUI"),
+                        ("LingBot-World-14B-Q4_K_S.gguf",),
+                        revision="79be5d5f30d63327ac6020ced7f653cdbc301f49",
+                    ),
+                ),
+            ),
+            (
+                "14B GGUF Q5_K_M (ComfyUI Rebels nodes; 12 GB+ VRAM)",
+                (
+                    A(
+                        "realrebelai/LingBot_World_V2_ComfyUI",
+                        model_path("lingbot/realrebelai--LingBot_World_V2_ComfyUI"),
+                        ("LingBot-World-14B-Q5_K_M.gguf",),
+                        revision="79be5d5f30d63327ac6020ced7f653cdbc301f49",
+                    ),
+                ),
+            ),
+            (
+                "14B GGUF Q6_K (ComfyUI Rebels nodes; 16 GB+ VRAM)",
+                (
+                    A(
+                        "realrebelai/LingBot_World_V2_ComfyUI",
+                        model_path("lingbot/realrebelai--LingBot_World_V2_ComfyUI"),
+                        ("LingBot-World-14B-Q6_K.gguf",),
+                        revision="79be5d5f30d63327ac6020ced7f653cdbc301f49",
+                    ),
+                ),
+            ),
+            (
+                "14B GGUF Q8_0 (ComfyUI Rebels nodes; 24 GB+ VRAM)",
+                (
+                    A(
+                        "realrebelai/LingBot_World_V2_ComfyUI",
+                        model_path("lingbot/realrebelai--LingBot_World_V2_ComfyUI"),
+                        ("LingBot-World-14B-Q8_0.gguf",),
+                        revision="79be5d5f30d63327ac6020ced7f653cdbc301f49",
+                    ),
+                ),
+            ),
+            (
+                "14B hybrid NVFP4 transformer + Diffusers base without its own DiT (SGLang serving; 72 GB+ Blackwell)",
+                (
+                    A(
+                        "igorls/LingBot-World-V2-14B-Causal-Fast-NVFP4",
+                        model_path("lingbot/igorls--LingBot-World-V2-14B-Causal-Fast-NVFP4"),
+                        revision="5ae4f45969a224ca8c9fa2072cc49468a2d74b34",
+                    ),
+                    A(
+                        "robbyant/lingbot-world-v2-14b-causal-fast-diffusers",
+                        model_path("lingbot/robbyant--lingbot-world-v2-14b-causal-fast-diffusers"),
+                        (
+                            "README.md",
+                            "model_index.json",
+                            "scheduler/*",
+                            "text_encoder/*",
+                            "tokenizer/*",
+                            "vae/*",
+                        ),
+                        revision="59cccf49f2d2dd27418ae7a04b82b10868d455c2",
+                    ),
+                ),
             ),
         ),
     ),
@@ -635,7 +758,7 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A(
                 "hongchi/Fire3D",
-                repo_path("world-gen/fire3d/checkpoints/Fire3D"),
+                model_path("fire3d/hongchi--Fire3D"),
                 (
                     "checksums.sha256",
                     "config.json",
@@ -649,6 +772,7 @@ BUNDLES: tuple[Bundle, ...] = (
                     "reconstruction/vae/*/ckpts/*.pt",
                 ),
                 revision="84d4246ba2a0f47c8b93fd9dd65a67d354afd668",
+                dir_links=(repo_path("world-gen/fire3d/checkpoints/Fire3D"),),
             ),
             FIRE3D_ANYUP,
         ),
@@ -660,17 +784,18 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A(
                 "tencent/AuK",
-                repo_path("vocals/tts/aukspeech/ckpts/AuK"),
+                model_path("aukspeech/tencent--AuK"),
                 (
                     "auk_base.safetensors",
                     "config.yaml",
                     "vae.safetensors",
                 ),
                 revision="790742b71a4430120daf2b2099192abae449eb9f",
+                dir_links=(repo_path("vocals/tts/aukspeech/ckpts/AuK"),),
             ),
             A(
                 "Qwen/Qwen2.5-Omni-3B",
-                repo_path("vocals/tts/aukspeech/ckpts/Qwen2.5-Omni-3B"),
+                model_path("aukspeech/Qwen--Qwen2.5-Omni-3B"),
                 (
                     "added_tokens.json",
                     "chat_template.json",
@@ -687,6 +812,7 @@ BUNDLES: tuple[Bundle, ...] = (
                     "vocab.json",
                 ),
                 revision="f75b40e3da2003cdd6e1829b1f420ca70797c34e",
+                dir_links=(repo_path("vocals/tts/aukspeech/ckpts/Qwen2.5-Omni-3B"),),
             ),
         ),
     ),
@@ -697,19 +823,21 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A(
                 "microsoft/TRELLIS.2-4B",
-                repo_path("sculpting/trellis/pretrained/TRELLIS.2-4B"),
+                model_path("sculpting/microsoft--TRELLIS.2-4B"),
                 ("pipeline.json", "texturing_pipeline.json", "ckpts/*"),
                 revision="af44b45f2e35a493886929c6d786e563ec68364d",
+                dir_links=(repo_path("sculpting/trellis/pretrained/TRELLIS.2-4B"),),
             ),
             A(
                 "TencentARC/Pixal3D",
-                repo_path("sculpting/trellis/world/pretrained/Pixal3D"),
+                model_path("sculpting/TencentARC--Pixal3D"),
                 (
                     "pipeline.json",
                     "pipeline_mv.json",
                     "ckpts/*",
                 ),
                 revision="b0cb2e1b794cab9aa0ac38a95d794a4d9337437f",
+                dir_links=(repo_path("sculpting/trellis/world/pretrained/Pixal3D"),),
             ),
             SCULPT_SPARSE_DECODER,
             SCULPT_DINO,
@@ -725,17 +853,18 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A(
                 "TencentARC/Pixal3D",
-                repo_path("sculpting/trellis/world/pretrained/Pixal3D"),
+                model_path("sculpting/TencentARC--Pixal3D"),
                 (
                     "pipeline.json",
                     "pipeline_mv.json",
                     "ckpts/*",
                 ),
                 revision="b0cb2e1b794cab9aa0ac38a95d794a4d9337437f",
+                dir_links=(repo_path("sculpting/trellis/world/pretrained/Pixal3D"),),
             ),
             A(
                 "AlayaLab/WorldSculpt",
-                repo_path("sculpting/trellis/world/pretrained"),
+                model_path("sculpting/AlayaLab--WorldSculpt"),
                 (
                     "shape_ft1024_mv_lora_ibr_texverse_fixedmem05/config.json",
                     "shape_ft1024_mv_lora_ibr_texverse_fixedmem05/ckpts/*.pt",
@@ -743,6 +872,16 @@ BUNDLES: tuple[Bundle, ...] = (
                     "ss_ft64_mv_lora_ibr_texverse/ckpts/*.pt",
                 ),
                 revision="8cb81056d803c61371dd84ef18a14142a738610e",
+                file_links=(
+                    (
+                        "shape_ft1024_mv_lora_ibr_texverse_fixedmem05",
+                        repo_path("sculpting/trellis/world/pretrained/shape_ft1024_mv_lora_ibr_texverse_fixedmem05"),
+                    ),
+                    (
+                        "ss_ft64_mv_lora_ibr_texverse",
+                        repo_path("sculpting/trellis/world/pretrained/ss_ft64_mv_lora_ibr_texverse"),
+                    ),
+                ),
             ),
             SCULPT_SPARSE_DECODER,
             SCULPT_DINO,
@@ -758,31 +897,35 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A(
                 "nvidia/ARDY-Core-RP-20FPS-Horizon40",
-                repo_path("motion-sim/nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon40"),
+                model_path("motion-sim/nvidia--ARDY-Core-RP-20FPS-Horizon40"),
                 ("config.yaml", "denoiser.safetensors", "tokenizer.safetensors", "stats/*/*.npy"),
                 revision="abe6c43beb28c867c950acb824b9c4ef3d63fb76",
+                dir_links=(repo_path("motion-sim/nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon40"),),
             ),
             A(
                 "nvidia/ARDY-Core-RP-20FPS-Horizon8",
-                repo_path("motion-sim/nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon8"),
+                model_path("motion-sim/nvidia--ARDY-Core-RP-20FPS-Horizon8"),
                 ("config.yaml", "denoiser.safetensors", "tokenizer.safetensors", "stats/*/*.npy"),
                 revision="257a0843a10bf5201065963d7bca2791e9393a7a",
+                dir_links=(repo_path("motion-sim/nvidia-sim/checkpoints/ARDY-Core-RP-20FPS-Horizon8"),),
             ),
             A(
                 "nvidia/ARDY-G1-RP-25FPS-Horizon52",
-                repo_path("motion-sim/nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon52"),
+                model_path("motion-sim/nvidia--ARDY-G1-RP-25FPS-Horizon52"),
                 ("config.yaml", "denoiser.safetensors", "tokenizer.safetensors", "stats/*/*.npy"),
                 revision="059b8007df0ba194a006a877b59a563955ac7b70",
+                dir_links=(repo_path("motion-sim/nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon52"),),
             ),
             A(
                 "nvidia/ARDY-G1-RP-25FPS-Horizon8",
-                repo_path("motion-sim/nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon8"),
+                model_path("motion-sim/nvidia--ARDY-G1-RP-25FPS-Horizon8"),
                 ("config.yaml", "denoiser.safetensors", "tokenizer.safetensors", "stats/*/*.npy"),
                 revision="334a8a9cdbafc962dcd304c26f31e6b17a869355",
+                dir_links=(repo_path("motion-sim/nvidia-sim/checkpoints/ARDY-G1-RP-25FPS-Horizon8"),),
             ),
             A(
                 "voxta/Llama-3-8B-LLM2Vec-ARDY-INT8",
-                repo_path("motion-sim/nvidia-sim/text-encoders/voxta/Llama-3-8B-LLM2Vec-ARDY-INT8"),
+                model_path("motion-sim/voxta--Llama-3-8B-LLM2Vec-ARDY-INT8"),
                 (
                     "chat_template.jinja",
                     "config.json",
@@ -792,6 +935,9 @@ BUNDLES: tuple[Bundle, ...] = (
                     "tokenizer_config.json",
                 ),
                 revision="96c7eb1cc9100cd3925662d1093926c00b64a698",
+                dir_links=(
+                    repo_path("motion-sim/nvidia-sim/text-encoders/voxta/Llama-3-8B-LLM2Vec-ARDY-INT8"),
+                ),
             ),
             SOMA_X,
         ),
@@ -803,7 +949,7 @@ BUNDLES: tuple[Bundle, ...] = (
         (
             A(
                 "m-a-p/YuE2-3B",
-                repo_path("music/yue2/models/YuE2-3B"),
+                model_path("yue2/m-a-p--YuE2-3B"),
                 (
                     "config.json",
                     "generation_config.json",
@@ -814,10 +960,11 @@ BUNDLES: tuple[Bundle, ...] = (
                     "yue2_generation_config.json",
                 ),
                 revision="14fc6c6f146441b1dd6363fcb2e01e82a6914cb7",
+                dir_links=(repo_path("music/yue2/models/YuE2-3B"),),
             ),
             A(
                 "m-a-p/YuE2-Vae",
-                repo_path("music/yue2/models/YuE2-Vae"),
+                model_path("yue2/m-a-p--YuE2-Vae"),
                 (
                     "config.json",
                     "model.safetensors",
@@ -825,10 +972,11 @@ BUNDLES: tuple[Bundle, ...] = (
                     "weights_manifest.json",
                 ),
                 revision="9a94e1d0ea9f8087e98f77fa88df4a4068104d2a",
+                dir_links=(repo_path("music/yue2/models/YuE2-Vae"),),
             ),
             A(
                 "m-a-p/SheetSage2",
-                repo_path("music/yue2/models/SheetSage2"),
+                model_path("yue2/m-a-p--SheetSage2"),
                 (
                     "*.py",
                     "config.json",
@@ -839,10 +987,11 @@ BUNDLES: tuple[Bundle, ...] = (
                     "requirements.txt",
                 ),
                 revision="80af707174fc7ee521c25925d5f014729f0e61ae",
+                dir_links=(repo_path("music/yue2/models/SheetSage2"),),
             ),
             A(
                 "m-a-p/MERT-v2-FullSong",
-                repo_path("music/yue2/models/MERT-v2-FullSong"),
+                model_path("yue2/m-a-p--MERT-v2-FullSong"),
                 (
                     "config.json",
                     "configuration_mert2.py",
@@ -852,6 +1001,7 @@ BUNDLES: tuple[Bundle, ...] = (
                     "weights_manifest.json",
                 ),
                 revision="d8ba1c745e733b3908ce6ad16ebeb17ac7600a42",
+                dir_links=(repo_path("music/yue2/models/MERT-v2-FullSong"),),
             ),
             QWEN_GUIDE,
             A(
@@ -930,9 +1080,10 @@ BUNDLES: tuple[Bundle, ...] = (
     Bundle(
         "physag3d", "PhysAg3D articulated assets (TRELLIS.2 / DINOv3 / BiRefNet)", "77",
         (
-            A("microsoft/TRELLIS.2-4B", repo_path("sculpting/trellis/pretrained/TRELLIS.2-4B"),
+            A("microsoft/TRELLIS.2-4B", model_path("sculpting/microsoft--TRELLIS.2-4B"),
               ("pipeline.json", "texturing_pipeline.json", "ckpts/*"),
-              revision="af44b45f2e35a493886929c6d786e563ec68364d"),
+              revision="af44b45f2e35a493886929c6d786e563ec68364d",
+              dir_links=(repo_path("sculpting/trellis/pretrained/TRELLIS.2-4B"),)),
             SCULPT_SPARSE_DECODER, SCULPT_DINO, SCULPT_RMBG,
         ),
     ),
@@ -1256,7 +1407,8 @@ def print_menu() -> None:
     for number, bundle in enumerate(BUNDLES, start=1):
         count = len(bundle.artifacts)
         suffix = "s" if count != 1 else ""
-        print(f"  {number:>2}. {bundle.title} [{bundle.key}] — {count} snapshot{suffix}; inventory {bundle.inventory}")
+        tiers = f" · {len(bundle.variants)} selectable tiers" if bundle.variants else ""
+        print(f"  {number:>2}. {bundle.title} [{bundle.key}] — {count} snapshot{suffix}{tiers}; inventory {bundle.inventory}")
     print("\n  all. Every bundle (the original downloader behavior)")
     print("  q.   Exit without downloading")
 
@@ -1265,43 +1417,108 @@ def _selection_tokens(values: Sequence[str]) -> list[str]:
     return [part.strip() for value in values for part in value.split(",") if part.strip()]
 
 
-def resolve_selection(values: Sequence[str]) -> tuple[Bundle, ...]:
+def resolve_selection(
+    values: Sequence[str],
+) -> tuple[tuple[Bundle, ...], dict[str, tuple[int, ...]]]:
+    """Map selection tokens to bundles plus per-bundle 1-based tier picks.
+
+    Tokens accept an optional `:1+3` tier suffix (commas separate bundles,
+    pluses separate tiers); a bundle with tiers and no suffix selects every
+    tier. Returns (bundles, picks) where a missing pick entry means "every
+    tier".
+    """
     tokens = _selection_tokens(values)
     if not tokens:
         raise ValueError("No model bundle was selected")
     if any(token.lower() in {"all", "a", "*"} for token in tokens):
-        return BUNDLES
+        return BUNDLES, {}
 
     by_key = {bundle.key: bundle for bundle in BUNDLES}
     # Preserve the former command-line name while presenting the canonical
     # project name in the menu and documentation.
     by_key["kijai"] = by_key["v2v"]
     selected: list[Bundle] = []
+    picks: dict[str, tuple[int, ...]] = {}
     seen: set[str] = set()
     for token in tokens:
-        lowered = token.lower()
+        head, _, tier_text = token.partition(":")
+        lowered = head.lower()
         if lowered in {"q", "quit", "exit"}:
-            return ()
-        if token.isdecimal() and 1 <= int(token) <= len(BUNDLES):
-            bundle = BUNDLES[int(token) - 1]
+            return (), {}
+        if head.isdecimal() and 1 <= int(head) <= len(BUNDLES):
+            bundle = BUNDLES[int(head) - 1]
         elif lowered in by_key:
             bundle = by_key[lowered]
         else:
             raise ValueError(f"Unknown selection: {token!r}")
+        if tier_text and not bundle.variants:
+            raise ValueError(f"{bundle.key} has no selectable tiers")
+        if tier_text:
+            numbers: list[int] = []
+            for part in (p.strip() for p in tier_text.replace(",", "+").split("+")):
+                if not part:
+                    continue
+                if part.lower() in {"a", "all", "*"}:
+                    numbers = list(range(1, len(bundle.variants) + 1))
+                    break
+                if not part.isdecimal() or not 1 <= int(part) <= len(bundle.variants):
+                    raise ValueError(
+                        f"Unknown tier for {bundle.key}: {part!r} "
+                        f"(1-{len(bundle.variants)} or a)"
+                    )
+                numbers.append(int(part))
+            if not numbers:
+                raise ValueError(f"No tiers selected for {bundle.key}")
+            picks[bundle.key] = tuple(dict.fromkeys(numbers))
         if bundle.key not in seen:
             selected.append(bundle)
             seen.add(bundle.key)
-    return tuple(selected)
+    return tuple(selected), picks
 
 
-def interactive_selection() -> tuple[Bundle, ...]:
+def bundle_artifacts(
+    bundle: Bundle, picks: Sequence[int] | None
+) -> tuple[Artifact, ...]:
+    """Shared artifacts plus the chosen tiers (every tier when picks is empty)."""
+    if not bundle.variants or not picks:
+        return bundle.artifacts + tuple(
+            artifact for _, artifacts in bundle.variants for artifact in artifacts
+        )
+    return bundle.artifacts + tuple(
+        artifact for index in picks for artifact in bundle.variants[index - 1][1]
+    )
+
+
+def _prompt_tiers(bundle: Bundle) -> tuple[int, ...]:
+    print(f"\n{bundle.title} is selected.")
+    for index, (title, _) in enumerate(bundle.variants, start=1):
+        print(f"  {index}. {title}")
+    print("  a. every tier")
+    while True:
+        try:
+            raw = input("Model tier(s), comma-separated [a]: ").strip() or "a"
+            _, picks = resolve_selection((f"{bundle.key}:{raw.replace(',', '+')}",))
+            return picks[bundle.key]
+        except (ValueError, KeyError) as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+
+
+def interactive_selection() -> tuple[tuple[Bundle, ...], dict[str, tuple[int, ...]]]:
     print_menu()
     while True:
         try:
             raw = input("\nSelect numbers or names, comma-separated [all]: ").strip() or "all"
-            return resolve_selection((raw,))
+            bundles, picks = resolve_selection((raw,))
+            break
         except ValueError as exc:
             print(f"Error: {exc}", file=sys.stderr)
+    # An explicit 'all' means every artifact of every bundle; only targeted
+    # selections get asked which model tiers they actually want.
+    if not any(token.lower() in {"all", "a", "*"} for token in _selection_tokens((raw,))):
+        for bundle in bundles:
+            if bundle.variants and bundle.key not in picks:
+                picks[bundle.key] = _prompt_tiers(bundle)
+    return bundles, picks
 
 
 def worker_count(value: str) -> int:
@@ -1358,6 +1575,8 @@ def download_artifact(
     if artifact.direct_url:
         download_direct_artifact(artifact, number, total)
         materialize_placements(artifact)
+        materialize_dir_links(artifact)
+        materialize_file_links(artifact)
         return
     mode = "cache_dir" if artifact.cache_layout else "local_dir"
     print(f"\n[{number}/{total}] {artifact.repo_id}")
@@ -1379,6 +1598,8 @@ def download_artifact(
         kwargs["allow_patterns"] = list(artifact.allow_patterns)
     snapshot_download(**kwargs)
     materialize_placements(artifact)
+    materialize_dir_links(artifact)
+    materialize_file_links(artifact)
 
 
 def _sha256(path: Path) -> str:
@@ -1466,15 +1687,78 @@ def materialize_placements(artifact: Artifact) -> None:
         print(f"  placed ({method}): {target}")
 
 
+def materialize_dir_links(artifact: Artifact) -> None:
+    """Point a runtime folder at the snapshot root with one relative symlink.
+
+    A runtime that expects a whole model directory gets the canonical snapshot
+    under models/ linked in place; the folder is created where the runtime
+    looks for it rather than copying bytes or patching the runtime.
+    """
+    for link in artifact.dir_links:
+        target = artifact.destination
+        if link.is_symlink():
+            current = (link.parent / os.readlink(link)).resolve()
+            if current == target.resolve():
+                print(f"  ready: {link}")
+            else:
+                print(
+                    f"  warning: {link} already links elsewhere; left alone",
+                    file=sys.stderr,
+                )
+            continue
+        if link.exists():
+            print(f"  ready: {link} (existing directory)")
+            continue
+        link.parent.mkdir(parents=True, exist_ok=True)
+        relative = os.path.relpath(target, link.parent)
+        link.symlink_to(relative)
+        print(f"  linked: {link} -> {relative}")
+
+
+def materialize_file_links(artifact: Artifact) -> None:
+    """Symlink snapshot files or directories onto traditional runtime paths.
+
+    The canonical bytes stay under models/; the runtime path is a relative
+    symlink, which is cheap enough that mixed directories (several
+    repositories sharing one runtime weights folder) compose naturally.
+    """
+    for relative_source, target in artifact.file_links:
+        source = artifact.destination / relative_source
+        if not source.exists():
+            raise FileNotFoundError(
+                f"Downloaded snapshot did not contain link source: {source}"
+            )
+        if target.is_symlink():
+            current = (target.parent / os.readlink(target)).resolve()
+            if current == source.resolve():
+                print(f"  ready: {target}")
+            else:
+                print(
+                    f"  warning: {target} already links elsewhere; left alone",
+                    file=sys.stderr,
+                )
+            continue
+        if target.exists():
+            print(f"  ready: {target} (existing file)")
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.symlink_to(os.path.relpath(source, target.parent))
+        print(f"  linked: {target}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Download all mm-tools model artifacts or selected project bundles.",
         epilog=(
             "Examples: uv run download_models.py | uv run download_models.py all | "
-            "uv run download_models.py 2,6,10 | uv run download_models.py minimax stableaudio"
+            "uv run download_models.py 2,6,10 | uv run download_models.py minimax stableaudio | "
+            "uv run download_models.py lingbot:2"
         ),
     )
-    parser.add_argument("selection", nargs="*", help="bundle numbers, bundle names, or 'all'")
+    parser.add_argument(
+        "selection", nargs="*",
+        help="bundle numbers, bundle names, 'name:tier[+tier]', or 'all'",
+    )
     parser.add_argument("--all", action="store_true", dest="download_all", help="download every bundle")
     parser.add_argument("--list", action="store_true", help="show bundles and exit")
     parser.add_argument("--yes", action="store_true", help="skip the interactive confirmation")
@@ -1498,15 +1782,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.workers is None and not args.yes and sys.stdin.isatty():
         workers = interactive_worker_count(DEFAULT_WORKERS)
     if args.download_all:
-        bundles = BUNDLES
+        bundles, picks = BUNDLES, {}
     elif args.selection:
         try:
-            bundles = resolve_selection(args.selection)
+            bundles, picks = resolve_selection(args.selection)
         except ValueError as exc:
             print(f"Error: {exc}", file=sys.stderr)
             return 2
     elif sys.stdin.isatty():
-        bundles = interactive_selection()
+        bundles, picks = interactive_selection()
     else:
         print("No selection supplied in a non-interactive shell; pass 'all' or bundle numbers.", file=sys.stderr)
         return 2
@@ -1515,7 +1799,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("No downloads selected.")
         return 0
 
-    artifacts = tuple(dict.fromkeys(artifact for bundle in bundles for artifact in bundle.artifacts))
+    artifacts = tuple(dict.fromkeys(
+        artifact
+        for bundle in bundles
+        for artifact in bundle_artifacts(bundle, picks.get(bundle.key))
+    ))
     if any(b.key == "fab" for b in bundles):
         from fab_assets import find_smpl, g1_ready, g1_target
         if not g1_ready(g1_target()):
@@ -1539,9 +1827,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                             sha256="98e65c74ad9b998783132f00880d1025a8d64b158e040e6ef13a557e5098bc42"),)
     print("\nSelected bundles:")
     for bundle in bundles:
-        count = len(bundle.artifacts)
-        suffix = "s" if count != 1 else ""
-        print(f"  - {bundle.title} ({count} snapshot{suffix})")
+        chosen = picks.get(bundle.key) or tuple(range(1, len(bundle.variants) + 1))
+        suffix = (
+            " · " + "; ".join(bundle.variants[index - 1][0] for index in chosen)
+            if bundle.variants else ""
+        )
+        count = len(bundle_artifacts(bundle, picks.get(bundle.key)))
+        plural = "s" if count != 1 else ""
+        print(f"  - {bundle.title} ({count} snapshot{plural}){suffix}")
     print(f"Total snapshots: {len(artifacts)}")
     print(f"Parallel workers: {workers}")
 

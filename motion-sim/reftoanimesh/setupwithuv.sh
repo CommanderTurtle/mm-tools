@@ -3,7 +3,7 @@ set -euo pipefail
 # No analytics leaves this studio: hub and gradio telemetry stay off.
 export HF_HUB_DISABLE_TELEMETRY=1
 export GRADIO_ANALYTICS_ENABLED=False
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+ROOT="$PWD"
 for cmd in uv bun cmake g++ ffmpeg ffprobe; do command -v "$cmd" >/dev/null || { printf 'Install %s first.\n' "$cmd" >&2; exit 1; }; done
 PROFILE="${FLOWHMR_TORCH_PROFILE:-blackwell}"
 case "$PROFILE" in

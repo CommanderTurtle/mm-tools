@@ -14,7 +14,7 @@ def main() -> None:
     command = [
         sys.executable,
         str(project / "generate.py"),
-        "--task", "i2v-1.3B",
+        "--task", "i2v-A14B",
         "--infer_mode", "causal_fast",
         "--ckpt_dir", payload["checkpoint"],
         "--assets_dir", payload["assets"],
@@ -29,6 +29,7 @@ def main() -> None:
         "--local_attn_size", str(payload["local_attn_size"]),
         "--sink_size", str(payload["sink_size"]),
         "--ulysses_size", "1",
+        "--t5_cpu",
         "--offload_model", "false",
         "--save_file", str(output),
     ]
@@ -36,7 +37,7 @@ def main() -> None:
         command.extend(["--max_attention_size", str(payload["max_attention_size"])])
     if payload.get("convert_model_dtype"):
         command.append("--convert_model_dtype")
-    print("MM_PROGRESS 0.06 Loading the 1.3B causal world model", flush=True)
+    print("MM_PROGRESS 0.06 Loading the 14B causal world model", flush=True)
     process = subprocess.Popen(command, cwd=project, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
     assert process.stdout is not None
     for line in process.stdout:

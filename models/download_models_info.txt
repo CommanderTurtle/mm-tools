@@ -16,9 +16,10 @@ Drive downloader:
 
 The first interactive question sets the parallel snapshot file workers.
 The next prompt selects numbered project bundles; Enter preserves the original
-"all" behavior. Examples:
+"all" behavior. Bundles that offer model tiers (currently `lingbot`) re-prompt
+for tiers after selection. Examples:
 
-  uv run download_models.py 4d lingbot lingbot-5090 fire3d --workers 24
+  uv run download_models.py 4d lingbot:1 fire3d --workers 24
   uv run download_models.py aukspeech sculpting worldsculpt
   uv run download_models.py v2v
   # The former animate/ltx bundles now live in the standalone workflow
@@ -49,14 +50,20 @@ calibration, and NAF feature upsampling. The legacy
 decoder is hard-linked into TRELLIS.2-4B; both sculpting adapters point their
 generated local pipeline config at the shared DINO/BiRefNet directories.
 Direct-release assets use resumable partial downloads and SHA-256 verification,
-with exact byte sizes where recorded. The current artifact list is maintained
-in `which-ones.txt`.
+with exact byte sizes where recorded. Snapshots always save under
+`models/<lane>/<org--model>/`; the downloader recreates the traditional
+runtime folders (lane `weights/`, `pretrained/`, `checkpoints/`, `models/`)
+as relative symlinks onto those snapshots. The current artifact list is
+maintained in `which-ones.txt`.
 
-`lingbot` contains only the 14B release's shared UMT5 encoder, tokenizer, and
-Wan VAE. Its approximately 70 GB 14B DiT is intentionally not downloaded:
-that model cannot run in the no-offload 32 GB workstation profile. Select
-`lingbot-5090` alongside it for the official 1.3B causal-fast DiT used by the
-local studio.
+`lingbot` is the 14B world-model program in six tiers: the official native
+14B causal-fast package for the studio (tier 1, linked into the lane folder),
+realrebelai GGUF quants Q4_K_S through Q8_0 for the bundled ComfyUI Rebels
+nodes (tiers 2-5, from 8 GB VRAM upward), and the igorls hybrid-NVFP4 export
+with the official diffusers base for SGLang serving on 72 GB+ Blackwell
+(tier 6). Everything lands under `models/lingbot/<org--model>/`; see the 43
+entry in `which-ones.txt`. The retired 1.3B single-5090 bundle is gone; the
+FastFrames lane keeps its own 1.3B checkpoints.
 
 `nvidia-sim` uses the pinned, ungated
 `voxta/Llama-3-8B-LLM2Vec-ARDY-INT8` snapshot. It is the complete ARDY text

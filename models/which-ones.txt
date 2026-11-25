@@ -39,7 +39,12 @@ uv run download_models.py all --yes --workers 24
 
 Bundle selection numbers are deliberately separate from the stable inventory
 identifiers below. Each bundle includes every downloadable artifact needed by
-that runtime. Inventory identifiers 22-23 are retired rather than renumbered,
+that runtime. Canonical snapshots always land under `models/<lane>/
+<org--model>/`; the traditional runtime folders (lane `weights/`,
+`pretrained/`, `checkpoints/`, `models/` trees) are recreated by the
+downloader as relative symlinks to those snapshots, so runtimes never patch
+their paths and nothing occupies disk twice. Inventory identifiers 22-23 are
+retired rather than renumbered,
 so older notes keep their meaning. Former bundles 21 (animate) and 24 (ltx)
 are retired as well: those weights now come from the standalone
 workflows/download_models.py, documented in the workflows section at the end
@@ -55,25 +60,57 @@ of this file.
  7  redesign     inventory 14-19 and 24-31
  8  v2v          inventory 20-21 (ID-V2V base + normal/depth and support set)
  9  acestep      inventory 32-34
-10  minimax      inventory 35 and 40
+10  minimax      inventory 35, 40
 11  stableaudio  inventory 36-37
 12  symphony     inventory 38
 13  vocalrender  inventory 39
 14  4d           inventory 41-42
 15  lingbot      inventory 43
-16  lingbot-5090 inventory 43a
-17  fire3d       inventory 44
-18  aukspeech    inventory 45-46
-19  sculpting    inventory 47-48
-20  worldsculpt  inventory 48-49
-21  nvidia-sim   inventory 53-58
-22  yue2         inventory 59-63
-23  stemkit      inventory 73
+16  fire3d       inventory 44
+17  aukspeech    inventory 45-46
+18  sculpting    inventory 47-48, 64-68
+19  worldsculpt  inventory 48-49, 64-68
+20  nvidia-sim   inventory 53-58
+21  yue2         inventory 59-63
+22  stemkit      inventory 73
+23  motionbricks inventory 74
+24  flowhmr      inventory 75
+25  flowhmr-physics inventory 76
+26  physag3d     inventory 77
+27  idol         inventory 78
+28  hy3d         inventory 79
+29  hy3d-coarse  inventory 80
+30  scenebloom   inventory 81
+31  hynomas      inventory 82
+32  hynomas-loras inventory 83
+33  unlimited-ocr2 inventory 84
+34  pixel-wizard inventory 85
+35  nemotron     inventory 86
+36  audio8       inventory 87
+37  ming3-0.5b   inventory 88
+38  ming3-tiny   inventory 89
+39  underdog-base inventory 90
+40  underdog-plus inventory 91
+41  underdog-clean inventory 92
+42  underdog-pro inventory 93
+43  bud3d        inventory 94
+44  bud3d-turbo  inventory 95
+45  splat-v3     inventory 96
+46  splat-v3-showcase inventory 96b
+47  fastframes-live inventory 97
+48  fastframes-l inventory 98
+49  inworld-isolator inventory 99
+50  sophon-agent inventory 100
+51  fab          inventory 101
+52  jeveration   inventory 102
+53  bria-rmbg3   inventory 103
+54  wemm-video   inventory 104
+55  fastframes-eval inventory 105
 ```
 
 The inventory mirrors every active artifact definition in the downloader,
-numbered 1 through 73 with 22-23 intentionally reserved. Trees show files or
-major component directories expected from a fresh run; an ellipsis
+numbered 1 through 105 (plus 43a retired) with 22-23 intentionally reserved.
+Trees show files or major component directories expected from a fresh run; an ellipsis
 means the remainder of that approved snapshot subset is retained in the same
 folder. Every new artifact is pinned to an immutable Hub revision, except the
 ungated comfyicu LTX-2.5 mirror, whose re-committed files track main without a
@@ -678,37 +715,46 @@ Used by: `4d-ify` for local foreground extraction. This is a separate,
 project-local placement from inventory item 3 so the imported runtime resolves
 its documented path without symlinks or a second setup script.
 
-43. robbyant/lingbot-world-v2-14b-causal-fast
-Expected folder: world-gen/lingbot/lingbot-world-v2-14b-causal-fast
+43. LingBot-World-V2 14B program (robbyant/lingbot-world-v2-14b-causal-fast,
+realrebelai/LingBot_World_V2_ComfyUI, igorls NVFP4 export)
+Bundle `lingbot` carries the whole 14B program in six tiers. `lingbot:N`
+selects tiers non-interactively; the interactive picker names the bundle,
+then re-prompts for tiers (a = every tier, the default). Every artifact lands
+under `models/lingbot/<org--model>/`; the native tier additionally links the
+lane folder `world-gen/lingbot/lingbot-world-v2-14b-causal-fast/` onto its
+snapshot, so the studio keeps its expected path unchanged.
+
+Shared by every tier, from realrebelai/LingBot_World_V2_ComfyUI @
+79be5d5f30d63327ac6020ced7f653cdbc301f49, under
+models/lingbot/realrebelai--LingBot_World_V2_ComfyUI:
 
 ```text
-world-gen/lingbot/lingbot-world-v2-14b-causal-fast/
-├── config.json
-├── Wan2.1_VAE.pth
-├── models_t5_umt5-xxl-enc-bf16.pth
-└── google/umt5-xxl/
-```
-
-Used by: `world-gen/lingbot` as the shared UMT5 encoder, tokenizer, and Wan
-VAE for the 1.3B single-5090 lane below. The roughly 70 GB 14B transformer is
-intentionally excluded because it cannot satisfy the no-offload 32 GB runtime
-contract; its source release remains documented upstream without wasting local
-model storage.
-
-43a. robbyant/lingbot-world-v2-1.3b-causal-fast
-Expected folder: world-gen/lingbot/lingbot-world-v2-1.3b-causal-fast
-
-```text
-world-gen/lingbot/lingbot-world-v2-1.3b-causal-fast/
+models/lingbot/realrebelai--LingBot_World_V2_ComfyUI/
+├── LINGBOT WORLD GGUF workflow.json
 ├── README.md
-├── model.safetensors.index.json
-└── model-*.safetensors
+├── Wan2.1_VAE.pth
+└── umt5-xxl-encoder-Q4_K_S.gguf
 ```
 
-Used by: `world-gen/lingbot` as the official causal-fast DiT that fits the
-single RTX 5090 profile while preserving GPU-only inference. Pair bundle
-`lingbot-5090` with bundle `lingbot`; neither runtime silently downloads the
-other.
+  1. robbyant/lingbot-world-v2-14b-causal-fast @ 5c33dd40 — the complete
+     official native package: `transformers/` DiT shards (~74 GB fp32), the
+     shared UMT5 encoder, tokenizer, and Wan VAE. The studio tier; BF16
+     conversion at load plus UMT5 on CPU runs it from 64 GiB VRAM upward.
+  2-5. LingBot-World-14B-Q4_K_S / Q5_K_M / Q6_K / Q8_0 `.gguf` DiTs from the
+     same realrebelai repository — the ComfyUI Rebels path for 8/12/16/24 GB+
+     VRAM through the lane-vendored `ComfyUI_Rebels_LingBotWorld/` nodes; the
+     encoder GGUF, VAE, and reference workflow are already in the shared set.
+  6. igorls/LingBot-World-V2-14B-Causal-Fast-NVFP4 @ 5ae4f459 — transformer
+     shards, config, SGLang patch, apply script, and SHA256SUMS; plus the
+     official robbyant/lingbot-world-v2-14b-causal-fast-diffusers @ 59cccf49
+     base without its own transformer shards (model_index, scheduler,
+     tokenizer, UMT5 text encoder, VAE). SGLang serving on 72 GB+ SM120
+     Blackwell; run outside the studio by following the snapshot's README.
+
+43a retired: the official 1.3B single-5090 DiT
+(robbyant/lingbot-world-v2-1.3b-causal-fast @ 7e36a5f9) is no longer offered
+by this downloader; it was never a serious 14B stand-in. The FastFrames lane
+still pulls its own 1.3B checkpoints for the distilled playable worlds.
 
 44. hongchi/Fire3D
 Expected folder: world-gen/fire3d/checkpoints/Fire3D

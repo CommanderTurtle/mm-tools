@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-STUDIO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+STUDIO="$PWD"
 source "$STUDIO/../../models/studio-env.sh"
 export IDOL_ROOT="$STUDIO/idol-sdk" PYTHONPATH="$STUDIO/budget3d"
 export BUDGET3D_DINOV3="$STUDIO/../../models/idol/dinov3" BUDGET3D_FLUX2_VAE="$STUDIO/../../models/idol/flux2"

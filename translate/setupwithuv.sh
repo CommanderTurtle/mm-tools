@@ -5,7 +5,7 @@ export DO_NOT_TRACK=1
 export SCARF_NO_ANALYTICS=1
 export HF_HUB_DISABLE_TELEMETRY=1
 
-here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+here="$PWD"
 cd "$here"
 
 command -v uv >/dev/null 2>&1 || {

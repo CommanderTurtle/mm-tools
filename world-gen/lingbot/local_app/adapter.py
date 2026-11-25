@@ -17,22 +17,22 @@ PROGRESS = re.compile(r"^MM_PROGRESS\s+([0-9.]+)\s+(.*)$")
 class Adapter(StudioAdapter):
     def __init__(self, project_root: Path, runtime_root: Path) -> None:
         super().__init__(project_root, runtime_root)
-        self.checkpoint = project_root / "lingbot-world-v2-1.3b-causal-fast"
-        self.assets = project_root / "lingbot-world-v2-14b-causal-fast"
+        self.checkpoint = project_root / "lingbot-world-v2-14b-causal-fast"
+        self.assets = self.checkpoint
 
     def health(self) -> dict[str, Any]:
         gpu = gpu_snapshot()
         device = (gpu.get("devices") or [{}])[0]
         checks = [
-            ("1.3B causal-fast DiT", self.checkpoint / "model.safetensors.index.json"),
+            ("14B causal-fast DiT", self.checkpoint / "transformers" / "diffusion_pytorch_model.safetensors.index.json"),
             ("Shared UMT5 encoder", self.assets / "models_t5_umt5-xxl-enc-bf16.pth"),
             ("Shared Wan VAE", self.assets / "Wan2.1_VAE.pth"),
             ("Shared tokenizer", self.assets / "google" / "umt5-xxl" / "tokenizer.json"),
             ("Python environment", self.project_root / ".venv" / "bin" / "python"),
         ]
         details = [{"label": label, "ready": path.is_file(), "path": str(path)} for label, path in checks]
-        gpu_ok = bool(device) and int(device.get("memory_total_mib", 0)) >= 30000
-        details.append({"label": "Single CUDA GPU ≥ 30 GiB", "ready": gpu_ok, "value": device.get("name", "unavailable")})
+        gpu_ok = bool(device) and int(device.get("memory_total_mib", 0)) >= 64000
+        details.append({"label": "Single CUDA GPU ≥ 64 GiB (native 14B profile; GGUF tiers run in ComfyUI from 8 GiB)", "ready": gpu_ok, "value": device.get("name", "unavailable")})
         return {"ready": all(item[1].is_file() for item in checks) and gpu_ok, "loaded": False, "details": details}
 
     def validate(self, request: dict[str, Any], resolve_asset: Callable[[str], Path]) -> None:
@@ -92,7 +92,7 @@ class Adapter(StudioAdapter):
             "local_attn_size": int(controls.get("local_attn_size", 18)),
             "sink_size": int(controls.get("sink_size", 6)),
             "max_attention_size": int(controls.get("max_attention_size", 0)),
-            "convert_model_dtype": bool(controls.get("convert_model_dtype", False)),
+            "convert_model_dtype": bool(controls.get("convert_model_dtype", True)),
         }
         receipt = context.output_dir / "request.json"
         receipt.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

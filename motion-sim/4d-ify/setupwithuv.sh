@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$PWD"
 cd "$ROOT"
 export UV_LINK_MODE=hardlink
 export UV_CACHE_DIR="${UV_CACHE_DIR:-$HOME/.cache/uv}"
