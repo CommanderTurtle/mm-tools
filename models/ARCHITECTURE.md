@@ -59,18 +59,22 @@ before this rule, or older imports) are migrated once behind an explicit
 prompt, and each old runtime path keeps a relative symlink ("dummy folder")
 into the canonical directory, so no project reference needs patching. The
 registry `models/hashes.txt` follows the reference `hashes-recurse.py` header
-blocks: every untracked path under `models/` except `.venv/` is registered —
+blocks: every untracked path under `models/` except `.venv/` and the
+repo-shipped files (scripts, `manifests/`, docs, `uv.toml`) is registered —
 FILE blocks with the SHA-256/SHA-1/MD5 digest triple, LINK blocks inventorying
-symlinks and their targets, TRANSIENT blocks standing in for `.cache`/
+symlinks and their targets, DIR blocks inventorying folders (`STATUS: empty`
+marks void ones, so empty and symlink-only folders are on record), TRANSIENT
+blocks standing in for `.cache`/
 `__pycache__` churn, OTHER blocks for anything else. Each block carries a run
 by run `WANT` flag: `1` when the current selection owns the path, `0` when a
 previous run wanted it but this one does not. Unchanged SIZE/TIMESTAMP
 signatures reuse stored digests; only new or changed files get hashed, in
 parallel with the same worker count as downloads. After every completed pass
-the picker offers two deletions, each behind an explicit prompt: exclusive
-store paths of deselected (`WANT 0`) names, and top-level entries under
-`models/` that no bundle definition claims. Mixed or shared destinations and
-the compatibility symlink placements declared by definitions are always kept;
+a registry sweep offers back, behind an explicit prompt, every record the
+selection did not want: `WANT 0` files, links, and folders — unowned strays
+and retired trees included, with wholly deselected trees collapsed into one
+entry — plus churn trees, which regenerate and clear safely. Records the
+selection still wants are never offered;
 the registry is refreshed at the end of the run so new downloads are
 registered and removed files drop out as stale. The refreshed registry also
 serves as the skip-list: an artifact whose pinned digest (direct asset) or

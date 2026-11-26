@@ -41,19 +41,23 @@ each old runtime path keeps a relative symlink, so no project reference needs
 editing.  It then checks and updates `models/hashes.txt` — the stateful
 registry in the reference `hashes-recurse.py` header-block format
 (FILE/SIZE/TIMESTAMP/SHA256/SHA1/MD5 blocks separated by `---`) covering every
-untracked path under `models/` except `.venv/`: model files get the digest
-triple, symlinks are inventoried as `LINK` blocks with their target, churn
+untracked path under `models/` except `.venv/` and the repo-shipped files
+(scripts, `manifests/`, docs, `uv.toml`): model files get the digest
+triple, symlinks are inventoried as `LINK` blocks with their target, folders as
+`DIR` blocks (`STATUS: empty` marks void ones, so empty and symlink-only
+folders are on record), churn
 trees (`.cache`, `__pycache__`) as `TRANSIENT` blocks, and anything not
 hashable as `OTHER` blocks.  Each block carries a `WANT` line: `1` when this
 run's selection owns the path, `0` when an earlier run wanted it but this one
 does not; future runs may freely demote entries.  Unchanged SIZE+TIMESTAMP
 signatures reuse the stored digests, so repeat passes stay near-instant, and
 hashing runs in parallel with the same worker count as downloads.  After
-every completed pass the picker offers removals, each behind an explicit y/n
-prompt (`e` asks per entry, Enter keeps): exclusive store paths of deselected
-names, and top-level folders under `models/` claimed by no bundle definition.
-Mixed destinations shared with a wanted selection and declared compatibility
-placements are never offered.  The registry is refreshed once more at the end
+every completed pass a registry sweep offers removals, each behind an explicit
+y/n prompt (`e` asks per entry, Enter keeps): every `WANT 0` record —
+deselected or unowned files, links, and folders, with wholly deselected trees
+collapsed to one entry — plus churn trees, which regenerate and clear safely.
+Records still wanted by the selection are never offered; nothing is deleted
+without the prompt.  The registry is refreshed once more at the end
 of the run so the pass's downloads are registered and anything deleted drops
 out as stale.  The registry doubles as the download skip-list: a direct
 artifact whose pinned SHA-256 is in `hashes.txt`, or a snapshot whose full

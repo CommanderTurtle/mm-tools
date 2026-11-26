@@ -1731,18 +1731,37 @@ def _prompt_or_eof(text: str, default: str = "") -> str:
 # --- Stateful hash registry ---------------------------------------------------
 # models/hashes.txt is the store's state file, in the header-block format of
 # the reference hashes-recurse.py (FILE/SIZE/TIMESTAMP/SHA256/SHA1/MD5 blocks
-# separated by ---).  Every untracked file under models/ is registered: FILE
+# separated by ---).  Every untracked path under models/ is registered: FILE
 # blocks carry the three digests, LINK blocks inventory symlinks with their
-# target (contents are never double-hashed), TRANSIENT blocks stand in for
-# .cache/__pycache__ churn, and OTHER blocks inventory anything not hashable.
-# SIZE+TIMESTAMP decide when a digest can be reused without rehashing.  WANT
-# marks each entry 1 when this run's selection owns it and 0 when a previous
-# run wanted it but this one does not; future runs may freely demote entries.
-# The registry is checked and updated at the start of every run, before the
-# downloader touches the network, and refreshed again after a completed pass.
+# target (contents are never double-hashed), DIR blocks inventory every
+# directory (STATUS: empty when it holds nothing, so symlink-only and empty
+# folders are on record too), TRANSIENT blocks stand in for .cache/__pycache__
+# churn, and OTHER blocks inventory anything not hashable.  Repo-shipped
+# files (download_models.py, manifests/, the docs, uv.toml, ...) are mm-tools
+# repository state, not store content, and stay out of the registry entirely.
+# SIZE+TIMESTAMP
+# decide when a digest can be reused without rehashing.  WANT marks each entry
+# 1 when this run's selection owns it and 0 when a previous run wanted it but
+# this one does not; future runs may freely demote entries, and every WANT 0
+# record is an item the end-of-run cleanup offers back for deletion.  The
+# file is checked and updated at the start of every run, before the downloader
+# touches the network, and refreshed again after a completed pass.
 
 HASHES_NAME = "hashes.txt"
 STATE_NAMES = {HASHES_NAME, HASHES_NAME + ".tmp", "store-ledger.tsv"}
+# Repository state that ships inside mm-tools/models, plus small local config:
+# never store content, so these stay out of the registry and out of cleanup.
+REPO_PATHS = {
+    "ARCHITECTURE.md", "download_models.py", "download_models_info.txt",
+    "fab_assets.py", "studio-child.py", "studio-env.sh", "which-ones.txt",
+    "manifests",
+}
+INFRA_PATHS = STATE_NAMES | {"__pycache__", "uv.toml"}
+
+
+def _is_repo_path(relative: str) -> bool:
+    head = relative.split("/", 1)[0]
+    return head in REPO_PATHS or head in INFRA_PATHS
 SKIP_TOP = {".venv"}
 TRANSIENT_NAMES = {".cache", "__pycache__"}
 HASH_CHUNK = 1024 * 1024  # 1 MB streaming chunks, as in hashes-recurse.py
@@ -1761,7 +1780,7 @@ def _registry_load() -> dict[str, dict[str, str]]:
     for line in registry.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if stripped == "---":
-            for key in ("FILE", "LINK", "OTHER", "TRANSIENT"):
+            for key in ("FILE", "LINK", "OTHER", "TRANSIENT", "DIR"):
                 if key in block:
                     table[block[key].rstrip("/")] = block
                     break
@@ -1777,9 +1796,10 @@ def _registry_load() -> dict[str, dict[str, str]]:
 def _registry_dump(entries: dict[str, list[str]]) -> None:
     lines = [
         "# mm-tools model store hashes — one header block per entry, separated by ---",
-        "# every untracked models/ path except .venv/ is listed: FILE hashed,",
-        "# LINK/specials inventoried; WANT 1 = selected by the latest run, 0 = deselected",
-        "# FILE digests (hashes-recurse.py set) are reused while SIZE and TIMESTAMP hold",
+        "# every untracked models/ path except .venv/ and repo-shipped files is listed:",
+        "# FILE hashed (reference digest set), LINK/specials inventoried, DIR metadata",
+        "# (STATUS: empty marks void folders); WANT 1 = selected by the latest run,",
+        "# 0 = deselected and offered for cleanup; digests reused while SIZE+TIMESTAMP hold",
     ]
     for relative in sorted(entries):
         lines += entries[relative] + ["", "---", ""]
@@ -1894,7 +1914,7 @@ def _hash_job(absolute: str) -> tuple[str, str, str, str, str, str, str | None]:
 
 
 def _walk_store():
-    """Yield (depth entry kind, Path) without descending symlinks or churn."""
+    """Yield (kind, Path, entry_count) without descending symlinks or churn."""
     stack: list[tuple[Path, int]] = [(MODELS, 0)]
     while stack:
         root, depth = stack.pop()
@@ -1906,18 +1926,23 @@ def _walk_store():
         for child in children:
             path = Path(child.path)
             if child.is_symlink():
-                yield "link", path
+                yield "link", path, 0
             elif child.is_dir(follow_symlinks=False):
                 if depth == 0 and child.name in SKIP_TOP:
                     continue
                 if child.name in TRANSIENT_NAMES:
-                    yield "transient", path
+                    yield "transient", path, 0
                 else:
+                    try:
+                        inner = sum(1 for _ in os.scandir(path))
+                    except OSError:
+                        inner = 0
+                    yield "dir", path, inner
                     stack.append((path, depth + 1))
             elif child.is_file(follow_symlinks=False):
-                yield "file", path
+                yield "file", path, 0
             else:
-                yield "special", path
+                yield "special", path, 0
 
 
 def _owner_names(relative: Path, claims: dict[str, set[Path]]) -> set[str]:
@@ -1949,18 +1974,30 @@ def sync_hashes(
     records: dict[str, list[str]] = {}
     pending: list[str] = []
     reused = hashed = links = specials = transients = 0
+    dirs = empties = 0
     unowned = misplaced = 0
     total_bytes = 0
-    for kind, path in _walk_store():
+    for kind, path, inner in _walk_store():
         relative = path.relative_to(MODELS)
         key = relative.as_posix()
         if len(relative.parts) == 1 and relative.name in STATE_NAMES:
             continue
+        if _is_repo_path(key):
+            continue  # repo-shipped state, not store content
         names = _owner_names(relative, claims)
         want = "1" if names & wanted else "0"
         if kind == "transient":
             transients += 1
             records[key] = [f"TRANSIENT: {key}/", f"WANT:      {want}"]
+        elif kind == "dir":
+            dirs += 1
+            record = [f"DIR:       {key}/", f"WANT:      {want}"]
+            if inner == 0:
+                empties += 1
+                record.append("STATUS:    empty")
+            else:
+                record.append(f"ITEMS:     {inner}")
+            records[key] = record
         elif kind == "link":
             links += 1
             try:
@@ -2056,8 +2093,9 @@ def sync_hashes(
     files = sum(1 for record in records.values() if record[0].startswith("FILE"))
     print(f"\nStore registry ({HASHES_NAME}, paths relative to models/):")
     print(
-        f"  Total: {total_bytes / 1e9:.2f} GB across {files} entries;"
-        f" {links} links, {specials} specials, {transients} transient trees inventoried"
+        f"  Total: {total_bytes / 1e9:.2f} GB across {files} files;"
+        f" {dirs} directories ({empties} empty), {links} links,"
+        f" {specials} specials, {transients} transient trees inventoried"
     )
     print(
         f"  hashed this pass: {hashed}; reused unchanged digests: {reused};"
@@ -2202,54 +2240,74 @@ def _offer_removal(items: dict[str, tuple[Path, int]], title: str) -> None:
         print("Left in place.")
 
 
-def _wanted_names(
-    bundles: Sequence[Bundle], picks: dict[str, tuple[int, ...]], claims: dict[str, set[Path]]
-) -> set[str]:
-    wanted = _selection_names(bundles, picks)
-    if len(bundles) == len(BUNDLES):  # 'all' keeps every current name wanted
-        return set(claims)
-    return wanted
+def _wanted_names(bundles: Sequence[Bundle], picks: dict[str, tuple[int, ...]]) -> set[str]:
+    """Exactly the bundle/tier names this run selected.  Plain 'all' plus
+    per-tier answers still deselects every tier the operator did not pick."""
+    return _selection_names(bundles, picks)
 
 
-def post_download_maintenance(
-    bundles: Sequence[Bundle], picks: dict[str, tuple[int, ...]], claims: dict[str, set[Path]]
-) -> None:
-    """Offer to delete what this run deselected, plus paths no definition owns.
+def post_download_maintenance(claims: dict[str, set[Path]]) -> None:
+    """Offer to delete every store item the selection did not want.
 
-    Runs after every selected download completed; the removal prompt is the
-    only place anything under models/ is destroyed, and it is always y/n.
+    Reads the registry the finished hash update wrote: each FILE, LINK, or
+    DIR record marked WANT 0 (a deselected name owns it, or nothing owns it)
+    is a candidate, and transient churn (.cache, __pycache__) is offered
+    unconditionally because it regenerates.  Wholly deselected directories
+    fold into one entry — a retired tree is a single prompt — while strays,
+    empty folders, and symlink-only folders inside still-wanted trees stay
+    itemized.  Repo-shipped files, .venv, and the registry state never
+    appear here; nothing is deleted without the explicit prompt.
     """
-    wanted = _wanted_names(bundles, picks, claims)
-    live: set[Path] = set()
-    for name, roots in claims.items():
-        if name in wanted:
-            live.update(roots)
-    candidates: dict[str, tuple[Path, int]] = {}
-    seen: set[Path] = set()
-    for name in sorted(set(claims) - wanted):
-        for path in sorted(claims[name]):
-            if not path.exists() or path in seen or path in live:
-                continue
-            if any(other in path.parents or path in other.parents for other in live):
-                continue  # mixed destination: a wanted name still needs it
-            seen.add(path)
-            size = path.stat().st_size if path.is_file() or path.is_symlink() else _tree_bytes(path)
-            candidates[f"{path.relative_to(MODELS)} (deselected {name})"] = (path, size)
-    _offer_removal(candidates, "Deselected selections (WANT 0) no longer claim these paths")
+    registry = _registry_load()
+    candidates: set[str] = set()
+    for rel, entry in registry.items():
+        if "TRANSIENT" in entry:
+            candidates.add(rel)  # churn clears safely and regenerates
+        elif entry.get("WANT", "0") == "0":
+            candidates.add(rel)
 
-    # Stray sweep: top-level models/ entries that no bundle definition claims.
-    strays: dict[str, tuple[Path, int]] = {}
-    claim_roots = [root for roots in claims.values() for root in roots]
-    for child in sorted(MODELS.iterdir()):
-        if child.name.startswith(".") or child.name in STATE_NAMES:
+    def foldable(rel: str) -> bool:
+        try:
+            entries = list(os.scandir(MODELS / rel))
+        except OSError:
+            return False
+        prefix = rel + "/"
+        for child in entries:
+            if child.name in TRANSIENT_NAMES:
+                continue
+            sub = prefix + child.name
+            recorded = [k for k in registry if k == sub or k.startswith(sub + "/")]
+            if not recorded or not all(k in candidates for k in recorded):
+                return False
+        return True
+
+    items: dict[str, tuple[Path, int]] = {}
+    covered: set[str] = set()
+    for rel in sorted(candidates, key=lambda r: (r.count("/"), r)):
+        if any(rel.startswith(p + "/") for p in covered):
+            continue  # a folded ancestor entry already covers this subtree
+        path = MODELS / rel
+        churn = "TRANSIENT" in registry.get(rel, {})
+        if path.is_symlink():
+            size = 0
+        elif path.is_dir():
+            # Churn trees hold unregistered partials by design; always clearable.
+            if not churn and not foldable(rel):
+                continue  # mixed folder: the wanted children stay, files itemize below
+            size = _tree_bytes(path)
+        elif path.is_file():
+            size = path.stat().st_size
+        else:
             continue
-        if any(child == root or child in root.parents or root in child.parents
-               for root in claim_roots):
-            continue
-        size = (child.stat().st_size if child.is_file() or child.is_symlink()
-                else _tree_bytes(child))
-        strays[str(child.relative_to(MODELS))] = (child, size)
-    _offer_removal(strays, "Unclaimed entries under models/ (no bundle definition)")
+        owners = sorted(_owner_names(Path(rel), claims))
+        label = "churn (regenerates)" if churn else (", ".join(owners) if owners else "unowned")
+        key, n = label, 2
+        while key in items:
+            key, n = f"{label} #{n}", n + 1
+        items[key] = (path, size)
+        if path.is_dir() and not path.is_symlink():
+            covered.add(rel)
+    _offer_removal(items, "Unselected store items (WANT 0 / unowned / churn)")
 
 
 def resolve_selection(
@@ -2711,7 +2769,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     # below touches the network, and only after the Continue prompt.
     organize_store(args.yes)
     claims = _definition_claims()
-    sync_hashes(claims, _wanted_names(bundles, picks, claims), workers, assume_yes=args.yes)
+    sync_hashes(claims, _wanted_names(bundles, picks), workers, assume_yes=args.yes)
     # The registry doubles as the download skip-list: artifacts whose pinned
     # digests or complete snapshot files already sit in hashes.txt need no
     # network pass at all.
@@ -2773,8 +2831,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     # The completed pass first updates hashes.txt (prompted once for anything
     # new), then offers the destructive cleanup: WANT 0 trees and unclaimed
     # folders, i.e. everything models/ holds outside this run's selection.
-    sync_hashes(claims, _wanted_names(bundles, picks, claims), workers, assume_yes=args.yes)
-    post_download_maintenance(bundles, picks, claims)
+    sync_hashes(claims, _wanted_names(bundles, picks), workers, assume_yes=args.yes)
+    post_download_maintenance(claims)
     return 0
 
 # SceneBloom ships two large published archives plus AmbientCG material packs; the

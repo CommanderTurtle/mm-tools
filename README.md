@@ -58,10 +58,11 @@ with `name` or `name:tier` (for example `fastframes:2` or `underdog:2+4`).
 Every run first migrates legacy project folders into canonical
 `models/<org>--<model>/` directories (old paths keep compatibility symlinks)
 and checks/updates `models/hashes.txt`, the stateful hash + selection registry
-(WANT 0/1 per entry, reference digest triple, symlinks inventoried). After a
-completed pass the picker offers to delete files belonging to names you
-deselected since the last pass plus folders claimed by no bundle at all —
-always with a y/n prompt first.
+(WANT 0/1 per entry, reference digest triple, symlinks and folders — including
+empty ones — inventoried). After a completed pass a registry sweep offers to
+delete every entry the selection did not want — deselected or unowned files,
+empty and symlink-only folders (whole retired trees collapse to one entry),
+and regenerable cache churn — always with a y/n prompt first.
 The imports include model files that carefully get cloned from hf/ms sources with multi-worker speed. Each project builds with some type of `setupwith**.sh` file. These prompt for single-GPU adapters, setup/start contracts, and
 browser studio builds; model artifacts remain external to the downloader and
 resumable. Some deliberately separate shared encoder/VAE bundles from
