@@ -35,22 +35,27 @@ Examples:
   uv run download_models.py all --yes --workers 24
   uv run download_models.py fastframes:2
 
-After every completed download pass the picker runs store maintenance; it
-never downloads. It rewrites `models/store-ledger.tsv` — one tab-separated
-line per selectable bundle/tier name (`name` or `name:tier`), `1` when the
-most recent successful pass kept the name, `0` when it was tracked before but
-deselected — then offers removals, each behind an explicit y/n prompt (`e`
-asks per entry, Enter keeps): exclusive store paths of retired `0` names, and
-files or folders under `models/` claimed by no artifact definition, including
-over-fetched files inside known snapshot roots. Mixed destinations shared with
-a live selection and compatibility hard/symlink placements declared by bundle
-definitions are never offered. Maintenance then refreshes
-`models/hashes.txt` — a plaintext SHA-256 registry covering only model files
-claimed by bundle definitions, so junk never enters it and dropped files fall
-out as stale; untouched size/mtime signatures skip rehashing, and hashing uses
-the same worker count as downloads. Hub cache bookkeeping (blobs, refs,
-`models--*`, `.cache`, marker files) and the downloader's own code files are
-never flagged.
+Every run first canonicalizes the store: legacy project-named folders migrate
+once into `models/<org>--<model>/` directories (behind a `[Y/n]` prompt), and
+each old runtime path keeps a relative symlink, so no project reference needs
+editing.  It then checks and updates `models/hashes.txt` — the stateful
+registry in the reference `hashes-recurse.py` header-block format
+(FILE/SIZE/TIMESTAMP/SHA256/SHA1/MD5 blocks separated by `---`) covering every
+untracked path under `models/` except `.venv/`: model files get the digest
+triple, symlinks are inventoried as `LINK` blocks with their target, churn
+trees (`.cache`, `__pycache__`) as `TRANSIENT` blocks, and anything not
+hashable as `OTHER` blocks.  Each block carries a `WANT` line: `1` when this
+run's selection owns the path, `0` when an earlier run wanted it but this one
+does not; future runs may freely demote entries.  Unchanged SIZE+TIMESTAMP
+signatures reuse the stored digests, so repeat passes stay near-instant, and
+hashing runs in parallel with the same worker count as downloads.  After
+every completed pass the picker offers removals, each behind an explicit y/n
+prompt (`e` asks per entry, Enter keeps): exclusive store paths of deselected
+names, and top-level folders under `models/` claimed by no bundle definition.
+Mixed destinations shared with a wanted selection and declared compatibility
+placements are never offered.  The registry is refreshed once more at the end
+of the run so the pass's downloads are registered and anything deleted drops
+out as stale.
 
 Every newly introduced upstream snapshot is pinned to the immutable revision
 audited for this source import. File allowlists retain only runtime-required
@@ -61,8 +66,9 @@ rerun the same selection.
 
 Most artifacts download directly into the path consumed by their project.
 Shared Comfy assets first land under `models/imports`, preserving resumable
-snapshot state, and are then exposed in `workflows/ComfyUI/models` by same-filesystem
-hard links. A copy is used only when the two paths reside on different
+snapshot state, and are then exposed in `workflows/ComfyUI/models` as relative
+symlinks onto the canonical store (dummy-folder references, never a second set
+of bytes). A copy is used only when the two paths reside on different
 filesystems. Existing different files are never overwritten.
 
 The sculpting bundles also install five pinned, allowlisted dependencies that
@@ -70,7 +76,7 @@ the upstream pipeline JSON otherwise resolves online: TRELLIS-image-large's
 single required sparse decoder, DINOv3 ViT-L/16, the official ungated
 ZhengPeng7 BiRefNet checkpoint, MoGe-2 camera
 calibration, and NAF feature upsampling. The legacy
-decoder is hard-linked into TRELLIS.2-4B; both sculpting adapters point their
+decoder is symlinked into TRELLIS.2-4B; both sculpting adapters point their
 generated local pipeline config at the shared DINO/BiRefNet directories.
 Direct-release assets use resumable partial downloads and SHA-256 verification,
 with exact byte sizes where recorded. Snapshots always save under

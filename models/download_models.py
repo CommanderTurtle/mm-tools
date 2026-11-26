@@ -7,14 +7,17 @@ import hashlib
 import inspect
 import json
 import os
+import re
 import shutil
 import stat
 import sys
 import tempfile
+import time
 import urllib.request
 import zipfile
+from multiprocessing import get_context
 from urllib.parse import quote
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Sequence
 
@@ -1505,244 +1508,487 @@ def _selection_tokens(values: Sequence[str]) -> list[str]:
     return [part.strip() for value in values for part in value.split(",") if part.strip()]
 
 
-# Post-download maintenance constants. Maintenance never downloads; after a
-# successful pass it rewrites the selection ledger, offers (always with a
-# prompt) to remove retired-selection and unclaimed files under models/, and
-# refreshes the hash registry. Compatibility symlink placements are enumerated
-# through their link path rather than skipped.
-AUDIT_INFRA_NAMES = {"manifests", ".venv", "__pycache__", "uv.toml", ".gitignore", "LICENSE", "README.md"}
-AUDIT_INFRA_SUFFIXES = {".py", ".sh", ".toml", ".md", ".txt", ".json", ".lock", ".cfg", ".tsv"}
-AUDIT_HUB_METADATA = {"CACHEDIR.TAG", ".gitattributes", ".gitignore", ".no_exist", ".msc", ".mv"}
-# Plaintext hash registry (hashes-recurse.py style): every model-tree file gets
-# one SHA-256 line. Subsequent audits rehash only files that are new or whose
-# size/mtime signature changed, so repeat passes stay near-instant.
-AUDIT_REGISTRY_NAME = "hashes.txt"
-AUDIT_REGISTRY_SKIP_DIRS = {".venv", "__pycache__", ".cache", "node_modules"}
+# --- Canonical store layout --------------------------------------------------
+# Every model file lives directly under a models/<org>--<model> directory.
+# Catalog destinations that predate this rule (project-named trees such as
+# scenebloom/ or hynomas/) are migrated once by organize_store(): the bytes
+# move into the canonical directory and each old runtime path keeps a relative
+# symlink, so no project reference anywhere needs editing ("dummy folders").
+# Hub cache roots (cache_layout snapshots) are exempt because their
+# models--<org>--<model> trees already satisfy the rule.
+
+def _repo_slug(repo_id: str) -> str:
+    org, _, name = repo_id.partition("/")
+    slug = repo_id if not name else f"{org}--{name}"
+    return re.sub(r"[^\w.-]+", "-", slug).strip("-")
 
 
-def _audit_registry_path() -> Path:
-    return MODELS / AUDIT_REGISTRY_NAME
+def _name_key(text: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", text.lower())
 
 
-def _audit_registry_load() -> dict[str, tuple[int, int, str]]:
-    entries: dict[str, tuple[int, int, str]] = {}
-    registry = _audit_registry_path()
-    if not registry.is_file():
-        return entries
-    for line in registry.read_text().splitlines():
-        if line.startswith("#") or not line.strip():
-            continue
-        parts = line.split("\t")
-        if len(parts) != 4:
-            continue
-        digest, size, mtime, relative = parts
-        try:
-            entries[relative] = (int(size), int(mtime), digest)
-        except ValueError:
-            continue
-    return entries
-
-
-def _audit_registry_dump(entries: dict[str, tuple[int, int, str]]) -> None:
-    lines = [
-        "# mm-tools model store hash registry — SHA256<TAB>size<TAB>mtime<TAB>path",
-        "# paths relative to models/; audits rehash only new or changed entries",
-    ]
-    for relative in sorted(entries):
-        size, mtime, digest = entries[relative]
-        lines.append(f"{digest}\t{size}\t{mtime}\t{relative}")
-    temporary = MODELS / (AUDIT_REGISTRY_NAME + ".tmp")
-    temporary.write_text("\n".join(lines) + "\n")
-    temporary.replace(_audit_registry_path())
-
-
-def _audit_hash_relative(relative: str) -> tuple[str, int, int, str] | None:
-    absolute = MODELS / relative
+def canonical_destination(artifact: Artifact) -> Path:
+    """The <org>--<model> directory that must physically hold this artifact."""
+    dest = Path(os.path.normpath(artifact.destination))
     try:
-        digest = _sha256(absolute)
-        info = absolute.stat()
+        relative = dest.relative_to(MODELS)
+    except ValueError:
+        return dest  # lane or home-path placement: it follows its owner
+    if artifact.cache_layout or any("--" in part for part in relative.parts):
+        return dest
+    slug = _repo_slug(artifact.repo_id)
+    model_name = artifact.repo_id.partition("/")[2] or artifact.repo_id
+    if _name_key(relative.parts[-1]) == _name_key(model_name):
+        return MODELS / slug
+    # Keep the distinguishing tail of the legacy path under the canonical root
+    # so different destinations of one repository never collide.
+    tail = relative.parts[1:]
+    return MODELS.joinpath(slug, *tail) if tail else MODELS / slug
+
+
+def _defined_artifacts() -> tuple[Artifact, ...]:
+    seen: dict[Artifact, None] = {}
+    for bundle in BUNDLES:
+        for arts in (bundle.artifacts, *(arts for _title, arts in bundle.variants)):
+            for artifact in arts:
+                seen.setdefault(artifact, None)
+    return tuple(seen)
+
+
+def canonical_artifact(artifact: Artifact) -> Artifact:
+    dest = canonical_destination(artifact)
+    return artifact if dest == artifact.destination else replace(artifact, destination=dest)
+
+
+# canonical destination -> legacy runtime paths that must keep resolving
+STORE_MIRRORS: dict[Path, list[Path]] = {}
+# legacy destination -> artifacts claiming it (multi-repo trees split by allowlist)
+LEGACY_OWNERS: dict[Path, list[Artifact]] = {}
+for _artifact in _defined_artifacts():
+    _canonical = canonical_destination(_artifact)
+    _legacy = Path(os.path.normpath(_artifact.destination))
+    if _canonical != _legacy:
+        _mirrors = STORE_MIRRORS.setdefault(_canonical, [])
+        if _legacy not in _mirrors:
+            _mirrors.append(_legacy)
+        _owners = LEGACY_OWNERS.setdefault(_legacy, [])
+        if _artifact not in _owners:
+            _owners.append(_artifact)
+
+# Trees the picker writes itself (SceneBloom AmbientCG materials): canonical
+# under their upstream source name; the legacy project paths keep a
+# whole-directory symlink.
+PICKER_MIGRATIONS = {
+    MODELS / "scenebloom/materials": MODELS / "ambientcg--materials",
+    MODELS / "scenebloom/material-archives": MODELS / "ambientcg--material-archives",
+}
+
+
+def _entry_claimant(legacy: Path, entry: Path) -> Artifact:
+    """Which artifact's canonical directory a legacy top-level entry moves to."""
+    artifacts = LEGACY_OWNERS[legacy]
+    name = entry.name
+    for artifact in artifacts:
+        for pattern in artifact.allow_patterns:
+            if fnmatch.fnmatch(name, pattern) or fnmatch.fnmatch(name, pattern.split("/")[0]):
+                return artifact
+    return artifacts[0]  # unmatched strays ride with the first definer
+
+
+def _entry_size(entry: Path) -> int:
+    if entry.is_symlink():
+        return 0
+    if entry.is_dir():
+        return _tree_bytes(entry)
+    try:
+        return entry.stat().st_size
     except OSError:
-        return None
-    return relative, info.st_size, int(info.st_mtime), digest
+        return 0
 
 
-def _audit_registry_pass(
-    workers: int, extra_rels: frozenset[str]
-) -> tuple[list[str], list[str], int]:
-    """Hash new/changed model-store files into the registry.
-
-    Only files claimed by bundle definitions are hashed; entries the sweep
-    flagged as extraneous are skipped and fall out of the registry as stale.
-    Returns (new, changed, stale).
-    """
-    registry = _audit_registry_load()
-    extra_tops = {name for name in extra_rels if "/" not in name}
-    current: dict[str, tuple[int, int]] = {}
-    for entry in _audit_walk(MODELS):
-        relative = entry.relative_to(MODELS)
-        if ".cache" in relative.parts:
-            continue  # Hub resumable bookkeeping: locks/metadata, never content
-        if relative.parts[0] in AUDIT_REGISTRY_SKIP_DIRS:
-            continue
-        if len(relative.parts) == 1 and relative.name == AUDIT_REGISTRY_NAME:
-            continue
-        if len(relative.parts) == 1 and relative.name in extra_tops:
-            continue
-        if str(relative) in extra_rels:
-            continue
-        info = entry.stat()
-        current[str(relative)] = (info.st_size, int(info.st_mtime))
-    entries: dict[str, tuple[int, int, str]] = {}
-    pending: list[str] = []
-    for relative, signature in current.items():
-        known = registry.get(relative)
-        if known and known[:2] == signature:
-            entries[relative] = known
-        else:
-            pending.append(relative)
-    if pending and sys.stdin.isatty() and len(pending) > 500:
-        answer = input(
-            f"\n{len(pending)} files are new or changed since the last audit; "
-            "hash them now? [Y/n]: "
-        ).strip().lower()
-        if answer not in {"", "y", "yes"}:
-            return [], [], 0
-    hashed: dict[str, tuple[int, int, str]] = {}
-    if pending:
-        from concurrent.futures import ThreadPoolExecutor
-
-        workers = max(1, min(workers, len(pending)))
-        with ThreadPoolExecutor(max_workers=workers) as pool:
-            for index, result in enumerate(pool.map(_audit_hash_relative, pending), 1):
-                if result is not None:
-                    hashed[result[0]] = (result[1], result[2], result[3])
-                print(f"{100 * index / len(pending):6.2f}%  ({index}/{len(pending)})", end="\r", flush=True)
-        print()
-        entries.update(hashed)
-    new_paths = sorted(relative for relative in hashed if relative not in registry)
-    changed = sorted(
-        relative for relative, record in hashed.items()
-        if relative in registry and registry[relative][2] != record[2]
-    )
-    stale = sorted(set(registry) - set(current))
-    _audit_registry_dump(entries)
-    return new_paths, changed, len(stale)
-
-
-def _audit_tree_bytes(path: Path) -> int:
+def _tree_bytes(path: Path) -> int:
+    """Real bytes under path; compatibility symlinks never re-count the store."""
     total = 0
-    for entry in path.rglob("*"):
-        if entry.is_file() and not entry.is_symlink():
-            total += entry.stat().st_size
+    for root, _dirs, files in os.walk(path):
+        base = Path(root)
+        for name in files:
+            entry = base / name
+            if not entry.is_symlink():
+                try:
+                    total += entry.stat().st_size
+                except OSError:
+                    pass
     return total
 
 
-def _audit_destination_map() -> dict[Path, list[Artifact]]:
-    dests: dict[Path, list[Artifact]] = {}
-    for bundle in BUNDLES:
-        groups = (bundle.artifacts, *(arts for _title, arts in bundle.variants))
-        for arts in groups:
-            for artifact in arts:
-                dests.setdefault(artifact.destination, []).append(artifact)
-    return dests
+def _organize_plan() -> list[tuple[Path, dict[Path, list[Path]]]]:
+    """legacy dir -> {canonical dir: entries to move}, for trees on disk."""
+    plans: list[tuple[Path, dict[Path, list[Path]]]] = []
+    for legacy in LEGACY_OWNERS:
+        if not legacy.is_dir() or legacy.is_symlink():
+            continue
+        entries = [
+            entry for entry in sorted(legacy.iterdir(), key=lambda p: p.name)
+            if not entry.is_symlink()  # existing links stay put and get inventoried
+            and entry.name not in TRANSIENT_NAMES and entry.name not in STATE_NAMES
+            and not (entry.is_dir() and (legacy / entry.name) in LEGACY_OWNERS)
+            # nested legacy destinations migrate on their own (deepest first)
+        ]
+        if not entries:
+            continue
+        groups: dict[Path, list[Path]] = {}
+        for entry in entries:
+            groups.setdefault(canonical_destination(_entry_claimant(legacy, entry)), []).append(entry)
+        plans.append((legacy, groups))
+    for legacy, canonical in PICKER_MIGRATIONS.items():
+        if legacy.is_dir() and not legacy.is_symlink() and any(legacy.iterdir()):
+            plans.append((legacy, {canonical: [legacy]}))  # whole-directory move
+    # Nested destinations must land in their own canonical roots before any
+    # enclosing legacy tree tries to swallow them.
+    plans.sort(key=lambda plan: (-len(plan[0].parts), str(plan[0])))
+    return plans
 
 
-def _audit_declared_links() -> set[tuple[str, ...]]:
-    """Relative placement paths declared by bundle definitions (compat links)."""
-    links: set[tuple[str, ...]] = set()
-    for bundle in BUNDLES:
-        groups = (bundle.artifacts, *(arts for _title, arts in bundle.variants))
-        for artifact_group in groups:
-            for artifact in artifact_group:
-                raw: list[Path] = list(artifact.dir_links)
-                raw += [target for _source, target in artifact.file_links]
-                raw += [target for _source, target in artifact.placements]
-                for path in raw:
-                    try:
-                        links.add(path.resolve().relative_to(MODELS).parts)
-                    except ValueError:
-                        continue  # outside the model store (lane or home paths)
-    return links
-
-
-def _audit_walk(root: Path):
-    """Yield files under root, descending once into symlinks onto directories."""
-    for entry in root.rglob("*"):
-        if entry.is_symlink():
-            if entry.is_file():
-                yield entry
-            elif entry.is_dir():
-                for inner in entry.rglob("*"):
-                    if inner.is_file():
-                        yield inner
-        elif entry.is_file():
-            yield entry
-
-
-def _audit_path_accepted(dest: Path, artifact_group: list[Artifact], relative: str) -> bool:
-    """True when a file inside a snapshot destination is claimed by an artifact."""
-    parts = relative.split("/")
-    name = parts[-1]
-    if any(part in AUDIT_HUB_METADATA for part in parts):
-        return True
-    if ".cache" in parts:
-        return True
-    # Hub cache-layout bookkeeping: blobs/, refs/, and models--org--model trees.
-    if "blobs" in parts or "refs" in parts or any(part.startswith("models--") for part in parts):
-        return True
-    if any(artifact.direct_filename == name for artifact in artifact_group):
-        return True
-    # An artifact without allow_patterns snapshots the whole repository, so
-    # every file beneath that destination is expected.
-    if any(not artifact.allow_patterns for artifact in artifact_group):
-        return True
-    patterns = [pattern for artifact in artifact_group for pattern in artifact.allow_patterns]
-    return any(
-        fnmatch.fnmatch(relative, pattern) or fnmatch.fnmatch(name, pattern)
-        for pattern in patterns
+def organize_store(assume_yes: bool) -> None:
+    """Move legacy project-named trees into canonical <org>--<model> dirs."""
+    plans = _organize_plan()
+    if not plans:
+        return
+    print("\nLegacy store layout found; canonicalizing into <org>--<model> directories:")
+    total = 0
+    for legacy, groups in plans:
+        for canonical, entries in groups.items():
+            size = sum(_entry_size(entry) for entry in entries)
+            total += size
+            print(
+                f"  {legacy.relative_to(MODELS)}/ -> {canonical.relative_to(MODELS)}/"
+                f"  ({len(entries)} entr{ 'y' if len(entries) == 1 else 'ies'}, {size / 1e9:.2f} GB)"
+            )
+    print(
+        f"\nMoving {total / 1e9:.2f} GB relocates nothing for the projects: each old path"
+        " keeps a relative symlink into the canonical directory."
     )
+    answer = "y" if assume_yes else _prompt_or_eof(
+        "Migrate the store layout now? [Y/n]: ", default="y"
+    )
+    if answer not in {"", "y", "yes"}:
+        print("Layout left as-is; hashes.txt flags the misplaced files until the next run.")
+        return
+    moved = 0
+    for legacy, groups in plans:
+        whole_dir = len(groups) == 1 and next(iter(groups.values()))[0] == legacy
+        for canonical, entries in groups.items():
+            if whole_dir:
+                entry = entries[0]
+                if not canonical.exists():
+                    canonical.parent.mkdir(parents=True, exist_ok=True)
+                    entry.rename(canonical)
+                    moved += 1
+                elif entry.is_dir():
+                    for child in sorted(entry.iterdir(), key=lambda p: p.name):
+                        if _move_into(child, canonical):
+                            moved += 1
+                if not entry.is_symlink():
+                    try:
+                        entry.rmdir()
+                    except OSError:
+                        pass  # kept strays keep the legacy folder real
+                    if not entry.exists():
+                        entry.symlink_to(os.path.relpath(canonical, entry.parent))
+                continue
+            canonical.mkdir(parents=True, exist_ok=True)
+            for entry in entries:
+                if _move_into(entry, canonical):
+                    moved += 1
+                link = legacy / entry.name
+                if not link.is_symlink() and not link.exists():
+                    link.symlink_to(os.path.relpath(canonical / entry.name, legacy))
+    print(f"Migrated {moved} legacy trees into canonical directories.")
 
 
-# --- Store bookkeeping ------------------------------------------------------
-# A selection ledger lives beside the hash registry: every successful
-# (max/max) download pass rewrites store-ledger.tsv. Selected bundle/tier
-# names record 1; previously tracked names outside the current selection
-# flip to 0, and a retired name's exclusive files become removal candidates.
-# Nothing is ever deleted without an explicit y/n prompt.
-LEDGER_NAME = "store-ledger.tsv"
-# Helper trees the picker writes itself; no artifact claims them file-wise.
-PICKER_TREES = (MODELS / "scenebloom/material-archives",)
+def _move_into(entry: Path, canonical: Path) -> bool:
+    target = canonical / entry.name
+    if target.exists():
+        try:
+            if entry.samefile(target):
+                entry.unlink()
+                return True
+        except OSError:
+            pass
+        print(f"  warning: {target} already exists; kept {entry} in place", file=sys.stderr)
+        return False
+    entry.rename(target)
+    return True
 
 
-def _ledger_path() -> Path:
-    return MODELS / LEDGER_NAME
+def _prompt_or_eof(text: str, default: str = "") -> str:
+    try:
+        return input(text).strip().lower() or default
+    except EOFError:
+        return "n"
 
 
-def _ledger_load() -> dict[str, int]:
-    entries: dict[str, int] = {}
-    path = _ledger_path()
-    if not path.is_file():
-        return entries
-    for line in path.read_text().splitlines():
-        if line.startswith("#") or not line.strip():
+# --- Stateful hash registry ---------------------------------------------------
+# models/hashes.txt is the store's state file, in the header-block format of
+# the reference hashes-recurse.py (FILE/SIZE/TIMESTAMP/SHA256/SHA1/MD5 blocks
+# separated by ---).  Every untracked file under models/ is registered: FILE
+# blocks carry the three digests, LINK blocks inventory symlinks with their
+# target (contents are never double-hashed), TRANSIENT blocks stand in for
+# .cache/__pycache__ churn, and OTHER blocks inventory anything not hashable.
+# SIZE+TIMESTAMP decide when a digest can be reused without rehashing.  WANT
+# marks each entry 1 when this run's selection owns it and 0 when a previous
+# run wanted it but this one does not; future runs may freely demote entries.
+# The registry is checked and updated at the start of every run, before the
+# downloader touches the network, and refreshed again after a completed pass.
+
+HASHES_NAME = "hashes.txt"
+STATE_NAMES = {HASHES_NAME, HASHES_NAME + ".tmp", "store-ledger.tsv"}
+SKIP_TOP = {".venv"}
+TRANSIENT_NAMES = {".cache", "__pycache__"}
+HASH_CHUNK = 1024 * 1024  # 1 MB streaming chunks, as in hashes-recurse.py
+
+
+def _registry_path() -> Path:
+    return MODELS / HASHES_NAME
+
+
+def _registry_load() -> dict[str, dict[str, str]]:
+    table: dict[str, dict[str, str]] = {}
+    registry = _registry_path()
+    if not registry.is_file():
+        return table
+    block: dict[str, str] = {}
+    for line in registry.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped == "---":
+            for key in ("FILE", "LINK", "OTHER", "TRANSIENT"):
+                if key in block:
+                    table[block[key].rstrip("/")] = block
+                    break
+            block = {}
+        elif not stripped or stripped.startswith("#"):
             continue
-        parts = line.split("\t")
-        if len(parts) != 2 or parts[1] not in {"0", "1"}:
-            continue
-        entries[parts[0]] = int(parts[1])
-    return entries
+        else:
+            head, _, value = line.partition(":")
+            block[head.strip()] = value.strip()
+    return table
 
 
-def _ledger_dump(entries: dict[str, int]) -> None:
+def _registry_dump(entries: dict[str, list[str]]) -> None:
     lines = [
-        "# mm-tools model store selection ledger — name<TAB>1|0",
-        "# 1 = kept by the most recent successful download run;",
-        "# 0 = tracked before but deselected: exclusive files are cleanup candidates",
+        "# mm-tools model store hashes — one header block per entry, separated by ---",
+        "# every untracked models/ path except .venv/ is listed: FILE hashed,",
+        "# LINK/specials inventoried; WANT 1 = selected by the latest run, 0 = deselected",
+        "# FILE digests (hashes-recurse.py set) are reused while SIZE and TIMESTAMP hold",
     ]
-    lines += [f"{name}\t{value}" for name, value in sorted(entries.items())]
-    temporary = MODELS / (LEDGER_NAME + ".tmp")
-    temporary.write_text("\n".join(lines) + "\n")
-    temporary.replace(_ledger_path())
+    for relative in sorted(entries):
+        lines += entries[relative] + ["", "---", ""]
+    temporary = MODELS / (HASHES_NAME + ".tmp")
+    temporary.write_text("\n".join(lines), encoding="utf-8")
+    temporary.replace(_registry_path())
+
+
+def _hash_job(absolute: str) -> tuple[str, str, str, str, str, str, str | None]:
+    """Stream one file once and produce the reference digest triple."""
+    path = Path(absolute)
+    try:
+        info = path.stat()
+        sha256, sha1, md5 = hashlib.sha256(), hashlib.sha1(), hashlib.md5()
+        with open(path, "rb") as handle:
+            while True:
+                data = handle.read(HASH_CHUNK)
+                if not data:
+                    break
+                sha256.update(data)
+                sha1.update(data)
+                md5.update(data)
+        stamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(info.st_mtime))
+        return (absolute, str(info.st_size), stamp,
+                sha256.hexdigest(), sha1.hexdigest(), md5.hexdigest(), None)
+    except OSError as exc:
+        return (absolute, "", "", "", "", "", f"{exc.__class__.__name__}: {exc}")
+
+
+def _walk_store():
+    """Yield (depth entry kind, Path) without descending symlinks or churn."""
+    stack: list[tuple[Path, int]] = [(MODELS, 0)]
+    while stack:
+        root, depth = stack.pop()
+        try:
+            children = sorted(os.scandir(root), key=lambda e: e.name)
+        except OSError as exc:
+            print(f"  warning: cannot read {root}: {exc}", file=sys.stderr)
+            continue
+        for child in children:
+            path = Path(child.path)
+            if child.is_symlink():
+                yield "link", path
+            elif child.is_dir(follow_symlinks=False):
+                if depth == 0 and child.name in SKIP_TOP:
+                    continue
+                if child.name in TRANSIENT_NAMES:
+                    yield "transient", path
+                else:
+                    stack.append((path, depth + 1))
+            elif child.is_file(follow_symlinks=False):
+                yield "file", path
+            else:
+                yield "special", path
+
+
+def _owner_names(relative: Path, claims: dict[str, set[Path]]) -> set[str]:
+    parts = relative.parts
+    names: set[str] = set()
+    for name, roots in claims.items():
+        for root in roots:
+            if root == MODELS:
+                continue
+            try:
+                root_rel = root.relative_to(MODELS)
+            except ValueError:
+                continue
+            if tuple(root_rel.parts) == parts[: len(root_rel.parts)]:
+                names.add(name)
+                break
+    return names
+
+
+def sync_hashes(
+    claims: dict[str, set[Path]],
+    wanted: set[str],
+    workers: int,
+    *,
+    assume_yes: bool = False,
+    quiet: bool = False,
+) -> None:
+    """Check models/hashes.txt, hash only new or changed files, update WANT."""
+    registry = _registry_load()
+    records: dict[str, list[str]] = {}
+    pending: list[str] = []
+    reused = hashed = links = specials = transients = 0
+    unowned = misplaced = 0
+    total_bytes = 0
+    for kind, path in _walk_store():
+        relative = path.relative_to(MODELS)
+        key = relative.as_posix()
+        if len(relative.parts) == 1 and relative.name in STATE_NAMES:
+            continue
+        names = _owner_names(relative, claims)
+        want = "1" if names & wanted else "0"
+        if kind == "transient":
+            transients += 1
+            records[key] = [f"TRANSIENT: {key}/", f"WANT:      {want}"]
+        elif kind == "link":
+            links += 1
+            try:
+                target = os.readlink(path)
+            except OSError as exc:
+                target = f"(unreadable: {exc})"
+            record = [f"LINK:      {key}", f"WANT:      {want}", f"TARGET:    {target}"]
+            if not path.exists():
+                record.append("STATUS:    broken")
+            records[key] = record
+        elif kind == "special":
+            specials += 1
+            mode = path.stat().st_mode
+            kind_name = "fifo" if stat.S_ISFIFO(mode) else "socket" if stat.S_ISSOCK(mode) else "device"
+            records[key] = [f"OTHER:     {key}", f"WANT:      {want}", f"TYPE:      {kind_name}"]
+        else:
+            try:
+                info = path.stat()
+            except OSError as exc:
+                records[key] = [f"FILE:      {key}", f"WANT:      {want}",
+                                f"ERROR:     {exc.__class__.__name__}: {exc}"]
+                continue
+            stamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(info.st_mtime))
+            known = registry.get(key)
+            if (known and known.get("SIZE", "").split() == [str(info.st_size), "bytes"]
+                    and known.get("TIMESTAMP") == stamp and known.get("SHA256")):
+                reused += 1
+                total_bytes += info.st_size
+                records[key] = [
+                    f"FILE:      {key}", f"WANT:      {want}",
+                    f"SIZE:      {info.st_size} bytes", f"TIMESTAMP: {stamp}",
+                    f"SHA256:    {known['SHA256']}", f"SHA1:      {known.get('SHA1', '?')}",
+                    f"MD5:       {known.get('MD5', '?')}",
+                ]
+                if not names:
+                    unowned += 1
+                    records[key].append("UNOWNED:   claimed by no bundle definition")
+                if not any("--" in part for part in relative.parts[:-1]):
+                    misplaced += 1
+                    records[key].append("MISPLACED: outside an <org>--<model> directory")
+                continue
+            pending.append(str(path))
+            records[key] = [f"FILE:      {key}", f"WANT:      {want}"]  # filled below
+    if not quiet and pending and sys.stdin.isatty() and not assume_yes and len(pending) > 500:
+        answer = _prompt_or_eof(
+            f"\n{len(pending)} files are new or changed since the last run;"
+            " hash them now? [Y/n]: ", default="y",
+        )
+        if answer not in {"", "y", "yes"}:
+            pending = []
+    digests: dict[str, tuple[str, str, str, str, str, str | None]] = {}
+    if pending:
+        workers = max(1, min(workers, len(pending)))
+        pool = get_context("fork").Pool(workers)
+        try:
+            for index, result in enumerate(pool.imap_unordered(_hash_job, pending), 1):
+                digests[result[0]] = result[1:]
+                hashed += 1
+                print(f"{100 * index / len(pending):6.2f}%  ({index}/{len(pending)})", end="\r", flush=True)
+        finally:
+            pool.close()
+            pool.join()
+        print()
+    for key, record in records.items():
+        if (record[0].startswith("FILE")
+                and not any(line.startswith(("SHA256", "ERROR")) for line in record)):
+            absolute = str(MODELS / key)
+            result = digests.get(absolute)
+            if result is None:
+                record.append("SIZE:      ?")
+                record.append("ERROR:     not hashed this pass")
+                continue
+            size, stamp, sha256, sha1, md5, error = result
+            if error:
+                record.append(f"ERROR:     {error}")
+                continue
+            total_bytes += int(size)
+            relative_parts = Path(key).parts
+            if not _owner_names(Path(key), claims):
+                unowned += 1
+                record.append("UNOWNED:   claimed by no bundle definition")
+            if not any("--" in part for part in relative_parts[:-1]):
+                misplaced += 1
+                record.append("MISPLACED: outside an <org>--<model> directory")
+            record.extend([
+                f"SIZE:      {size} bytes", f"TIMESTAMP: {stamp}",
+                f"SHA256:    {sha256}", f"SHA1:      {sha1}", f"MD5:       {md5}",
+            ])
+            continue
+        # reused record: flags already appended during the walk
+    stale = sorted(set(registry) - set(records))
+    _registry_dump(records)
+    files = sum(1 for record in records.values() if record[0].startswith("FILE"))
+    print(f"\nStore registry ({HASHES_NAME}, paths relative to models/):")
+    print(
+        f"  Total: {total_bytes / 1e9:.2f} GB across {files} entries;"
+        f" {links} links, {specials} specials, {transients} transient trees inventoried"
+    )
+    print(
+        f"  hashed this pass: {hashed}; reused unchanged digests: {reused};"
+        f" dropped stale entries: {len(stale)}"
+    )
+    if unowned or misplaced:
+        print(f"  unowned entries: {unowned}; outside <org>--<model> directories: {misplaced}")
+
+
+# --- Selection state ---------------------------------------------------------
+# The registry's WANT lines are the selection state: every completed pass
+# rewrites them from the current selection (1) over previously wanted paths
+# (0).  Nothing is deleted without an explicit prompt at the end of a pass.
+# Helper trees the picker writes itself are claimed by their project bundle.
 
 
 def _selection_names(
@@ -1760,7 +2006,13 @@ def _selection_names(
 
 
 def _definition_claims() -> dict[str, set[Path]]:
-    """Selectable name -> every store path that name's definitions touch."""
+    """Selectable name -> every store path that name's definitions own.
+
+    A name owns the canonical <org>--<model> directory of each of its
+    artifacts, the legacy runtime paths kept as compatibility mirrors, and the
+    declared placement/link targets that live inside the model store.  Lane
+    and home-path placements follow their project and never enter claims.
+    """
     claims: dict[str, set[Path]] = {}
     for bundle in BUNDLES:
         if not bundle.variants:
@@ -1773,10 +2025,22 @@ def _definition_claims() -> dict[str, set[Path]]:
         for name, artifacts in groups.items():
             paths = claims.setdefault(name, set())
             for artifact in artifacts:
-                paths.add(artifact.destination)
-                paths.update(artifact.dir_links)
-                paths.update(target for _source, target in artifact.file_links)
-                paths.update(target for _source, target in artifact.placements)
+                canonical = canonical_destination(artifact)
+                paths.add(canonical)
+                paths.update(STORE_MIRRORS.get(canonical, ()))
+                raw: list[Path] = list(artifact.dir_links)
+                raw += [target for _source, target in artifact.file_links]
+                raw += [target for _source, target in artifact.placements]
+                paths.update(
+                    normalized
+                    for normalized in (Path(os.path.normpath(path)) for path in raw)
+                    if normalized.is_relative_to(MODELS)
+                )
+    for name, roots in claims.items():
+        if name.startswith("scenebloom"):
+            for legacy, canonical in PICKER_MIGRATIONS.items():
+                roots.update((legacy, canonical))
+            roots.add(MODELS / "scenebloom/assets-ready.json")
     return claims
 
 
@@ -1810,7 +2074,7 @@ def _remove_paths(paths: set[Path]) -> None:
     count = 0
     for path in sorted(paths):
         try:
-            size = path.stat().st_size if path.is_file() else _audit_tree_bytes(path)
+            size = path.stat().st_size if path.is_file() else _tree_bytes(path)
             if path.is_dir() and not path.is_symlink():
                 shutil.rmtree(path)
             else:
@@ -1855,115 +2119,54 @@ def _offer_removal(items: dict[str, tuple[Path, int]], title: str) -> None:
         print("Left in place.")
 
 
-def post_download_maintenance(
-    bundles: Sequence[Bundle], picks: dict[str, tuple[int, ...]], workers: int
-) -> None:
-    """Ledger rewrite, retired-name removal, unclaimed sweep, and hash
-    registry refresh; runs only after every selected download completed."""
-    ledger = _ledger_load()
-    claims = _definition_claims()
-    names = _selection_names(bundles, picks)
-    if len(bundles) == len(BUNDLES):  # 'all' keeps every current name tracked
-        names = set(claims)
-    for name in claims:
-        ledger[name] = 1 if name in names else 0
-    _ledger_dump(ledger)
+def _wanted_names(
+    bundles: Sequence[Bundle], picks: dict[str, tuple[int, ...]], claims: dict[str, set[Path]]
+) -> set[str]:
+    wanted = _selection_names(bundles, picks)
+    if len(bundles) == len(BUNDLES):  # 'all' keeps every current name wanted
+        return set(claims)
+    return wanted
 
-    retired = {name for name, value in ledger.items() if value == 0 and name in claims}
-    live_paths: set[Path] = set()
-    for name, paths in claims.items():
-        if name not in retired:
-            live_paths.update(paths)
+
+def post_download_maintenance(
+    bundles: Sequence[Bundle], picks: dict[str, tuple[int, ...]], claims: dict[str, set[Path]]
+) -> None:
+    """Offer to delete what this run deselected, plus paths no definition owns.
+
+    Runs after every selected download completed; the removal prompt is the
+    only place anything under models/ is destroyed, and it is always y/n.
+    """
+    wanted = _wanted_names(bundles, picks, claims)
+    live: set[Path] = set()
+    for name, roots in claims.items():
+        if name in wanted:
+            live.update(roots)
     candidates: dict[str, tuple[Path, int]] = {}
     seen: set[Path] = set()
-    for name in sorted(retired):
+    for name in sorted(set(claims) - wanted):
         for path in sorted(claims[name]):
-            try:
-                relative = path.resolve().relative_to(MODELS)
-            except ValueError:
-                continue  # lane or home-path placements follow their owner
-            store_path = MODELS / relative
-            if not store_path.exists() or store_path in seen:
+            if not path.exists() or path in seen or path in live:
                 continue
-            if any(live == store_path or live in store_path.parents or store_path in live.parents
-                   for live in live_paths):
-                continue  # mixed destination: an unretired name still needs it
-            seen.add(store_path)
-            size = (store_path.stat().st_size if store_path.is_file()
-                    else _audit_tree_bytes(store_path))
-            candidates[f"{relative} (retired {name})"] = (store_path, size)
-    _offer_removal(candidates, "Retired selections (ledger value 0) no longer claim these paths")
+            if any(other in path.parents or path in other.parents for other in live):
+                continue  # mixed destination: a wanted name still needs it
+            seen.add(path)
+            size = path.stat().st_size if path.is_file() or path.is_symlink() else _tree_bytes(path)
+            candidates[f"{path.relative_to(MODELS)} (deselected {name})"] = (path, size)
+    _offer_removal(candidates, "Deselected selections (WANT 0) no longer claim these paths")
 
-    # Unclaimed sweep: files no current artifact definition covers, down to
-    # over-fetched strays inside otherwise-pinned snapshot destinations.
-    extras: dict[str, tuple[Path, int]] = {}
-    dests = _audit_destination_map()
-    declared = _audit_declared_links()
-    declared_tops = {link[0] for link in declared if len(link) == 1}
-    dest_rels: dict[Path, tuple[str, ...]] = {}
-    for dest in dests:
-        try:
-            dest_rels[dest] = dest.relative_to(MODELS).parts
-        except ValueError:
-            continue  # home-path destinations (~/.paddlex) are outside the sweep
-    known_tops = {parts[0] for parts in dest_rels.values()}
-
-    def owner_of(relative: tuple[str, ...]) -> Path | None:
-        best: Path | None = None
-        for dest, parts in dest_rels.items():
-            if relative[: len(parts)] == parts:
-                if best is None or len(parts) > len(dest_rels[best]):
-                    best = dest
-        return best
-
-    if MODELS.is_dir():
-        for child in sorted(MODELS.iterdir()):
-            if child.name.startswith(".") or child.name in AUDIT_INFRA_NAMES:
-                continue
-            if child.name in declared_tops:
-                continue
-            if child.is_file():
-                if child.suffix not in AUDIT_INFRA_SUFFIXES:
-                    extras[str(child.relative_to(MODELS))] = (child, child.stat().st_size)
-                continue
-            if child.name not in known_tops and not child.is_symlink():
-                extras[str(child.relative_to(MODELS))] = (child, _audit_tree_bytes(child))
-                continue
-            for entry in _audit_walk(child):
-                relative = entry.relative_to(MODELS).parts
-                if any(part.startswith(".") or part in AUDIT_HUB_METADATA for part in relative):
-                    continue
-                if relative[0] in AUDIT_INFRA_NAMES or entry.suffix in AUDIT_INFRA_SUFFIXES:
-                    continue
-                if any(relative[: len(link)] == link for link in declared):
-                    continue
-                if any(entry == tree or tree in entry.parents for tree in PICKER_TREES):
-                    continue
-                owner = owner_of(relative)
-                label = str(entry.relative_to(MODELS))
-                if owner is None:
-                    extras[label] = (entry, entry.stat().st_size)
-                    continue
-                inside = "/".join(relative[len(dest_rels[owner]):])
-                if not _audit_path_accepted(owner, dests[owner], inside):
-                    extras[label] = (entry, entry.stat().st_size)
-    _offer_removal(extras, "Unclaimed entries under models/ (no artifact definition)")
-
-    new_paths, changed, dropped = _audit_registry_pass(
-        workers, frozenset(str(path.relative_to(MODELS)) for path, _size in extras.values())
-    )
-    print(f"\nHash registry ({AUDIT_REGISTRY_NAME}, one SHA256 line per claimed model file)")
-    print(
-        f"  hashed this pass: {len(new_paths) + len(changed)}"
-        f"  (new: {len(new_paths)}, changed: {len(changed)});"
-        f" stale entries dropped: {dropped}"
-    )
-    fresh = set(new_paths)
-    for relative in (new_paths + changed)[:40]:
-        print(f"  {'NEW' if relative in fresh else 'MOD'}  {relative}")
-    overflow = len(new_paths) + len(changed) - 40
-    if overflow > 0:
-        print(f"  ... and {overflow} more")
+    # Stray sweep: top-level models/ entries that no bundle definition claims.
+    strays: dict[str, tuple[Path, int]] = {}
+    claim_roots = [root for roots in claims.values() for root in roots]
+    for child in sorted(MODELS.iterdir()):
+        if child.name.startswith(".") or child.name in STATE_NAMES:
+            continue
+        if any(child == root or child in root.parents or root in child.parents
+               for root in claim_roots):
+            continue
+        size = (child.stat().st_size if child.is_file() or child.is_symlink()
+                else _tree_bytes(child))
+        strays[str(child.relative_to(MODELS))] = (child, size)
+    _offer_removal(strays, "Unclaimed entries under models/ (no bundle definition)")
 
 
 def resolve_selection(
@@ -2135,6 +2338,7 @@ def download_artifact(
         materialize_placements(artifact)
         materialize_dir_links(artifact)
         materialize_file_links(artifact)
+        materialize_store_mirrors(artifact.destination)
         return
     mode = "cache_dir" if artifact.cache_layout else "local_dir"
     print(f"\n[{number}/{total}] {artifact.repo_id}")
@@ -2158,6 +2362,7 @@ def download_artifact(
     materialize_placements(artifact)
     materialize_dir_links(artifact)
     materialize_file_links(artifact)
+    materialize_store_mirrors(artifact.destination)
 
 
 def _sha256(path: Path) -> str:
@@ -2208,9 +2413,11 @@ def download_direct_artifact(artifact: Artifact, number: int, total: int) -> Non
 def materialize_placements(artifact: Artifact) -> None:
     """Expose selected snapshot files at native runtime paths without copies.
 
-    Hugging Face's resumable local snapshot remains intact. On the same
-    filesystem, the runtime path is a hard link to those verified bytes; the
-    copy fallback is only for an unusual cross-filesystem destination.
+    Hugging Face's resumable local snapshot stays intact in the canonical
+    <org>--<model> directory.  The runtime path becomes a relative symlink to
+    those verified bytes (a "dummy folder" reference, never a second set of
+    bytes); the copy fallback is only for an unusual cross-filesystem
+    destination.
     """
     for relative_source, target in artifact.placements:
         source = artifact.destination / relative_source
@@ -2237,8 +2444,8 @@ def materialize_placements(artifact: Artifact) -> None:
                 f"Refusing to replace a different runtime artifact: {target}"
             )
         try:
-            os.link(source, target)
-            method = "hard link"
+            target.symlink_to(os.path.relpath(source, target.parent))
+            method = "symlink"
         except OSError:
             shutil.copy2(source, target)
             method = "copy"
@@ -2304,6 +2511,39 @@ def materialize_file_links(artifact: Artifact) -> None:
         print(f"  linked: {target}")
 
 
+def materialize_store_mirrors(canonical: Path) -> None:
+    """Keep every legacy runtime path of a canonical directory resolvable.
+
+    After organize_store() the bytes live only in the canonical directory; a
+    fresh clone has never seen the legacy name.  Either way the legacy path
+    ends up as a relative symlink: one directory link when the whole tree is
+    wanted, per-entry links where several repositories share the legacy folder.
+    """
+    for legacy in STORE_MIRRORS.get(canonical, ()):
+        if legacy.is_symlink():
+            continue
+        if not legacy.exists():
+            legacy.parent.mkdir(parents=True, exist_ok=True)
+            legacy.symlink_to(os.path.relpath(canonical, legacy.parent))
+            print(f"  linked: {legacy} -> {os.path.relpath(canonical, legacy.parent)}")
+            continue
+        for entry in sorted(canonical.iterdir(), key=lambda p: p.name):
+            if entry.name in TRANSIENT_NAMES or entry.name in STATE_NAMES:
+                continue
+            link = legacy / entry.name
+            if link.is_symlink():
+                continue
+            if link.exists():
+                print(
+                    f"  warning: {link} is a second copy of the store; "
+                    "hashes.txt flags it until removed",
+                    file=sys.stderr,
+                )
+                continue
+            link.symlink_to(os.path.relpath(entry, legacy))
+        # legacy path exists as a real directory; entries link in place above
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Download all mm-tools model artifacts or selected project bundles.",
@@ -2311,8 +2551,10 @@ def build_parser() -> argparse.ArgumentParser:
             "Examples: uv run download_models.py | uv run download_models.py all | "
             "uv run download_models.py 2,6,10 | uv run download_models.py minimax stableaudio | "
             "uv run download_models.py lingbot:2 | uv run download_models.py fastframes:2. "
-            "After every completed pass the picker rewrites store-ledger.tsv and offers "
-            "to remove retired/unclaimed files under models/ (always y/n first)."
+            "Every run first migrates the store into canonical <org>--<model> directories "
+            "and checks/updates hashes.txt (stateful WANT registry, reference digest set); "
+            "after a completed pass it offers to remove deselected or unclaimed paths "
+            "under models/ (always y/n first)."
         ),
     )
     parser.add_argument(
@@ -2359,8 +2601,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("No downloads selected.")
         return 0
 
+    ledger = MODELS / "store-ledger.tsv"
+    if ledger.exists():
+        ledger.unlink()
+        print("store-ledger.tsv retired: selection state now lives in the WANT lines of hashes.txt.")
+
+    # The first thing a run does: canonicalize the layout, then check/update
+    # hashes.txt against the selection (WANT 0/1).  Only the download loop
+    # below touches the network, and only after the Continue prompt.
+    organize_store(args.yes)
+    claims = _definition_claims()
+    sync_hashes(claims, _wanted_names(bundles, picks, claims), workers, assume_yes=args.yes)
+
     artifacts = tuple(dict.fromkeys(
-        artifact
+        canonical_artifact(artifact)
         for bundle in bundles
         for artifact in bundle_artifacts(bundle, picks.get(bundle.key))
     ))
@@ -2395,8 +2649,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("Cancelled.")
             return 0
 
-    # Do not mutate the model store until the user has accepted the download.
-    # Renaming the complete local_dir also preserves Hugging Face's resumable
+    # Do not start any download until the user has accepted it.  Renaming a
+    # complete local_dir (organize_store) preserves Hugging Face's resumable
     # metadata and any interrupted chunks beneath that directory.
     migrate_legacy_layout(bundles)
 
@@ -2412,22 +2666,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         prepare_scenebloom_assets(MODELS)
 
     print(f"\nCompleted {len(artifacts)} snapshot downloads.")
-    post_download_maintenance(bundles, picks, workers)
+    post_download_maintenance(bundles, picks, claims)
+    # Refresh the registry so every downloaded file is registered and the
+    # removals above drop out as stale entries.
+    sync_hashes(claims, _wanted_names(bundles, picks, claims), workers,
+                assume_yes=True, quiet=True)
     return 0
 
 # SceneBloom ships two large published archives plus AmbientCG material packs; the
 # picker verifies and unpacks them, and serving stays offline afterwards.
-import hashlib
-import json
-import os
-from pathlib import Path
-import shutil
-import stat
-import tempfile
-import urllib.request
-import zipfile
-
-
 def asset_digest(path):
     value = hashlib.sha256()
     with path.open("rb") as stream:
@@ -2481,13 +2728,25 @@ def asset_unpack(archive, destination, checksum):
 def prepare_scenebloom_assets(models: Path) -> None:
     manifest = json.loads((models / "manifests/scenebloom.json").read_text())
     root = models / "scenebloom"
+    # AmbientCG trees are canonicalized under their source name; the project
+    # paths below stay resolvable as symlink mirrors (organize_store has moved
+    # any existing content into the canonical directories by now).
+    material_dirs = {
+        "materials": models / "ambientcg--materials",
+        "material-archives": models / "ambientcg--material-archives",
+    }
+    for legacy_name, target in material_dirs.items():
+        legacy = root / legacy_name
+        if not legacy.is_symlink() and not legacy.exists():
+            legacy.parent.mkdir(parents=True, exist_ok=True)
+            legacy.symlink_to(os.path.relpath(target, legacy.parent))
     for entry in manifest["archives"]:
         archive = root / "m3dlayout" / entry["path"]
         checksum = asset_digest(archive)
         if checksum != entry["sha256"]:
             raise ValueError(f"Checksum mismatch: {archive}")
         asset_unpack(archive, root / "m3dlayout/extracted" / entry["dest"], checksum)
-    cache = root / "material-archives"
+    cache = material_dirs["material-archives"]
     cache.mkdir(exist_ok=True)
     for material in manifest["materials"]:
         archive = cache / f"{material}_2K-JPG.zip"
@@ -2516,9 +2775,9 @@ def prepare_scenebloom_assets(models: Path) -> None:
                 receipt.write_text(json.dumps(dict(url=url, sha256=asset_digest(archive))))
             finally:
                 temporary.unlink(missing_ok=True)
-        asset_unpack(archive, root / "materials" / material, asset_digest(archive))
+        asset_unpack(archive, material_dirs["materials"] / material, asset_digest(archive))
         if not (
-            root / "materials" / material / f"{material}_2K-JPG_Color.jpg"
+            material_dirs["materials"] / material / f"{material}_2K-JPG_Color.jpg"
         ).is_file():
             raise ValueError(f"Missing material colour map: {material}")
     # Grounding-DINO-lineage code asks for the legacy bare "bert-base-uncased" id, but only

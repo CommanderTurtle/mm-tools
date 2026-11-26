@@ -11,7 +11,7 @@ flowchart TB
     CLI["uv run download_models.py"] --> Select["Explicit project bundle"]
     Select --> Shared["models/project snapshot"]
     Select --> Native["project-local models/checkpoints"]
-    Shared --> Link["Verified hard-link placement"]
+    Shared --> Link["Verified symlink placement (dummy folders)"]
     Link --> Comfy["workflows/ComfyUI/models/type"]
     Native --> Runtime["Imported project runtime"]
     Comfy --> Runtime
@@ -22,7 +22,7 @@ flowchart TB
 Older mm-tools applications keep their established shared-store paths.
 Imported projects whose code documents a repository-local checkpoint path use
 that path directly. Shared Wan, ID-V2V, and YuE2 Comfy weights are downloaded
-once beneath `models/imports` and hard-linked into the PR-pinned local Comfy
+once beneath `models/imports` and symlinked into the PR-pinned local Comfy
 runtime, avoiding duplicate disk consumption while keeping resumability.
 TRELLIS.2 and Pixal3D likewise share pinned local DINOv3, the official ungated
 ZhengPeng7 BiRefNet checkpoint, MoGe-2,
@@ -52,19 +52,27 @@ it. The downloader creates missing parent directories and refuses to replace a
 conflicting runtime placement; the only phase that deletes is the post-download
 maintenance pass, and it always prompts first.
 
-After every completed download pass the picker maintains the store without
-downloading anything. It rewrites `models/store-ledger.tsv` — one line per
-selectable bundle/tier name, `1` when this pass kept it, `0` when the name was
-tracked before but deselected — then offers two deletions, each behind an
-explicit prompt: exclusive store paths of `0` (retired) names, and entries
-under `models/` that no artifact definition claims (over-fetch inside pinned
-snapshots, stray top-level folders). Mixed or shared destinations and the
-compatibility hard/symlink placements declared by definitions are always kept.
-Maintenance refreshes `models/hashes.txt` — a plaintext SHA-256 registry
-covering only the model files claimed by bundle definitions, so unclaimed junk
-is never hashed and removed files drop out as stale; only new or
-size/mtime-changed files get rehashed. The interactive worker prompt and
-`--workers` apply to the hashing as well.
+Every run starts by canonicalizing the store layout and the state registry
+before anything downloads. Model bytes live only under
+`models/<org>--<model>/` directories; legacy project-named trees (clones from
+before this rule, or older imports) are migrated once behind an explicit
+prompt, and each old runtime path keeps a relative symlink ("dummy folder")
+into the canonical directory, so no project reference needs patching. The
+registry `models/hashes.txt` follows the reference `hashes-recurse.py` header
+blocks: every untracked path under `models/` except `.venv/` is registered —
+FILE blocks with the SHA-256/SHA-1/MD5 digest triple, LINK blocks inventorying
+symlinks and their targets, TRANSIENT blocks standing in for `.cache`/
+`__pycache__` churn, OTHER blocks for anything else. Each block carries a run
+by run `WANT` flag: `1` when the current selection owns the path, `0` when a
+previous run wanted it but this one does not. Unchanged SIZE/TIMESTAMP
+signatures reuse stored digests; only new or changed files get hashed, in
+parallel with the same worker count as downloads. After every completed pass
+the picker offers two deletions, each behind an explicit prompt: exclusive
+store paths of deselected (`WANT 0`) names, and top-level entries under
+`models/` that no bundle definition claims. Mixed or shared destinations and
+the compatibility symlink placements declared by definitions are always kept;
+the registry is refreshed at the end of the run so new downloads are
+registered and removed files drop out as stale.
 
 The former `animate` and `ltx` bundles are retired from this downloader.
 Those weights now come from `workflows/download_models.py`, which ships
@@ -74,6 +82,9 @@ exactly as the retired entries did.
 
 ## Boundaries
 
+- Store bytes live only under `models/<org>--<model>/` directories. Legacy
+  project-named folders survive only as compatibility symlink mirrors, and the
+  first run on any machine migrates them there automatically.
 - New snapshots are pinned to audited immutable Hub revisions and filtered by
   explicit file allowlists.
 - ARDY uses the pinned, ungated, pre-merged INT8 LLM2Vec encoder. It retains

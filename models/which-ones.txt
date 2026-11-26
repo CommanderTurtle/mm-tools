@@ -11,6 +11,12 @@ Current Hugging Face Hub writes real files into `local_dir`; older Hub releases
 receive their former `local_dir_use_symlinks=False` compatibility flag only
 when that argument still exists.
 
+Store bytes live only under `models/<org>--<model>/` directories. Runtime
+paths shown below (project-named folders such as `qwen/`, `hynomas/`, and
+`scenebloom/`) are the paths the projects consume: the first run migrates any
+legacy copies into the canonical directories and leaves compatibility
+symlinks behind, so this inventory keeps resolving exactly as written.
+
 Create the small downloader environment once:
 
 ```bash
@@ -402,7 +408,7 @@ workflows/ComfyUI/models/diffusion_models/
 
 Used by: the checked-in ID-V2V source and PR-pinned local Comfy runtime. Both
 the base and normal/depth-conditioned variants are approved; large runtime
-files are hard-linked from the resumable snapshot when the filesystem permits.
+files are relative symlinks onto the resumable snapshot in the canonical store.
 
 21. Comfy-Org/Wan_2.1_ComfyUI_repackaged
 Resumable snapshot: models/imports/Comfy-Org--Wan_2.1_ComfyUI_repackaged
@@ -1000,7 +1006,7 @@ models/imports/Comfy-Org--YuE2/
 ```
 
 Used by: the PR-pinned local Comfy YuE2 native-generation and cover
-blueprints. The downloader hard-links both files into the corresponding
+blueprints. The downloader symlinks both files into the corresponding
 `workflows/ComfyUI/models` folders. These optimized Comfy assets complement, rather
 than replace, the native YuE2 models in items 59-62.
 
@@ -1008,7 +1014,7 @@ than replace, the native YuE2 models in items 59-62.
 Snapshot folder: sculpting/trellis/pretrained/deps/microsoft--TRELLIS-image-large
 
 Only `ckpts/ss_dec_conv3d_16l8_fp16.{json,safetensors}` plus the model card
-are retained. The two checkpoint files are hard-linked into
+are retained. The two checkpoint files are symlinked into
 `sculpting/trellis/pretrained/TRELLIS.2-4B/ckpts`, completing the exact pipeline graph
 without downloading the rest of this legacy repository.
 

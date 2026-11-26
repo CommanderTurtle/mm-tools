@@ -55,10 +55,13 @@ deactivate # when done
 The downloader is resumable. Run it again after an interrupted transfer. Use
 `uv run download_models.py --list` for the complete current menu; pick parts
 with `name` or `name:tier` (for example `fastframes:2` or `underdog:2+4`).
-After every completed download pass the picker maintains the store: it
-rewrites `models/store-ledger.tsv` (per bundle/tier tracked flags) and offers
-to delete files belonging to names you deselected since the last pass plus
-files claimed by no bundle at all — always with a y/n prompt first.
+Every run first migrates legacy project folders into canonical
+`models/<org>--<model>/` directories (old paths keep compatibility symlinks)
+and checks/updates `models/hashes.txt`, the stateful hash + selection registry
+(WANT 0/1 per entry, reference digest triple, symlinks inventoried). After a
+completed pass the picker offers to delete files belonging to names you
+deselected since the last pass plus folders claimed by no bundle at all —
+always with a y/n prompt first.
 The imports include model files that carefully get cloned from hf/ms sources with multi-worker speed. Each project builds with some type of `setupwith**.sh` file. These prompt for single-GPU adapters, setup/start contracts, and
 browser studio builds; model artifacts remain external to the downloader and
 resumable. Some deliberately separate shared encoder/VAE bundles from
@@ -96,29 +99,6 @@ https://github.com/user-attachments/assets/cb2c3b6d-60e5-4599-9be7-ad5472342b7e
 *compatible with vox*
 
 https://github.com/user-attachments/assets/944a9918-28dd-4a29-8e2b-76d1d80cd4e7
-
-# Motion authoring
-
-Motion authoring: [MotionBricks studio](motion-sim/nv-motionbricks/ARCHITECTURE.md)
-provides SOMA and Unitree G1 inbetweening, Smart Primitive authoring, scene editing
-and interactive character preview through the pinned native runtime.
-
-[FlowHMR studio](motion-sim/reftoanimesh/ARCHITECTURE.md) reconstructs SMPL-H motion
-from reference video, with person selection, reusable intermediates and an
-optional side-by-side PHC humanoid rollout.
-
-[PhysAg3D studio](sculpting/PhysAg3D/ARCHITECTURE.md) builds articulated objects from
-images through separately saved TRELLIS generation and OMP/Blender/MuJoCo stages,
-with part controls, motion playback and portable asset bundles.
-
-[Idol studio](sculpting/idol/ARCHITECTURE.md) turns images into Gaussian splats, with
-the original Space presets and sampling controls, an orbit viewer and PLY export.
-
-[SceneBloom studio](sculpting/scenebloom/ARCHITECTURE.md) generates furnished rooms
-with local vision, saved stages, spatial inspection and textured GLB export.
-
-[Hy-Nomas studio](world-gen/hynomas/ARCHITECTURE.md) generates continuous worlds with
-text, image starts and recorded camera motion, rollback, saved state and MP4 exports.
 
 # Video Compression
 
@@ -601,10 +581,6 @@ The only Yue2 frontend with stem splitting!
 
 ![yuesplitter](https://huggingface.co/sHEL1562/shelling/resolve/main/src/stems.avif)
 
-<a href="https://a.shel.sh/#ss:~9h=@:aQCb685#]:[a@)a;YaCeHZ[[K4([v)*p&OJB274p;Qifr" title="a.shel.sh superlink">Live Viewer Exporting</a>
+<a href="https://a.shel.sh/#ss:~F9V;8MlNeIM=V7(;U*U~+eAsXar-.auARjeTUWt_=9gQr@!" title="a.shel.sh superlink">Live Viewer Exporting</a> - Note, browser needs HVEC for this example link.
 
 - (Share with Friends via app.shel.sh/make & a.shel.sh superlinks, entirely local)
-
-Another:
-
-https://a.shel.sh/#media:rZ9jBas~g*mK]Q-()SB$IFDo]Xl-b5y[P,/@f/FwenhdLmh~Aaw
