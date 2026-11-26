@@ -57,7 +57,10 @@ before anything downloads. Model bytes live only under
 `models/<org>--<model>/` directories; legacy project-named trees (clones from
 before this rule, or older imports) are migrated once behind an explicit
 prompt, and each old runtime path keeps a relative symlink ("dummy folder")
-into the canonical directory, so no project reference needs patching. The
+into the canonical directory, so no project reference needs patching. Legacy
+entries that survive a migration as real files are deduplicated in place:
+byte-identical content is replaced by the symlink, and only genuinely
+different content is kept and warned about. The
 registry `models/hashes.txt` follows the reference `hashes-recurse.py` header
 blocks: every untracked path under `models/` except `.venv/` and the
 repo-shipped files (scripts, `manifests/`, docs, `uv.toml`) is registered —
@@ -65,7 +68,11 @@ FILE blocks with the SHA-256/SHA-1/MD5 digest triple, LINK blocks inventorying
 symlinks and their targets, DIR blocks inventorying folders (`STATUS: empty`
 marks void ones, so empty and symlink-only folders are on record), TRANSIENT
 blocks standing in for `.cache`/
-`__pycache__` churn, OTHER blocks for anything else. Each block carries a run
+`__pycache__` churn, OTHER blocks for anything else, and SNAPSHOT blocks
+(keyed `destination::repo`) stamping completed hub passes at their pinned
+revision, so later runs revalidate those trees from the registry alone,
+offline, even when an allowlist pattern names a file upstream never shipped.
+Each block carries a run
 by run `WANT` flag: `1` when the current selection owns the path, `0` when a
 previous run wanted it but this one does not. Unchanged SIZE/TIMESTAMP
 signatures reuse stored digests; only new or changed files get hashed, in
@@ -79,7 +86,13 @@ the registry is refreshed at the end of the run so new downloads are
 registered and removed files drop out as stale. The refreshed registry also
 serves as the skip-list: an artifact whose pinned digest (direct asset) or
 complete, allowlist-satisfied, `.cache`-free snapshot files are already in
-`hashes.txt` is reported ready without a single network request.
+`hashes.txt` is reported ready without a single network request; a `SNAPSHOT`
+provenance stamp extends the same offline proof to trees whose allowlist
+names files upstream never shipped. Finally the pass collapses duplicates by
+digest: one keeper per SHA-256 (wanted first, then canonical, else first
+path) stays real and every other separate copy becomes a relative symlink,
+so identical bytes exist exactly once on disk while every project path keeps
+resolving; hardlinked twins are recognized and skipped.
 
 The former `animate` and `ltx` bundles are retired from this downloader.
 Those weights now come from `workflows/download_models.py`, which ships

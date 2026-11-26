@@ -1435,7 +1435,7 @@ BUNDLES += (Bundle("bria-rmbg3", "BRIA RMBG-3.0 cutouts", "103", (),
 
 
 BUNDLES += (Bundle("wemm-video","WeMM-Video 35B-A3B AWQ","104",(
-    A("tencent/WeMM-Video-35BA3B-AWQ",model_path("wemm-video/awq"),("*.safetensors","*.json","*.py","*.txt","README.md","LICENSE*"),revision="205c63375c223610f99e62d432b816b67b258de0"),
+    A("tencent/WeMM-Video-35BA3B-AWQ",model_path("wemm-video/awq"),("*.safetensors","*.json","*.py","*.txt","*.jinja","README.md","LICENSE*"),revision="205c63375c223610f99e62d432b816b67b258de0"),
 )),)
 
 
@@ -1736,7 +1736,10 @@ def _prompt_or_eof(text: str, default: str = "") -> str:
 # target (contents are never double-hashed), DIR blocks inventory every
 # directory (STATUS: empty when it holds nothing, so symlink-only and empty
 # folders are on record too), TRANSIENT blocks stand in for .cache/__pycache__
-# churn, and OTHER blocks inventory anything not hashable.  Repo-shipped
+# churn, and OTHER blocks inventory anything not hashable.  SNAPSHOT blocks
+# (keyed dest::repo) stamp a completed hub pass at its revision so later runs
+# revalidate that tree from the registry alone, offline, even when an
+# allowlist pattern names a file upstream never shipped.  Repo-shipped
 # files (download_models.py, manifests/, the docs, uv.toml, ...) are mm-tools
 # repository state, not store content, and stay out of the registry entirely.
 # SIZE+TIMESTAMP
@@ -1756,7 +1759,7 @@ REPO_PATHS = {
     "fab_assets.py", "studio-child.py", "studio-env.sh", "which-ones.txt",
     "manifests",
 }
-INFRA_PATHS = STATE_NAMES | {"__pycache__", "uv.toml"}
+INFRA_PATHS = STATE_NAMES | {"uv.toml"}
 
 
 def _is_repo_path(relative: str) -> bool:
@@ -1780,9 +1783,13 @@ def _registry_load() -> dict[str, dict[str, str]]:
     for line in registry.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if stripped == "---":
-            for key in ("FILE", "LINK", "OTHER", "TRANSIENT", "DIR"):
+            for key in ("FILE", "LINK", "OTHER", "TRANSIENT", "DIR", "SNAPSHOT"):
                 if key in block:
-                    table[block[key].rstrip("/")] = block
+                    ident = block[key].rstrip("/")
+                    if key == "SNAPSHOT":
+                        table[f"{ident}::{block.get('REPO', '')}"] = block
+                    else:
+                        table[ident] = block
                     break
             block = {}
         elif not stripped or stripped.startswith("#"):
@@ -1799,7 +1806,8 @@ def _registry_dump(entries: dict[str, list[str]]) -> None:
         "# every untracked models/ path except .venv/ and repo-shipped files is listed:",
         "# FILE hashed (reference digest set), LINK/specials inventoried, DIR metadata",
         "# (STATUS: empty marks void folders); WANT 1 = selected by the latest run,",
-        "# 0 = deselected and offered for cleanup; digests reused while SIZE+TIMESTAMP hold",
+        "# 0 = deselected and offered for cleanup; digests reused while SIZE+TIMESTAMP hold;",
+        "# SNAPSHOT blocks stamp completed hub passes (repo@revision) for offline revalidation",
     ]
     for relative in sorted(entries):
         lines += entries[relative] + ["", "---", ""]
@@ -1846,7 +1854,11 @@ def _registry_snapshot_files(
     previous finished pass left no `.cache` behind and every file under the
     canonical destination carries a fresh SIZE/TIMESTAMP-verified digest.
     Allowlists must be fully satisfied so shared destinations (several
-    repositories in one legacy folder) never skip a missing member.
+    repositories in one legacy folder) never skip a missing member — unless a
+    `SNAPSHOT:` provenance stamp for this repo@revision exists: a completed
+    hub pass proved upstream shipped everything the allowlist could match,
+    so unsatisfied leftover patterns (files that never existed upstream) may
+    not force the network offline.
     """
     if registry is None:
         return None
@@ -1861,15 +1873,34 @@ def _registry_snapshot_files(
         key for key in registry
         if key.startswith(prefix) and _registry_entry_current(registry, key)
     ]
+    # Dedupe-collapsed and compatibility symlinks count as present while
+    # their targets resolve; broken links do not.
+    linked = [
+        key for key, entry in registry.items()
+        if key.startswith(prefix) and "LINK" in entry and "STATUS" not in entry
+        and os.path.exists(MODELS / key)
+    ]
+    owned += linked
+    if not owned:
+        return None
+    stamp = registry.get(f"{prefix[:-1]}::{artifact.repo_id}")
+    stamped = (
+        bool(stamp)
+        and stamp.get("REVISION", "main") == (artifact.revision or "main")
+        and stamp.get("ALLOW", "") == ",".join(sorted(artifact.allow_patterns))
+        and int(stamp.get("FILES", "0")) <= len(owned)
+    )
     if artifact.cache_layout:
         # Cache roots hold several repositories side by side; prove this one
         # completed by requiring its snapshot files plus its written refs.
         slug = f"models--{artifact.repo_id.replace('/', '--')}"
         snapshots = [k for k in owned if f"/{slug}/snapshots/" in k]
         refs = [k for k in owned if f"/{slug}/refs/" in k]
-        return snapshots + refs if snapshots and refs else None
-    if not owned:
-        return None
+        if snapshots and refs:
+            return snapshots + refs
+        # A stamped completed pass still proves it when hub bookkeeping
+        # (refs files) was trimmed by a later tidy.
+        return owned if stamped else None
     inside = [key[len(prefix):] for key in owned]
     if not artifact.cache_layout:
         # A flat local_dir snapshot's own files never live under models--*
@@ -1888,7 +1919,9 @@ def _registry_snapshot_files(
             or fnmatch.fnmatch(rel.rsplit("/", 1)[-1], pattern)
             for rel in inside
         ):
-            return None  # an allowlisted member is not in the store yet
+            # An allowlisted member is not in the store; a stamped completed
+            # pass means upstream simply never shipped that pattern's files.
+            return inside if stamped else None
     return inside
 
 
@@ -1945,7 +1978,69 @@ def _walk_store():
                 yield "special", path, 0
 
 
-def _owner_names(relative: Path, claims: dict[str, set[Path]]) -> set[str]:
+def _pattern_claims() -> dict[str, tuple[bool, tuple[str, ...]]]:
+    """Selectable name -> (owns whole tree, union of allow patterns).
+
+    An artifact with no allow patterns owns everything under its roots (a
+    whole repo or git clone on purpose); patterned artifacts own only files
+    their allow patterns could have produced.
+    """
+    out: dict[str, tuple[bool, tuple[str, ...]]] = {}
+    for bundle in BUNDLES:
+        if not bundle.variants:
+            groups = {bundle.key: bundle.artifacts}
+        else:
+            groups = {
+                f"{bundle.key}:{index}": bundle.artifacts + tier_artifacts
+                for index, (_title, tier_artifacts) in enumerate(bundle.variants, start=1)
+            }
+        for name, artifacts in groups.items():
+            patterns: set[str] = set()
+            whole = False
+            for artifact in artifacts:
+                if not artifact.allow_patterns:
+                    whole = True
+                patterns.update(artifact.allow_patterns)
+            prior_whole, prior = out.get(name, (False, ()))
+            out[name] = (whole or prior_whole, tuple(patterns | set(prior)))
+    return out
+
+
+def _file_matches_patterns(relative: Path, root: Path, patterns: tuple[str, ...]) -> bool:
+    """Whether a file under root could have been produced by those patterns."""
+    child = Path(relative).relative_to(root).as_posix()
+    leaf = child.rsplit("/", 1)[-1]
+    # hub-managed bookkeeping: .gitattributes, digest-named cache blobs,
+    # lock/ref stubs, and the blobs/refs/snapshots layout of cache roots
+    if (leaf == ".gitattributes" or leaf in {"CACHEDIR.TAG", ".huggingface-shared-blobs"}
+            or leaf.endswith((".lock", ".refs"))
+            or any(
+                part.startswith("models--")
+                or part in {"blobs", "refs", "snapshots", ".no_exist"}
+                for part in Path(child).parts[:-1]
+            )):
+        return True
+    return any(
+        fnmatch.fnmatch(child, pattern)
+        or fnmatch.fnmatch(leaf, pattern.split("/")[-1])
+        or fnmatch.fnmatch(leaf, pattern)
+        for pattern in patterns
+    )
+
+
+def _owner_names(
+    relative: Path,
+    claims: dict[str, set[Path]],
+    patterns: dict[str, tuple[bool, tuple[str, ...]]] | None = None,
+) -> set[str]:
+    """Names whose definitions own this store path.
+
+    Directories, links, and churn are owned by prefix.  Files owned through a
+    directory root additionally have to match that name's allow patterns
+    (unless the name owns whole trees): a file dropped into a repo directory
+    afterwards — a random test.pdf — belongs to no definition and is treated
+    as an unowned stray the cleanup can offer back.
+    """
     parts = relative.parts
     names: set[str] = set()
     for name, roots in claims.items():
@@ -1956,9 +2051,20 @@ def _owner_names(relative: Path, claims: dict[str, set[Path]]) -> set[str]:
                 root_rel = root.relative_to(MODELS)
             except ValueError:
                 continue
-            if tuple(root_rel.parts) == parts[: len(root_rel.parts)]:
-                names.add(name)
-                break
+            if tuple(root_rel.parts) != parts[: len(root_rel.parts)]:
+                continue
+            if (
+                patterns is not None
+                and parts != root_rel.parts
+                and len(parts) > len(root_rel.parts)
+            ):
+                whole, owned_patterns = patterns.get(name, (False, ()))
+                if not whole and not _file_matches_patterns(
+                    relative, root_rel, owned_patterns
+                ):
+                    continue  # another root of this name may still own it
+            names.add(name)
+            break
     return names
 
 
@@ -1968,6 +2074,7 @@ def sync_hashes(
     workers: int,
     *,
     assume_yes: bool = False,
+    provenance: Sequence[tuple[Path, str, str, str]] = (),
 ) -> None:
     """Check models/hashes.txt, hash only new or changed files, update WANT."""
     registry = _registry_load()
@@ -1977,6 +2084,7 @@ def sync_hashes(
     dirs = empties = 0
     unowned = misplaced = 0
     total_bytes = 0
+    pattern_claims = _pattern_claims()
     for kind, path, inner in _walk_store():
         relative = path.relative_to(MODELS)
         key = relative.as_posix()
@@ -1984,7 +2092,10 @@ def sync_hashes(
             continue
         if _is_repo_path(key):
             continue  # repo-shipped state, not store content
-        names = _owner_names(relative, claims)
+        names = _owner_names(
+            relative, claims,
+            pattern_claims if kind == "file" else None,
+        )
         want = "1" if names & wanted else "0"
         if kind == "transient":
             transients += 1
@@ -2076,7 +2187,7 @@ def sync_hashes(
                 continue
             total_bytes += int(size)
             relative_parts = Path(key).parts
-            if not _owner_names(Path(key), claims):
+            if not _owner_names(Path(key), claims, pattern_claims):
                 unowned += 1
                 record.append("UNOWNED:   claimed by no bundle definition")
             if not any("--" in part for part in relative_parts[:-1]):
@@ -2088,6 +2199,37 @@ def sync_hashes(
             ])
             continue
         # reused record: flags already appended during the walk
+    carried = 0
+    for rel, entry in registry.items():
+        if "::" not in rel or "SNAPSHOT" not in entry:
+            continue
+        dest = MODELS / rel.partition("::")[0]
+        if dest.is_dir() and not (dest / ".cache").is_dir():
+            records[rel] = [f"{head}: {value}" for head, value in entry.items()]
+            carried += 1
+    for dest, repo_id, revision, allow in provenance:
+        try:
+            dest_rel = Path(os.path.normpath(str(dest))).relative_to(MODELS).as_posix()
+        except ValueError:
+            continue  # lane or home-path destination: outside registry scope
+        file_count = sum(
+            1 for key, record in records.items()
+            if key.startswith(dest_rel + "/")
+            and ((record[0].startswith("FILE")
+                  and any(line.startswith("SHA256") for line in record))
+                 or (record[0].startswith("LINK")
+                     and not any(line.startswith("STATUS") for line in record)))
+        )
+        records[f"{dest_rel}::{repo_id}"] = [
+            f"SNAPSHOT:  {dest_rel}",
+            f"REPO:      {repo_id}",
+            f"REVISION:  {revision}",
+            f"ALLOW:     {allow}",
+            f"FILES:     {file_count}",
+            "WANT:      1",
+        ]
+    if carried:
+        print(f"  carried {carried} provenance stamps into the refreshed registry")
     stale = sorted(set(registry) - set(records))
     _registry_dump(records)
     files = sum(1 for record in records.values() if record[0].startswith("FILE"))
@@ -2261,6 +2403,8 @@ def post_download_maintenance(claims: dict[str, set[Path]]) -> None:
     registry = _registry_load()
     candidates: set[str] = set()
     for rel, entry in registry.items():
+        if "SNAPSHOT" in entry:
+            continue  # provenance stamps are metadata, never store items
         if "TRANSIENT" in entry:
             candidates.add(rel)  # churn clears safely and regenerates
         elif entry.get("WANT", "0") == "0":
@@ -2668,6 +2812,40 @@ def materialize_file_links(artifact: Artifact) -> None:
         print(f"  linked: {target}")
 
 
+def _same_content(left: Path, right: Path) -> bool:
+    """Byte-identical regular files, cheaply (size first, then chunked read)."""
+    try:
+        first, second = left.stat(), right.stat()
+    except OSError:
+        return False
+    if first.st_size != second.st_size:
+        return False
+    with left.open("rb") as a, right.open("rb") as b:
+        while True:
+            chunk_a, chunk_b = a.read(1024 * 1024), b.read(1024 * 1024)
+            if chunk_a != chunk_b:
+                return False
+            if not chunk_a:
+                return True
+
+
+def _dedupe_tree(legacy_dir: Path, canonical_dir: Path) -> int:
+    """Replace legacy files that byte-match their canonical twin with links."""
+    replaced = 0
+    for root, _dirs, files in os.walk(legacy_dir):
+        base = Path(root)
+        for name in sorted(files):
+            entry = base / name
+            if entry.is_symlink():
+                continue
+            twin = canonical_dir / entry.relative_to(legacy_dir)
+            if twin.is_file() and not twin.is_symlink() and _same_content(entry, twin):
+                entry.unlink()
+                entry.symlink_to(os.path.relpath(twin, base))
+                replaced += 1
+    return replaced
+
+
 def materialize_store_mirrors(canonical: Path) -> None:
     """Keep every legacy runtime path of a canonical directory resolvable.
 
@@ -2675,6 +2853,10 @@ def materialize_store_mirrors(canonical: Path) -> None:
     fresh clone has never seen the legacy name.  Either way the legacy path
     ends up as a relative symlink: one directory link when the whole tree is
     wanted, per-entry links where several repositories share the legacy folder.
+    Legacy entries that survived a migration as real files are deduplicated:
+    byte-identical content is replaced in place by a relative symlink, so the
+    second copy vanishes and the runtime path keeps resolving; genuinely
+    different content is kept and warned about.
     """
     for legacy in STORE_MIRRORS.get(canonical, ()):
         if legacy.is_symlink():
@@ -2691,14 +2873,91 @@ def materialize_store_mirrors(canonical: Path) -> None:
             if link.is_symlink():
                 continue
             if link.exists():
-                print(
-                    f"  warning: {link} is a second copy of the store; "
-                    "hashes.txt flags it until removed",
-                    file=sys.stderr,
-                )
+                if (link.is_file() and entry.is_file()
+                        and _same_content(link, entry)):
+                    link.unlink()
+                    link.symlink_to(os.path.relpath(entry, legacy))
+                    print(f"  deduped: {link} -> {os.path.relpath(entry, legacy)}")
+                elif link.is_dir() and entry.is_dir():
+                    if _dedupe_tree(link, entry):
+                        print(f"  deduped: {link}/ -> {os.path.relpath(entry, legacy)}/")
+                    if any(not child.is_symlink() for child in link.rglob("*")
+                           if child.is_file()):
+                        print(
+                            f"  warning: {link} keeps real files the canonical "
+                            "directory does not match",
+                            file=sys.stderr,
+                        )
+                else:
+                    print(
+                        f"  warning: {link} is a second copy of the store; "
+                        "hashes.txt flags it until removed",
+                        file=sys.stderr,
+                    )
                 continue
             link.symlink_to(os.path.relpath(entry, legacy))
         # legacy path exists as a real directory; entries link in place above
+
+
+def dedupe_store(claims: dict[str, set[Path]], wanted: set[str]) -> None:
+    """Collapse byte-identical duplicates onto one physical copy.
+
+    Runs after the registry has been refreshed and the cleanup prompt has
+    finished, so it only touches files the selection keeps.  Registry digests
+    group the files; exactly one copy per digest stays real: a file this run
+    wants if there is one, else one inside an <org>--<model> directory, else
+    the first path.  Every other *separate* copy is replaced in place by a
+    relative symlink named for its old path pointing at the keeper, so no
+    project reference notices and the duplicate bytes are simply gone.
+    Hardlink twins already share their blocks and stay untouched.
+    """
+    registry = _registry_load()
+    groups: dict[str, list[tuple[Path, int, bool, bool, tuple[int, int]]]] = {}
+    for rel, entry in registry.items():
+        sha = entry.get("SHA256")
+        if not sha or "::" in rel:
+            continue
+        path = MODELS / rel
+        if path.is_symlink():
+            continue
+        try:
+            info = path.stat()
+        except OSError:
+            continue
+        names = _owner_names(Path(rel), claims)
+        keep_preferred = bool(names & wanted)
+        canonical = any("--" in part for part in Path(rel).parts[:-1])
+        groups.setdefault(sha, []).append(
+            (path, info.st_size, keep_preferred, canonical,
+             (info.st_dev, info.st_ino)))
+    linked = freed = shared = 0
+    for members in groups.values():
+        if len(members) < 2:
+            continue
+        members.sort(key=lambda m: (not m[2], not m[3], str(m[0])))
+        keeper, keeper_size, _, _, keeper_id = members[0]
+        seen = {keeper_id}
+        for path, size, _, _, inode in members[1:]:
+            if inode in seen:
+                shared += 1
+                continue
+            try:
+                if path.stat().st_size != size or size != keeper_size:
+                    continue  # changed since the registry was written
+            except OSError:
+                continue
+            seen.add(inode)
+            try:
+                path.unlink()
+                path.symlink_to(os.path.relpath(keeper, path.parent))
+            except OSError:
+                continue
+            linked += 1
+            freed += size
+    if linked:
+        print(f"\nStore deduplicated: {linked} duplicate files became symlinks, "
+              f"freed {freed / 1e9:.2f} GB"
+              + (f" ({shared} hardlink twins already shared)" if shared else ""))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -2712,7 +2971,8 @@ def build_parser() -> argparse.ArgumentParser:
             "and checks/updates hashes.txt (stateful WANT registry, reference digest set); "
             "artifacts already verified in hashes.txt skip the network entirely; "
             "after a completed pass it offers to remove deselected or unclaimed paths "
-            "under models/ (always y/n first)."
+            "under models/ (always y/n first), then symlinks duplicate files onto "
+            "their keeper (equal SHA-256) to reclaim the space."
         ),
     )
     parser.add_argument(
@@ -2820,9 +3080,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         logging.set_verbosity_debug()
     else:
         logging.set_verbosity_info()
+    attempted: list[tuple[Path, str, str, str]] = []
     for number, artifact in enumerate(artifacts, start=1):
         download_artifact(artifact, number, len(artifacts), workers, registry)
         _tidy_destination(artifact)
+        if not artifact.direct_url:
+            attempted.append((artifact.destination, artifact.repo_id,
+                              artifact.revision or "main",
+                              ",".join(sorted(artifact.allow_patterns))))
 
     if any(bundle.key == "scenebloom" for bundle in bundles):
         prepare_scenebloom_assets(MODELS)
@@ -2831,8 +3096,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     # The completed pass first updates hashes.txt (prompted once for anything
     # new), then offers the destructive cleanup: WANT 0 trees and unclaimed
     # folders, i.e. everything models/ holds outside this run's selection.
-    sync_hashes(claims, _wanted_names(bundles, picks), workers, assume_yes=args.yes)
+    sync_hashes(claims, _wanted_names(bundles, picks), workers, assume_yes=args.yes,
+                provenance=attempted)
     post_download_maintenance(claims)
+    dedupe_store(claims, _wanted_names(bundles, picks))
     return 0
 
 # SceneBloom ships two large published archives plus AmbientCG material packs; the

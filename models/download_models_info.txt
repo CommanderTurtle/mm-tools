@@ -47,7 +47,20 @@ triple, symlinks are inventoried as `LINK` blocks with their target, folders as
 `DIR` blocks (`STATUS: empty` marks void ones, so empty and symlink-only
 folders are on record), churn
 trees (`.cache`, `__pycache__`) as `TRANSIENT` blocks, and anything not
-hashable as `OTHER` blocks.  Each block carries a `WANT` line: `1` when this
+hashable as `OTHER` blocks.  Completed hub passes additionally stamp
+`SNAPSHOT` blocks (destination, repo, revision, file count): while the tree
+stays registered and untouched, later runs skip the network for that repo even
+if some allowlist pattern names a file upstream never shipped; deleting files
+invalidates the stamp and forces a refetch.  Stray files dropped anywhere under
+models/ belong to no definition, register `WANT 0` as unowned, and are offered
+for removal per file.  Legacy leftovers that survived a migration as real
+files are deduplicated in place into symlinks when they byte-match the
+canonical twin.  After cleanup, the pass also collapses remaining duplicate
+files (equal SHA256 in hashes.txt) onto one keeper — preferred: wanted, then
+inside an <org>--<model> directory, else first path — replacing every other
+separate copy with a relative symlink and reporting the reclaimed gigabytes;
+hardlink twins already share blocks and are left alone, and offline revalidate
+treats a resolving symlink as a present file (a broken one forces a refetch).  Each block carries a `WANT` line: `1` when this
 run's selection owns the path, `0` when an earlier run wanted it but this one
 does not; future runs may freely demote entries.  Unchanged SIZE+TIMESTAMP
 signatures reuse the stored digests, so repeat passes stay near-instant, and

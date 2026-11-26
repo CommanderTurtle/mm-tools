@@ -62,7 +62,12 @@ and checks/updates `models/hashes.txt`, the stateful hash + selection registry
 empty ones — inventoried). After a completed pass a registry sweep offers to
 delete every entry the selection did not want — deselected or unowned files,
 empty and symlink-only folders (whole retired trees collapse to one entry),
-and regenerable cache churn — always with a y/n prompt first.
+and regenerable cache churn — always with a y/n prompt first. Files dropped
+into repo directories afterwards register as unowned strays and are offered
+per file; with `hashes.txt` current, intact trees revalidate fully offline via
+provenance stamps — the network is touched only for genuinely missing files.
+Byte-identical duplicates collapse onto one keeper per digest, the rest
+becoming symlinks (`freed GB` reported at the end of each pass).
 The imports include model files that carefully get cloned from hf/ms sources with multi-worker speed. Each project builds with some type of `setupwith**.sh` file. These prompt for single-GPU adapters, setup/start contracts, and
 browser studio builds; model artifacts remain external to the downloader and
 resumable. Some deliberately separate shared encoder/VAE bundles from
