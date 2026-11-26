@@ -1788,6 +1788,90 @@ def _registry_dump(entries: dict[str, list[str]]) -> None:
     temporary.replace(_registry_path())
 
 
+def _registry_entry_current(registry: dict[str, dict[str, str]], relative: str) -> dict[str, str] | None:
+    """Registry block for a path, but only while disk still matches its SIZE/TIMESTAMP."""
+    entry = registry.get(relative)
+    if not entry or not entry.get("SHA256"):
+        return None
+    try:
+        info = (MODELS / relative).stat()
+    except OSError:
+        return None
+    stamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(info.st_mtime))
+    if (entry.get("SIZE", "").split() != [str(info.st_size), "bytes"]
+            or entry.get("TIMESTAMP") != stamp):
+        return None
+    return entry
+
+
+def _registry_digest_skip(artifact: Artifact, registry: dict[str, dict[str, str]] | None) -> bool:
+    """True when a pinned direct artifact is already in hashes.txt, unchanged."""
+    if registry is None or not artifact.direct_filename or not artifact.sha256:
+        return False
+    target = Path(os.path.normpath(str(artifact.destination))) / artifact.direct_filename
+    try:
+        relative = target.relative_to(MODELS).as_posix()
+    except ValueError:
+        return False
+    entry = _registry_entry_current(registry, relative)
+    return bool(entry) and entry["SHA256"].lower() == artifact.sha256.lower()
+
+
+def _registry_snapshot_files(
+    artifact: Artifact, registry: dict[str, dict[str, str]] | None
+) -> list[str] | None:
+    """Files proven present for a snapshot artifact, or None to hit the network.
+
+    The registry written by the pre-run hash pass is the completion proof: a
+    previous finished pass left no `.cache` behind and every file under the
+    canonical destination carries a fresh SIZE/TIMESTAMP-verified digest.
+    Allowlists must be fully satisfied so shared destinations (several
+    repositories in one legacy folder) never skip a missing member.
+    """
+    if registry is None:
+        return None
+    dest = Path(os.path.normpath(str(artifact.destination)))
+    if not dest.is_dir() or (dest / ".cache").is_dir():
+        return None  # fresh or interrupted: let the resumable client verify
+    try:
+        prefix = dest.relative_to(MODELS).as_posix() + "/"
+    except ValueError:
+        return None  # home-path destination: outside the registry's scope
+    owned = [
+        key for key in registry
+        if key.startswith(prefix) and _registry_entry_current(registry, key)
+    ]
+    if artifact.cache_layout:
+        # Cache roots hold several repositories side by side; prove this one
+        # completed by requiring its snapshot files plus its written refs.
+        slug = f"models--{artifact.repo_id.replace('/', '--')}"
+        snapshots = [k for k in owned if f"/{slug}/snapshots/" in k]
+        refs = [k for k in owned if f"/{slug}/refs/" in k]
+        return snapshots + refs if snapshots and refs else None
+    if not owned:
+        return None
+    inside = [key[len(prefix):] for key in owned]
+    if not artifact.cache_layout:
+        # A flat local_dir snapshot's own files never live under models--*
+        # cache subdirectories; sibling cache trees cannot prove it.
+        inside = [
+            rel for rel in inside
+            if not any(part.startswith("models--") for part in rel.split("/")[:-1])
+        ]
+        if not inside:
+            return None
+    for pattern in artifact.allow_patterns:
+        leaf = pattern.split("/")[-1]
+        if not any(
+            fnmatch.fnmatch(rel, pattern)
+            or fnmatch.fnmatch(rel.rsplit("/", 1)[-1], leaf)
+            or fnmatch.fnmatch(rel.rsplit("/", 1)[-1], pattern)
+            for rel in inside
+        ):
+            return None  # an allowlisted member is not in the store yet
+    return inside
+
+
 def _hash_job(absolute: str) -> tuple[str, str, str, str, str, str, str | None]:
     """Stream one file once and produce the reference digest triple."""
     path = Path(absolute)
@@ -1859,7 +1943,6 @@ def sync_hashes(
     workers: int,
     *,
     assume_yes: bool = False,
-    quiet: bool = False,
 ) -> None:
     """Check models/hashes.txt, hash only new or changed files, update WANT."""
     registry = _registry_load()
@@ -1921,7 +2004,7 @@ def sync_hashes(
                 continue
             pending.append(str(path))
             records[key] = [f"FILE:      {key}", f"WANT:      {want}"]  # filled below
-    if not quiet and pending and sys.stdin.isatty() and not assume_yes and len(pending) > 500:
+    if pending and sys.stdin.isatty() and not assume_yes and len(pending) > 500:
         answer = _prompt_or_eof(
             f"\n{len(pending)} files are new or changed since the last run;"
             " hash them now? [Y/n]: ", default="y",
@@ -2329,12 +2412,28 @@ def download_artifact(
     number: int,
     total: int,
     workers: int,
+    registry: dict[str, dict[str, str]] | None = None,
 ) -> None:
     # snapshot_download normally creates local_dir/cache_dir, but doing it here
     # guarantees that fresh nested roots such as qwen/ and text-only/ exist.
     artifact.destination.mkdir(parents=True, exist_ok=True)
     if artifact.direct_url:
-        download_direct_artifact(artifact, number, total)
+        if _registry_digest_skip(artifact, registry):
+            print(f"\n[{number}/{total}] {artifact.repo_id}")
+            print(f"  ready: {artifact.destination / artifact.direct_filename}"
+                  " (hashes.txt digest)")
+        else:
+            download_direct_artifact(artifact, number, total)
+        materialize_placements(artifact)
+        materialize_dir_links(artifact)
+        materialize_file_links(artifact)
+        materialize_store_mirrors(artifact.destination)
+        return
+    proven = _registry_snapshot_files(artifact, registry)
+    if proven is not None:
+        print(f"\n[{number}/{total}] {artifact.repo_id}")
+        print(f"  ready: {len(proven)} files verified through hashes.txt"
+              " (delete them or the registry to refetch)")
         materialize_placements(artifact)
         materialize_dir_links(artifact)
         materialize_file_links(artifact)
@@ -2553,6 +2652,7 @@ def build_parser() -> argparse.ArgumentParser:
             "uv run download_models.py lingbot:2 | uv run download_models.py fastframes:2. "
             "Every run first migrates the store into canonical <org>--<model> directories "
             "and checks/updates hashes.txt (stateful WANT registry, reference digest set); "
+            "artifacts already verified in hashes.txt skip the network entirely; "
             "after a completed pass it offers to remove deselected or unclaimed paths "
             "under models/ (always y/n first)."
         ),
@@ -2612,6 +2712,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     organize_store(args.yes)
     claims = _definition_claims()
     sync_hashes(claims, _wanted_names(bundles, picks, claims), workers, assume_yes=args.yes)
+    # The registry doubles as the download skip-list: artifacts whose pinned
+    # digests or complete snapshot files already sit in hashes.txt need no
+    # network pass at all.
+    registry = _registry_load()
 
     artifacts = tuple(dict.fromkeys(
         canonical_artifact(artifact)
@@ -2659,18 +2763,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         logging.set_verbosity_info()
     for number, artifact in enumerate(artifacts, start=1):
-        download_artifact(artifact, number, len(artifacts), workers)
+        download_artifact(artifact, number, len(artifacts), workers, registry)
         _tidy_destination(artifact)
 
     if any(bundle.key == "scenebloom" for bundle in bundles):
         prepare_scenebloom_assets(MODELS)
 
     print(f"\nCompleted {len(artifacts)} snapshot downloads.")
+    # The completed pass first updates hashes.txt (prompted once for anything
+    # new), then offers the destructive cleanup: WANT 0 trees and unclaimed
+    # folders, i.e. everything models/ holds outside this run's selection.
+    sync_hashes(claims, _wanted_names(bundles, picks, claims), workers, assume_yes=args.yes)
     post_download_maintenance(bundles, picks, claims)
-    # Refresh the registry so every downloaded file is registered and the
-    # removals above drop out as stale entries.
-    sync_hashes(claims, _wanted_names(bundles, picks, claims), workers,
-                assume_yes=True, quiet=True)
     return 0
 
 # SceneBloom ships two large published archives plus AmbientCG material packs; the

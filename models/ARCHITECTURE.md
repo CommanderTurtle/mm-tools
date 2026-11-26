@@ -72,7 +72,10 @@ store paths of deselected (`WANT 0`) names, and top-level entries under
 `models/` that no bundle definition claims. Mixed or shared destinations and
 the compatibility symlink placements declared by definitions are always kept;
 the registry is refreshed at the end of the run so new downloads are
-registered and removed files drop out as stale.
+registered and removed files drop out as stale. The refreshed registry also
+serves as the skip-list: an artifact whose pinned digest (direct asset) or
+complete, allowlist-satisfied, `.cache`-free snapshot files are already in
+`hashes.txt` is reported ready without a single network request.
 
 The former `animate` and `ltx` bundles are retired from this downloader.
 Those weights now come from `workflows/download_models.py`, which ships

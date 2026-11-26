@@ -55,7 +55,11 @@ names, and top-level folders under `models/` claimed by no bundle definition.
 Mixed destinations shared with a wanted selection and declared compatibility
 placements are never offered.  The registry is refreshed once more at the end
 of the run so the pass's downloads are registered and anything deleted drops
-out as stale.
+out as stale.  The registry doubles as the download skip-list: a direct
+artifact whose pinned SHA-256 is in `hashes.txt`, or a snapshot whose full
+allowlist of files sits under its canonical directory with no interrupted
+`.cache`, is reported ready with no network request (delete the files or the
+registry entry to force a refetch).
 
 Every newly introduced upstream snapshot is pinned to the immutable revision
 audited for this source import. File allowlists retain only runtime-required
